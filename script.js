@@ -87,6 +87,71 @@
     Array.prototype.forEach.call(cs, function (el) { cio.observe(el); });
   } else { Array.prototype.forEach.call(cs, hitung); }
 
+  /* ── penyaring galeri ────────────────────────────────────────── */
+  var fbtn = document.querySelectorAll(".fbtn");
+  var kartu = document.querySelectorAll(".pj");
+  if (fbtn.length && kartu.length) {
+    Array.prototype.forEach.call(fbtn, function (b) {
+      var dasar = b.textContent.replace(/\s·\s\d+$/, "");
+      b.addEventListener("click", function () {
+        var f = b.getAttribute("data-f");
+        Array.prototype.forEach.call(fbtn, function (x) {
+          x.setAttribute("aria-pressed", String(x === b));
+        });
+        var n = 0;
+        Array.prototype.forEach.call(kartu, function (k) {
+          var cocok = f === "all" ||
+                      (k.getAttribute("data-cat") || "").split(" ").indexOf(f) >= 0;
+          k.classList.toggle("off", !cocok);
+          if (cocok) {                       // putar ulang reveal-nya
+            n++;
+            if (!kurang) { k.classList.remove("in"); void k.offsetWidth; }
+            k.classList.add("in");
+          }
+        });
+        b.textContent = dasar + " · " + n;
+      });
+    });
+  }
+
+  /* ── sorotan mengikuti kursor ────────────────────────────────── */
+  Array.prototype.forEach.call(document.querySelectorAll(".pj"), function (k) {
+    k.addEventListener("mousemove", function (ev) {
+      var r = k.getBoundingClientRect();
+      k.style.setProperty("--mx", ((ev.clientX - r.left) / r.width * 100) + "%");
+      k.style.setProperty("--my", ((ev.clientY - r.top) / r.height * 100) + "%");
+    });
+  });
+
+  /* ── pita sertifikat ─────────────────────────────────────────── */
+  var mq = document.getElementById("mq");
+  if (mq) {
+    var SERT = [
+      "Learn Jetpack Compose — Dicoding",
+      "Android Fundamental Apps — Dicoding",
+      "SOLID Principles — Dicoding",
+      "Kotlin for Beginners — Dicoding",
+      "Basic UX Design — Dicoding",
+      "Basic Software Development — Dicoding",
+      "Programming Logic 101 — Dicoding",
+      "Git and GitHub — Dicoding",
+      "Basic SQL — Dicoding",
+      "Data 101 — Dicoding",
+      "Basic Web Programming — Dicoding",
+      "Career for Software Developer — Dicoding",
+      "Kotlin Beginner to Expert — Udemy",
+      "Full Stack Android Developer — BuildWithAngga",
+      "Fundamental Android Developer — Kominfo Digitalent",
+      "Intro to Programming — Hacktiv8 Jakarta"
+    ];
+    // digandakan supaya guliran -50% menyambung tanpa jeda
+    SERT.concat(SERT).forEach(function (t) {
+      var e = document.createElement("span");
+      e.textContent = t;
+      mq.appendChild(e);
+    });
+  }
+
   /* ── rantai blok ───────────────────────────────────────────────
      Blok-blok tertaut yang menggambar dirinya lalu hanyut pelan.
      Murni dekoratif — tidak mewakili data apa pun.

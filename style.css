@@ -191,3 +191,100 @@ footer{border-top:1px solid var(--line);padding:var(--s8) 0;color:var(--fg-3);fo
   .rv{opacity:1;transform:none}
   .row::before{width:100%}
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   GALERI PROJECT — tambahan 10 Sep
+   Layout Bento diambil dari UI/UX Pro Max (saran yang tepat untuk galeri).
+   Font & aksen TIDAK ikut sarannya: Orbitron adalah klise crypto, dan
+   #22C55E bersaturasi 83% (taste-skill: maks 80%). #3DDC84 dikunci.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── penyaring ─────────────────────────────────────────────────── */
+.filter{display:flex;flex-wrap:wrap;gap:var(--s2);margin:0 0 var(--s8)}
+.fbtn{font-family:var(--mono);font-size:.78rem;padding:var(--s3) var(--s4);min-height:44px;
+      background:transparent;color:var(--fg-2);border:1px solid var(--line);border-radius:var(--r);
+      cursor:pointer;transition:color 160ms var(--e),border-color 160ms var(--e),background 160ms var(--e)}
+.fbtn:hover{color:var(--fg);border-color:var(--line-lit)}
+.fbtn[aria-pressed="true"]{color:#06120B;background:var(--ac);border-color:var(--ac)}
+
+/* ── bento ─────────────────────────────────────────────────────── */
+.bento{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:var(--s3)}
+@media(max-width:980px){.bento{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.bento{grid-template-columns:1fr}}
+
+.pj{grid-column:span 3;position:relative;display:flex;flex-direction:column;
+    background:linear-gradient(165deg,var(--surf),var(--bg-2));
+    border:1px solid var(--line);border-radius:var(--r);padding:var(--s8);overflow:hidden;
+    transition:transform 320ms var(--e),border-color 320ms var(--e),box-shadow 320ms var(--e),
+               opacity 320ms var(--e)}
+.pj.wide{grid-column:span 4}
+.pj.slim{grid-column:span 2}
+@media(max-width:980px){.pj,.pj.wide,.pj.slim{grid-column:span 1}}
+.pj:hover{transform:translateY(-3px) scale(1.012);border-color:var(--ac-dim);
+          box-shadow:0 20px 46px -28px rgba(0,0,0,.9),0 0 0 1px rgba(61,220,132,.14) inset}
+.pj::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;
+           background:radial-gradient(460px circle at var(--mx,50%) var(--my,0%),
+                      rgba(61,220,132,.09),transparent 62%);
+           transition:opacity 320ms var(--e)}
+.pj:hover::after{opacity:1}
+.pj.off{display:none}
+
+.pj-top{display:flex;align-items:flex-start;gap:var(--s3);margin-bottom:var(--s4)}
+.pj-ico{width:36px;height:36px;flex:none;display:grid;place-items:center;
+        border:1px solid var(--ac-dim);border-radius:var(--r);background:var(--ac-wash)}
+.pj-ico svg{width:18px;height:18px;stroke:var(--ac);fill:none;stroke-width:1.7}
+.pj-kind{font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;
+         color:var(--ac);margin:0 0 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pj h3{font-size:1.16rem;font-weight:600;margin:0;letter-spacing:-.015em}
+.pj .sub{font-family:var(--mono);font-size:.74rem;color:var(--fg-3);margin:2px 0 0}
+.pj p{color:var(--fg-2);font-size:.94rem;margin:0 0 var(--s3)}
+.pj ul{margin:0 0 var(--s4);padding-left:var(--s4);color:var(--fg-2);font-size:.9rem}
+.pj li{margin-bottom:var(--s2)}
+.pj li b{color:var(--fg);font-weight:600}
+.pj .foot{margin-top:auto;display:flex;flex-wrap:wrap;gap:var(--s2);padding-top:var(--s3);
+          border-top:1px solid var(--line)}
+
+/* angka penanda skala di dalam kartu */
+.pj-num{display:flex;flex-wrap:wrap;gap:var(--s6);margin:0 0 var(--s4)}
+.pj-num div{min-width:0}
+.pj-num .n{font-family:var(--mono);font-size:1.32rem;font-weight:600;color:var(--fg);
+           display:block;font-variant-numeric:tabular-nums;line-height:1.1}
+.pj-num .l{font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;
+           color:var(--fg-3)}
+
+/* ── kredensial ────────────────────────────────────────────────── */
+.cred{display:grid;grid-template-columns:repeat(auto-fill,minmax(224px,1fr));gap:var(--s3)}
+.cd{background:var(--surf);border:1px solid var(--line);border-radius:var(--r);
+    padding:var(--s4) var(--s6);transition:border-color 220ms var(--e),background 220ms var(--e)}
+.cd:hover{border-color:var(--ac-dim);background:var(--surf-2)}
+.cd .t{font-size:.92rem;font-weight:600;margin:0 0 3px;line-height:1.35}
+.cd .i{font-family:var(--mono);font-size:.72rem;color:var(--fg-3)}
+.cd.hi{border-color:var(--ac-dim);background:var(--ac-wash)}
+.cd.hi .t{color:var(--ac)}
+
+/* ── pita berjalan (sertifikat kecil) ──────────────────────────── */
+.mq{overflow:hidden;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+    padding:var(--s3) 0;margin:var(--s8) 0 0;position:relative}
+.mq::before,.mq::after{content:"";position:absolute;top:0;bottom:0;width:70px;z-index:2;pointer-events:none}
+.mq::before{left:0;background:linear-gradient(90deg,var(--bg),transparent)}
+.mq::after{right:0;background:linear-gradient(270deg,var(--bg),transparent)}
+.mq-t{display:flex;gap:var(--s6);width:max-content;animation:mv 46s linear infinite}
+.mq:hover .mq-t{animation-play-state:paused}
+.mq-t span{font-family:var(--mono);font-size:.76rem;color:var(--fg-3);white-space:nowrap}
+.mq-t span::before{content:"◦ ";color:var(--ac)}
+@keyframes mv{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+@media(prefers-reduced-motion:reduce){
+  .mq-t{animation:none;width:auto;flex-wrap:wrap}
+  .pj:hover{transform:none}
+}
+
+/* Di layar sempit, nowrap pada eyebrow malah MEMOTONG teks. Terpotong lebih
+   buruk daripada dua baris — di bawah 620px biarkan membungkus, dan susun
+   kepala kartu ke bawah supaya judul tak berdesakan dengan ikon. */
+@media(max-width:620px){
+  .pj-kind{white-space:normal;overflow:visible}
+  .pj-top{flex-direction:column;gap:var(--s2)}
+  .pj .sub{overflow-wrap:anywhere}
+  .pj-num{gap:var(--s4)}
+}
