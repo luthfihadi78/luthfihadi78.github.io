@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>QKUK Terminal — live signal feed</title>
 <meta name="description" content="Live crypto signal terminal. Watchlist, signals and accuracy across three timeframes, written straight from the engine.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23070B09'/%3E%3Cg stroke='%236EE7B7' fill='none' stroke-linecap='round'%3E%3Crect x='5.6' y='5.6' width='17.4' height='17.4' rx='5.4' stroke-width='2.1'/%3E%3Cpath d='M18.4 18.4 L25.6 25.6' stroke-width='2.7'/%3E%3Cpath d='M11.4 12.2 L14.3 15.1 L11.4 18' stroke-width='2' stroke-linejoin='round'/%3E%3C/g%3E%3Crect x='15.9' y='16.4' width='4.4' height='1.8' rx='.9' fill='%236EE7B7'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23070B09'/%3E%3Cg stroke='%236EE7B7' fill='none' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M27.4 16 L21.7 25.9 L10.3 25.9 L4.6 16 L10.3 6.1 L21.7 6.1 Z' stroke-width='2.3'/%3E%3Cpath d='M12 12.2 L15.5 16 L12 19.8' stroke-width='2.3'/%3E%3C/g%3E%3Crect x='17.4' y='15.1' width='4.2' height='1.9' rx='.95' fill='%236EE7B7'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
@@ -159,17 +159,18 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
   <div class="bar-in">
     <span class="logo">
       <svg class="mark" viewBox="0 0 32 32" role="img" aria-label="Qkuk Terminal">
-        <!-- Badan Q = satu blok. Ekornya menembus keluar sudut kanan-bawah:
-             terbaca Q, sekaligus seperti rantai yang menyambung ke blok
-             berikutnya. Di dalamnya prompt ">" + kursor yang berkedip —
-             penanda terminal yang hidup, sejalan dgn lampu LIVE di sebelahnya. -->
-        <rect x="3.4" y="3.4" width="21.2" height="21.2" rx="6.6"
-              fill="none" stroke="currentColor" stroke-width="2.1"/>
-        <path d="M19.2 19.2 L27.6 27.6" stroke="currentColor"
-              stroke-width="2.7" stroke-linecap="round"/>
-        <path d="M10.6 11.4 L14.1 14.9 L10.6 18.4" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <rect class="cur" x="16.2" y="16.6" width="4.9" height="1.9" rx=".95"
+        <!-- ⚠️ Versi pertama memakai kotak bulat + ekor diagonal (niatnya huruf Q).
+             Di ukuran 23px itu terbaca sebagai IKON KACA PEMBESAR — kotak bulat
+             mirip lensa, ekornya mirip gagang. Diganti HEKSAGON: bentuk blok /
+             node yang sudah baku di kripto dan tidak punya tabrakan makna itu.
+             Isinya prompt ">" + kursor berkedip = terminal yang hidup, sejalan
+             dgn lampu LIVE di sebelahnya. Huruf Q-nya dibawa oleh wordmark. -->
+        <path d="M28 16 L22 26.39 L10 26.39 L4 16 L10 5.61 L22 5.61 Z"
+              fill="none" stroke="currentColor" stroke-width="2.1"
+              stroke-linejoin="round"/>
+        <path d="M11.7 11.9 L15.4 16 L11.7 20.1" fill="none" stroke="currentColor"
+              stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect class="cur" x="17.4" y="15.05" width="4.4" height="1.9" rx=".95"
               fill="currentColor"/>
       </svg>
       <span class="wm"><b>Qkuk</b> Terminal</span>
