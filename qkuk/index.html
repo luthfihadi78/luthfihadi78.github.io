@@ -7,18 +7,21 @@
 <meta name="description" content="An autonomous crypto signal engine built and run by Moch. Luthfi Hadiwidjaja. Live results across three timeframes, published unedited.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --ink-0:#0A121B; --ink-1:#0F1926; --ink-2:#14243A; --ink-3:#1A2C44;
-  --line:rgba(186,208,236,.10); --line-firm:rgba(186,208,236,.20);
-  --tx:#E6EDF5; --tx-2:#9FB0C4; --tx-3:#6A7C92;
-  --brass:#C9A227; --brass-lit:#E3BE52; --brass-wash:rgba(201,162,39,.11);
-  --up:#6FC79A; --up-wash:rgba(111,199,154,.12);
-  --down:#D4726A; --down-wash:rgba(212,114,106,.12);
+  /* Palet DIAMBIL PERSIS dari style.css portofolio (luthfihadi78.github.io)
+     supaya /qkuk/ terbaca sebagai halaman yang sama, bukan situs lain. */
+  --ink-0:#070B09; --ink-1:#0C1310; --ink-2:#121C17; --ink-3:#18251F;
+  --line:#1B2822; --line-firm:#2A3B33;
+  --tx:#EEF4F1; --tx-2:#9DB0A7; --tx-3:#788A81;
+  --brass:#6EE7B7; --brass-lit:#9CF2CE; --brass-wash:rgba(110,231,183,.09);
+  --gold:#D8C89A; --gold-wash:rgba(216,200,154,.10);
+  --up:#6EE7B7; --up-wash:rgba(110,231,183,.12);
+  --down:#E8877C; --down-wash:rgba(232,135,124,.12);
   --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
-  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
-  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --mono:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   --r:10px;
 }
 *{box-sizing:border-box}
@@ -31,8 +34,8 @@ body{
 /* lapisan ambient — tetap (fixed) & tak bisa diklik, sesuai protokol skill */
 .ambient{position:fixed;inset:0;pointer-events:none;z-index:0;
   background:
-    radial-gradient(60rem 40rem at 18% -8%, rgba(201,162,39,.055), transparent 62%),
-    radial-gradient(52rem 38rem at 96% 12%, rgba(93,140,200,.05), transparent 60%);}
+    radial-gradient(60rem 40rem at 18% -8%, rgba(110,231,183,.05), transparent 62%),
+    radial-gradient(52rem 38rem at 96% 12%, rgba(216,200,154,.035), transparent 60%);}
 .wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:0 24px}
 a{color:var(--brass-lit);text-decoration:none}
 a:hover{text-decoration:underline;text-underline-offset:3px}
@@ -54,7 +57,7 @@ header{padding:110px 0 64px}
   border:1px solid var(--line-firm);border-radius:999px;padding:6px 13px;margin-bottom:26px}
 .dot{width:6px;height:6px;border-radius:999px;background:var(--up);flex:none;
   box-shadow:0 0 0 0 rgba(111,199,154,.5);animation:pulse 2.8s cubic-bezier(.4,0,.6,1) infinite}
-.dot.stale{background:var(--brass);animation:none}
+.dot.stale{background:var(--gold);animation:none}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(111,199,154,.45)}70%{box-shadow:0 0 0 7px rgba(111,199,154,0)}100%{box-shadow:0 0 0 0 rgba(111,199,154,0)}}
 
 section{padding:74px 0;border-top:1px solid var(--line)}
@@ -72,7 +75,7 @@ section{padding:74px 0;border-top:1px solid var(--line)}
 .tag{font-family:var(--mono);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;
   padding:3px 8px;border-radius:999px;white-space:nowrap;border:1px solid transparent}
 .tag.live{background:var(--up-wash);color:var(--up);border-color:rgba(111,199,154,.2)}
-.tag.test{background:var(--brass-wash);color:var(--brass-lit);border-color:rgba(201,162,39,.24)}
+.tag.test{background:var(--gold-wash);color:var(--gold);border-color:rgba(216,200,154,.26)}
 .metrics{display:grid;grid-template-columns:1fr 1fr;gap:14px 10px;margin-top:22px}
 .met .k{font-family:var(--mono);font-size:.62rem;letter-spacing:.11em;text-transform:uppercase;
   color:var(--tx-3);display:block;margin-bottom:3px}
@@ -101,7 +104,7 @@ svg.chart .zero{stroke:var(--line-firm);stroke-width:1;stroke-dasharray:3 4}
   background:transparent;color:var(--tx-2);border:1px solid var(--line-firm);border-radius:6px;
   padding:8px 14px;cursor:pointer;transition:background .18s,color .18s,border-color .18s}
 .tab:hover{border-color:var(--brass);color:var(--tx)}
-.tab[aria-selected="true"]{background:var(--brass);color:#0A121B;border-color:var(--brass);font-weight:600}
+.tab[aria-selected="true"]{background:var(--brass);color:#04100B;border-color:var(--brass);font-weight:600}
 .tab:active{transform:scale(.98)}
 .tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--ink-1)}
 table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.78rem;
@@ -289,7 +292,10 @@ footer .row{display:flex;flex-wrap:wrap;gap:22px;align-items:baseline;justify-co
   "use strict";
   var DATA = null;
   var ORDER = ["1h", "2h", "4h"];
-  var COLOR = { "1h": "#E3BE52", "2h": "#6FC79A", "4h": "#7FA8D9" };
+  /* Dua garis di grafik harus bisa dibedakan sekilas. Dalam palet mint,
+     pasangan paling kontras adalah mint vs emas; pale-mint dipakai kanal uji
+     yang tidak pernah muncul di grafik panel. */
+  var COLOR = { "1h": "#9CF2CE", "2h": "#6EE7B7", "4h": "#D8C89A" };
 
   function $(s) { return document.querySelector(s); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
