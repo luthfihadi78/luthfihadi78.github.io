@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Qkuk Terminal — live signal engine</title>
+<meta name="description" content="An autonomous crypto signal engine built and run by Moch. Luthfi Hadiwidjaja. Live results across three timeframes, published unedited.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink-0:#0A121B; --ink-1:#0F1926; --ink-2:#14243A; --ink-3:#1A2C44;
+  --line:rgba(186,208,236,.10); --line-firm:rgba(186,208,236,.20);
+  --tx:#E6EDF5; --tx-2:#9FB0C4; --tx-3:#6A7C92;
+  --brass:#C9A227; --brass-lit:#E3BE52; --brass-wash:rgba(201,162,39,.11);
+  --up:#6FC79A; --up-wash:rgba(111,199,154,.12);
+  --down:#D4726A; --down-wash:rgba(212,114,106,.12);
+  --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:10px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--ink-0);color:var(--tx);
+  font-family:var(--sans);font-size:15px;font-weight:300;line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+/* lapisan ambient — tetap (fixed) & tak bisa diklik, sesuai protokol skill */
+.ambient{position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(60rem 40rem at 18% -8%, rgba(201,162,39,.055), transparent 62%),
+    radial-gradient(52rem 38rem at 96% 12%, rgba(93,140,200,.05), transparent 60%);}
+.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:0 24px}
+a{color:var(--brass-lit);text-decoration:none}
+a:hover{text-decoration:underline;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--brass);outline-offset:3px;border-radius:4px}
+
+.eyebrow{font-family:var(--mono);font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--brass);margin:0 0 18px}
+h1{font-family:var(--serif);font-weight:400;font-size:clamp(2.6rem,6.4vw,4.5rem);
+  line-height:1.04;letter-spacing:-.022em;margin:0 0 20px;text-wrap:balance}
+h2{font-family:var(--serif);font-weight:400;font-size:clamp(1.7rem,3.4vw,2.3rem);
+  line-height:1.12;letter-spacing:-.018em;margin:0 0 10px}
+h3{font-family:var(--sans);font-weight:500;font-size:.95rem;letter-spacing:-.005em;margin:0}
+.lede{color:var(--tx-2);max-width:60ch;font-size:1.03rem;margin:0}
+em{font-family:var(--serif);font-style:italic;color:var(--brass-lit);font-size:1.06em}
+
+header{padding:110px 0 64px}
+.status{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:.7rem;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--tx-2);
+  border:1px solid var(--line-firm);border-radius:999px;padding:6px 13px;margin-bottom:26px}
+.dot{width:6px;height:6px;border-radius:999px;background:var(--up);flex:none;
+  box-shadow:0 0 0 0 rgba(111,199,154,.5);animation:pulse 2.8s cubic-bezier(.4,0,.6,1) infinite}
+.dot.stale{background:var(--brass);animation:none}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(111,199,154,.45)}70%{box-shadow:0 0 0 7px rgba(111,199,154,0)}100%{box-shadow:0 0 0 0 rgba(111,199,154,0)}}
+
+section{padding:74px 0;border-top:1px solid var(--line)}
+.sec-head{margin-bottom:34px}
+.sec-head .lede{margin-top:10px}
+
+/* ── bento ── */
+.bento{display:grid;gap:14px;grid-template-columns:repeat(3,1fr)}
+@media(max-width:860px){.bento{grid-template-columns:1fr}}
+.card{background:var(--ink-1);border:1px solid var(--line);border-radius:var(--r);
+  padding:26px;transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease}
+.card:hover{border-color:var(--line-firm);box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px}
+.tf{font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;color:var(--tx-3)}
+.tag{font-family:var(--mono);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;
+  padding:3px 8px;border-radius:999px;white-space:nowrap;border:1px solid transparent}
+.tag.live{background:var(--up-wash);color:var(--up);border-color:rgba(111,199,154,.2)}
+.tag.test{background:var(--brass-wash);color:var(--brass-lit);border-color:rgba(201,162,39,.24)}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:14px 10px;margin-top:22px}
+.met .k{font-family:var(--mono);font-size:.62rem;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--tx-3);display:block;margin-bottom:3px}
+.met .v{font-family:var(--mono);font-size:1.28rem;font-weight:500;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums}
+.v.pos{color:var(--up)} .v.neg{color:var(--down)} .v.mute{color:var(--tx-3)}
+.spark{margin-top:20px;height:40px;width:100%;display:block}
+.note{margin-top:18px;padding-top:16px;border-top:1px solid var(--line);
+  font-size:.82rem;color:var(--tx-3);line-height:1.55}
+
+/* ── chart ── */
+.chart-wrap{background:var(--ink-1);border:1px solid var(--line);border-radius:var(--r);padding:26px}
+.chart-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px;margin-bottom:20px}
+.chart-head h3{margin-right:auto}
+.legend{display:flex;gap:16px;flex-wrap:wrap}
+.lg{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:.68rem;color:var(--tx-2)}
+.lg i{width:14px;height:2px;display:inline-block;border-radius:2px}
+svg.chart{width:100%;height:280px;display:block;overflow:visible}
+svg.chart text{font-family:var(--mono);font-size:9.5px;fill:var(--tx-3)}
+svg.chart .grid{stroke:var(--line);stroke-width:1}
+svg.chart .zero{stroke:var(--line-firm);stroke-width:1;stroke-dasharray:3 4}
+
+/* ── tabs & table ── */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+.tab{font-family:var(--mono);font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;
+  background:transparent;color:var(--tx-2);border:1px solid var(--line-firm);border-radius:6px;
+  padding:8px 14px;cursor:pointer;transition:background .18s,color .18s,border-color .18s}
+.tab:hover{border-color:var(--brass);color:var(--tx)}
+.tab[aria-selected="true"]{background:var(--brass);color:#0A121B;border-color:var(--brass);font-weight:600}
+.tab:active{transform:scale(.98)}
+.tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--ink-1)}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.78rem;
+  font-variant-numeric:tabular-nums;min-width:660px}
+th{text-align:left;padding:13px 14px;font-size:.62rem;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--tx-3);font-weight:500;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:12px 14px;border-bottom:1px solid var(--line);color:var(--tx-2);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tbody tr{transition:background .15s}
+tbody tr:hover{background:var(--ink-2)}
+td.sym{color:var(--tx);font-weight:500}
+td.num{text-align:right}
+.side{font-size:.62rem;letter-spacing:.09em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
+.side.long{background:var(--up-wash);color:var(--up)}
+.side.short{background:var(--down-wash);color:var(--down)}
+.empty{padding:40px 24px;text-align:center;color:var(--tx-3);font-family:var(--mono);font-size:.78rem}
+
+/* ── method ── */
+.steps{display:grid;gap:0;margin-top:8px}
+.step{display:grid;grid-template-columns:44px 1fr;gap:18px;padding:22px 0;border-bottom:1px solid var(--line)}
+.step:last-child{border-bottom:none}
+.step .n{font-family:var(--mono);font-size:.72rem;color:var(--brass);padding-top:3px}
+.step p{margin:6px 0 0;color:var(--tx-2);font-size:.92rem;max-width:62ch}
+.stack{display:flex;flex-wrap:wrap;gap:7px;margin-top:26px}
+.chip{font-family:var(--mono);font-size:.66rem;letter-spacing:.04em;color:var(--tx-2);
+  border:1px solid var(--line-firm);border-radius:999px;padding:5px 11px}
+
+footer{padding:60px 0 80px;border-top:1px solid var(--line);color:var(--tx-3);font-size:.84rem}
+footer .row{display:flex;flex-wrap:wrap;gap:22px;align-items:baseline;justify-content:space-between}
+.mono-s{font-family:var(--mono);font-size:.7rem;letter-spacing:.05em;color:var(--tx-3)}
+
+.rv{opacity:0;transform:translateY(12px)}
+.rv.in{opacity:1;transform:none;transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition-duration:.001ms!important}
+  .rv{opacity:1;transform:none}
+}
+@media(max-width:560px){
+  header{padding:76px 0 48px}
+  section{padding:56px 0}
+  .card{padding:20px}
+  .chart-wrap{padding:18px}
+}
+</style>
+</head>
+<body>
+<div class="ambient" aria-hidden="true"></div>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">Qkuk Terminal</p>
+  <div class="status"><span class="dot" id="dot"></span><span id="stamp">loading data</span></div>
+  <h1>A signal engine that reports its own <em>losses</em>.</h1>
+  <p class="lede">
+    An autonomous crypto research system I designed, built and run myself — signal engines
+    in Python reading live Binance futures data across roughly 370 pairs, statistical
+    validation over two years of history before anything is trusted, and automated delivery
+    to a messaging group. This page reads the same files the engine writes. Nothing here is
+    curated after the fact.
+  </p>
+  <div class="stack">
+    <span class="chip">Python</span><span class="chip">NumPy / pandas</span>
+    <span class="chip">Binance Futures API</span><span class="chip">DSR / PBO / CPCV</span>
+    <span class="chip">WhatsApp + Telegram delivery</span><span class="chip">TradingView Pine</span>
+  </div>
+</header>
+
+<section id="channels">
+  <div class="sec-head rv">
+    <h2>Three channels, judged separately</h2>
+    <p class="lede">
+      The same detection logic runs on three timeframes. Each keeps its own log, its own
+      de-duplication and its own scoreboard, so one cannot flatter another. The 1-hour
+      channel is an evaluation channel: it publishes its watchlist but its entry signals
+      are recorded only, never sent.
+    </p>
+  </div>
+  <div class="bento" id="cards"></div>
+</section>
+
+<section id="equity">
+  <div class="sec-head rv">
+    <h2>Validation history</h2>
+    <p class="lede">
+      Cumulative R over the 733-day backtest panel, net of fees. This is the reference the
+      live numbers above are measured against — not a forecast.
+    </p>
+  </div>
+  <div class="chart-wrap rv">
+    <div class="chart-head">
+      <h3>Cumulative R — backtest panel</h3>
+      <div class="legend" id="eq-legend"></div>
+    </div>
+    <svg class="chart" id="eq" role="img" aria-label="Cumulative R curve per channel"></svg>
+  </div>
+</section>
+
+<section id="hours">
+  <div class="sec-head rv">
+    <h2>Accuracy by hour</h2>
+    <p class="lede">
+      Win rate by hour of day, Jakarta time, across the same panel. Read it as texture,
+      not as a rule — thin hours carry wide error bars.
+    </p>
+  </div>
+  <div class="chart-wrap rv">
+    <div class="chart-head">
+      <h3>Win rate, WIB hour</h3>
+      <div class="legend" id="hr-legend"></div>
+    </div>
+    <svg class="chart" id="hr" role="img" aria-label="Win rate by hour of day"></svg>
+  </div>
+</section>
+
+<section id="signals">
+  <div class="sec-head rv">
+    <h2>Live signals</h2>
+    <p class="lede">
+      Every entry the engine has issued on this channel, newest first — open and closed,
+      winners and losers. The page re-reads the file every minute.
+    </p>
+  </div>
+  <div class="tabs rv" id="sig-tabs" role="tablist"></div>
+  <div class="tbl-scroll rv" id="sig-table"></div>
+</section>
+
+<section id="watch">
+  <div class="sec-head rv">
+    <h2>Watchlist</h2>
+    <p class="lede">
+      Reclaims the engine has detected but not yet confirmed. These are not entries; a
+      signal only follows if the break arrives, which is usually days later.
+    </p>
+  </div>
+  <div class="tabs rv" id="w-tabs" role="tablist"></div>
+  <div class="tbl-scroll rv" id="w-table"></div>
+</section>
+
+<section id="method">
+  <div class="sec-head rv">
+    <h2>How a rule earns its place</h2>
+    <p class="lede">
+      Most ideas tested here are rejected. That is the point of the process, and the reason
+      the numbers above can be published without editing.
+    </p>
+  </div>
+  <div class="steps rv">
+    <div class="step"><div class="n">01</div><div>
+      <h3>Pre-registration</h3>
+      <p>The decision rule and its thresholds are written down before the data is cut.
+      A finding that only becomes interesting after the result is seen does not count.</p></div></div>
+    <div class="step"><div class="n">02</div><div>
+      <h3>Deflated Sharpe, PBO, CPCV</h3>
+      <p>Every candidate is charged for the number of trials it took to find it. A rule
+      that passes only because it was the best of six thousand is not a rule.</p></div></div>
+    <div class="step"><div class="n">03</div><div>
+      <h3>Shadow before live</h3>
+      <p>New channels run silently against real market data first, scored on the same
+      gates as the live ones. The 1-hour channel is in this stage now.</p></div></div>
+    <div class="step"><div class="n">04</div><div>
+      <h3>Decay alarm</h3>
+      <p>Live performance is compared against the backtest reference on a rolling window,
+      with the alarm thresholds fixed in advance. It reports; it never silently intervenes.</p></div></div>
+  </div>
+</section>
+
+<footer>
+  <div class="row">
+    <div>
+      <div>Built and operated by <a href="https://luthfihadi78.github.io">Moch. Luthfi Hadiwidjaja</a></div>
+      <div class="mono-s" style="margin-top:6px">Research notes and engine source are private. Results are not.</div>
+    </div>
+    <div class="mono-s" id="foot-stamp"></div>
+  </div>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var DATA = null;
+  var ORDER = ["1h", "2h", "4h"];
+  var COLOR = { "1h": "#E3BE52", "2h": "#6FC79A", "4h": "#7FA8D9" };
+
+  function $(s) { return document.querySelector(s); }
+  function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
+  function num(v) { var f = parseFloat(v); return isFinite(f) ? f : null; }
+  function sgn(v, d) { var f = num(v); if (f === null) return "—"; return (f > 0 ? "+" : "") + f.toFixed(d == null ? 2 : d); }
+  function ord() { return ORDER.filter(function (t) { return DATA.live && DATA.live[t]; }); }
+
+  /* ---------- cards ---------- */
+  function cards() {
+    var host = $("#cards"); host.innerHTML = "";
+    ord().forEach(function (tf, i) {
+      var L = DATA.live[tf], E = (DATA.engine || {})[tf];
+      var c = el("div", "card rv"); c.style.transitionDelay = (i * 70) + "ms";
+      var top = el("div", "card-top");
+      var left = el("div");
+      left.appendChild(el("h3", null, L.nama));
+      left.appendChild(el("div", "tf", tf.toUpperCase() + " timeframe"));
+      top.appendChild(left);
+      top.appendChild(el("span", "tag " + (L.uji ? "test" : "live"), L.uji ? "evaluation" : "live"));
+      c.appendChild(top);
+
+      var wr = L.tutup ? (L.menang / L.tutup * 100) : null;
+      var ev = L.tutup ? (L.totR / L.tutup) : null;
+      var m = el("div", "metrics");
+      [["signals sent", String(L.kirim), ""],
+       ["closed", String(L.tutup), ""],
+       ["win rate", wr === null ? "—" : wr.toFixed(0) + "%", wr === null ? "mute" : ""],
+       ["net R", L.tutup ? sgn(L.totR, 2) : "—", L.tutup ? (L.totR > 0 ? "pos" : "neg") : "mute"]
+      ].forEach(function (p) {
+        var d = el("div", "met");
+        d.appendChild(el("span", "k", p[0]));
+        d.appendChild(el("span", "v " + p[2], p[1]));
+        m.appendChild(d);
+      });
+      c.appendChild(m);
+
+      if (E && E.kurva && E.kurva.length) {
+        var sv = spark(E.kurva.map(function (p) { return p.eq; }), COLOR[tf]);
+        sv.setAttribute("class", "spark"); c.appendChild(sv);
+      }
+
+      var n = el("div", "note");
+      if (L.uji) {
+        n.textContent = "Watchlist is published to the group; entry signals are logged only. "
+          + "No backtest reference exists for this timeframe yet, so it is deliberately not graded.";
+      } else if (E) {
+        n.textContent = "Backtest reference: " + E.wr.toFixed(1) + "% win rate, "
+          + sgn(E.ev, 3) + "R per trade over " + E.n.toLocaleString("en") + " entries, "
+          + E.per_bln + " signals a month.";
+      } else {
+        n.textContent = "No backtest panel for this timeframe.";
+      }
+      c.appendChild(n);
+      host.appendChild(c);
+    });
+  }
+
+  /* ---------- svg helpers ---------- */
+  var NS = "http://www.w3.org/2000/svg";
+  function mk(t, a) { var n = document.createElementNS(NS, t); for (var k in a) n.setAttribute(k, a[k]); return n; }
+
+  /* monotone cubic — tidak pernah melewati titik data, jadi tak ada puncak palsu */
+  function path(pts) {
+    if (pts.length < 2) return pts.length ? "M" + pts[0][0] + "," + pts[0][1] : "";
+    var n = pts.length, d = [], m = [], i;
+    for (i = 0; i < n - 1; i++) d.push((pts[i + 1][1] - pts[i][1]) / ((pts[i + 1][0] - pts[i][0]) || 1));
+    m.push(d[0]);
+    for (i = 1; i < n - 1; i++) m.push(d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2);
+    m.push(d[n - 2]);
+    var s = "M" + pts[0][0] + "," + pts[0][1];
+    for (i = 0; i < n - 1; i++) {
+      var dx = (pts[i + 1][0] - pts[i][0]) / 3;
+      s += "C" + (pts[i][0] + dx) + "," + (pts[i][1] + m[i] * dx)
+         + " " + (pts[i + 1][0] - dx) + "," + (pts[i + 1][1] - m[i + 1] * dx)
+         + " " + pts[i + 1][0] + "," + pts[i + 1][1];
+    }
+    return s;
+  }
+
+  function spark(v, col) {
+    var W = 260, H = 40, lo = Math.min.apply(null, v), hi = Math.max.apply(null, v), r = (hi - lo) || 1;
+    var pts = v.map(function (y, i) { return [i / (v.length - 1) * W, H - 3 - (y - lo) / r * (H - 6)]; });
+    var s = mk("svg", { viewBox: "0 0 " + W + " " + H, preserveAspectRatio: "none" });
+    s.appendChild(mk("path", { d: path(pts), fill: "none", stroke: col, "stroke-width": 1.5,
+      "stroke-linecap": "round", opacity: .85 }));
+    return s;
+  }
+
+  function draw(svg, series, opt) {
+    svg.innerHTML = "";
+    var W = 900, H = 280, P = { t: 14, r: 16, b: 30, l: 44 };
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("preserveAspectRatio", "none");
+    var all = [];
+    series.forEach(function (s) { all = all.concat(s.v); });
+    if (!all.length) return;
+    var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
+    if (opt && opt.pad) { var p = (hi - lo) * .12 || 1; lo -= p; hi += p; }
+    var rng = (hi - lo) || 1, len = opt.len;
+    var X = function (i) { return P.l + i / Math.max(len - 1, 1) * (W - P.l - P.r); };
+    var Y = function (y) { return P.t + (1 - (y - lo) / rng) * (H - P.t - P.b); };
+
+    for (var g = 0; g <= 4; g++) {
+      var yy = P.t + g / 4 * (H - P.t - P.b);
+      svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: yy, y2: yy, "class": "grid" }));
+      var lab = mk("text", { x: P.l - 8, y: yy + 3, "text-anchor": "end" });
+      lab.textContent = opt.fmtY(hi - g / 4 * rng);
+      svg.appendChild(lab);
+    }
+    if (lo < 0 && hi > 0) svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: Y(0), y2: Y(0), "class": "zero" }));
+
+    (opt.xticks || []).forEach(function (t) {
+      var tx = mk("text", { x: X(t.i), y: H - 10, "text-anchor": "middle" });
+      tx.textContent = t.label; svg.appendChild(tx);
+    });
+
+    series.forEach(function (s, k) {
+      var pts = s.v.map(function (y, i) { return [X(i), Y(y)]; });
+      var p = mk("path", { d: path(pts), fill: "none", stroke: s.color, "stroke-width": 1.9,
+        "stroke-linecap": "round", "stroke-linejoin": "round" });
+      var L = p.getTotalLength ? 0 : 0;
+      svg.appendChild(p);
+      try {
+        L = p.getTotalLength();
+        p.style.strokeDasharray = L; p.style.strokeDashoffset = L;
+        p.style.transition = "stroke-dashoffset 1200ms cubic-bezier(.16,1,.3,1) " + (k * 130) + "ms";
+        requestAnimationFrame(function () { p.style.strokeDashoffset = 0; });
+      } catch (e) { /* getTotalLength tak tersedia — garis tetap tampil penuh */ }
+    });
+  }
+
+  function legend(host, series) {
+    host.innerHTML = "";
+    series.forEach(function (s) {
+      var d = el("span", "lg");
+      var i = el("i"); i.style.background = s.color;
+      d.appendChild(i); d.appendChild(document.createTextNode(s.name));
+      host.appendChild(d);
+    });
+  }
+
+  function charts() {
+    var eng = ord().filter(function (t) { return (DATA.engine || {})[t]; });
+
+    var eqS = eng.map(function (tf) {
+      var E = DATA.engine[tf];
+      return { name: E.nama + " (" + tf.toUpperCase() + ")", color: COLOR[tf],
+               v: E.kurva.map(function (p) { return p.eq; }), raw: E.kurva };
+    });
+    if (eqS.length) {
+      var maxLen = Math.max.apply(null, eqS.map(function (s) { return s.v.length; }));
+      // samakan panjang sumbu-x dengan meregangkan indeks tiap seri
+      eqS.forEach(function (s) {
+        if (s.v.length === maxLen) return;
+        var src = s.v, out = [];
+        for (var i = 0; i < maxLen; i++) out.push(src[Math.round(i / (maxLen - 1) * (src.length - 1))]);
+        s.v = out;
+      });
+      var ticks = [];
+      var base = eqS[0].raw;
+      [0, .25, .5, .75, 1].forEach(function (f) {
+        var j = Math.round(f * (base.length - 1));
+        ticks.push({ i: Math.round(f * (maxLen - 1)), label: (base[j] && base[j].b) || "" });
+      });
+      draw($("#eq"), eqS, { len: maxLen, pad: true, xticks: ticks,
+        fmtY: function (y) { return (y > 0 ? "+" : "") + Math.round(y) + "R"; } });
+      legend($("#eq-legend"), eqS);
+    }
+
+    var hrS = eng.map(function (tf) {
+      var E = DATA.engine[tf];
+      return { name: E.nama + " (" + tf.toUpperCase() + ")", color: COLOR[tf],
+               v: E.jam.map(function (h) { return h.wr; }) };
+    });
+    if (hrS.length) {
+      var ht = [0, 4, 8, 12, 16, 20].map(function (h) {
+        return { i: h, label: (h < 10 ? "0" : "") + h + ":00" };
+      });
+      draw($("#hr"), hrS, { len: 24, pad: true, xticks: ht,
+        fmtY: function (y) { return Math.round(y) + "%"; } });
+      legend($("#hr-legend"), hrS);
+    }
+  }
+
+  /* ---------- tables ---------- */
+  function tabs(host, active, onPick) {
+    host.innerHTML = "";
+    ord().forEach(function (tf) {
+      var L = DATA.live[tf];
+      var b = el("button", "tab", L.nama + " · " + tf.toUpperCase());
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", tf === active ? "true" : "false");
+      b.addEventListener("click", function () { onPick(tf); });
+      host.appendChild(b);
+    });
+  }
+
+  function table(host, cols, rows, emptyMsg) {
+    host.innerHTML = "";
+    if (!rows.length) { host.appendChild(el("div", "empty", emptyMsg)); return; }
+    var t = el("table"), th = el("thead"), tr = el("tr");
+    cols.forEach(function (c) {
+      var h = el("th", null, c.h);
+      if (c.num) h.style.textAlign = "right";
+      tr.appendChild(h);
+    });
+    th.appendChild(tr); t.appendChild(th);
+    var tb = el("tbody");
+    rows.forEach(function (r) {
+      var x = el("tr");
+      cols.forEach(function (c) { x.appendChild(c.cell(r)); });
+      tb.appendChild(x);
+    });
+    t.appendChild(tb); host.appendChild(t);
+  }
+
+  function sideCell(d) {
+    var td = el("td");
+    var s = el("span", "side " + (d === "long" ? "long" : "short"), d === "long" ? "long" : "short");
+    td.appendChild(s); return td;
+  }
+  function txt(v, cls) { var td = el("td", cls); td.textContent = (v == null || v === "") ? "—" : v; return td; }
+
+  var sigTf = null, wTf = null;
+
+  function signals(tf) {
+    sigTf = tf;
+    tabs($("#sig-tabs"), tf, signals);
+    var rows = (DATA.live[tf].sinyal || []).slice().reverse();
+    table($("#sig-table"), [
+      { h: "time (WIB)", cell: function (r) { return txt(r.ts); } },
+      { h: "pair", cell: function (r) { var t = txt(r.sym, "sym"); return t; } },
+      { h: "side", cell: function (r) { return sideCell(r.dir); } },
+      { h: "entry", num: true, cell: function (r) { return txt(r.e, "num"); } },
+      { h: "stop", num: true, cell: function (r) { return txt(r.s, "num"); } },
+      { h: "target", num: true, cell: function (r) { return txt(r.t, "num"); } },
+      { h: "status", cell: function (r) { return txt(r.st === "fired" ? "open" : r.st); } },
+      { h: "result R", num: true, cell: function (r) {
+          var td = el("td", "num"); var v = num(r.pnl);
+          if (v === null) { td.textContent = "—"; return td; }
+          td.textContent = sgn(v, 2);
+          td.style.color = v > 0 ? "var(--up)" : "var(--down)";
+          return td; } }
+    ], rows, DATA.live[tf].uji
+      ? "No entry signal on this channel yet. Its watchlist is below."
+      : "No signals recorded on this channel yet.");
+  }
+
+  function watch(tf) {
+    wTf = tf;
+    tabs($("#w-tabs"), tf, watch);
+    var rows = (DATA.live[tf].pantau || []).slice().reverse();
+    table($("#w-table"), [
+      { h: "time (WIB)", cell: function (r) { return txt(r.ts); } },
+      { h: "pair", cell: function (r) { return txt(r.sym, "sym"); } },
+      { h: "side", cell: function (r) { return sideCell(r.dir); } },
+      { h: "reclaimed level", num: true, cell: function (r) { return txt(r.lv, "num"); } }
+    ], rows, "Nothing on the watchlist right now.");
+  }
+
+  /* ---------- reveal ---------- */
+  function reveal() {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+    }, { threshold: .08, rootMargin: "0px 0px -40px 0px" });
+    document.querySelectorAll(".rv").forEach(function (n) { io.observe(n); });
+  }
+
+  /* ---------- load ---------- */
+  function stamp() {
+    var s = DATA.dibuat || "";
+    $("#stamp").textContent = "engine data · " + s;
+    $("#foot-stamp").textContent = "last written " + s;
+    // tanda basi: kalau data lebih tua dari ~3 jam, titiknya berhenti berdenyut
+    var m = /(\d{2}):(\d{2})\s*WIB/.exec(s);
+    if (m) {
+      var now = new Date(Date.now() + (7 * 60 + new Date().getTimezoneOffset()) * 60000);
+      var mins = (now.getHours() * 60 + now.getMinutes()) - (+m[1] * 60 + +m[2]);
+      if (mins < 0) mins += 1440;
+      if (mins > 180) $("#dot").classList.add("stale");
+      else $("#dot").classList.remove("stale");
+    }
+  }
+
+  function render(first) {
+    stamp(); cards();
+    if (first) { charts(); reveal(); }
+    signals(sigTf && DATA.live[sigTf] ? sigTf : ord()[0]);
+    watch(wTf && DATA.live[wTf] ? wTf : ord()[0]);
+  }
+
+  function load(first) {
+    fetch("data.json?t=" + Date.now(), { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (j) { DATA = j; render(first); })
+      .catch(function () {
+        if (!DATA) {
+          $("#stamp").textContent = "engine data unavailable";
+          $("#dot").classList.add("stale");
+        }
+      });
+  }
+
+  load(true);
+  setInterval(function () { load(false); }, 60000);
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) load(false);
+  });
+})();
+</script>
+</body>
+</html>
