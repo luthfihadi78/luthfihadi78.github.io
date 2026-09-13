@@ -3,628 +3,492 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Qkuk Terminal — live signal engine</title>
-<meta name="description" content="An autonomous crypto signal engine built and run by Moch. Luthfi Hadiwidjaja. Live results across three timeframes, published unedited.">
+<title>QKUK Terminal — live signal feed</title>
+<meta name="description" content="Live crypto signal terminal. Watchlist, signals and accuracy across three timeframes, written straight from the engine.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  /* Palet DIAMBIL PERSIS dari style.css portofolio (luthfihadi78.github.io)
-     supaya /qkuk/ terbaca sebagai halaman yang sama, bukan situs lain. */
-  --ink-0:#070B09; --ink-1:#0C1310; --ink-2:#121C17; --ink-3:#18251F;
-  --line:#1B2822; --line-firm:#2A3B33;
-  --tx:#EEF4F1; --tx-2:#9DB0A7; --tx-3:#788A81;
-  --brass:#6EE7B7; --brass-lit:#9CF2CE; --brass-wash:rgba(110,231,183,.09);
-  --gold:#D8C89A; --gold-wash:rgba(216,200,154,.10);
-  --up:#6EE7B7; --up-wash:rgba(110,231,183,.12);
-  --down:#E8877C; --down-wash:rgba(232,135,124,.12);
-  --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
-  --sans:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --bg:#070B09; --s1:#0C1310; --s2:#121C17; --s3:#18251F;
+  --line:#1B2822; --line-2:#2A3B33;
+  --fg:#EEF4F1; --fg-2:#9DB0A7; --fg-3:#788A81;
+  --ac:#6EE7B7; --ac-2:#2DD4A7; --ac-w:rgba(110,231,183,.09);
+  --gold:#D8C89A; --gold-w:rgba(216,200,154,.10);
+  --up:#6EE7B7; --up-w:rgba(110,231,183,.13);
+  --dn:#E8877C; --dn-w:rgba(232,135,124,.13);
   --mono:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  --r:10px;
+  --sans:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --r:8px;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{
-  margin:0;background:var(--ink-0);color:var(--tx);
-  font-family:var(--sans);font-size:15px;font-weight:300;line-height:1.62;
-  -webkit-font-smoothing:antialiased;
-}
-/* lapisan ambient — tetap (fixed) & tak bisa diklik, sesuai protokol skill */
-.ambient{position:fixed;inset:0;pointer-events:none;z-index:0;
-  background:
-    radial-gradient(60rem 40rem at 18% -8%, rgba(110,231,183,.05), transparent 62%),
-    radial-gradient(52rem 38rem at 96% 12%, rgba(216,200,154,.035), transparent 60%);}
-.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:0 24px}
-a{color:var(--brass-lit);text-decoration:none}
-a:hover{text-decoration:underline;text-underline-offset:3px}
-:focus-visible{outline:2px solid var(--brass);outline-offset:3px;border-radius:4px}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--mono);
+  font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+/* kisi halus — tekstur terminal, bukan hiasan: menandai halaman ini alat baca */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:52px 52px;
+  -webkit-mask-image:radial-gradient(80rem 50rem at 50% 0,#000,transparent 78%);
+          mask-image:radial-gradient(80rem 50rem at 50% 0,#000,transparent 78%)}
+.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 18px}
+a{color:var(--ac);text-decoration:none}
+a:hover{color:#9CF2CE}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px;border-radius:4px}
 
-.eyebrow{font-family:var(--mono);font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;
-  color:var(--brass);margin:0 0 18px}
-h1{font-family:var(--serif);font-weight:400;font-size:clamp(2.6rem,6.4vw,4.5rem);
-  line-height:1.04;letter-spacing:-.022em;margin:0 0 20px;text-wrap:balance}
-h2{font-family:var(--serif);font-weight:400;font-size:clamp(1.7rem,3.4vw,2.3rem);
-  line-height:1.12;letter-spacing:-.018em;margin:0 0 10px}
-h3{font-family:var(--sans);font-weight:500;font-size:.95rem;letter-spacing:-.005em;margin:0}
-.lede{color:var(--tx-2);max-width:60ch;font-size:1.03rem;margin:0}
-em{font-family:var(--serif);font-style:italic;color:var(--brass-lit);font-size:1.06em}
-
-header{padding:110px 0 64px}
-.status{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:.7rem;
-  letter-spacing:.08em;text-transform:uppercase;color:var(--tx-2);
-  border:1px solid var(--line-firm);border-radius:999px;padding:6px 13px;margin-bottom:26px}
-.dot{width:6px;height:6px;border-radius:999px;background:var(--up);flex:none;
-  box-shadow:0 0 0 0 rgba(111,199,154,.5);animation:pulse 2.8s cubic-bezier(.4,0,.6,1) infinite}
+/* ── top bar ── */
+.bar{position:sticky;top:0;z-index:20;background:rgba(7,11,9,.9);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line)}
+.bar-in{max-width:1240px;margin:0 auto;padding:11px 18px;display:flex;align-items:center;
+  gap:18px;flex-wrap:wrap}
+.brand{font-weight:700;letter-spacing:.02em;color:var(--fg);white-space:nowrap}
+.brand span{color:var(--ac)}
+.pill{display:inline-flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--fg-2);border:1px solid var(--line-2);
+  border-radius:999px;padding:4px 10px;white-space:nowrap}
+.dot{width:6px;height:6px;border-radius:999px;background:var(--ac);flex:none;
+  animation:p 2.6s cubic-bezier(.4,0,.6,1) infinite}
 .dot.stale{background:var(--gold);animation:none}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(111,199,154,.45)}70%{box-shadow:0 0 0 7px rgba(111,199,154,0)}100%{box-shadow:0 0 0 0 rgba(111,199,154,0)}}
+@keyframes p{0%{box-shadow:0 0 0 0 rgba(110,231,183,.45)}70%{box-shadow:0 0 0 7px rgba(110,231,183,0)}100%{box-shadow:0 0 0 0 rgba(110,231,183,0)}}
+.bar .sp{margin-left:auto}
+.kv{font-size:11px;color:var(--fg-3);white-space:nowrap}
+.kv b{color:var(--fg-2);font-weight:500}
 
-section{padding:74px 0;border-top:1px solid var(--line)}
-.sec-head{margin-bottom:34px}
-.sec-head .lede{margin-top:10px}
+/* ── channel strip ── */
+.strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0 26px}
+@media(max-width:900px){.strip{grid-template-columns:1fr}}
+.ch{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.ch-h{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.ch-n{font-weight:600;color:var(--fg);letter-spacing:.01em}
+.ch-tf{font-size:11px;color:var(--fg-3)}
+.tag{margin-left:auto;font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  padding:2px 7px;border-radius:999px;border:1px solid transparent;white-space:nowrap}
+.tag.live{background:var(--ac-w);color:var(--ac);border-color:rgba(110,231,183,.22)}
+.tag.test{background:var(--gold-w);color:var(--gold);border-color:rgba(216,200,154,.26)}
+.rows{display:grid;gap:7px}
+.row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:baseline;font-size:12px}
+.row .l{color:var(--fg-3);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
+.row .d{border-bottom:1px dotted var(--line-2);transform:translateY(-3px)}
+.row .v{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.v.pos{color:var(--up)} .v.neg{color:var(--dn)} .v.mut{color:var(--fg-3)}
+.ch-sep{margin:11px 0 9px;border-top:1px solid var(--line);padding-top:9px}
+.ch-sep-l{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-3);margin-bottom:8px}
 
-/* ── bento ── */
-.bento{display:grid;gap:14px;grid-template-columns:repeat(3,1fr)}
-@media(max-width:860px){.bento{grid-template-columns:1fr}}
-.card{background:var(--ink-1);border:1px solid var(--line);border-radius:var(--r);
-  padding:26px;transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease}
-.card:hover{border-color:var(--line-firm);box-shadow:0 2px 10px rgba(0,0,0,.18)}
-.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px}
-.tf{font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;color:var(--tx-3)}
-.tag{font-family:var(--mono);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;
-  padding:3px 8px;border-radius:999px;white-space:nowrap;border:1px solid transparent}
-.tag.live{background:var(--up-wash);color:var(--up);border-color:rgba(111,199,154,.2)}
-.tag.test{background:var(--gold-wash);color:var(--gold);border-color:rgba(216,200,154,.26)}
-.metrics{display:grid;grid-template-columns:1fr 1fr;gap:14px 10px;margin-top:22px}
-.met .k{font-family:var(--mono);font-size:.62rem;letter-spacing:.11em;text-transform:uppercase;
-  color:var(--tx-3);display:block;margin-bottom:3px}
-.met .v{font-family:var(--mono);font-size:1.28rem;font-weight:500;letter-spacing:-.02em;
-  font-variant-numeric:tabular-nums}
-.v.pos{color:var(--up)} .v.neg{color:var(--down)} .v.mute{color:var(--tx-3)}
-.spark{margin-top:20px;height:40px;width:100%;display:block}
-.note{margin-top:18px;padding-top:16px;border-top:1px solid var(--line);
-  font-size:.82rem;color:var(--tx-3);line-height:1.55}
-
-/* ── chart ── */
-.chart-wrap{background:var(--ink-1);border:1px solid var(--line);border-radius:var(--r);padding:26px}
-.chart-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px;margin-bottom:20px}
-.chart-head h3{margin-right:auto}
-.legend{display:flex;gap:16px;flex-wrap:wrap}
-.lg{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:.68rem;color:var(--tx-2)}
-.lg i{width:14px;height:2px;display:inline-block;border-radius:2px}
-svg.chart{width:100%;height:280px;display:block;overflow:visible}
-svg.chart text{font-family:var(--mono);font-size:9.5px;fill:var(--tx-3)}
-svg.chart .grid{stroke:var(--line);stroke-width:1}
-svg.chart .zero{stroke:var(--line-firm);stroke-width:1;stroke-dasharray:3 4}
-
-/* ── tabs & table ── */
-.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
-.tab{font-family:var(--mono);font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;
-  background:transparent;color:var(--tx-2);border:1px solid var(--line-firm);border-radius:6px;
-  padding:8px 14px;cursor:pointer;transition:background .18s,color .18s,border-color .18s}
-.tab:hover{border-color:var(--brass);color:var(--tx)}
-.tab[aria-selected="true"]{background:var(--brass);color:#04100B;border-color:var(--brass);font-weight:600}
+/* ── section ── */
+section{margin:0 0 30px}
+.sec-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+h2{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--fg);margin:0}
+h2 i{color:var(--ac);font-style:normal}
+.hint{font-size:11px;color:var(--fg-3)}
+.tabs{display:flex;gap:5px;margin-left:auto;flex-wrap:wrap}
+.tab{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  background:transparent;color:var(--fg-2);border:1px solid var(--line-2);border-radius:6px;
+  padding:6px 11px;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.tab:hover{border-color:var(--ac);color:var(--fg)}
+.tab[aria-selected="true"]{background:var(--ac);color:#04100B;border-color:var(--ac);font-weight:600}
 .tab:active{transform:scale(.98)}
-.tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--ink-1)}
-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.78rem;
-  font-variant-numeric:tabular-nums;min-width:660px}
-th{text-align:left;padding:13px 14px;font-size:.62rem;letter-spacing:.11em;text-transform:uppercase;
-  color:var(--tx-3);font-weight:500;border-bottom:1px solid var(--line);white-space:nowrap}
-td{padding:12px 14px;border-bottom:1px solid var(--line);color:var(--tx-2);white-space:nowrap}
+
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--s1)}
+table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums;min-width:820px}
+th{text-align:left;padding:9px 12px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--fg-3);font-weight:500;border-bottom:1px solid var(--line);white-space:nowrap;
+  position:sticky;top:45px;background:var(--s1);z-index:2}
+td{padding:8px 12px;border-bottom:1px solid var(--line);color:var(--fg-2);white-space:nowrap}
 tr:last-child td{border-bottom:none}
-tbody tr{transition:background .15s}
-tbody tr:hover{background:var(--ink-2)}
-td.sym{color:var(--tx);font-weight:500}
-td.num{text-align:right}
-.side{font-size:.62rem;letter-spacing:.09em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
-.side.long{background:var(--up-wash);color:var(--up)}
-.side.short{background:var(--down-wash);color:var(--down)}
-.cap{margin:16px 0 0;padding-top:14px;border-top:1px solid var(--line);
-  font-size:.8rem;color:var(--tx-3);line-height:1.55;max-width:70ch}
-.empty{padding:40px 24px;text-align:center;color:var(--tx-3);font-family:var(--mono);font-size:.78rem}
+tbody tr{transition:background .12s}
+tbody tr:hover{background:var(--s2)}
+td.sym{color:var(--fg);font-weight:600;letter-spacing:.01em}
+td.n{text-align:right}
+.side{font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:4px;font-weight:600}
+.side.long{background:var(--up-w);color:var(--up)}
+.side.short{background:var(--dn-w);color:var(--dn)}
+.st{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3)}
+.st.open{color:var(--gold)}
+.tv{display:inline-flex;align-items:center;justify-content:center;width:27px;height:25px;
+  border:1px solid var(--line-2);border-radius:5px;color:var(--fg-2);
+  transition:border-color .15s,color .15s,background .15s}
+.tv:hover{border-color:var(--ac);color:var(--ac);background:var(--ac-w)}
+.tv svg{width:13px;height:13px;display:block}
+.empty{padding:30px 16px;text-align:center;color:var(--fg-3);font-size:12px}
 
-/* ── method ── */
-.steps{display:grid;gap:0;margin-top:8px}
-.step{display:grid;grid-template-columns:44px 1fr;gap:18px;padding:22px 0;border-bottom:1px solid var(--line)}
-.step:last-child{border-bottom:none}
-.step .n{font-family:var(--mono);font-size:.72rem;color:var(--brass);padding-top:3px}
-.step p{margin:6px 0 0;color:var(--tx-2);font-size:.92rem;max-width:62ch}
-.stack{display:flex;flex-wrap:wrap;gap:7px;margin-top:26px}
-.chip{font-family:var(--mono);font-size:.66rem;letter-spacing:.04em;color:var(--tx-2);
-  border:1px solid var(--line-firm);border-radius:999px;padding:5px 11px}
+/* ── charts ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.card-h{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.card-h h3{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--fg-2);margin:0}
+.lg{display:flex;gap:12px;margin-left:auto;flex-wrap:wrap}
+.lg span{display:inline-flex;align-items:center;gap:6px;font-size:10px;color:var(--fg-3)}
+.lg i{width:12px;height:2px;border-radius:2px;display:inline-block}
+svg.ch{width:100%;height:190px;display:block;overflow:visible}
+svg.ch text{font-family:var(--mono);font-size:9px;fill:var(--fg-3)}
+svg.ch .g{stroke:var(--line);stroke-width:1}
+svg.ch .z{stroke:var(--line-2);stroke-width:1;stroke-dasharray:3 4}
+.cap{margin:11px 0 0;font-size:10.5px;color:var(--fg-3);line-height:1.5}
 
-footer{padding:60px 0 80px;border-top:1px solid var(--line);color:var(--tx-3);font-size:.84rem}
-footer .row{display:flex;flex-wrap:wrap;gap:22px;align-items:baseline;justify-content:space-between}
-.mono-s{font-family:var(--mono);font-size:.7rem;letter-spacing:.05em;color:var(--tx-3)}
-
-.rv{opacity:0;transform:translateY(12px)}
-.rv.in{opacity:1;transform:none;transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}
-@media(prefers-reduced-motion:reduce){
-  *{animation:none!important;transition-duration:.001ms!important}
-  .rv{opacity:1;transform:none}
-}
+footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
+  display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;
+  font-size:11px;color:var(--fg-3)}
 @media(max-width:560px){
-  header{padding:76px 0 48px}
-  section{padding:56px 0}
-  .card{padding:20px}
-  .chart-wrap{padding:18px}
+  body{font-size:12px}
+  .bar-in{gap:10px;padding:9px 14px}
+  th{top:0;position:static}
 }
 </style>
 </head>
 <body>
-<div class="ambient" aria-hidden="true"></div>
+
+<div class="bar">
+  <div class="bar-in">
+    <span class="brand">QKUK<span>://</span>TERMINAL</span>
+    <span class="pill"><span class="dot" id="dot"></span><span id="state">connecting</span></span>
+    <span class="kv sp">WIB <b id="clock">--:--:--</b></span>
+    <span class="kv">engine <b id="stamp">—</b></span>
+    <span class="kv">refresh <b id="cd">60s</b></span>
+  </div>
+</div>
+
 <div class="wrap">
 
-<header>
-  <p class="eyebrow">Qkuk Terminal</p>
-  <div class="status"><span class="dot" id="dot"></span><span id="stamp">loading data</span></div>
-  <h1>A signal engine that reports its own <em>losses</em>.</h1>
-  <p class="lede">
-    An autonomous crypto research system I designed, built and run myself — signal engines
-    in Python reading live Binance futures data across roughly 370 pairs, statistical
-    validation over two years of history before anything is trusted, and automated delivery
-    to a messaging group. This page reads the same files the engine writes. Nothing here is
-    curated after the fact.
-  </p>
-  <div class="stack">
-    <span class="chip">Python</span><span class="chip">NumPy / pandas</span>
-    <span class="chip">Binance Futures API</span><span class="chip">DSR / PBO / CPCV</span>
-    <span class="chip">WhatsApp + Telegram delivery</span><span class="chip">TradingView Pine</span>
-  </div>
-</header>
+  <div class="strip" id="strip"></div>
 
-<section id="channels">
-  <div class="sec-head rv">
-    <h2>Three channels, judged separately</h2>
-    <p class="lede">
-      The same detection logic runs on three timeframes. Each keeps its own log, its own
-      de-duplication and its own scoreboard, so one cannot flatter another. The 1-hour
-      channel is an evaluation channel: it publishes its watchlist but its entry signals
-      are recorded only, never sent.
-    </p>
-  </div>
-  <div class="bento" id="cards"></div>
-</section>
-
-<section id="equity">
-  <div class="sec-head rv">
-    <h2>Validation history</h2>
-    <p class="lede">
-      Cumulative R over the 733-day backtest panel, net of fees. This is the reference the
-      live numbers above are measured against — not a forecast.
-    </p>
-  </div>
-  <div class="chart-wrap rv">
-    <div class="chart-head">
-      <h3>Cumulative R — backtest panel</h3>
-      <div class="legend" id="eq-legend"></div>
+  <section id="watch">
+    <div class="sec-h">
+      <h2><i>&gt;</i> Watchlist</h2>
+      <span class="hint">reclaim detected, entry not confirmed</span>
+      <div class="tabs" id="w-tabs" role="tablist"></div>
     </div>
-    <svg class="chart" id="eq" role="img" aria-label="Cumulative R curve per channel"></svg>
-  </div>
-</section>
+    <div class="tw" id="w-table"></div>
+  </section>
 
-<section id="hours">
-  <div class="sec-head rv">
-    <h2>Accuracy by hour</h2>
-    <p class="lede">
-      Win rate by hour of day, Jakarta time, across the same panel. Read it as texture,
-      not as a rule — thin hours carry wide error bars.
-    </p>
-  </div>
-  <div class="chart-wrap rv">
-    <div class="chart-head">
-      <h3>Win rate, WIB hour</h3>
-      <div class="legend" id="hr-legend"></div>
+  <section id="signals">
+    <div class="sec-h">
+      <h2><i>&gt;</i> Signals</h2>
+      <span class="hint">entries issued to the group</span>
+      <div class="tabs" id="s-tabs" role="tablist"></div>
     </div>
-    <svg class="chart" id="hr" role="img" aria-label="Win rate by hour of day"></svg>
-    <p class="cap">Hours with no signal are left out rather than drawn as zero. The 4H
-    channel only closes a bar six times a day, so it is plotted on those six hours alone.</p>
-  </div>
-</section>
+    <div class="tw" id="s-table"></div>
+  </section>
 
-<section id="signals">
-  <div class="sec-head rv">
-    <h2>Live signals</h2>
-    <p class="lede">
-      Every entry the engine has issued on this channel, newest first — open and closed,
-      winners and losers. The page re-reads the file every minute.
-    </p>
-  </div>
-  <div class="tabs rv" id="sig-tabs" role="tablist"></div>
-  <div class="tbl-scroll rv" id="sig-table"></div>
-</section>
-
-<section id="watch">
-  <div class="sec-head rv">
-    <h2>Watchlist</h2>
-    <p class="lede">
-      Reclaims the engine has detected but not yet confirmed. These are not entries; a
-      signal only follows if the break arrives, which is usually days later.
-    </p>
-  </div>
-  <div class="tabs rv" id="w-tabs" role="tablist"></div>
-  <div class="tbl-scroll rv" id="w-table"></div>
-</section>
-
-<section id="method">
-  <div class="sec-head rv">
-    <h2>How a rule earns its place</h2>
-    <p class="lede">
-      Most ideas tested here are rejected. That is the point of the process, and the reason
-      the numbers above can be published without editing.
-    </p>
-  </div>
-  <div class="steps rv">
-    <div class="step"><div class="n">01</div><div>
-      <h3>Pre-registration</h3>
-      <p>The decision rule and its thresholds are written down before the data is cut.
-      A finding that only becomes interesting after the result is seen does not count.</p></div></div>
-    <div class="step"><div class="n">02</div><div>
-      <h3>Deflated Sharpe, PBO, CPCV</h3>
-      <p>Every candidate is charged for the number of trials it took to find it. A rule
-      that passes only because it was the best of six thousand is not a rule.</p></div></div>
-    <div class="step"><div class="n">03</div><div>
-      <h3>Shadow before live</h3>
-      <p>New channels run silently against real market data first, scored on the same
-      gates as the live ones. The 1-hour channel is in this stage now.</p></div></div>
-    <div class="step"><div class="n">04</div><div>
-      <h3>Decay alarm</h3>
-      <p>Live performance is compared against the backtest reference on a rolling window,
-      with the alarm thresholds fixed in advance. It reports; it never silently intervenes.</p></div></div>
-  </div>
-</section>
-
-<footer>
-  <div class="row">
-    <div>
-      <div>Built and operated by <a href="https://luthfihadi78.github.io">Moch. Luthfi Hadiwidjaja</a></div>
-      <div class="mono-s" style="margin-top:6px">Research notes and engine source are private. Results are not.</div>
+  <section id="charts">
+    <div class="grid2">
+      <div class="card">
+        <div class="card-h"><h3>Cumulative R — 733d panel</h3><div class="lg" id="eq-lg"></div></div>
+        <svg class="ch" id="eq" role="img" aria-label="Cumulative R per channel"></svg>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Win rate by WIB hour</h3><div class="lg" id="hr-lg"></div></div>
+        <svg class="ch" id="hr" role="img" aria-label="Win rate by hour"></svg>
+        <p class="cap">Hours with no signal are omitted, not drawn as zero — the 4H channel
+        only closes a bar six times a day.</p>
+      </div>
     </div>
-    <div class="mono-s" id="foot-stamp"></div>
-  </div>
-</footer>
+  </section>
 
+  <footer>
+    <span>Built and operated by <a href="https://luthfihadi78.github.io">Moch. Luthfi Hadiwidjaja</a></span>
+    <span id="foot">—</span>
+  </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var DATA = null;
-  var ORDER = ["1h", "2h", "4h"];
-  /* Dua garis di grafik harus bisa dibedakan sekilas. Dalam palet mint,
-     pasangan paling kontras adalah mint vs emas; pale-mint dipakai kanal uji
-     yang tidak pernah muncul di grafik panel. */
+  var DATA = null, ORDER = ["1h", "2h", "4h"], LEFT = 60;
   var COLOR = { "1h": "#9CF2CE", "2h": "#6EE7B7", "4h": "#D8C89A" };
+  var TVI = { "1h": "60", "2h": "120", "4h": "240" };
 
   function $(s) { return document.querySelector(s); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
   function num(v) { var f = parseFloat(v); return isFinite(f) ? f : null; }
-  function sgn(v, d) { var f = num(v); if (f === null) return "—"; return (f > 0 ? "+" : "") + f.toFixed(d == null ? 2 : d); }
-  /* Harga datang dari CSV sebagai hasil aritmetika float mentah:
-     "0.013629999999999998". Meniru _fp() di engine supaya koin murah tetap
-     terbaca tanpa memamerkan derau biner. */
+  function sgn(v, d) { var f = num(v); return f === null ? "—" : (f > 0 ? "+" : "") + f.toFixed(d == null ? 2 : d); }
+  function ord() { return ORDER.filter(function (t) { return DATA.live && DATA.live[t]; }); }
+  /* harga dari CSV adalah hasil float mentah (0.013629999999999998) */
   function fp(v) {
-    var f = num(v);
-    if (f === null) return "—";
+    var f = num(v); if (f === null) return "—";
     var a = Math.abs(f), d = a >= 1000 ? 2 : a >= 1 ? 4 : a >= .01 ? 5 : a >= .0001 ? 7 : 9;
     var t = f.toFixed(d);
     if (t.indexOf(".") >= 0) t = t.replace(/0+$/, "").replace(/\.$/, "");
     return t;
   }
-  function ord() { return ORDER.filter(function (t) { return DATA.live && DATA.live[t]; }); }
+  function tvUrl(sym, tf) {
+    return "https://www.tradingview.com/chart/?symbol=BINANCE%3A" + encodeURIComponent(sym)
+         + ".P&interval=" + (TVI[tf] || "240");
+  }
+  function tvCell(sym, tf) {
+    var td = el("td");
+    var a = document.createElement("a");
+    a.className = "tv"; a.href = tvUrl(sym, tf);
+    a.target = "_blank"; a.rel = "noopener noreferrer";
+    a.title = "Open " + sym + " on TradingView, " + tf.toUpperCase() + " chart";
+    a.setAttribute("aria-label", a.title);
+    a.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"'
+      + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      + '<path d="M3 20h18"/><path d="M7 20V9"/><path d="M12 20V4"/><path d="M17 20v-7"/></svg>';
+    td.appendChild(a); return td;
+  }
 
-  /* ---------- cards ---------- */
-  function cards() {
-    var host = $("#cards"); host.innerHTML = "";
-    ord().forEach(function (tf, i) {
-      var L = DATA.live[tf], E = (DATA.engine || {})[tf];
-      var c = el("div", "card rv"); c.style.transitionDelay = (i * 70) + "ms";
-      var top = el("div", "card-top");
-      var left = el("div");
-      left.appendChild(el("h3", null, L.nama));
-      left.appendChild(el("div", "tf", tf.toUpperCase() + " timeframe"));
-      top.appendChild(left);
-      top.appendChild(el("span", "tag " + (L.uji ? "test" : "live"), L.uji ? "evaluation" : "live"));
-      c.appendChild(top);
+  /* ── channel strip ── */
+  function strip() {
+    var host = $("#strip"); host.innerHTML = "";
+    ord().forEach(function (tf) {
+      var L = DATA.live[tf], E = (DATA.engine || {})[tf], P = L.pantau_akurasi;
+      var c = el("div", "ch");
+      var h = el("div", "ch-h");
+      h.appendChild(el("span", "ch-n", L.nama));
+      h.appendChild(el("span", "ch-tf", tf.toUpperCase()));
+      h.appendChild(el("span", "tag " + (L.uji ? "test" : "live"), L.uji ? "shadow" : "live"));
+      c.appendChild(h);
+
+      function blok(judul, baris) {
+        var w = el("div", "ch-sep");
+        w.appendChild(el("div", "ch-sep-l", judul));
+        var r = el("div", "rows");
+        baris.forEach(function (b) {
+          var x = el("div", "row");
+          x.appendChild(el("span", "l", b[0]));
+          x.appendChild(el("span", "d"));
+          x.appendChild(el("span", "v " + (b[2] || ""), b[1]));
+          r.appendChild(x);
+        });
+        w.appendChild(r); return w;
+      }
 
       var wr = L.tutup ? (L.menang / L.tutup * 100) : null;
-      var ev = L.tutup ? (L.totR / L.tutup) : null;
-      var m = el("div", "metrics");
-      [["signals sent", String(L.kirim), ""],
-       ["closed", String(L.tutup), ""],
-       ["win rate", wr === null ? "—" : wr.toFixed(0) + "%", wr === null ? "mute" : ""],
-       ["net R", L.tutup ? sgn(L.totR, 2) : "—", L.tutup ? (L.totR > 0 ? "pos" : "neg") : "mute"]
-      ].forEach(function (p) {
-        var d = el("div", "met");
-        d.appendChild(el("span", "k", p[0]));
-        d.appendChild(el("span", "v " + p[2], p[1]));
-        m.appendChild(d);
-      });
-      c.appendChild(m);
+      c.appendChild(blok("signals · engine R", [
+        ["sent", String(L.kirim), ""],
+        ["closed", String(L.tutup), ""],
+        ["win rate", wr === null ? "—" : wr.toFixed(0) + "%", wr === null ? "mut" : ""],
+        ["net R", L.tutup ? sgn(L.totR, 2) : "—", L.tutup ? (L.totR > 0 ? "pos" : "neg") : "mut"]
+      ]));
 
-      if (E && E.kurva && E.kurva.length) {
-        var sv = spark(E.kurva.map(function (p) { return p.eq; }), COLOR[tf]);
-        sv.setAttribute("class", "spark"); c.appendChild(sv);
-      }
+      c.appendChild(blok("watchlist · 1R:1R", P ? [
+        ["scored", String(P.n), ""],
+        ["win rate", P.wr === null ? "—" : P.wr.toFixed(1) + "%",
+          P.wr === null ? "mut" : (P.wr >= 50 ? "pos" : "neg")],
+        ["EV / entry", sgn(P.evR, 3) + "R", P.evR > 0 ? "pos" : "neg"],
+        ["net R", sgn(P.totR, 1), P.totR > 0 ? "pos" : "neg"]
+      ] : [["scored", "0", "mut"], ["win rate", "—", "mut"],
+           ["EV / entry", "—", "mut"], ["net R", "—", "mut"]]));
 
-      var n = el("div", "note");
-      if (L.uji) {
-        n.textContent = "Watchlist is published to the group; entry signals are logged only. "
-          + "No backtest reference exists for this timeframe yet, so it is deliberately not graded.";
-      } else if (E) {
-        n.textContent = "Backtest reference: " + E.wr.toFixed(1) + "% win rate, "
-          + sgn(E.ev, 3) + "R per trade over " + E.n.toLocaleString("en") + " entries, "
-          + E.per_bln + " signals a month.";
-      } else {
-        n.textContent = "No backtest panel for this timeframe.";
+      if (E) {
+        c.appendChild(blok("backtest reference", [
+          ["entries", E.n.toLocaleString("en"), ""],
+          ["win rate", E.wr.toFixed(1) + "%", ""],
+          ["EV / trade", sgn(E.ev, 3) + "R", E.ev > 0 ? "pos" : "neg"],
+          ["per month", String(E.per_bln), ""]
+        ]));
       }
-      c.appendChild(n);
       host.appendChild(c);
     });
   }
 
-  /* ---------- svg helpers ---------- */
-  var NS = "http://www.w3.org/2000/svg";
-  function mk(t, a) { var n = document.createElementNS(NS, t); for (var k in a) n.setAttribute(k, a[k]); return n; }
-
-  /* monotone cubic — tidak pernah melewati titik data, jadi tak ada puncak palsu */
-  function path(pts) {
-    if (pts.length < 2) return pts.length ? "M" + pts[0][0] + "," + pts[0][1] : "";
-    var n = pts.length, d = [], m = [], i;
-    for (i = 0; i < n - 1; i++) d.push((pts[i + 1][1] - pts[i][1]) / ((pts[i + 1][0] - pts[i][0]) || 1));
-    m.push(d[0]);
-    for (i = 1; i < n - 1; i++) m.push(d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2);
-    m.push(d[n - 2]);
-    var s = "M" + pts[0][0] + "," + pts[0][1];
-    for (i = 0; i < n - 1; i++) {
-      var dx = (pts[i + 1][0] - pts[i][0]) / 3;
-      s += "C" + (pts[i][0] + dx) + "," + (pts[i][1] + m[i] * dx)
-         + " " + (pts[i + 1][0] - dx) + "," + (pts[i + 1][1] - m[i + 1] * dx)
-         + " " + pts[i + 1][0] + "," + pts[i + 1][1];
-    }
-    return s;
-  }
-
-  function spark(v, col) {
-    var W = 260, H = 40, lo = Math.min.apply(null, v), hi = Math.max.apply(null, v), r = (hi - lo) || 1;
-    var pts = v.map(function (y, i) { return [i / (v.length - 1) * W, H - 3 - (y - lo) / r * (H - 6)]; });
-    var s = mk("svg", { viewBox: "0 0 " + W + " " + H, preserveAspectRatio: "none" });
-    s.appendChild(mk("path", { d: path(pts), fill: "none", stroke: col, "stroke-width": 1.5,
-      "stroke-linecap": "round", opacity: .85 }));
-    return s;
-  }
-
-  /* series: [{name,color,pts:[[x,y],..]}] dengan x dalam SATUAN DATA.
-     ⚠️ Dulu semua seri dipaksa berbagi indeks 0..n. Untuk grafik jam itu
-     memaksa kanal 4h — yang hanya punya data di 6 jam tutup bar — digambar
-     0% pada 18 jam lainnya. Itu bukan "akurasi 0%", itu TIDAK ADA DATA, dan
-     grafiknya berbohong. Sekarang tiap seri membawa x-nya sendiri; jam tanpa
-     sampel tidak punya titik sama sekali. */
-  function draw(svg, series, opt) {
-    svg.innerHTML = "";
-    var W = 900, H = 280, P = { t: 14, r: 16, b: 30, l: 44 };
-    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
-    svg.setAttribute("preserveAspectRatio", "none");
-    var all = [];
-    series.forEach(function (s) { s.pts.forEach(function (q) { all.push(q[1]); }); });
-    if (!all.length) return;
-    var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
-    if (opt && opt.pad) { var p = (hi - lo) * .12 || 1; lo -= p; hi += p; }
-    var rng = (hi - lo) || 1;
-    var xlo = opt.xlo, xhi = opt.xhi, xr = (xhi - xlo) || 1;
-    var X = function (x) { return P.l + (x - xlo) / xr * (W - P.l - P.r); };
-    var Y = function (y) { return P.t + (1 - (y - lo) / rng) * (H - P.t - P.b); };
-
-    for (var g = 0; g <= 4; g++) {
-      var yy = P.t + g / 4 * (H - P.t - P.b);
-      svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: yy, y2: yy, "class": "grid" }));
-      var lab = mk("text", { x: P.l - 8, y: yy + 3, "text-anchor": "end" });
-      lab.textContent = opt.fmtY(hi - g / 4 * rng);
-      svg.appendChild(lab);
-    }
-    if (lo < 0 && hi > 0) svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: Y(0), y2: Y(0), "class": "zero" }));
-
-    (opt.xticks || []).forEach(function (t) {
-      var tx = mk("text", { x: X(t.x), y: H - 10, "text-anchor": "middle" });
-      tx.textContent = t.label; svg.appendChild(tx);
-    });
-
-    series.forEach(function (s, k) {
-      if (s.pts.length < 2) return;
-      var pts = s.pts.map(function (q) { return [X(q[0]), Y(q[1])]; });
-      var p = mk("path", { d: path(pts), fill: "none", stroke: s.color, "stroke-width": 1.9,
-        "stroke-linecap": "round", "stroke-linejoin": "round" });
-      var L = p.getTotalLength ? 0 : 0;
-      svg.appendChild(p);
-      try {
-        L = p.getTotalLength();
-        p.style.strokeDasharray = L; p.style.strokeDashoffset = L;
-        p.style.transition = "stroke-dashoffset 1200ms cubic-bezier(.16,1,.3,1) " + (k * 130) + "ms";
-        requestAnimationFrame(function () { p.style.strokeDashoffset = 0; });
-      } catch (e) { /* getTotalLength tak tersedia — garis tetap tampil penuh */ }
-    });
-  }
-
-  function legend(host, series) {
-    host.innerHTML = "";
-    series.forEach(function (s) {
-      var d = el("span", "lg");
-      var i = el("i"); i.style.background = s.color;
-      d.appendChild(i); d.appendChild(document.createTextNode(s.name));
-      host.appendChild(d);
-    });
-  }
-
-  function charts() {
-    var eng = ord().filter(function (t) { return (DATA.engine || {})[t]; });
-
-    // Sumbu-x = kemajuan waktu 0..1. Kedua kanal membentang di panel 733 hari
-    // yang SAMA, jadi menormalkan tiap seri terhadap panjangnya sendiri benar —
-    // dan tak perlu lagi meregangkan seri yang lebih pendek.
-    var eqS = eng.map(function (tf) {
-      var E = DATA.engine[tf], n = E.kurva.length;
-      return { name: E.nama + " (" + tf.toUpperCase() + ")", color: COLOR[tf], raw: E.kurva,
-               pts: E.kurva.map(function (p, i) { return [n > 1 ? i / (n - 1) : 0, p.eq]; }) };
-    });
-    if (eqS.length) {
-      var base = eqS.reduce(function (a, b2) { return b2.raw.length > a.raw.length ? b2 : a; });
-      var ticks = [0, .25, .5, .75, 1].map(function (f) {
-        var j = Math.round(f * (base.raw.length - 1));
-        return { x: f, label: (base.raw[j] && base.raw[j].b) || "" };
-      });
-      draw($("#eq"), eqS, { xlo: 0, xhi: 1, pad: true, xticks: ticks,
-        fmtY: function (y) { return (y > 0 ? "+" : "") + Math.round(y) + "R"; } });
-      legend($("#eq-legend"), eqS);
-    }
-
-    // Hanya jam yang PUNYA sampel. Kanal 4h cuma menutup bar 6x sehari, jadi
-    // 18 dari 24 jam WIB memang kosong — dan kosong bukan nol.
-    var hrS = eng.map(function (tf) {
-      var E = DATA.engine[tf];
-      return { name: E.nama + " (" + tf.toUpperCase() + ")", color: COLOR[tf],
-               pts: E.jam.filter(function (h) { return h.n > 0; })
-                         .map(function (h) { return [h.k, h.wr]; }) };
-    }).filter(function (s) { return s.pts.length >= 2; });
-    if (hrS.length) {
-      var ht = [0, 4, 8, 12, 16, 20].map(function (h) {
-        return { x: h, label: (h < 10 ? "0" : "") + h + ":00" };
-      });
-      draw($("#hr"), hrS, { xlo: 0, xhi: 23, pad: true, xticks: ht,
-        fmtY: function (y) { return Math.round(y) + "%"; } });
-      legend($("#hr-legend"), hrS);
-    }
-  }
-
-  /* ---------- tables ---------- */
-  function tabs(host, active, onPick) {
+  /* ── tables ── */
+  function tabs(host, active, pick) {
     host.innerHTML = "";
     ord().forEach(function (tf) {
-      var L = DATA.live[tf];
-      var b = el("button", "tab", L.nama + " · " + tf.toUpperCase());
+      var b = el("button", "tab", tf.toUpperCase());
       b.setAttribute("role", "tab");
       b.setAttribute("aria-selected", tf === active ? "true" : "false");
-      b.addEventListener("click", function () { onPick(tf); });
+      b.addEventListener("click", function () { pick(tf); });
       host.appendChild(b);
     });
   }
-
-  function table(host, cols, rows, emptyMsg) {
+  function table(host, cols, rows, msg) {
     host.innerHTML = "";
-    if (!rows.length) { host.appendChild(el("div", "empty", emptyMsg)); return; }
+    if (!rows.length) { host.appendChild(el("div", "empty", msg)); return; }
     var t = el("table"), th = el("thead"), tr = el("tr");
-    cols.forEach(function (c) {
-      var h = el("th", null, c.h);
-      if (c.num) h.style.textAlign = "right";
-      tr.appendChild(h);
-    });
+    cols.forEach(function (c) { var h = el("th", null, c.h); if (c.n) h.style.textAlign = "right"; tr.appendChild(h); });
     th.appendChild(tr); t.appendChild(th);
     var tb = el("tbody");
-    rows.forEach(function (r) {
-      var x = el("tr");
-      cols.forEach(function (c) { x.appendChild(c.cell(r)); });
-      tb.appendChild(x);
-    });
+    rows.forEach(function (r) { var x = el("tr"); cols.forEach(function (c) { x.appendChild(c.c(r)); }); tb.appendChild(x); });
     t.appendChild(tb); host.appendChild(t);
   }
-
-  function sideCell(d) {
+  function side(d) {
     var td = el("td");
-    var s = el("span", "side " + (d === "long" ? "long" : "short"), d === "long" ? "long" : "short");
-    td.appendChild(s); return td;
+    td.appendChild(el("span", "side " + (d === "long" ? "long" : "short"), d === "long" ? "long" : "short"));
+    return td;
   }
-  function txt(v, cls) { var td = el("td", cls); td.textContent = (v == null || v === "") ? "—" : v; return td; }
-
-  var sigTf = null, wTf = null;
-
-  function signals(tf) {
-    sigTf = tf;
-    tabs($("#sig-tabs"), tf, signals);
-    // ⚠️ CSV ditulis menurut urutan KEJADIAN pencatatan, bukan urutan waktu
-    // sinyal — membaliknya saja menghasilkan 13 Sep, 10 Sep, 6 Sep, 13 Sep…
-    // padahal keterangan di atas menjanjikan "newest first".
-    var rows = (DATA.live[tf].sinyal || []).slice()
-      .sort(function (a, b) { return (b.ts || "").localeCompare(a.ts || ""); });
-    table($("#sig-table"), [
-      { h: "time (WIB)", cell: function (r) { return txt(r.ts); } },
-      { h: "pair", cell: function (r) { var t = txt(r.sym, "sym"); return t; } },
-      { h: "side", cell: function (r) { return sideCell(r.dir); } },
-      { h: "entry", num: true, cell: function (r) { return txt(fp(r.e), "num"); } },
-      { h: "stop", num: true, cell: function (r) { return txt(fp(r.s), "num"); } },
-      { h: "target", num: true, cell: function (r) { return txt(fp(r.t), "num"); } },
-      { h: "status", cell: function (r) { return txt(r.st === "fired" ? "open" : r.st); } },
-      { h: "result R", num: true, cell: function (r) {
-          var td = el("td", "num"); var v = num(r.pnl);
-          if (v === null) { td.textContent = "—"; return td; }
-          td.textContent = sgn(v, 2);
-          td.style.color = v > 0 ? "var(--up)" : "var(--down)";
-          return td; } }
-    ], rows, DATA.live[tf].uji
-      ? "No entry signal on this channel yet. Its watchlist is below."
-      : "No signals recorded on this channel yet.");
+  function txt(v, c) { var td = el("td", c); td.textContent = (v == null || v === "") ? "—" : v; return td; }
+  function rcell(v, h) {
+    var td = el("td", "n"), f = num(v);
+    if (f === null) { td.textContent = h ? "open" : "—"; td.className = "n st open"; return td; }
+    td.textContent = sgn(f, 2);
+    td.style.color = f > 0 ? "var(--up)" : f < 0 ? "var(--dn)" : "var(--fg-3)";
+    return td;
   }
+
+  var wTf = null, sTf = null;
 
   function watch(tf) {
-    wTf = tf;
-    tabs($("#w-tabs"), tf, watch);
+    wTf = tf; tabs($("#w-tabs"), tf, watch);
     var rows = (DATA.live[tf].pantau || []).slice()
       .sort(function (a, b) { return (b.ts || "").localeCompare(a.ts || ""); });
     table($("#w-table"), [
-      { h: "time (WIB)", cell: function (r) { return txt(r.ts); } },
-      { h: "pair", cell: function (r) { return txt(r.sym, "sym"); } },
-      { h: "side", cell: function (r) { return sideCell(r.dir); } },
-      { h: "reclaimed level", num: true, cell: function (r) { return txt(fp(r.lv), "num"); } }
-    ], rows, "Nothing on the watchlist right now.");
+      { h: "", c: function (r) { return tvCell(r.sym, tf); } },
+      { h: "time WIB", c: function (r) { return txt(r.ts); } },
+      { h: "pair", c: function (r) { return txt(r.sym, "sym"); } },
+      { h: "side", c: function (r) { return side(r.dir); } },
+      { h: "reclaimed level", n: true, c: function (r) { return txt(fp(r.lv), "n"); } },
+      { h: "outcome", c: function (r) {
+          var td = el("td", "st");
+          td.textContent = r.h ? (r.h === "menang" ? "win" : r.h === "kalah" ? "loss" : "timeout") : "pending";
+          if (r.h === "menang") td.style.color = "var(--up)";
+          else if (r.h === "kalah") td.style.color = "var(--dn)";
+          return td; } },
+      { h: "R (1:1)", n: true, c: function (r) { return rcell(r.r, false); } }
+    ], rows, "Nothing on the watchlist for this channel.");
   }
 
-  /* ---------- reveal ---------- */
-  function reveal() {
-    var io = new IntersectionObserver(function (es) {
-      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
-    }, { threshold: .08, rootMargin: "0px 0px -40px 0px" });
-    document.querySelectorAll(".rv").forEach(function (n) { io.observe(n); });
+  function signals(tf) {
+    sTf = tf; tabs($("#s-tabs"), tf, signals);
+    var rows = (DATA.live[tf].sinyal || []).slice()
+      .sort(function (a, b) { return (b.ts || "").localeCompare(a.ts || ""); });
+    table($("#s-table"), [
+      { h: "", c: function (r) { return tvCell(r.sym, tf); } },
+      { h: "time WIB", c: function (r) { return txt(r.ts); } },
+      { h: "pair", c: function (r) { return txt(r.sym, "sym"); } },
+      { h: "side", c: function (r) { return side(r.dir); } },
+      { h: "entry", n: true, c: function (r) { return txt(fp(r.e), "n"); } },
+      { h: "stop", n: true, c: function (r) { return txt(fp(r.s), "n"); } },
+      { h: "target", n: true, c: function (r) { return txt(fp(r.t), "n"); } },
+      { h: "status", c: function (r) {
+          var td = el("td", "st" + (r.st === "fired" ? " open" : ""));
+          td.textContent = r.st === "fired" ? "open" : r.st; return td; } },
+      { h: "result R", n: true, c: function (r) { return rcell(r.pnl, r.st === "fired"); } }
+    ], rows, DATA.live[tf].uji
+      ? "Shadow channel — no entry signal recorded yet."
+      : "No signals recorded on this channel yet.");
   }
 
-  /* ---------- load ---------- */
-  function stamp() {
-    var s = DATA.dibuat || "";
-    $("#stamp").textContent = "engine data · " + s;
-    $("#foot-stamp").textContent = "last written " + s;
-    // tanda basi: kalau data lebih tua dari ~3 jam, titiknya berhenti berdenyut
-    var m = /(\d{2}):(\d{2})\s*WIB/.exec(s);
-    if (m) {
-      var now = new Date(Date.now() + (7 * 60 + new Date().getTimezoneOffset()) * 60000);
-      var mins = (now.getHours() * 60 + now.getMinutes()) - (+m[1] * 60 + +m[2]);
-      if (mins < 0) mins += 1440;
-      if (mins > 180) $("#dot").classList.add("stale");
-      else $("#dot").classList.remove("stale");
+  /* ── charts ── */
+  var NS = "http://www.w3.org/2000/svg";
+  function mk(t, a) { var n = document.createElementNS(NS, t); for (var k in a) n.setAttribute(k, a[k]); return n; }
+  function path(p) {
+    if (p.length < 2) return p.length ? "M" + p[0][0] + "," + p[0][1] : "";
+    var n = p.length, d = [], m = [], i;
+    for (i = 0; i < n - 1; i++) d.push((p[i + 1][1] - p[i][1]) / ((p[i + 1][0] - p[i][0]) || 1));
+    m.push(d[0]);
+    for (i = 1; i < n - 1; i++) m.push(d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2);
+    m.push(d[n - 2]);
+    var s = "M" + p[0][0] + "," + p[0][1];
+    for (i = 0; i < n - 1; i++) {
+      var dx = (p[i + 1][0] - p[i][0]) / 3;
+      s += "C" + (p[i][0] + dx) + "," + (p[i][1] + m[i] * dx) + " "
+         + (p[i + 1][0] - dx) + "," + (p[i + 1][1] - m[i + 1] * dx) + " "
+         + p[i + 1][0] + "," + p[i + 1][1];
+    }
+    return s;
+  }
+  function draw(svg, ser, o) {
+    svg.innerHTML = "";
+    var W = 620, H = 190, P = { t: 10, r: 12, b: 22, l: 40 };
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("preserveAspectRatio", "none");
+    var all = []; ser.forEach(function (s) { s.pts.forEach(function (q) { all.push(q[1]); }); });
+    if (!all.length) return;
+    var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
+    var pd = (hi - lo) * .12 || 1; lo -= pd; hi += pd;
+    var rg = (hi - lo) || 1, xr = (o.xhi - o.xlo) || 1;
+    var X = function (x) { return P.l + (x - o.xlo) / xr * (W - P.l - P.r); };
+    var Y = function (y) { return P.t + (1 - (y - lo) / rg) * (H - P.t - P.b); };
+    for (var g = 0; g <= 3; g++) {
+      var yy = P.t + g / 3 * (H - P.t - P.b);
+      svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: yy, y2: yy, "class": "g" }));
+      var lb = mk("text", { x: P.l - 6, y: yy + 3, "text-anchor": "end" });
+      lb.textContent = o.fy(hi - g / 3 * rg); svg.appendChild(lb);
+    }
+    if (lo < 0 && hi > 0) svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: Y(0), y2: Y(0), "class": "z" }));
+    (o.xt || []).forEach(function (t) {
+      var tx = mk("text", { x: X(t.x), y: H - 7, "text-anchor": "middle" });
+      tx.textContent = t.label; svg.appendChild(tx);
+    });
+    ser.forEach(function (s) {
+      if (s.pts.length < 2) return;
+      svg.appendChild(mk("path", { d: path(s.pts.map(function (q) { return [X(q[0]), Y(q[1])]; })),
+        fill: "none", stroke: s.color, "stroke-width": 1.7, "stroke-linecap": "round",
+        "stroke-linejoin": "round" }));
+    });
+  }
+  function legend(host, ser) {
+    host.innerHTML = "";
+    ser.forEach(function (s) {
+      var d = el("span"); var i = el("i"); i.style.background = s.color;
+      d.appendChild(i); d.appendChild(document.createTextNode(s.name)); host.appendChild(d);
+    });
+  }
+  function charts() {
+    var eng = ord().filter(function (t) { return (DATA.engine || {})[t]; });
+    var eq = eng.map(function (tf) {
+      var E = DATA.engine[tf], n = E.kurva.length;
+      return { name: tf.toUpperCase(), color: COLOR[tf], raw: E.kurva,
+               pts: E.kurva.map(function (p, i) { return [n > 1 ? i / (n - 1) : 0, p.eq]; }) };
+    });
+    if (eq.length) {
+      var base = eq.reduce(function (a, b) { return b.raw.length > a.raw.length ? b : a; });
+      var xt = [0, .5, 1].map(function (f) {
+        var j = Math.round(f * (base.raw.length - 1));
+        return { x: f, label: (base.raw[j] && base.raw[j].b) || "" };
+      });
+      draw($("#eq"), eq, { xlo: 0, xhi: 1, xt: xt, fy: function (y) { return (y > 0 ? "+" : "") + Math.round(y) + "R"; } });
+      legend($("#eq-lg"), eq);
+    }
+    var hr = eng.map(function (tf) {
+      var E = DATA.engine[tf];
+      return { name: tf.toUpperCase(), color: COLOR[tf],
+               pts: E.jam.filter(function (h) { return h.n > 0; }).map(function (h) { return [h.k, h.wr]; }) };
+    }).filter(function (s) { return s.pts.length >= 2; });
+    if (hr.length) {
+      draw($("#hr"), hr, { xlo: 0, xhi: 23,
+        xt: [0, 6, 12, 18].map(function (h) { return { x: h, label: (h < 10 ? "0" : "") + h + ":00" }; }),
+        fy: function (y) { return Math.round(y) + "%"; } });
+      legend($("#hr-lg"), hr);
     }
   }
 
-  function render(first) {
-    stamp(); cards();
-    if (first) { charts(); reveal(); }
-    signals(sigTf && DATA.live[sigTf] ? sigTf : ord()[0]);
-    watch(wTf && DATA.live[wTf] ? wTf : ord()[0]);
+  /* ── live chrome ── */
+  function clock() {
+    var d = new Date(Date.now() + (7 * 60 + new Date().getTimezoneOffset()) * 60000);
+    function p(n) { return (n < 10 ? "0" : "") + n; }
+    $("#clock").textContent = p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+    $("#cd").textContent = LEFT + "s";
+    if (--LEFT < 0) LEFT = 60;
   }
-
+  function stamp() {
+    var s = DATA.dibuat || "";
+    $("#stamp").textContent = s.replace(/^\d{2} \w{3} \d{4} · /, "");
+    $("#foot").textContent = "engine data written " + s;
+    var m = /(\d{2}):(\d{2})\s*WIB/.exec(s);
+    if (!m) return;
+    var now = new Date(Date.now() + (7 * 60 + new Date().getTimezoneOffset()) * 60000);
+    var mins = (now.getHours() * 60 + now.getMinutes()) - (+m[1] * 60 + +m[2]);
+    if (mins < 0) mins += 1440;
+    var stale = mins > 180;
+    $("#dot").classList.toggle("stale", stale);
+    $("#state").textContent = stale ? "stale" : "live";
+  }
+  function render(first) {
+    stamp(); strip();
+    if (first) charts();
+    watch(wTf && DATA.live[wTf] ? wTf : ord()[0]);
+    signals(sTf && DATA.live[sTf] ? sTf : ord()[0]);
+  }
   function load(first) {
     fetch("data.json?t=" + Date.now(), { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (j) { DATA = j; render(first); })
+      .then(function (j) { DATA = j; LEFT = 60; render(first); })
       .catch(function () {
-        if (!DATA) {
-          $("#stamp").textContent = "engine data unavailable";
-          $("#dot").classList.add("stale");
-        }
+        if (!DATA) { $("#state").textContent = "no data"; $("#dot").classList.add("stale"); }
       });
   }
-
   load(true);
+  setInterval(clock, 1000); clock();
   setInterval(function () { load(false); }, 60000);
-  document.addEventListener("visibilitychange", function () {
-    if (!document.hidden) load(false);
-  });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) load(false); });
 })();
 </script>
 </body>
