@@ -295,6 +295,17 @@ footer .row{display:flex;flex-wrap:wrap;gap:22px;align-items:baseline;justify-co
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
   function num(v) { var f = parseFloat(v); return isFinite(f) ? f : null; }
   function sgn(v, d) { var f = num(v); if (f === null) return "—"; return (f > 0 ? "+" : "") + f.toFixed(d == null ? 2 : d); }
+  /* Harga datang dari CSV sebagai hasil aritmetika float mentah:
+     "0.013629999999999998". Meniru _fp() di engine supaya koin murah tetap
+     terbaca tanpa memamerkan derau biner. */
+  function fp(v) {
+    var f = num(v);
+    if (f === null) return "—";
+    var a = Math.abs(f), d = a >= 1000 ? 2 : a >= 1 ? 4 : a >= .01 ? 5 : a >= .0001 ? 7 : 9;
+    var t = f.toFixed(d);
+    if (t.indexOf(".") >= 0) t = t.replace(/0+$/, "").replace(/\.$/, "");
+    return t;
+  }
   function ord() { return ORDER.filter(function (t) { return DATA.live && DATA.live[t]; }); }
 
   /* ---------- cards ---------- */
@@ -523,14 +534,18 @@ footer .row{display:flex;flex-wrap:wrap;gap:22px;align-items:baseline;justify-co
   function signals(tf) {
     sigTf = tf;
     tabs($("#sig-tabs"), tf, signals);
-    var rows = (DATA.live[tf].sinyal || []).slice().reverse();
+    // ⚠️ CSV ditulis menurut urutan KEJADIAN pencatatan, bukan urutan waktu
+    // sinyal — membaliknya saja menghasilkan 13 Sep, 10 Sep, 6 Sep, 13 Sep…
+    // padahal keterangan di atas menjanjikan "newest first".
+    var rows = (DATA.live[tf].sinyal || []).slice()
+      .sort(function (a, b) { return (b.ts || "").localeCompare(a.ts || ""); });
     table($("#sig-table"), [
       { h: "time (WIB)", cell: function (r) { return txt(r.ts); } },
       { h: "pair", cell: function (r) { var t = txt(r.sym, "sym"); return t; } },
       { h: "side", cell: function (r) { return sideCell(r.dir); } },
-      { h: "entry", num: true, cell: function (r) { return txt(r.e, "num"); } },
-      { h: "stop", num: true, cell: function (r) { return txt(r.s, "num"); } },
-      { h: "target", num: true, cell: function (r) { return txt(r.t, "num"); } },
+      { h: "entry", num: true, cell: function (r) { return txt(fp(r.e), "num"); } },
+      { h: "stop", num: true, cell: function (r) { return txt(fp(r.s), "num"); } },
+      { h: "target", num: true, cell: function (r) { return txt(fp(r.t), "num"); } },
       { h: "status", cell: function (r) { return txt(r.st === "fired" ? "open" : r.st); } },
       { h: "result R", num: true, cell: function (r) {
           var td = el("td", "num"); var v = num(r.pnl);
@@ -546,12 +561,13 @@ footer .row{display:flex;flex-wrap:wrap;gap:22px;align-items:baseline;justify-co
   function watch(tf) {
     wTf = tf;
     tabs($("#w-tabs"), tf, watch);
-    var rows = (DATA.live[tf].pantau || []).slice().reverse();
+    var rows = (DATA.live[tf].pantau || []).slice()
+      .sort(function (a, b) { return (b.ts || "").localeCompare(a.ts || ""); });
     table($("#w-table"), [
       { h: "time (WIB)", cell: function (r) { return txt(r.ts); } },
       { h: "pair", cell: function (r) { return txt(r.sym, "sym"); } },
       { h: "side", cell: function (r) { return sideCell(r.dir); } },
-      { h: "reclaimed level", num: true, cell: function (r) { return txt(r.lv, "num"); } }
+      { h: "reclaimed level", num: true, cell: function (r) { return txt(fp(r.lv), "num"); } }
     ], rows, "Nothing on the watchlist right now.");
   }
 
