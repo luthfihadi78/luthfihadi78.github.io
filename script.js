@@ -169,9 +169,16 @@
     };
   }
   function bangun() {
-    var r = rng(20260910), out = [];
-    for (var i = 0; i < 5; i++) {
-      out.push({ y: 0.36 + r() * 0.28, fase: r() * Math.PI * 2, sib: 0.6 + r() * 0.7 });
+    // Sebaran ACAK membuat kelima blok kebetulan mengelompok di sepertiga
+    // tengah dan kanvas terlihat kosong. Diganti GELOMBANG deterministik:
+    // memakai penuh tinggi kanvas dan terbaca sebagai rantai, bukan taburan.
+    var r = rng(20260913), out = [], n = 5;
+    for (var i = 0; i < n; i++) {
+      out.push({
+        y: 0.50 + 0.30 * Math.sin(i * 1.25 - 0.6),
+        fase: r() * Math.PI * 2,
+        sib: 0.6 + r() * 0.6
+      });
     }
     return out;
   }
@@ -184,7 +191,7 @@
   function gambar() {
     if (!W || !H) return;
     ctx.clearRect(0, 0, W, H);
-    var n = blok.length, pad = 34, lebar = 30, gap = (W - pad * 2 - lebar) / (n - 1);
+    var n = blok.length, pad = 44, lebar = 44, gap = (W - pad * 2 - lebar) / (n - 1);
 
     var pos = blok.map(function (b, i) {
       var hanyut = kurang ? 0 : Math.sin(t * 0.0006 * b.sib + b.fase) * 9;
@@ -192,7 +199,7 @@
     });
 
     // tautan antar blok
-    ctx.strokeStyle = "rgba(61,220,132,.34)"; ctx.lineWidth = 1.4;
+    ctx.strokeStyle = "rgba(110,231,183,.32)"; ctx.lineWidth = 1.5;
     for (var i = 0; i < n - 1; i++) {
       ctx.beginPath();
       ctx.moveTo(pos[i].x + lebar, pos[i].y);
@@ -204,7 +211,7 @@
         ctx.beginPath();
         ctx.arc(pos[i].x + lebar + (pos[i + 1].x - pos[i].x - lebar) * p,
                 pos[i].y + (pos[i + 1].y - pos[i].y) * p, 2.4, 0, Math.PI * 2);
-        ctx.fillStyle = "#3DDC84"; ctx.fill();
+        ctx.fillStyle = "#6EE7B7"; ctx.fill();
       }
     }
     // blok
@@ -212,18 +219,18 @@
       var b2 = pos[j], akhir = j === n - 1;
       ctx.beginPath();
       ctx.rect(b2.x - lebar / 2, b2.y - lebar / 2, lebar, lebar);
-      ctx.fillStyle = akhir ? "rgba(61,220,132,.16)" : "rgba(61,220,132,.07)";
+      ctx.fillStyle = akhir ? "rgba(110,231,183,.18)" : "rgba(110,231,183,.07)";
       ctx.fill();
-      ctx.strokeStyle = akhir ? "#3DDC84" : "rgba(61,220,132,.45)";
+      ctx.strokeStyle = akhir ? "#6EE7B7" : "rgba(110,231,183,.42)";
       ctx.lineWidth = akhir ? 1.6 : 1.1;
       ctx.stroke();
       // dua garis "isi" di dalam blok
-      ctx.strokeStyle = "rgba(61,220,132,.30)"; ctx.lineWidth = 1;
+      ctx.strokeStyle = "rgba(110,231,183,.28)"; ctx.lineWidth = 1;
       for (var k = 1; k <= 2; k++) {
         var yy = b2.y - lebar / 2 + (lebar * k / 3);
         ctx.beginPath();
-        ctx.moveTo(b2.x - lebar / 2 + 5, yy);
-        ctx.lineTo(b2.x + lebar / 2 - 5 - (k === 2 ? 7 : 0), yy);
+        ctx.moveTo(b2.x - lebar / 2 + 8, yy);
+        ctx.lineTo(b2.x + lebar / 2 - 8 - (k === 2 ? 11 : 0), yy);
         ctx.stroke();
       }
     }
