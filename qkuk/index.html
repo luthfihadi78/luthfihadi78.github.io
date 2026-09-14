@@ -287,6 +287,13 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
 (function () {
   "use strict";
   var DATA = null, ORDER = ["1h", "2h", "4h"], LEFT = 60;
+  /* ⚠️ GitHub Pages menyajikan index.html dgn cache-control 600 dtk, dan tab
+     yang dibiarkan terbuka TIDAK PERNAH mengambil ulang HTML-nya sama sekali —
+     ia hanya menarik data.json. Akibatnya pembaruan tampilan tak terlihat
+     sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
+     yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
+     kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
+  var BUILD = "0b36320fe42b";
   var COLOR = { "1h": "#9CF2CE", "2h": "#6EE7B7", "4h": "#D8C89A" };
   var TVI = { "1h": "60", "2h": "120", "4h": "240" };
 
@@ -384,7 +391,23 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
   function arrow(s) { return s === "naik" ? "\u2191" : s === "turun" ? "\u2193" : "\u2192"; }
   function gauge() {
     var A = DATA.altdir;
-    if (!A) { $("#dir").style.display = "none"; return; }
+    // ⚠️⚠️ 14 Sep — dulu: display:none saat altdir kosong. Blok ini lalu LENYAP
+    // TANPA JEJAK ketika engine (yang masih memegang modul lama di memori)
+    // menimpa data.json dgn versi tanpa `altdir`. Dari luar itu terlihat persis
+    // seperti "pembaruan tidak terpasang". Sekarang ia MENGUMUMKAN dirinya rusak.
+    if (!A) {
+      $("#g-fl").innerHTML = ""; $("#g-arc").innerHTML = ""; $("#g-ndl").innerHTML = "";
+      $("#glow").style.background = "none";
+      var gb0 = $("#gbias"); gb0.textContent = "NO DATA"; gb0.style.color = "var(--gold)";
+      $("#gname").textContent = "altdir missing from data.json";
+      $("#dmeta").innerHTML = "";
+      var w = el("div", "dnote");
+      w.textContent = "The engine published a data file without the altcoin-direction "
+        + "block. Usually this means the running process still holds an older "
+        + "dashboard_data module in memory and needs a restart.";
+      $("#dmeta").appendChild(w);
+      return;
+    }
     gaugeStatik();
     var bias = (A.bias || "netral").toLowerCase();
     var col = GC[bias] || GC.netral;
@@ -675,7 +698,20 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
   function load(first) {
     fetch("data.json?t=" + Date.now(), { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (j) { DATA = j; LEFT = 60; render(first); })
+      .then(function (j) {
+        // Penjaga anti-loop: hanya kalau penanaman versi BERHASIL, keduanya ada
+        // dan berbeda, dan belum memuat ulang untuk versi itu barusan.
+        if (BUILD.indexOf("BUILD") === -1 && j.build && j.build !== BUILD) {
+          var k = "rl:" + j.build, t = 0;
+          try { t = +(sessionStorage.getItem(k) || 0); } catch (e) {}
+          if (Date.now() - t > 30000) {
+            try { sessionStorage.setItem(k, String(Date.now())); } catch (e) {}
+            location.reload();
+            return;
+          }
+        }
+        DATA = j; LEFT = 60; render(first);
+      })
       .catch(function () {
         if (!DATA) { $("#state").textContent = "no data"; $("#dot").classList.add("stale"); }
       });
