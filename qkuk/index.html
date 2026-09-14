@@ -315,7 +315,94 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
     td.appendChild(a); return td;
   }
 
-  /* ── channel strip ── */
+  /* ===== arah altcoin: spidometer + aura api =====
+     Jarum dipetakan dari KODE REZIM, bukan dari satu angka mentah: rezimnya
+     memang kategorial (5 kombinasi BTC x BTC.D x USDT.D), jadi memaksakan
+     skala kontinu dari btc_chg saja akan mengarang presisi yang tak ada.
+     Peta di bawah mengurutkan 5 rezim itu dari paling bearish ke paling
+     bullish menurut label yang dipakai engine. */
+  var GPOS = { "1": .85, "3": .55, "2": 0, "4": -.7, "5": -.85 };
+  var GC = { long: "#6EE7B7", short: "#E8877C", netral: "#EEF4F1" };
+  var GA = 140, GB = 142, GR = 104;            // pusat & radius busur
+  function pol(r, deg) {
+    var t = deg * Math.PI / 180;
+    return [GA + r * Math.cos(t), GB - r * Math.sin(t)];
+  }
+  function gaugeStatik() {
+    var arc = $("#g-arc"), fl = $("#g-fl");
+    if (arc.childNodes.length) return;          // cukup sekali
+    var p0 = pol(GR, 180), p1 = pol(GR, 0);
+    arc.appendChild(mk("path", { "class": "arcbg",
+      d: "M" + p0[0] + "," + p0[1] + " A" + GR + "," + GR + " 0 0 1 " + p1[0] + "," + p1[1] }));
+    for (var i = 0; i <= 8; i++) {
+      var d = 180 - i * 22.5, a = pol(GR - 9, d), b = pol(GR + 5, d);
+      arc.appendChild(mk("line", { "class": "tick" + (i === 4 ? " mid" : ""),
+        x1: a[0], y1: a[1], x2: b[0], y2: b[1] }));
+    }
+    // lidah api mengikuti busur, menghadap KELUAR
+    for (var k = 0; k < 17; k++) {
+      var deg = 178 - k * (176 / 16);
+      var pt = pol(GR + 9, deg);
+      var g = mk("g", { transform: "translate(" + pt[0].toFixed(1) + "," + pt[1].toFixed(1)
+        + ") rotate(" + (90 - deg).toFixed(1) + ")" });
+      var sc = 0.62 + 0.5 * Math.sin(k * 1.9) * Math.sin(k * 1.9) + (k % 3) * 0.14;
+      var f = mk("path", { "class": "fl",
+        d: "M0,0 C-5.4,-6.5 -4.2,-15 0,-24 C4.2,-15 5.4,-6.5 0,0 Z",
+        transform: "scale(" + sc.toFixed(2) + ")" });
+      f.style.animationDelay = (k * 97 % 1700) + "ms";
+      f.style.animationDuration = (1400 + (k * 211) % 900) + "ms";
+      g.appendChild(f); fl.appendChild(g);
+    }
+    var n = mk("g", { "class": "ndl", id: "ndl-g" });
+    n.appendChild(mk("path", { d: "M" + GA + "," + GB + " L" + (GA - 5) + "," + (GB - 6)
+      + " L" + GA + "," + (GB - 86) + " L" + (GA + 5) + "," + (GB - 6) + " Z" }));
+    n.appendChild(mk("circle", { cx: GA, cy: GB, r: 7.5 }));
+    n.appendChild(mk("circle", { cx: GA, cy: GB, r: 3, fill: "#070B09" }));
+    $("#g-ndl").appendChild(n);
+  }
+  function arrow(s) { return s === "naik" ? "\u2191" : s === "turun" ? "\u2193" : "\u2192"; }
+  function gauge() {
+    var A = DATA.altdir;
+    if (!A) { $("#dir").style.display = "none"; return; }
+    gaugeStatik();
+    var bias = (A.bias || "netral").toLowerCase();
+    var col = GC[bias] || GC.netral;
+    var v = GPOS.hasOwnProperty(A.kode) ? GPOS[A.kode] : 0;
+    var deg = 90 - v * 90;
+    var g = $("#ndl-g");
+    g.setAttribute("transform", "rotate(" + (90 - deg).toFixed(2) + " " + GA + " " + GB + ")");
+    g.querySelectorAll("path,circle").forEach(function (e, i) {
+      if (i < 2) { e.setAttribute("fill", col); e.setAttribute("stroke", "none"); }
+    });
+    $("#g-fl").querySelectorAll(".fl").forEach(function (e) { e.setAttribute("fill", col); });
+    $("#glow").style.background = "radial-gradient(circle, " + col + "55 0%, transparent 68%)";
+    var lab = bias === "long" ? "LONG" : bias === "short" ? "SHORT" : "NEUTRAL";
+    var gb = $("#gbias"); gb.textContent = lab; gb.style.color = col;
+    $("#gname").textContent = A.nama || "altcoin direction";
+
+    var m = $("#dmeta"); m.innerHTML = "";
+    function r(l, v2, c) {
+      var x = el("div", "dr");
+      x.appendChild(el("span", "l", l));
+      x.appendChild(el("span", "d"));
+      x.appendChild(el("span", "v " + (c || ""), v2));
+      m.appendChild(x);
+    }
+    r("BTC", arrow(A.btc) + "  " + sgn(A.btc_chg, 2) + "%", A.btc_chg < 0 ? "neg" : "pos");
+    r("BTC.D", arrow(A.btcd) + "  " + sgn(A.d_btcd, 2) + "pp \u2192 " + A.btcd_now + "%", "mut");
+    r("USDT.D", arrow(A.usdtd) + "  " + sgn(A.d_usdtd, 2) + "pp \u2192 " + A.usdtd_now + "%", "mut");
+    r("regime", A.nama || "--", "");
+    r("bias (table)", lab, "");
+    if (A.bias_data) r("bias (measured 365d)", A.bias_data.toUpperCase(), "mut");
+    var note = el("div", "dnote");
+    note.textContent = A.terukur === null || A.terukur === undefined
+      ? "Direction comes from a theory table; the 365-day measurement has not confirmed it."
+      : "365-day test: this regime averaged " + sgn(A.terukur, 2) + "% over 8 hours against a "
+        + sgn(A.acuan, 2) + "% baseline \u2014 not significant. Context, not a verdict; "
+        + "the engine does not trade on it.";
+    m.appendChild(note);
+  }
+
   function strip() {
     var host = $("#strip"); host.innerHTML = "";
     ord().forEach(function (tf) {
@@ -555,7 +642,7 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
     $("#state").textContent = stale ? "stale" : "live";
   }
   function render(first) {
-    stamp(); strip();
+    stamp(); gauge(); strip();
     if (first) charts();
     watch(wTf && DATA.live[wTf] ? wTf : ord()[0]);
     signals(sTf && DATA.live[sTf] ? sTf : ord()[0]);
