@@ -79,6 +79,10 @@ a:hover{color:#9CF2CE}
 .gauge .arcbg{fill:none;stroke:var(--line-2);stroke-width:2.4;stroke-linecap:round}
 .gauge .tick{stroke:var(--line-2);stroke-width:1.6;stroke-linecap:round}
 .gauge .tick.mid{stroke:var(--fg-3);stroke-width:2}
+/* ⚠️ Kunci terakhir supaya terbaca API, bukan daun: tepi lidahnya harus
+   LEMBUT dan saling tumpang tindih. Tanpa blur, tiap lidah adalah bentuk
+   berbatas tegas dan mata membacanya sebagai objek terpisah. */
+#g-fl{filter:blur(2.2px)}
 .fl{transform-box:fill-box;transform-origin:bottom center;
   animation:fl 1.7s ease-in-out infinite;will-change:transform,opacity}
 @keyframes fl{
@@ -346,21 +350,21 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
     // posisi & tinggi di-jitter dengan deret deterministik (bukan Math.random,
     // supaya tampilannya stabil antar-muat), dan fase animasi dibuat berbeda
     // tiap lidah sehingga tak pernah berkedip serempak.
-    var N = 26;
+    var N = 38;
     for (var k = 0; k < N; k++) {
       var jit = Math.sin(k * 12.9898) * 43758.5453;
       jit = jit - Math.floor(jit);                       // 0..1 deterministik
-      var deg = 177 - (k + (jit - .5) * .55) * (174 / (N - 1));
+      var deg = 177 - (k + (jit - .5) * .8) * (174 / (N - 1));
       var pt = pol(GR + 7, deg);
       var g = mk("g", { transform: "translate(" + pt[0].toFixed(1) + "," + pt[1].toFixed(1)
         + ") rotate(" + (90 - deg).toFixed(1) + ")" });
       var base = 0.5 + jit * 1.05;                       // tinggi sangat bervariasi
       // lapis pangkal: lebar, pendek, lebih pekat
-      var f1 = mk("path", { "class": "fl", opacity: .55,
+      var f1 = mk("path", { "class": "fl", opacity: .4,
         d: "M0,0 C-6.2,-5 -5,-12 0,-17 C5,-12 6.2,-5 0,0 Z",
         transform: "scale(" + (base * .95).toFixed(2) + ",1)" });
       // lapis ujung: ramping, tinggi, lebih tipis -> meruncing tanpa gradien
-      var f2 = mk("path", { "class": "fl", opacity: .3,
+      var f2 = mk("path", { "class": "fl", opacity: .22,
         d: "M0,0 C-3.4,-8 -2.6,-19 0,-30 C2.6,-19 3.4,-8 0,0 Z",
         transform: "scale(" + (0.75 + jit * .6).toFixed(2) + "," + (0.8 + jit * .75).toFixed(2) + ")" });
       [f1, f2].forEach(function (f, j) {
