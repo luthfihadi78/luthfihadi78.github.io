@@ -106,6 +106,16 @@ a:hover{color:#9CF2CE}
   font-size:10.5px;color:var(--fg-3);line-height:1.55}
 @media(prefers-reduced-motion:reduce){.fl{animation:none;opacity:.4}.ndl{transition:none}}
 
+/* ── watchlist accuracy + tools sinyal (17 Sep) ── */
+.ak-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0 6px}
+@media(max-width:900px){.ak-grid{grid-template-columns:1fr}}
+.s-tools{display:flex;gap:8px;margin:0 0 10px;flex-wrap:wrap}
+.s-tools input,.s-tools select{background:var(--s1);border:1px solid var(--line-2);color:var(--fg);
+  border-radius:6px;padding:6px 10px;font-family:var(--mono);font-size:12px}
+.s-tools input{flex:1;min-width:150px}
+.s-tools input::placeholder{color:var(--fg-3)}
+@media(max-width:600px){.kv.btc{display:none}}
+
 /* ── channel strip ── */
 .strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0 26px}
 @media(max-width:900px){.strip{grid-template-columns:1fr}}
@@ -265,6 +275,7 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
     <span class="pill"><span class="dot" id="dot"></span><span id="state">connecting</span></span>
     <span class="kv sp">WIB <b id="clock">--:--:--</b></span>
     <span class="kv">engine <b id="stamp">—</b></span>
+    <span class="kv btc">BTC <b id="btcpx">—</b></span>
     <span class="kv">refresh <b id="cd">60s</b></span>
   </div>
 </div>
@@ -327,7 +338,29 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
       <span class="hint">entries issued to the group</span>
       <div class="tabs" id="s-tabs" role="tablist"></div>
     </div>
+    <div class="s-tools">
+      <input id="s-q" type="search" placeholder="search pair… (e.g. BTC)" aria-label="Search signals by pair">
+      <select id="s-sort" aria-label="Sort signals">
+        <option value="ts">newest first</option>
+        <option value="pnl">best R first</option>
+        <option value="loss">worst R first</option>
+        <option value="sym">pair A–Z</option>
+      </select>
+    </div>
     <div class="tw" id="s-table"></div>
+  </section>
+
+  <section id="akurasi">
+    <div class="sec-h">
+      <h2><i>&gt;</i> Watchlist accuracy</h2>
+      <span class="hint">every reclaim scored mechanically — entries you never took</span>
+    </div>
+    <div class="ak-grid" id="ak-grid"></div>
+    <p class="cap">Every watchlist row is scored by a fixed rule: entry at the reclaim close,
+    stop at the sweep extreme, symmetric 1R target, whichever is hit first within 7 days.
+    If one bar touches both, it counts as a loss; timeouts are scored from the last close,
+    never discarded. This measures raw entry quality across every detection — your own
+    filtering on top is exactly what the raw number cannot see.</p>
   </section>
 
   <section id="charts">
@@ -546,12 +579,23 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
       }
 
       var wr = L.tutup ? (L.menang / L.tutup * 100) : null;
-      c.appendChild(blok("signals · engine R", [
+      var blokSig = [
         ["sent", String(L.kirim), ""],
         ["closed", String(L.tutup), ""],
         ["win rate", wr === null ? "—" : wr.toFixed(0) + "%", wr === null ? "mut" : ""],
         ["net R", L.tutup ? sgn(L.totR, 2) : "—", L.tutup ? (L.totR > 0 ? "pos" : "neg") : "mut"]
-      ]));
+      ];
+      /* 17 Sep — sinyal yang kamu ambil sendiri (ditandai via ambil_stats.py).
+         Winrate mentah mengukur engine TANPA penyaringanmu; baris ini menampilkan
+         hasil sinyal yang benar-benar dieksekusi — versi yang kamu rasakan. */
+      if (L.diambil && L.diambil.tutup) {
+        var D = L.diambil;
+        blokSig.push(["taken by you", D.tutup + " · "
+          + (D.wr === null ? "—" : D.wr.toFixed(0) + "%")
+          + (D.pf == null ? "" : " · PF " + D.pf) + " · " + sgn(D.totR, 1) + "R",
+          D.totR > 0 ? "pos" : "neg"]);
+      }
+      c.appendChild(blok("signals · engine R", blokSig));
 
       c.appendChild(blok("watchlist · 1R:1R", P ? [
         ["scored", String(P.n), ""],
@@ -609,7 +653,7 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
     return td;
   }
 
-  var wTf = null, sTf = null;
+  var wTf = null, sTf = null, sQ = "", sSort = "ts";
 
   function watch(tf) {
     wTf = tf; tabs($("#w-tabs"), tf, watch);
@@ -633,8 +677,20 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
 
   function signals(tf) {
     sTf = tf; tabs($("#s-tabs"), tf, signals);
-    var rows = (DATA.live[tf].sinyal || []).slice()
-      .sort(function (a, b) { return (b.ts || "").localeCompare(a.ts || ""); });
+    var rows = (DATA.live[tf].sinyal || []).slice();
+    if (sQ) rows = rows.filter(function (r) { return (r.sym || "").toUpperCase().indexOf(sQ) !== -1; });
+    if (sSort === "sym") {
+      rows.sort(function (a, b) { return (a.sym || "").localeCompare(b.sym || ""); });
+    } else if (sSort !== "ts") {
+      rows.sort(function (a, b) {            /* sinyal open (pnl null) selalu di bawah */
+        var av = num(a.pnl), bv = num(b.pnl);
+        if (av === null) av = sSort === "pnl" ? -Infinity : Infinity;
+        if (bv === null) bv = sSort === "pnl" ? -Infinity : Infinity;
+        return sSort === "pnl" ? bv - av : av - bv;
+      });
+    } else {
+      rows.sort(function (a, b) { return (b.ts || "").localeCompare(a.ts || ""); });
+    }
     table($("#s-table"), [
       { h: "", c: function (r) { return tvCell(r.sym, tf); } },
       { h: "time WIB", c: function (r) { return txt(r.ts); } },
@@ -647,9 +703,48 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
           var td = el("td", "st" + (r.st === "fired" ? " open" : ""));
           td.textContent = r.st === "fired" ? "open" : r.st; return td; } },
       { h: "result R", n: true, c: function (r) { return rcell(r.pnl, r.st === "fired"); } }
-    ], rows, DATA.live[tf].uji
+    ], rows, sQ ? "No signal matches \u201C" + sQ + "\u201D on this channel."
+      : DATA.live[tf].uji
       ? "Shadow channel — no entry signal recorded yet."
       : "No signals recorded on this channel yet.");
+  }
+
+  /* ── watchlist accuracy: skor mekanis 1R:1R atas SEMUA reclaim terdeteksi ── */
+  function akurasi() {
+    var host = $("#ak-grid"); if (!host) return;
+    host.innerHTML = "";
+    ord().forEach(function (tf) {
+      var L = DATA.live[tf], P = L.pantau_akurasi;
+      var c = el("div", "ch");
+      var h = el("div", "ch-h");
+      h.appendChild(el("span", "ch-n", L.nama));
+      h.appendChild(el("span", "ch-tf", tf.toUpperCase()));
+      c.appendChild(h);
+      var w = el("div", "ch-sep");
+      w.appendChild(el("div", "ch-sep-l", "every reclaim · 1R:1R"));
+      var r = el("div", "rows");
+      function row(l, v, cls) {
+        var x = el("div", "row");
+        x.appendChild(el("span", "l", l));
+        x.appendChild(el("span", "d"));
+        x.appendChild(el("span", "v " + (cls || ""), v));
+        r.appendChild(x);
+      }
+      if (P && P.n) {
+        row("scored", String(P.n));
+        row("win rate", P.wr === null ? "—" : P.wr.toFixed(1) + "%",
+            P.wr === null ? "mut" : (P.wr >= 50 ? "pos" : "neg"));
+        row("EV / entry", sgn(P.evR, 3) + "R", P.evR > 0 ? "pos" : "neg");
+        row("net R", sgn(P.totR, 1), P.totR > 0 ? "pos" : "neg");
+        row("W · L · timeout", (P.menang || 0) + " · " + (P.kalah || 0) + " · " + (P.sisa || 0), "mut");
+      } else {
+        row("scored", "0", "mut"); row("win rate", "—", "mut");
+        row("EV / entry", "—", "mut"); row("net R", "—", "mut");
+        row("W · L · timeout", "— · — · —", "mut");
+      }
+      w.appendChild(r); c.appendChild(w);
+      host.appendChild(c);
+    });
   }
 
   /* ── charts ── */
@@ -808,7 +903,7 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
              id: { glow: "rgba(216,200,154,.28)", edge: "rgba(216,200,154,.80)",
                    fill: "rgba(216,200,154,.10)", txt: "#E4D6AE" } };
   var bbBodies = [];          // badan fisik: {el, x, y, vx, vy, r, ph}
-  var bbRaf = null, bb24 = null, bb24Ts = 0, bb24Fail = false;
+  var bbRaf = null, bb24 = null, bbPx = null, bb24Ts = 0, bb24Fail = false;
   function bubbleData(mode, tf) {
     var L = (DATA.live || {})[tf];
     var src = mode === "sinyal" ? (L && L.sinyal) : (L && L.pantau);
@@ -830,15 +925,29 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
     return null;
   }
   function bbLoad24(cb) {
-    if (Date.now() - bb24Ts < 60000) { cb(); return; }
+    if (Date.now() - bb24Ts < 60000) { btcUpd(); cb(); return; }
     fetch("https://fapi.binance.com/fapi/v1/ticker/24hr")
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function (j) {
-        var m = {};
-        j.forEach(function (t) { m[t.symbol] = parseFloat(t.priceChangePercent); });
-        bb24 = m; bb24Ts = Date.now(); bb24Fail = false; cb();
+        var m = {}, px = {};
+        j.forEach(function (t) {
+          m[t.symbol] = parseFloat(t.priceChangePercent);
+          px[t.symbol] = parseFloat(t.lastPrice);
+        });
+        bb24 = m; bbPx = px; bb24Ts = Date.now(); bb24Fail = false;
+        btcUpd(); cb();
       })
-      .catch(function () { bb24Fail = true; bb24Ts = Date.now(); cb(); });
+      .catch(function () { bb24Fail = true; bb24Ts = Date.now(); btcUpd(); cb(); });
+  }
+  /* BTC live di top bar — satu request ticker yang sama dengan bubbles,
+     jadi nol request tambahan. Gagal fetch → tampil "—". */
+  function btcUpd() {
+    var b = $("#btcpx"); if (!b) return;
+    var p = bbPx && bbPx.BTCUSDT, c = bb24 && bb24.BTCUSDT;
+    if (!isFinite(p)) { b.textContent = "—"; return; }
+    var s = p >= 1000 ? Math.round(p).toLocaleString("en-US") : p.toFixed(2);
+    b.textContent = "$" + s + (isFinite(c) ? " " + (c > 0 ? "+" : "") + c.toFixed(2) + "%" : "");
+    b.style.color = c > 0 ? "var(--up)" : c < 0 ? "var(--dn)" : "";
   }
   function bubbleChg(d) {                     // %24j atau null kalau tak ada data
     var c = bbTicker(d.sym);
@@ -1119,7 +1228,7 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
     $("#state").textContent = stale ? "stale" : "live";
   }
   function render(first) {
-    stamp(); gauge(); strip();
+    stamp(); gauge(); strip(); akurasi();
     if (first) charts();
     if (first || !bbBodies.length) bubbleDraw();   // jangan bangun ulang saat data 60 dtk segar — fisika jalan terus
     watch(wTf && DATA.live[wTf] ? wTf : ord()[0]);
@@ -1146,6 +1255,12 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
         if (!DATA) { $("#state").textContent = "no data"; $("#dot").classList.add("stale"); }
       });
   }
+  $("#s-q").addEventListener("input", function () {
+    sQ = this.value.trim().toUpperCase(); signals(sTf || ord()[0]);
+  });
+  $("#s-sort").addEventListener("change", function () {
+    sSort = this.value; signals(sTf || ord()[0]);
+  });
   load(true);
   setInterval(clock, 1000); clock();
   setInterval(function () { load(false); }, 60000);
