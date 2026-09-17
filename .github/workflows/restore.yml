@@ -23,7 +23,7 @@ jobs:
       - name: Pulihkan index.html jika bukan versi terkunci
         env:
           GH_TOKEN: ${{ github.token }}
-          EXPECTED_SHA: "4829ff9dcab28a4d29a9c45a6d59e506e077b81c"
+          EXPECTED_SHA: "ca064b3b9d86a1e4bfcadf13d1c96151e1f75518"
         run: |
           set -e
           SHA="$(git rev-parse HEAD:qkuk/index.html)"
