@@ -186,6 +186,43 @@ svg.ch .g{stroke:var(--line);stroke-width:1}
 svg.ch .z{stroke:var(--line-2);stroke-width:1;stroke-dasharray:3 4}
 .cap{margin:11px 0 0;font-size:10.5px;color:var(--fg-3);line-height:1.5}
 
+/* ── bubbles: peta koin hasil deteksi engine reclaim ──
+   Inkspirasi cryptobubbles.net, tapi isinya BUKAN seluruh pasar crypto —
+   hanya koin yang tercatat di live.pantau (watchlist) / live.sinyal engine.
+   X = hasil R (kiri loss, kanan win) · Y = umur / lebar stop ·
+   ukuran gelembung = risiko/kesegaran. Warna = hasil. */
+.bb-stage{position:relative;background:var(--s1);border:1px solid var(--line);
+  border-radius:var(--r);padding:16px}
+.bb-bar{display:flex;align-items:center;margin-bottom:12px}
+.bb-legend{margin-left:auto;display:flex;gap:12px;flex-wrap:wrap}
+.bb-legend span{display:inline-flex;align-items:center;gap:6px;font-size:10px;color:var(--fg-3)}
+.bb-legend i{width:10px;height:10px;border-radius:999px;display:inline-block;border:1px solid}
+.bb-plot{position:relative;height:440px;overflow:hidden}
+@media(max-width:700px){.bb-plot{height:340px}}
+.bb-axis{position:absolute;font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--fg-3);pointer-events:none;white-space:nowrap}
+.bb-zline{position:absolute;top:5%;bottom:5%;width:0;pointer-events:none;
+  border-left:1px dashed var(--line-2)}
+.bb{position:absolute;transform:translate(-50%,-50%);border-radius:999px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1px;cursor:pointer;user-select:none;border:1px solid;text-align:center;
+  font-variant-numeric:tabular-nums;line-height:1.15;will-change:transform;
+  transition:transform .18s cubic-bezier(.16,1,.3,1),box-shadow .18s}
+.bb:hover{transform:translate(-50%,-50%) scale(1.07);z-index:5;
+  box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.bb b{font-weight:600;letter-spacing:.02em;white-space:nowrap;overflow:hidden;max-width:92%}
+.bb i{font-style:normal;font-size:.8em;opacity:.85}
+.bb-tip{position:absolute;z-index:9;pointer-events:none;opacity:0;transition:opacity .15s;
+  background:var(--s3);border:1px solid var(--line-2);border-radius:6px;
+  padding:10px 12px;font-size:11px;min-width:200px;max-width:250px;color:var(--fg-2);
+  box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.bb-tip.on{opacity:1}
+.bb-tip .hd{font-weight:700;color:var(--fg);margin-bottom:7px;letter-spacing:.02em}
+.bb-tip .t{display:grid;grid-template-columns:auto 1fr auto;gap:6px;font-size:11px}
+.bb-tip .t .l{color:var(--fg-3);font-size:10px;letter-spacing:.05em;text-transform:uppercase}
+.bb-tip .t .d{border-bottom:1px dotted var(--line-2);transform:translateY(-3px)}
+.bb-tip .t .v{font-weight:600;white-space:nowrap;text-align:right}
+
 footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
   display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;
   font-size:11px;color:var(--fg-3)}
@@ -243,6 +280,30 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
   </section>
 
   <div class="strip" id="strip"></div>
+
+  <section id="bubbles">
+    <div class="sec-h">
+      <h2><i>&gt;</i> Bubbles</h2>
+      <span class="hint">coins detected by this engine only — not the whole market</span>
+      <div class="tabs" id="b-mode" role="tablist"></div>
+      <div class="tabs" id="b-tabs" role="tablist"></div>
+    </div>
+    <div class="bb-stage">
+      <div class="bb-bar">
+        <div class="bb-legend">
+          <span><i style="background:rgba(110,231,183,.15);border-color:#6EE7B7"></i>win</span>
+          <span><i style="background:rgba(232,135,124,.13);border-color:#E8877C"></i>loss</span>
+          <span><i style="background:rgba(216,200,154,.13);border-color:#D8C89A"></i>open / timeout</span>
+        </div>
+      </div>
+      <div class="bb-plot" id="bb-plot"></div>
+      <div class="bb-tip" id="bb-tip"></div>
+    </div>
+    <p class="cap">Left of the dashed line the trade lost, right of it it won; gold is still open.
+    On Signals, bubble size and height carry the stop width — bigger means a wider stop, more risk.
+    On Watchlist, fresh detections sit higher and larger than old ones.
+    Hover for detail, click a bubble to open the TradingView chart.</p>
+  </section>
 
   <section id="watch">
     <div class="sec-h">
@@ -668,6 +729,187 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
     }
   }
 
+  /* ── bubbles: koin hasil deteksi engine (live.pantau / live.sinyal) ──
+     BUKAN pasar crypto seluruhnya — hanya koin yang pernah tercatat engine.
+     Layout sederhana & stabil: sumbu-X dari hasil R (loss kiri, win kanan),
+     sumbu-Y tergantung mode (watchlist: segar vs lama; sinyal: lebar SL).
+     Posisi grid + jitter deterministik, jadi tampilan tidak melompat-lompat
+     tiap render. Ukuran = frekuensi koin muncul, bukan market cap. */
+  var bMode = "pantau", bTf = null;
+  var BB_UP = "#6EE7B7", BB_DN = "#E8877C", BB_ID = "#D8C89A";
+  function bubbleData(mode, tf) {
+    var L = (DATA.live || {})[tf];
+    var src = mode === "sinyal" ? (L && L.sinyal) : (L && L.pantau);
+    if (!src) return [];
+    var seen = {};
+    return src.map(function (r, i) {
+      var d = mode === "sinyal"
+        ? { sym: r.sym, dir: r.dir, e: r.e, s: r.s, t: r.t, ts: r.ts,
+            st: r.st, r: r.pnl, slp: num(r.slp) }
+        : { sym: r.sym, dir: r.dir, lv: r.lv, ts: r.ts, h: r.h, r: r.r };
+      d.i = i; d.tf = tf;
+      seen[d.sym] = (seen[d.sym] || 0) + 1;
+      return d;
+    }).map(function (d) { d.n = seen[d.sym]; return d; });
+  }
+  function bubbleR(d) {                       // hasil terpadu: null = masih terbuka
+    if (d.mode === "sinyal") return d.st === "fired" ? null : num(d.r);
+    return d.h ? num(d.r) : null;
+  }
+  function bubbleRes(d) {                     // hasil: "up" | "dn" | "id"
+    var r = bubbleR(d);
+    if (r === null) return "id";
+    if (d.h === "timeout") return "id";
+    return r > 0 ? "up" : "dn";
+  }
+  function bubbleY(d) {
+    if (d.mode === "sinyal") {
+      var slp = num(d.slp);                   // lebar SL % → tinggi = risiko
+      return slp === null ? .5 : Math.max(0, Math.min(1, slp / 12));
+    }
+    var dt = (Date.now() - new Date((d.ts || "").replace(" ", "T") + "+07:00").getTime()) / 36e5;
+    if (!isFinite(dt)) return .5;             // baru = tinggi
+    return Math.max(0, Math.min(1, 1 - dt / 168));
+  }
+  function bubbleDraw() {
+    var plot = $("#bb-plot"), tip = $("#bb-tip");
+    plot.innerHTML = ""; tip.classList.remove("on");
+    var tf = bTf && DATA.live[bTf] ? bTf : ord()[0];
+    bTf = tf;
+    var rows = bubbleData(bMode, tf);
+    var modeTabs = $("#b-mode");
+    modeTabs.innerHTML = "";
+    [["pantau", "Watchlist"], ["sinyal", "Signals"]].forEach(function (m) {
+      var b = el("button", "tab", m[1]);
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", bMode === m[0] ? "true" : "false");
+      b.addEventListener("click", function () { bMode = m[0]; bubbleDraw(); });
+      modeTabs.appendChild(b);
+    });
+    tabs($("#b-tabs"), tf, function (t) { bTf = t; bubbleDraw(); });
+    if (!rows.length) {
+      plot.appendChild(el("div", "empty", bMode === "sinyal"
+        ? "No signals recorded on this channel yet."
+        : "Nothing on the watchlist for this channel."));
+      return;
+    }
+    var W = plot.clientWidth || 900, H = plot.clientHeight || 440;
+    var PAD = 70;
+    // posisi: X dari hasil R (kiri negatif → kanan positif); null ditempatkan
+    // di kolom emas tepat di garis nol. Grid + jitter supaya tumpukan menyebar.
+    var grid = {};
+    var COL = { up: ["rgba(110,231,183,.14)", BB_UP],
+                dn: ["rgba(232,135,124,.12)", BB_DN],
+                id: ["rgba(216,200,154,.12)", BB_ID] };
+    rows.forEach(function (d) {
+      d.mode = bMode;
+      var res = bubbleRes(d), r = bubbleR(d);
+      var x = r === null ? .5 : Math.max(0, Math.min(1, (r + 2) / 4));  // R -2..+2
+      var y = bubbleY(d);
+      var gx = Math.round(x * 10), gy = Math.round(y * 8);
+      var k = gx + ":" + gy, c = 0;
+      while (grid[k]) { k = gx + ":" + gy + ":" + (++c); }
+      grid[k] = 1;
+      d._x = x; d._y = y; d._c = c; d._res = res;
+    });
+    var nMax = Math.max.apply(null, rows.map(function (d) { return d.n || 1; }));
+    // Normalisasi sumbu-Y ke rentang data yang ADA: kalau semua deteksi masih
+    // segar (umur mirip), skala absolut menumpuk semuanya di satu sisi dan
+    // setengah kanvas jadi kosong. Urutan & makna sumbu tetap sama — yang
+    // berubah cuma seberapa lebar sebarannya.
+    var ysRaw = rows.map(function (d) { return bubbleY(d); });
+    var yLo = Math.min.apply(null, ysRaw), yHi = Math.max.apply(null, ysRaw);
+    var ySpan = (yHi - yLo) || 1;
+    rows.forEach(function (d, i) {
+      d._yn = yHi - yLo < .04 ? .5 : .08 + (1 - (ysRaw[i] - yLo) / ySpan) * .84;
+    });
+    // Terbesar dirender TERAKHIR supaya berada di atas tumpukan & mudah diklik.
+    rows.slice().sort(function (a, b) { return (a.n || 1) - (b.n || 1); }).forEach(function (d) {
+      // Sebaran lingkar golden-angle: koin yang jatuh di sel yang sama membentuk
+      // cincin mengelilingi titik dasarnya — mirip tata letak cryptobubbles,
+      // deterministik (tanpa Math.random), dan tidak pernah menumpuk identik.
+      var ang = d._c * 2.399963;
+      var rad = d._c === 0 ? 0 : 16 + Math.sqrt(d._c) * 22;
+      var px = Math.max(PAD * .45, Math.min(W - PAD * .45,
+        PAD + d._x * (W - 2 * PAD) + Math.cos(ang) * rad));
+      var py = Math.max(22, Math.min(H - 22,
+        30 + (1 - d._yn) * (H - 60) + Math.sin(ang) * rad * .85));
+      var base = 30 + (d.n / nMax) * 26;      // frekuensi kemunculan → diameter
+      var b = el("div", "bb");
+      b.style.left = px.toFixed(1) + "px";
+      b.style.top = py.toFixed(1) + "px";
+      b.style.width = b.style.height = base.toFixed(1) + "px";
+      b.style.background = COL[d._res][0];
+      b.style.borderColor = COL[d._res][1];
+      b.style.color = COL[d._res][1];
+      var fs = base > 46 ? 10.5 : base > 36 ? 9.5 : 8.5;
+      b.style.fontSize = fs + "px";
+      var nm = d.sym.replace(/USDT$/, "");
+      b.appendChild(el("b", null, nm));
+      if (base > 34) {
+        var r = bubbleR(d);
+        b.appendChild(el("i", null, r === null ? (bMode === "sinyal" ? "open" : "wait")
+          : (d.h === "timeout" ? "to" : sgn(r, 1) + "R")));
+      }
+      b.title = "";
+      b.addEventListener("mouseenter", function (ev) {
+        tip.innerHTML = "";
+        var hd = el("div", "hd", nm + " · " + d.dir.toUpperCase() + " · " + tf.toUpperCase());
+        tip.appendChild(hd);
+        var t = el("div", "t");
+        function rw(l, v, cls) {
+          t.appendChild(el("span", "l", l)); t.appendChild(el("span", "d"));
+          var vv = el("span", "v " + (cls || ""), v); t.appendChild(vv);
+        }
+        rw("time", d.ts || "—");
+        if (bMode === "sinyal") {
+          rw("entry", fp(d.e)); rw("stop", fp(d.s)); rw("target", fp(d.t));
+          rw("stop width", num(d.slp) === null ? "—" : num(d.slp).toFixed(2) + "%");
+          rw("status", d.st === "fired" ? "OPEN" : String(d.st || ""),
+             d.st === "fired" ? "" : "");
+          var rr = bubbleR(d);
+          rw("result", rr === null ? "open" : sgn(rr, 2) + "R",
+             rr === null ? "" : rr > 0 ? "pos" : "neg");
+        } else {
+          rw("level", fp(d.lv));
+          rw("outcome", d.h ? (d.h === "menang" ? "win" : d.h === "kalah" ? "loss" : "timeout")
+            : "pending", d.h === "menang" ? "pos" : d.h === "kalah" ? "neg" : "");
+          var rr2 = num(d.r);
+          rw("R (1:1)", rr2 === null ? "—" : sgn(rr2, 2) + "R",
+             rr2 === null ? "" : rr2 > 0 ? "pos" : "neg");
+        }
+        rw("seen", String(d.n) + "x on " + tf.toUpperCase());
+        tip.appendChild(t);
+        tip.classList.add("on");
+      });
+      b.addEventListener("mousemove", function (ev) {
+        var rc = plot.getBoundingClientRect();
+        var tx = ev.clientX - rc.left + 14, ty = ev.clientY - rc.top + 14;
+        if (tx + 260 > rc.width) tx = ev.clientX - rc.left - 264;
+        if (ty + 150 > rc.height) ty = Math.max(4, ty - 160);
+        tip.style.left = tx.toFixed(0) + "px"; tip.style.top = ty.toFixed(0) + "px";
+      });
+      b.addEventListener("mouseleave", function () { tip.classList.remove("on"); });
+      var a = document.createElement("a");
+      a.href = tvUrl(d.sym, tf); a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.setAttribute("aria-label", "Open " + d.sym + " on TradingView");
+      a.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:1px;color:inherit;text-decoration:none;width:100%;height:100%;justify-content:center";
+      while (b.firstChild) a.appendChild(b.firstChild);
+      b.appendChild(a);
+      plot.appendChild(b);
+    });
+    var z = el("div", "bb-axis", "loss ← 0 → win");
+    z.style.cssText += "left:50%;bottom:2px;transform:translateX(-50%)";
+    plot.appendChild(z);
+    var zl = el("div", "bb-zline");
+    zl.style.left = "50%";
+    plot.appendChild(zl);
+    var yl = el("div", "bb-axis",
+      bMode === "sinyal" ? "↑ wider stop = more risk" : "↑ fresh detections");
+    yl.style.cssText += "left:8px;top:8px";
+    plot.appendChild(yl);
+  }
+
   /* ── live chrome ── */
   function clock() {
     var d = new Date(Date.now() + (7 * 60 + new Date().getTimezoneOffset()) * 60000);
@@ -692,6 +934,7 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
   function render(first) {
     stamp(); gauge(); strip();
     if (first) charts();
+    bubbleDraw();
     watch(wTf && DATA.live[wTf] ? wTf : ord()[0]);
     signals(sTf && DATA.live[sTf] ? sTf : ord()[0]);
   }
@@ -718,6 +961,10 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
   }
   load(true);
   setInterval(clock, 1000); clock();
+  var bbT = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(bbT); bbT = setTimeout(function () { if (DATA) bubbleDraw(); }, 150);
+  });
   setInterval(function () { load(false); }, 60000);
   document.addEventListener("visibilitychange", function () { if (!document.hidden) load(false); });
 })();
