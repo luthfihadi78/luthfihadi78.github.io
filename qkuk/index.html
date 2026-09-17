@@ -186,6 +186,50 @@ svg.ch .g{stroke:var(--line);stroke-width:1}
 svg.ch .z{stroke:var(--line-2);stroke-width:1;stroke-dasharray:3 4}
 .cap{margin:11px 0 0;font-size:10.5px;color:var(--fg-3);line-height:1.5}
 
+/* ── bubbles: gelembung FISIK koin hasil deteksi engine reclaim ──
+   Terinspirasi cryptobubbles/bubblescrypto: gelembung melayang, bisa
+   digeser (tekan-tahan), bertumbukan dgn sesamanya, dan selalu kembali
+   melayang. Isi gelembung = perubahan harga 24 jam dari Binance (bukan
+   hasil R). Warna: hijau naik, merah turun, kuning = koin engine yang
+   tidak ditemukan di ticker 24 jam. Aura api = status koin di engine. */
+.bb-stage{position:relative;background:var(--s1);border:1px solid var(--line);
+  border-radius:var(--r);padding:16px;overflow:hidden}
+.bb-bar{display:flex;align-items:center;margin-bottom:12px}
+.bb-legend{margin-left:auto;display:flex;gap:12px;flex-wrap:wrap}
+.bb-legend span{display:inline-flex;align-items:center;gap:6px;font-size:10px;color:var(--fg-3)}
+.bb-legend i{width:10px;height:10px;border-radius:999px;display:inline-block}
+.bb-plot{position:relative;height:480px;overflow:hidden;touch-action:none;
+  cursor:grab}
+.bb-plot.dragging{cursor:grabbing}
+@media(max-width:700px){.bb-plot{height:380px}}
+.bb{position:absolute;left:0;top:0;border-radius:999px;cursor:grab;
+  user-select:none;-webkit-user-select:none;touch-action:none;text-align:center;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1px;font-variant-numeric:tabular-nums;line-height:1.12;
+  will-change:transform}
+.bb.drag{cursor:grabbing;z-index:30}
+.bb b{font-weight:600;letter-spacing:.02em;white-space:nowrap;overflow:hidden;
+  max-width:92%;pointer-events:none;text-shadow:0 1px 2px rgba(0,0,0,.45)}
+.bb i{font-style:normal;font-weight:700;pointer-events:none;
+  text-shadow:0 1px 2px rgba(0,0,0,.45)}
+/* aura api: koin yang sedang ADA di catatan engine hari ini */
+.bb .aura{position:absolute;inset:-3px;border-radius:999px;pointer-events:none;
+  opacity:.5;filter:blur(3px);z-index:-1;
+  animation:bbflick 1.6s ease-in-out infinite alternate}
+@keyframes bbflick{from{opacity:.34;transform:scale(.985)}
+  to{opacity:.62;transform:scale(1.025)}}
+@media(prefers-reduced-motion:reduce){.bb .aura{animation:none;opacity:.4}}
+.bb-tip{position:absolute;z-index:40;pointer-events:none;opacity:0;transition:opacity .15s;
+  background:var(--s3);border:1px solid var(--line-2);border-radius:6px;
+  padding:10px 12px;font-size:11px;min-width:200px;max-width:250px;color:var(--fg-2);
+  box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.bb-tip.on{opacity:1}
+.bb-tip .hd{font-weight:700;color:var(--fg);margin-bottom:7px;letter-spacing:.02em}
+.bb-tip .t{display:grid;grid-template-columns:auto 1fr auto;gap:6px;font-size:11px}
+.bb-tip .t .l{color:var(--fg-3);font-size:10px;letter-spacing:.05em;text-transform:uppercase}
+.bb-tip .t .d{border-bottom:1px dotted var(--line-2);transform:translateY(-3px)}
+.bb-tip .t .v{font-weight:600;white-space:nowrap;text-align:right}
+
 footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
   display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;
   font-size:11px;color:var(--fg-3)}
@@ -244,6 +288,30 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
 
   <div class="strip" id="strip"></div>
 
+  <section id="bubbles">
+    <div class="sec-h">
+      <h2><i>&gt;</i> Bubbles</h2>
+      <span class="hint">coins detected by this engine only — % change is live 24h from Binance</span>
+      <div class="tabs" id="b-mode" role="tablist"></div>
+      <div class="tabs" id="b-tabs" role="tablist"></div>
+    </div>
+    <div class="bb-stage">
+      <div class="bb-bar">
+        <div class="bb-legend">
+          <span><i style="background:rgba(110,231,183,.2);border:1px solid #6EE7B7"></i>up 24h</span>
+          <span><i style="background:rgba(232,135,124,.2);border:1px solid #E8877C"></i>down 24h</span>
+          <span><i style="background:rgba(216,200,154,.2);border:1px solid #D8C89A"></i>no 24h data</span>
+        </div>
+      </div>
+      <div class="bb-plot" id="bb-plot"></div>
+      <div class="bb-tip" id="bb-tip"></div>
+    </div>
+    <p class="cap">Press and hold a bubble to drag it around — let go and it floats again.
+    Bubbles bounce off each other and drift like real ones. The number inside is the
+    live 24-hour price change from Binance, green up and red down. The fiery aura marks
+    coins the engine has on record today. Tap a bubble to open its TradingView chart.</p>
+  </section>
+
   <section id="watch">
     <div class="sec-h">
       <h2><i>&gt;</i> Watchlist</h2>
@@ -269,10 +337,11 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
         <svg class="ch" id="eq" role="img" aria-label="Cumulative R per channel"></svg>
       </div>
       <div class="card">
-        <div class="card-h"><h3>Win rate by WIB hour</h3><div class="lg" id="hr-lg"></div></div>
+        <div class="card-h"><h3>Win rate by WIB hour — 00:00 to 23:00</h3><div class="lg" id="hr-lg"></div></div>
         <svg class="ch" id="hr" role="img" aria-label="Win rate by hour"></svg>
-        <p class="cap">Hours with no signal are omitted, not drawn as zero — the 4H channel
-        only closes a bar six times a day.</p>
+        <p class="cap">Every WIB hour from 00:00 to 23:00 gets its own bar; green means the win
+        rate is above 50%, red below it, and a dim dot means no signal was recorded that hour
+        (not zero — the 4H channel only closes a bar six times a day).</p>
       </div>
     </div>
   </section>
@@ -655,17 +724,377 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
       draw($("#eq"), eq, { xlo: 0, xhi: 1, xt: xt, fy: function (y) { return (y > 0 ? "+" : "") + Math.round(y) + "R"; } });
       legend($("#eq-lg"), eq);
     }
-    var hr = eng.map(function (tf) {
-      var E = DATA.engine[tf];
-      return { name: tf.toUpperCase(), color: COLOR[tf],
-               pts: E.jam.filter(function (h) { return h.n > 0; }).map(function (h) { return [h.k, h.wr]; }) };
-    }).filter(function (s) { return s.pts.length >= 2; });
-    if (hr.length) {
-      draw($("#hr"), hr, { xlo: 0, xhi: 23,
-        xt: [0, 6, 12, 18].map(function (h) { return { x: h, label: (h < 10 ? "0" : "") + h + ":00" }; }),
-        fy: function (y) { return Math.round(y) + "%"; } });
-      legend($("#hr-lg"), hr);
+    /* Win rate per jam — BATANG, bukan garis (permintaan user 17 Sep):
+       garis menyembunyikan jam mana yang bagus; batang per jam 00:00-23:00
+       langsung terbaca. Batang cuma untuk jam yang PUNYA sinyal; jam kosong
+       ditandai titik redup di garis dasar (bukan nol — jam tanpa sinyal bukan
+       jam jelek). Baseline 50% = garis putus; di atasnya hijau, di bawah merah,
+       supaya "jam terbaik" tak perlu ditebak dari tinggi batang. */
+    var engHr = eng[0] ? DATA.engine[eng[0]].jam : [];
+    if (engHr.length) {
+      hrBars($("#hr"), engHr, eng.map(function (t) { return COLOR[t]; })[0] || COLOR["2h"]);
+      var jl = $("#hr-lg"); jl.innerHTML = "";
+      var mk = function (c, l) { var s = el("span"); var i = el("i");
+        i.style.cssText = "width:10px;height:10px;border-radius:2px;display:inline-block;background:" + c;
+        s.appendChild(i); s.appendChild(document.createTextNode(l)); jl.appendChild(s); };
+      mk("rgba(110,231,183,.75)", "WR di atas 50%");
+      mk("rgba(232,135,124,.75)", "WR di bawah 50%");
+      mk("rgba(157,176,167,.25)", "tanpa sinyal");
     }
+  }
+  function hrBars(svg, jam, col) {
+    svg.innerHTML = "";
+    var W = 620, H = 190, P = { t: 10, r: 8, b: 26, l: 34 };
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("preserveAspectRatio", "none");
+    var iw = (W - P.l - P.r) / 24;
+    var ylo = 20, yhi = Math.max(70, Math.max.apply(null,
+      jam.filter(function (h) { return h.n > 0; }).map(function (h) { return h.wr; })) + 6);
+    var Y = function (v) { return P.t + (1 - (v - ylo) / (yhi - ylo)) * (H - P.t - P.b); };
+    for (var g = 0; g <= 3; g++) {
+      var vv = ylo + g / 3 * (yhi - ylo), yy = Y(vv);
+      svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: yy, y2: yy, "class": "g" }));
+      var lb = mk("text", { x: P.l - 5, y: yy + 3, "text-anchor": "end" });
+      lb.textContent = Math.round(vv) + "%"; svg.appendChild(lb);
+    }
+    var zy = Y(50);
+    svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: zy, y2: zy, "class": "z" }));
+    jam.forEach(function (h) {
+      var x = P.l + h.k * iw;
+      if (h.n <= 0) {                                   // tanpa sinyal: titik redup
+        svg.appendChild(mk("circle", { cx: x + iw / 2, cy: Y(ylo) - 2, r: 1.6,
+          fill: "rgba(157,176,167,.25)" }));
+      } else {
+        var up = h.wr >= 50;
+        var y1 = Y(Math.max(ylo, Math.min(h.wr, 50)));
+        var y2 = Y(Math.max(50, Math.min(h.wr, yhi)));
+        var colBar = up ? "rgba(110,231,183,.75)" : "rgba(232,135,124,.75)";
+        // batang dua segmen: bagian di bawah 50% abu, di atas 50% berwarna —
+        // tinggi absolut tetap terbaca, arahnya langsung dari warna
+        var bar = mk("g");                          // bar = grup dgn title tooltip
+        var tv = mk("title");
+        tv.textContent = (h.k < 10 ? "0" : "") + h.k + ":00 — WR "
+          + h.wr.toFixed(1) + "% (" + h.m + "W/" + h.l + "L dari " + h.n + ")";
+        bar.appendChild(tv);
+        bar.appendChild(mk("rect", { x: (x + iw * .14).toFixed(1), y: y2.toFixed(1), width: (iw * .72).toFixed(1),
+          height: Math.max(1, y1 - y2).toFixed(1), fill: colBar, rx: 1.5 }));
+        if (h.wr < 50) bar.appendChild(mk("rect", { x: (x + iw * .14).toFixed(1), y: Y(ylo).toFixed(1),
+          width: (iw * .72).toFixed(1), height: Math.max(1, Y(50) - Y(ylo)).toFixed(1),
+          fill: "rgba(157,176,167,.16)", rx: 1.5 }));
+        svg.appendChild(bar);
+      }
+      if (h.k % 3 === 0) {
+        var tx = mk("text", { x: x + iw / 2, y: H - 8, "text-anchor": "middle" });
+        tx.textContent = (h.k < 10 ? "0" : "") + h.k;
+        svg.appendChild(tx);
+      }
+    });
+    var ax = mk("text", { x: W - P.r, y: H - 8, "text-anchor": "end" });
+    ax.textContent = "WIB"; svg.appendChild(ax);
+  }
+  /* ── bubbles: gelembung FISIK koin hasil deteksi engine ──
+     BUKAN pasar crypto seluruhnya — hanya koin yang tercatat di engine.
+     Fisika ala bubblescrypto: tiap gelembung melayang (gaya acak lembut),
+     bertumbukan elastis dgn sesamanya, memantul di dinding kanvas, dan
+     BISA DIGESER dgn tekan-tahan (mouse & sentuh). Isi gelembung =
+     perubahan harga 24 jam LIVE dari Binance fapi (CORS terbuka), bukan
+     angka R. Warna: hijau naik, merah turun, kuning = tak ada data 24 jam.
+     Aura api: koin yang memang ada di catatan engine hari ini. */
+  var bMode = "pantau", bTf = null;
+  var BB = { up: { glow: "rgba(110,231,183,.32)", edge: "rgba(110,231,183,.85)",
+                   fill: "rgba(110,231,183,.10)", txt: "#8DF0C6" },
+             dn: { glow: "rgba(232,135,124,.30)", edge: "rgba(232,135,124,.85)",
+                   fill: "rgba(232,135,124,.10)", txt: "#F0A99F" },
+             id: { glow: "rgba(216,200,154,.28)", edge: "rgba(216,200,154,.80)",
+                   fill: "rgba(216,200,154,.10)", txt: "#E4D6AE" } };
+  var bbBodies = [];          // badan fisik: {el, x, y, vx, vy, r, ph}
+  var bbRaf = null, bb24 = null, bb24Ts = 0, bb24Fail = false;
+  function bubbleData(mode, tf) {
+    var L = (DATA.live || {})[tf];
+    var src = mode === "sinyal" ? (L && L.sinyal) : (L && L.pantau);
+    if (!src) return [];
+    var seen = {};
+    return src.map(function (r) {
+      var d = mode === "sinyal"
+        ? { sym: r.sym, dir: r.dir, e: r.e, s: r.s, t: r.t, ts: r.ts,
+            st: r.st, r: r.pnl, slp: num(r.slp) }
+        : { sym: r.sym, dir: r.dir, lv: r.lv, ts: r.ts, h: r.h, r: r.r };
+      seen[d.sym] = (seen[d.sym] || 0) + 1;
+      return d;
+    }).map(function (d) { d.n = seen[d.sym]; return d; });
+  }
+  /* 24 jam dari Binance fapi — sudah dicek CORS-nya terbuka (*). Cache
+     60 detik: 455 ticker per request, jangan dipanggil tiap render. */
+  function bbTicker(sym) {
+    if (bb24 && bb24[sym] !== undefined) return bb24[sym];
+    return null;
+  }
+  function bbLoad24(cb) {
+    if (Date.now() - bb24Ts < 60000) { cb(); return; }
+    fetch("https://fapi.binance.com/fapi/v1/ticker/24hr")
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (j) {
+        var m = {};
+        j.forEach(function (t) { m[t.symbol] = parseFloat(t.priceChangePercent); });
+        bb24 = m; bb24Ts = Date.now(); bb24Fail = false; cb();
+      })
+      .catch(function () { bb24Fail = true; bb24Ts = Date.now(); cb(); });
+  }
+  function bubbleChg(d) {                     // %24j atau null kalau tak ada data
+    var c = bbTicker(d.sym);
+    return (c === null || !isFinite(c)) ? null : c;
+  }
+  function bubbleRes(d) {
+    var c = bubbleChg(d);
+    if (c === null) return bb24Fail ? "id" : "id";
+    return c > 0 ? "up" : c < 0 ? "dn" : "id";
+  }
+  function bubbleAura(d) {                    // koin ada di catatan engine hari ini?
+    var hariIni = (function () {
+      var n = new Date(Date.now() + (7 * 60 + new Date().getTimezoneOffset()) * 60000);
+      return n.getFullYear() + "-" + ("0" + (n.getMonth() + 1)).slice(-2) + "-" + ("0" + n.getDate()).slice(-2);
+    })();
+    return (d.ts || "").slice(0, 10) === hariIni;
+  }
+  function bbStop() { if (bbRaf) { cancelAnimationFrame(bbRaf); bbRaf = null; } }
+  function bbTick() {
+    var plot = $("#bb-plot");
+    if (!plot || !bbBodies.length) { bbRaf = null; return; }
+    var W = plot.clientWidth, H = plot.clientHeight;
+    var i, j, a, b2, dx, dy, dist, min, ov, nx, ny, imp;
+    for (i = 0; i < bbBodies.length; i++) {
+      a = bbBodies[i];
+      if (a.drag) continue;                   // yang dipegang tidak digerakkan fisika
+      a.vx += (Math.random() - .5) * .028;    // gaya melayang lembut
+      a.vy += (Math.random() - .5) * .028;    // tanpa gravitasi — targetnya
+      a.vx *= .992; a.vy *= .992;             // distribusi merata, bukan menggumpal
+      var sp = Math.hypot(a.vx, a.vy);
+      if (sp > .55) { a.vx *= .55 / sp; a.vy *= .55 / sp; }
+      // jaga jarak dari dinding: di dekat tepi, dorong balik ke tengah secara halus
+      var cx = W / 2, cy = H / 2;
+      if (a.x < W * .18) a.vx += (W * .18 - a.x) / W * .12;
+      if (a.x > W * .82) a.vx -= (a.x - W * .82) / W * .12;
+      if (a.y < H * .22) a.vy += (H * .22 - a.y) / H * .12;
+      if (a.y > H * .78) a.vy -= (a.y - H * .78) / H * .12;
+      a.x += a.vx; a.y += a.vy;
+      if (a.x < a.r) { a.x = a.r; a.vx = Math.abs(a.vx) * .8; }
+      if (a.x > W - a.r) { a.x = W - a.r; a.vx = -Math.abs(a.vx) * .8; }
+      if (a.y < a.r) { a.y = a.r; a.vy = Math.abs(a.vy) * .8; }
+      if (a.y > H - a.r) { a.y = H - a.r; a.vy = -Math.abs(a.vy) * .8; }
+    }
+    for (i = 0; i < bbBodies.length; i++) {
+      for (j = i + 1; j < bbBodies.length; j++) {
+        a = bbBodies[i]; b2 = bbBodies[j];
+        dx = b2.x - a.x; dy = b2.y - a.y;
+        dist = Math.hypot(dx, dy) || .01;
+        min = a.r + b2.r;
+        if (dist < min) {
+          nx = dx / dist; ny = dy / dist;
+          ov = (min - dist) / 2;
+          if (!a.drag) { a.x -= nx * ov; a.y -= ny * ov; }
+          if (!b2.drag) { b2.x += nx * ov; b2.y += ny * ov; }
+          imp = (a.vx - b2.vx) * nx + (a.vy - b2.vy) * ny;   // tumbukan elastis
+          if (imp > 0) {
+            if (!a.drag) { a.vx -= imp * nx; a.vy -= imp * ny; }
+            if (!b2.drag) { b2.vx += imp * nx; b2.vy += imp * ny; }
+          }
+        }
+      }
+    }
+    for (i = 0; i < bbBodies.length; i++) {
+      a = bbBodies[i];
+      a.el.style.transform = "translate(" + (a.x - a.r).toFixed(1) + "px," + (a.y - a.r).toFixed(1) + "px)";
+    }
+    bbRaf = requestAnimationFrame(bbTick);
+  }
+  function bubbleDraw() {
+    var plot = $("#bb-plot"), tip = $("#bb-tip");
+    bbStop(); bbBodies = [];
+    plot.innerHTML = ""; tip.classList.remove("on");
+    var tf = bTf && DATA.live[bTf] ? bTf : ord()[0];
+    bTf = tf;
+    var rows = bubbleData(bMode, tf);
+    var modeTabs = $("#b-mode");
+    modeTabs.innerHTML = "";
+    [["pantau", "Watchlist"], ["sinyal", "Signals"]].forEach(function (m) {
+      var b = el("button", "tab", m[1]);
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", bMode === m[0] ? "true" : "false");
+      b.addEventListener("click", function () { bMode = m[0]; bb24Ts = 0; bubbleDraw(); });
+      modeTabs.appendChild(b);
+    });
+    tabs($("#b-tabs"), tf, function (t) { bTf = t; bubbleDraw(); });
+    if (!rows.length) {
+      plot.appendChild(el("div", "empty", bMode === "sinyal"
+        ? "No signals recorded on this channel yet."
+        : "Nothing on the watchlist for this channel."));
+      return;
+    }
+    var W = plot.clientWidth || 900, H = plot.clientHeight || 480;
+    var nMax = Math.max.apply(null, rows.map(function (d) { return d.n || 1; }));
+    // koin unik diposisikan sekali; koin yang muncul berulang membesarkan
+    // gelembungnya, bukan menggandakannya (satu koin = satu gelembung).
+    var uniq = {};
+    rows.forEach(function (d) {
+      var u = uniq[d.sym];
+      if (!u) { u = uniq[d.sym] = Object.assign({}, d); u.tries = 0; }
+      else {
+        u.n = Math.max(u.n || 1, d.n || 1);
+        if ((d.ts || "") > (u.ts || "")) Object.assign(u, { ts: d.ts, dir: d.dir,
+          lv: d.lv, h: d.h, r: d.r, e: d.e, s: d.s, t: d.t, st: d.st, slp: d.slp });
+      }
+    });
+    var list = Object.keys(uniq).map(function (k) { return uniq[k]; });
+    list.sort(function (a, b) { return (b.n || 1) - (a.n || 1); });   // besar dulu → z stabil
+    var placed = [];
+    list.forEach(function (d) {
+      var base = 34 + Math.min(1, (d.n || 1) / nMax) * 34;   // diameter 34-68px
+      var r = base / 2;
+      // taruh merata di seluruh kanvas (grid acak bertingkat); tumbukan nanti
+      // yang menyibak sisa tumpukan
+      var cols = Math.max(1, Math.floor(W / 90)), rowsN = Math.max(1, Math.floor(H / 90));
+      var gi = list.indexOf(d), gc = cols * rowsN;
+      var gx = (gi % cols + .3 + Math.random() * .4) / cols;
+      var gy = (Math.floor(gi / cols) % rowsN + .3 + Math.random() * .4) / rowsN;
+      var x = Math.max(r + 4, Math.min(W - r - 4, gx * W));
+      var y = Math.max(r + 4, Math.min(H - r - 4, gy * H));
+      var tries = 0, ok = false;
+      while (tries++ < 40 && !ok) {
+        ok = placed.every(function (p) { return Math.hypot(p.x - x, p.y - y) > (p.r + r) * 1.02; });
+        if (!ok) {
+          x = r + 4 + Math.random() * Math.max(1, W - 2 * (r + 4));
+          y = r + 4 + Math.random() * Math.max(1, H - 2 * (r + 4));
+        }
+      }
+      placed.push({ x: x, y: y, r: r });
+      d._x = x; d._y = y; d._r = r; d._dia = base;
+    });
+    list.forEach(function (d) {
+      var res = bubbleRes(d);
+      var C = BB[res];
+      var b = el("div", "bb");
+      b.style.width = b.style.height = d._dia.toFixed(1) + "px";
+      b.style.background = "radial-gradient(circle at 32% 26%, rgba(255,255,255,.20), "
+        + C.fill + " 46%, rgba(255,255,255,.03) 100%)";
+      b.style.border = "1px solid " + C.edge;
+      b.style.boxShadow = "0 0 " + Math.round(d._dia * .3) + "px " + C.glow
+        + ", inset 0 0 " + Math.round(d._dia * .22) + "px rgba(255,255,255,.06)";
+      b.style.color = C.txt;
+      var fs = d._dia > 56 ? 11.5 : d._dia > 44 ? 10 : 8.5;
+      b.style.fontSize = fs + "px";
+      if (bubbleAura(d)) {
+        var au = el("span", "aura");
+        au.style.background = "radial-gradient(circle, " + C.glow + " 0%, transparent 70%)";
+        au.style.animationDelay = (Math.random() * 1200).toFixed(0) + "ms";
+        b.appendChild(au);
+      }
+      var nm = d.sym.replace(/USDT$/, "");
+      b.appendChild(el("b", null, nm));
+      var chg = bubbleChg(d);
+      b.appendChild(el("i", null,
+        chg === null ? "n/a" : (chg > 0 ? "+" : "") + chg.toFixed(2) + "%"));
+      plot.appendChild(b);
+      var body = { el: b, x: d._x, y: d._y, vx: (Math.random() - .5) * .3,
+        vy: (Math.random() - .5) * .3, r: d._r, drag: false, sym: d.sym };
+      bbBodies.push(body);
+      /* ── drag: tekan-tahan, mouse & sentuh ──
+         Lepas setelah MENGESER = tidak membuka apa pun (user cuma ingin
+         geser). TradingView hanya terbuka kalau gelembung DITEKAN SAJA
+         (total geseran < 6px) — jadi hold-and-drag aman dari buka-tab
+         tak sengaja. */
+      function grab(ev) {
+        body.drag = true; b.classList.add("drag");
+        plot.classList.add("dragging");
+        tip.classList.remove("on");
+        var pt = ev.touches ? ev.touches[0] : ev;
+        var lx = pt.clientX, ly = pt.clientY, movedPx = 0;
+        function move(e2) {
+          var p2 = e2.touches ? e2.touches[0] : e2;
+          var vx = (p2.clientX - lx), vy = (p2.clientY - ly);
+          movedPx += Math.hypot(vx, vy);
+          lx = p2.clientX; ly = p2.clientY;
+          body.x = Math.max(body.r, Math.min(plot.clientWidth - body.r, body.x + vx));
+          body.y = Math.max(body.r, Math.min(plot.clientHeight - body.r, body.y + vy));
+          body.vx = Math.max(-2, Math.min(2, vx * .35));      // lempar saat dilepas
+          body.vy = Math.max(-2, Math.min(2, vy * .35));
+          e2.preventDefault();
+        }
+        function up() {
+          body.drag = false; b.classList.remove("drag");
+          plot.classList.remove("dragging");
+          window.removeEventListener("mousemove", move);
+          window.removeEventListener("mouseup", up);
+          window.removeEventListener("touchmove", move);
+          window.removeEventListener("touchend", up);
+          if (movedPx < 6) window.open(tvUrl(d.sym, tf), "_blank", "noopener");
+        }
+        window.addEventListener("mousemove", move);
+        window.addEventListener("mouseup", up);
+        window.addEventListener("touchmove", move, { passive: false });
+        window.addEventListener("touchend", up);
+        ev.preventDefault();
+      }
+      b.addEventListener("mousedown", grab);
+      b.addEventListener("touchstart", grab, { passive: false });
+      /* tooltip detail engine */
+      b.addEventListener("mouseenter", function (ev) {
+        if (body.drag) return;
+        tip.innerHTML = "";
+        var hd = el("div", "hd", nm + " · " + d.dir.toUpperCase() + " · " + tf.toUpperCase());
+        tip.appendChild(hd);
+        var t = el("div", "t");
+        function rw(l, v2, cls) {
+          t.appendChild(el("span", "l", l)); t.appendChild(el("span", "d"));
+          t.appendChild(el("span", "v " + (cls || ""), v2));
+        }
+        var c24 = bubbleChg(d);
+        rw("24h", c24 === null ? "no data" : (c24 > 0 ? "+" : "") + c24.toFixed(2) + "%",
+           c24 === null ? "" : c24 > 0 ? "pos" : c24 < 0 ? "neg" : "");
+        rw("time", d.ts || "—");
+        if (bMode === "sinyal") {
+          rw("entry", fp(d.e)); rw("stop", fp(d.s)); rw("target", fp(d.t));
+          rw("stop width", num(d.slp) === null ? "—" : num(d.slp).toFixed(2) + "%");
+          var rr = (d.st === "fired") ? null : num(d.r);
+          rw("result", rr === null ? "open" : sgn(rr, 2) + "R",
+             rr === null ? "" : rr > 0 ? "pos" : "neg");
+        } else {
+          rw("level", fp(d.lv));
+          rw("outcome", d.h ? (d.h === "menang" ? "win" : d.h === "kalah" ? "loss" : "timeout")
+            : "pending", d.h === "menang" ? "pos" : d.h === "kalah" ? "neg" : "");
+        }
+        rw("seen", String(d.n || 1) + "x on " + tf.toUpperCase());
+        tip.appendChild(t);
+        tip.classList.add("on");
+      });
+      b.addEventListener("mousemove", function (ev) {
+        if (body.drag) { tip.classList.remove("on"); return; }
+        var rc = plot.getBoundingClientRect();
+        var tx = ev.clientX - rc.left + 14, ty = ev.clientY - rc.top + 14;
+        if (tx + 260 > rc.width) tx = ev.clientX - rc.left - 264;
+        if (ty + 150 > rc.height) ty = Math.max(4, ty - 160);
+        tip.style.left = tx.toFixed(0) + "px"; tip.style.top = ty.toFixed(0) + "px";
+      });
+      b.addEventListener("mouseleave", function () { tip.classList.remove("on"); });
+    });
+    bbRaf = requestAnimationFrame(bbTick);
+    bbLoad24(function () {        // angka %24j datang belakangan — pasang saat tiba
+      if (!DATA) return;
+      bbBodies.forEach(function (body) {
+        var d2 = list.filter(function (q) { return q.sym === body.sym; })[0];
+        if (!d2) return;
+        var res = bubbleRes(d2), C = BB[res];
+        body.el.style.background = "radial-gradient(circle at 32% 26%, rgba(255,255,255,.20), "
+          + C.fill + " 46%, rgba(255,255,255,.03) 100%)";
+        body.el.style.border = "1px solid " + C.edge;
+        body.el.style.boxShadow = "0 0 " + Math.round(d2._dia * .3) + "px " + C.glow
+          + ", inset 0 0 " + Math.round(d2._dia * .22) + "px rgba(255,255,255,.06)";
+        body.el.style.color = C.txt;
+        var chg = bubbleChg(d2);
+        var iEl = body.el.querySelector("i");
+        if (iEl && chg !== null)
+          iEl.textContent = (chg > 0 ? "+" : "") + chg.toFixed(2) + "%";
+      });
+    });
   }
 
   /* ── live chrome ── */
@@ -692,6 +1121,7 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
   function render(first) {
     stamp(); gauge(); strip();
     if (first) charts();
+    if (first || !bbBodies.length) bubbleDraw();   // jangan bangun ulang saat data 60 dtk segar — fisika jalan terus
     watch(wTf && DATA.live[wTf] ? wTf : ord()[0]);
     signals(sTf && DATA.live[sTf] ? sTf : ord()[0]);
   }
@@ -719,6 +1149,9 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
   load(true);
   setInterval(clock, 1000); clock();
   setInterval(function () { load(false); }, 60000);
+  setInterval(function () {                  // segarkan %24j tiap 90 detik selama tab terbuka
+    if (DATA && !document.hidden) { bb24Ts = 0; bbLoad24(function () {}); }
+  }, 90000);
   document.addEventListener("visibilitychange", function () { if (!document.hidden) load(false); });
 })();
 </script>
