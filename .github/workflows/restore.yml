@@ -1,0 +1,43 @@
+name: Jaga qkuk/index.html
+
+# Bot data men-commit qkuk/data.json (dan kadang ikut men-commit index.html
+# versi lama dari salinan stale di mesin bot). Workflow ini menjaga supaya
+# index.html SELALU versi terkunci di bawah — bot bebas update data.json.
+
+on:
+  push:
+    branches: [master]
+    paths: ['qkuk/index.html']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: guard-index
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pulihkan index.html jika bukan versi terkunci
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: "4829ff9dcab28a4d29a9c45a6d59e506e077b81c"
+        run: |
+          set -e
+          SHA="$(git rev-parse HEAD:qkuk/index.html)"
+          echo "blob sha sekarang: $SHA"
+          echo "blob sha seharusnya: $EXPECTED_SHA"
+          if [ "$SHA" != "$EXPECTED_SHA" ]; then
+            echo ">> index.html berbeda — memulihkan dari commit 40d437f..."
+            git show 40d437f:qkuk/index.html > qkuk/index.html
+            git config user.name "guard-bot"
+            git config user.email "actions@github.com"
+            git add qkuk/index.html
+            git commit -m "jaga: pulihkan index.html versi penuh (ditimpa otomatis oleh bot)"
+            git push origin HEAD:master
+            echo ">> Dipulihkan."
+          else
+            echo ">> index.html sudah benar — tidak ada yang perlu dilakukan."
+          fi
