@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-pick-20260918a";   /* 18 Sep: fitur picked-by-you */
+  var BUILD = "qkuk-pick-20260918c";   /* 18 Sep v2: streak/maxDD + flip + catatan */
   var COLOR = { "1h": "#9CF2CE", "2h": "#6EE7B7", "4h": "#D8C89A" };
   var TVI = { "1h": "60", "2h": "120", "4h": "240" };
 
@@ -227,20 +227,29 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
          dan jujur: n ditampilkan, sinyal open/pending tidak ikut WR. */
       var PIK = L.pilih;
       if (PIK) {
-        function blokPik(judul, S) {
+        function blokPik(judul, S, flip) {
           if (!S || !S.n) return null;            // belum ada centang → blok hilang
-          return blok(judul, [
-            ["picked", String(S.n) + (S.tutup < S.n ? " · " + S.tutup + " closed" : ""), ""],
+          var baris = [
+            ["picked", String(S.n) + (S.tutup < S.n ? " · " + S.tutup + " closed" : "")
+              + (flip ? " · ⇄" + flip : ""), ""],
             ["win rate (live)", S.wr === null ? "—" : S.wr.toFixed(1) + "%",
               S.wr === null ? "mut" : (S.wr >= 50 ? "pos" : "neg")],
             ["net R", S.totR === null ? "—" : sgn(S.totR, 2),
               S.totR === null ? "mut" : (S.totR > 0 ? "pos" : S.totR < 0 ? "neg" : "mut")],
-            ["profit factor", S.pf == null ? "—" : String(S.pf), "mut"]
-          ]);
+            ["profit factor", S.pf == null ? "—" : String(S.pf), "mut"]];
+          /* 18 Sep v2 — streak & drawdown: bukan pemanis, ini ukuran risiko.
+             maxDD = jurang terdalam dari puncak kumulatif R; streak = run
+             menang/rugi yang sedang berjalan (angka minus = rugi beruntun). */
+          if (S.maxdd !== null && S.maxdd !== undefined)
+            baris.push(["max drawdown", sgn(S.maxdd, 2) + "R", S.maxdd < 0 ? "neg" : "mut"]);
+          if (S.streak)
+            baris.push(["streak", Math.abs(S.streak) + (Math.abs(S.streak) > 1 ? "x" : "x")
+              + (S.streak > 0 ? " win" : " loss"), S.streak > 0 ? "pos" : "neg"]);
+          return blok(judul, baris);
         }
-        var bPikSig = blokPik("picked sinyal · live R", PIK.sig);
+        var bPikSig = blokPik("picked sinyal · live R", PIK.sig, PIK.sig_flip);
         if (bPikSig) c.appendChild(bPikSig);
-        var bPikPt = blokPik("picked watchlist · 1R:1R", PIK.pt);
+        var bPikPt = blokPik("picked watchlist · 1R:1R", PIK.pt, PIK.pt_flip);
         if (bPikPt) c.appendChild(bPikPt);
       }
 
@@ -312,8 +321,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       { h: "R (1:1)", n: true, c: function (r) { return rcell(r.r, false); } },
       { h: "★", c: function (r) {                 // dipilih user di CSV (kolom picked)
           var td = el("td", "st" + (r.pick ? " pickb" : " dim"));
-          td.textContent = r.pick ? "★" : "—";
-          if (r.pick) td.title = "picked by you (CSV)";
+          td.textContent = r.pick ? (r.flip ? "★⇄" : "★") : "—";
+          if (r.pick) td.title = "picked by you"
+            + (r.flip ? " — ARAH DIPERBAIKI: kamu ambil "
+              + (r.dir === "long" ? "short" : "long") + ", R dihitung dari arahmu" : "")
+            + (r.note ? " — " + r.note : "");
           return td; } }
     ], rows, "Nothing on the watchlist for this channel.");
   }
@@ -352,8 +364,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       { h: "result R", n: true, c: function (r) { return rcell(r.pnl, r.st === "fired"); } },
       { h: "★", c: function (r) {                 // dipilih user di CSV (kolom picked)
           var td = el("td", "st" + (r.pick ? " pickb" : " dim"));
-          td.textContent = r.pick ? "★" : "—";
-          if (r.pick) td.title = "picked by you (CSV)";
+          td.textContent = r.pick ? (r.flip ? "★⇄" : "★") : "—";
+          if (r.pick) td.title = "picked by you"
+            + (r.flip ? " — ARAH DIPERBAIKI: kamu ambil "
+              + (r.dir === "long" ? "short" : "long") + ", R dihitung dari arahmu" : "")
+            + (r.note ? " — " + r.note : "");
           return td; } }
     ], rows, sQ ? "No signal matches \u201C" + sQ + "\u201D on this channel."
       : DATA.live[tf].uji
@@ -401,7 +416,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
 
   /* ── pilihan user (18 Sep): hasil centang kolom `picked` di CSV engine ──
      Bukan backtest: WR dari resolver 1R:1R (watchlist) / pnl_r resolved
-     (sinyal). Populasi kecil — itu justru intinya, ini SARINGANMU. */
+     (sinyal). Populasi kecil — itu justru intinya, ini SARINGANMU.
+     v2: streak & max drawdown = ukuran risiko; flip = arah yang kamu ambil
+     berbeda dari engine (R dihitung dari arahmu); catatan = alasannya. */
   function kamu() {
     var host = $("#kamu-grid"); if (!host) return;
     host.innerHTML = "";
@@ -423,14 +440,20 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (P && (P.sig.n || P.pt.n)) {
         ["sig", "pt"].forEach(function (jenis) {
           var S = P[jenis];
+          var flip = P[jenis + "_flip"] || 0;
           var lab = jenis === "sig" ? "picked sinyal" : "picked watchlist";
           if (!S.n) { row(lab, "belum ada", "mut"); return; }
-          row(lab, String(S.n) + (S.tutup ? " · " + S.tutup + " closed"
-            : " · semua pending"), "");
-          row(lab + " WR (live)", S.wr === null ? "pending — belum ada yang tutup"
+          row(lab, String(S.n) + (S.tutup ? " · " + S.tutup + " closed" : " · pending")
+            + (flip ? " · ⇄ " + flip + " flip" : ""), "");
+          row(lab + " WR (live)", S.wr === null ? "belum ada yang tutup"
             : S.wr.toFixed(1) + "%", S.wr === null ? "mut" : (S.wr >= 50 ? "pos" : "neg"));
           row(lab + " net R", S.totR === null ? "—" : sgn(S.totR, 2),
             S.totR === null ? "mut" : (S.totR > 0 ? "pos" : S.totR < 0 ? "neg" : "mut"));
+          if (S.maxdd != null) row(lab + " max drawdown", sgn(S.maxdd, 2) + "R",
+            S.maxdd < 0 ? "neg" : "mut");
+          if (S.streak) row(lab + " streak",
+            Math.abs(S.streak) + "x " + (S.streak > 0 ? "win" : "loss"),
+            S.streak > 0 ? "pos" : "neg");
           if (S.pf != null) row(lab + " profit factor", String(S.pf), "mut");
         });
       } else {
@@ -441,6 +464,32 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       c.appendChild(rows);
       host.appendChild(c);
     });
+    /* daftar catatan: ALASAN di balik tiap pilihan — dari kolom note CSV.
+       Lama-lama ini jadi data: alasan mana yang winrate-nya paling tinggi. */
+    var cat = [];
+    ord().forEach(function (tf) {
+      /* ⚠️ jalan pintas `(x || []).forEach` SALAH: || mengikat lebih longgar
+         dari akses-anggota, jadi yang di-forEach array kosong literal —
+         catatan tidak pernah tampil. Ambil referensinya dulu. */
+      var cc = (DATA.live[tf].pilih || {}).catatan;
+      if (cc) cat = cat.concat(cc);
+    });
+    if (cat.length) {
+      var w = el("div", "pick-notes");
+      w.appendChild(el("div", "pn-h", "catatan pilihan"));
+      cat.sort(function (a, b) { return (b.ts || "").localeCompare(a.ts || ""); });
+      cat.slice(0, 12).forEach(function (x) {
+        var r = el("div", "pn-r");
+        r.appendChild(el("span", "pn-tf", x.tf.toUpperCase()));
+        r.appendChild(el("b", null, x.sym.replace(/USDT$/, "")));
+        if (x.side) r.appendChild(el("span", "pn-side " + x.side,
+          "⇄ " + x.side.toUpperCase()));
+        var n2 = el("span", "pn-note", x.note);
+        r.appendChild(n2);
+        w.appendChild(r);
+      });
+      host.appendChild(w);
+    }
   }
 
   /* ── charts ── */

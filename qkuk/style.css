@@ -246,3 +246,18 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
 .pickb{color:var(--gold);text-shadow:0 0 8px rgba(216,200,154,.45)}
 td.dim{color:var(--line-2)}
 #kamu .rows .row .v{font-weight:600}
+
+/* picked v2: flip badge + daftar catatan */
+.pickb{color:var(--gold);text-shadow:0 0 8px rgba(216,200,154,.45);white-space:nowrap}
+.pick-notes{grid-column:1/-1;background:var(--s1);border:1px solid var(--line);
+  border-radius:8px;padding:12px 14px;margin-top:2px}
+.pick-notes .pn-h{font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--fg-3);margin-bottom:8px}
+.pick-notes .pn-r{display:flex;gap:10px;align-items:baseline;padding:3px 0;
+  border-bottom:1px dotted var(--line-2);font-size:11.5px}
+.pick-notes .pn-r:last-child{border-bottom:0}
+.pick-notes .pn-tf{color:var(--fg-3);font-size:10px;min-width:24px}
+.pick-notes .pn-side{font-size:10px;font-weight:700;padding:0 6px;border-radius:3px}
+.pick-notes .pn-side.long{color:var(--up);background:var(--up-w)}
+.pick-notes .pn-side.short{color:var(--dn);background:var(--dn-w)}
+.pick-notes .pn-note{color:var(--fg-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
