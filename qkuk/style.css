@@ -241,3 +241,8 @@ footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
 .lg-up{background:rgba(110,231,183,.2);border:1px solid #6EE7B7}
 .lg-dn{background:rgba(232,135,124,.2);border:1px solid #E8877C}
 .lg-id{background:rgba(216,200,154,.2);border:1px solid #D8C89A}
+
+/* ── picked by you (18 Sep) ── */
+.pickb{color:var(--gold);text-shadow:0 0 8px rgba(216,200,154,.45)}
+td.dim{color:var(--line-2)}
+#kamu .rows .row .v{font-weight:600}

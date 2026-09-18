@@ -106,6 +106,7 @@
       <input id="s-q" type="search" placeholder="search pair… (e.g. BTC)" aria-label="Search signals by pair">
       <select id="s-sort" aria-label="Sort signals">
         <option value="ts">newest first</option>
+        <option value="pick">picked first</option>
         <option value="pnl">best R first</option>
         <option value="loss">worst R first</option>
         <option value="sym">pair A–Z</option>
@@ -125,6 +126,22 @@
     If one bar touches both, it counts as a loss; timeouts are scored from the last close,
     never discarded. This measures raw entry quality across every detection — your own
     filtering on top is exactly what the raw number cannot see.</p>
+  </section>
+
+  <section id="kamu">
+    <div class="sec-h">
+      <h2><i>&gt;</i> Picked by you</h2>
+      <span class="hint">winrate LIVE dari pilihanmu — bukan backtest</span>
+    </div>
+    <div class="ak-grid" id="kamu-grid"></div>
+    <p class="cap">Cara pakai: buka CSV engine di mesin bot — logs/reclaim_pantau_&lt;tf&gt;.csv
+    untuk watchlist, logs/reclaim_swing_&lt;tf&gt;.csv untuk sinyal. Tambahkan tanda "1" di
+    kolom <b>picked</b> pada baris koin yang menurutmu bagus, lalu simpan. Bot akan
+    menerbitkan ulang data, dan winrate di sini dihitung dari hasil LIVE-nya: sinyal
+    dinilai dari pnl_r yang sudah di-resolve engine, watchlist dari aturan 1R:1R yang
+    sama dengan akurasi mekanis. Populasinya kecil — memang itu poinnya: ini penyaringanmu
+    di atas engine mentah. Menghapus tanda akan menghapus pilihan (bot menyinkronkan
+    setiap siklus; centang selamat meski CSV diperbarui mesin lain).</p>
   </section>
 
   <section id="charts">

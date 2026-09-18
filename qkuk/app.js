@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "0b36320fe42b";
+  var BUILD = "qkuk-pick-20260918a";   /* 18 Sep: fitur picked-by-you */
   var COLOR = { "1h": "#9CF2CE", "2h": "#6EE7B7", "4h": "#D8C89A" };
   var TVI = { "1h": "60", "2h": "120", "4h": "240" };
 
@@ -221,6 +221,29 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       ] : [["scored", "0", "mut"], ["win rate", "—", "mut"],
            ["EV / entry", "—", "mut"], ["net R", "—", "mut"]]));
 
+      /* 18 Sep — blok "picked by you": hasil LIVE dari centang manual kolom
+         `picked` di CSV engine (lihat dashboard_data.py). WR dihitung dari
+         resolver/pnl_r yang SUDAH TERJADI — bukan backtest. Populasinya kecil
+         dan jujur: n ditampilkan, sinyal open/pending tidak ikut WR. */
+      var PIK = L.pilih;
+      if (PIK) {
+        function blokPik(judul, S) {
+          if (!S || !S.n) return null;            // belum ada centang → blok hilang
+          return blok(judul, [
+            ["picked", String(S.n) + (S.tutup < S.n ? " · " + S.tutup + " closed" : ""), ""],
+            ["win rate (live)", S.wr === null ? "—" : S.wr.toFixed(1) + "%",
+              S.wr === null ? "mut" : (S.wr >= 50 ? "pos" : "neg")],
+            ["net R", S.totR === null ? "—" : sgn(S.totR, 2),
+              S.totR === null ? "mut" : (S.totR > 0 ? "pos" : S.totR < 0 ? "neg" : "mut")],
+            ["profit factor", S.pf == null ? "—" : String(S.pf), "mut"]
+          ]);
+        }
+        var bPikSig = blokPik("picked sinyal · live R", PIK.sig);
+        if (bPikSig) c.appendChild(bPikSig);
+        var bPikPt = blokPik("picked watchlist · 1R:1R", PIK.pt);
+        if (bPikPt) c.appendChild(bPikPt);
+      }
+
       if (E) {
         c.appendChild(blok("backtest reference", [
           ["entries", E.n.toLocaleString("en"), ""],
@@ -286,7 +309,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           if (r.h === "menang") td.style.color = "var(--up)";
           else if (r.h === "kalah") td.style.color = "var(--dn)";
           return td; } },
-      { h: "R (1:1)", n: true, c: function (r) { return rcell(r.r, false); } }
+      { h: "R (1:1)", n: true, c: function (r) { return rcell(r.r, false); } },
+      { h: "★", c: function (r) {                 // dipilih user di CSV (kolom picked)
+          var td = el("td", "st" + (r.pick ? " pickb" : " dim"));
+          td.textContent = r.pick ? "★" : "—";
+          if (r.pick) td.title = "picked by you (CSV)";
+          return td; } }
     ], rows, "Nothing on the watchlist for this channel.");
   }
 
@@ -294,7 +322,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     sTf = tf; tabs($("#s-tabs"), tf, signals);
     var rows = (DATA.live[tf].sinyal || []).slice();
     if (sQ) rows = rows.filter(function (r) { return (r.sym || "").toUpperCase().indexOf(sQ) !== -1; });
-    if (sSort === "sym") {
+    if (sSort === "pick") {
+      rows.sort(function (a, b) {               // pilihan user dulu, lalu terbaru
+        return ((b.pick ? 1 : 0) - (a.pick ? 1 : 0)) || (b.ts || "").localeCompare(a.ts || "");
+      });
+    } else if (sSort === "sym") {
       rows.sort(function (a, b) { return (a.sym || "").localeCompare(b.sym || ""); });
     } else if (sSort !== "ts") {
       rows.sort(function (a, b) {            /* sinyal open (pnl null) selalu di bawah */
@@ -317,7 +349,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       { h: "status", c: function (r) {
           var td = el("td", "st" + (r.st === "fired" ? " open" : ""));
           td.textContent = r.st === "fired" ? "open" : r.st; return td; } },
-      { h: "result R", n: true, c: function (r) { return rcell(r.pnl, r.st === "fired"); } }
+      { h: "result R", n: true, c: function (r) { return rcell(r.pnl, r.st === "fired"); } },
+      { h: "★", c: function (r) {                 // dipilih user di CSV (kolom picked)
+          var td = el("td", "st" + (r.pick ? " pickb" : " dim"));
+          td.textContent = r.pick ? "★" : "—";
+          if (r.pick) td.title = "picked by you (CSV)";
+          return td; } }
     ], rows, sQ ? "No signal matches \u201C" + sQ + "\u201D on this channel."
       : DATA.live[tf].uji
       ? "Shadow channel — no entry signal recorded yet."
@@ -358,6 +395,50 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         row("W · L · timeout", "— · — · —", "mut");
       }
       w.appendChild(r); c.appendChild(w);
+      host.appendChild(c);
+    });
+  }
+
+  /* ── pilihan user (18 Sep): hasil centang kolom `picked` di CSV engine ──
+     Bukan backtest: WR dari resolver 1R:1R (watchlist) / pnl_r resolved
+     (sinyal). Populasi kecil — itu justru intinya, ini SARINGANMU. */
+  function kamu() {
+    var host = $("#kamu-grid"); if (!host) return;
+    host.innerHTML = "";
+    ord().forEach(function (tf) {
+      var L = DATA.live[tf], P = L.pilih;
+      var c = el("div", "ch");
+      var h = el("div", "ch-h");
+      h.appendChild(el("span", "ch-n", L.nama));
+      h.appendChild(el("span", "ch-tf", tf.toUpperCase()));
+      c.appendChild(h);
+      var rows = el("div", "rows");
+      function row(l, v, cls) {
+        var x = el("div", "row");
+        x.appendChild(el("span", "l", l));
+        x.appendChild(el("span", "d"));
+        x.appendChild(el("span", "v " + (cls || ""), v));
+        rows.appendChild(x);
+      }
+      if (P && (P.sig.n || P.pt.n)) {
+        ["sig", "pt"].forEach(function (jenis) {
+          var S = P[jenis];
+          var lab = jenis === "sig" ? "picked sinyal" : "picked watchlist";
+          if (!S.n) { row(lab, "belum ada", "mut"); return; }
+          row(lab, String(S.n) + (S.tutup ? " · " + S.tutup + " closed"
+            : " · semua pending"), "");
+          row(lab + " WR (live)", S.wr === null ? "pending — belum ada yang tutup"
+            : S.wr.toFixed(1) + "%", S.wr === null ? "mut" : (S.wr >= 50 ? "pos" : "neg"));
+          row(lab + " net R", S.totR === null ? "—" : sgn(S.totR, 2),
+            S.totR === null ? "mut" : (S.totR > 0 ? "pos" : S.totR < 0 ? "neg" : "mut"));
+          if (S.pf != null) row(lab + " profit factor", String(S.pf), "mut");
+        });
+      } else {
+        row("picked sinyal", "belum ada centang", "mut");
+        row("picked watchlist", "belum ada centang", "mut");
+        row("cara menceklis", "lihat catatan di bawah", "mut");
+      }
+      c.appendChild(rows);
       host.appendChild(c);
     });
   }
@@ -847,7 +928,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     $("#state").textContent = stale ? "stale" : "live";
   }
   function render(first) {
-    stamp(); gauge(); strip(); akurasi();
+    stamp(); gauge(); strip(); akurasi(); kamu();
     if (first) charts();
     if (first || !bbBodies.length) bubbleDraw();   // jangan bangun ulang saat data 60 dtk segar — fisika jalan terus
     watch(wTf && DATA.live[wTf] ? wTf : ord()[0]);
