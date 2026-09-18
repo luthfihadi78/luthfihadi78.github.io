@@ -261,3 +261,40 @@ td.dim{color:var(--line-2)}
 .pick-notes .pn-side.long{color:var(--up);background:var(--up-w)}
 .pick-notes .pn-side.short{color:var(--dn);background:var(--dn-w)}
 .pick-notes .pn-note{color:var(--fg-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── notifikasi toast (18 Sep) ──
+   Kartu kanan-atas: klik badan = buka TradingView koin itu, × = tutup saja.
+   Warna aksen mengikuti tema terminal: emas = watchlist, hijau = sinyal. */
+#toasts{position:fixed;top:54px;right:14px;z-index:50;display:flex;
+  flex-direction:column;gap:8px;width:288px;pointer-events:none}
+.toast{pointer-events:auto;display:flex;align-items:stretch;cursor:pointer;
+  background:linear-gradient(180deg,var(--s2),var(--s1));
+  border:1px solid var(--line-2);border-left:3px solid var(--gold);
+  border-radius:8px;box-shadow:0 8px 26px rgba(0,0,0,.5);
+  opacity:0;transform:translateX(14px);
+  transition:opacity .28s ease,transform .28s ease}
+.toast.t-sig{border-left-color:var(--ac)}
+.toast.in{opacity:1;transform:translateX(0)}
+.toast.out{opacity:0;transform:translateX(14px)}
+.toast:hover{border-color:var(--ac-2)}
+.tbody{flex:1;padding:9px 4px 9px 12px;min-width:0}
+.tkind{display:block;font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--fg-3);margin-bottom:2px}
+.t-sig .tkind{color:var(--ac)}
+.trow{display:flex;align-items:baseline;gap:8px}
+.trow b{font-size:13.5px;color:var(--fg);letter-spacing:.02em}
+.tdir{font-size:10px;font-weight:700;padding:0 6px;border-radius:3px}
+.tdir.long{color:var(--up);background:var(--up-w)}
+.tdir.short{color:var(--dn);background:var(--dn-w)}
+.ttf{font-size:10px;color:var(--fg-3)}
+.tsub{display:block;font-size:10px;color:var(--fg-3);margin-top:2px}
+.tx{flex:none;width:30px;border:0;border-left:1px solid var(--line);
+  background:transparent;color:var(--fg-3);font-size:17px;cursor:pointer;
+  font-family:var(--mono)}
+.tx:hover{color:var(--fg);background:var(--s3)}
+
+/* tombol suara di bar atas — satu baris dengan pill LIVE */
+.mute{border:1px solid var(--line-2);background:transparent;border-radius:999px;
+  width:30px;height:24px;cursor:pointer;font-size:12px;line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;padding:0}
+.mute:hover{border-color:var(--ac-2);background:var(--ac-w)}

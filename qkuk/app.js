@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-pick-20260918c";   /* 18 Sep v2: streak/maxDD + flip + catatan */
+  var BUILD = "qkuk-note-20260918e";   /* 18 Sep v4: stale dihitung dari Last-Modified file, bukan jam cache/jam Mac */
   var COLOR = { "1h": "#9CF2CE", "2h": "#6EE7B7", "4h": "#D8C89A" };
   var TVI = { "1h": "60", "2h": "120", "4h": "240" };
 
@@ -967,17 +967,27 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var s = DATA.dibuat || "";
     $("#stamp").textContent = s.replace(/^\d{2} \w{3} \d{4} · /, "");
     $("#foot").textContent = "engine data written " + s;
-    var m = /(\d{2}):(\d{2})\s*WIB/.exec(s);
-    if (!m) return;
-    var now = new Date(Date.now() + (7 * 60 + new Date().getTimezoneOffset()) * 60000);
-    var mins = (now.getHours() * 60 + now.getMinutes()) - (+m[1] * 60 + +m[2]);
-    if (mins < 0) mins += 1440;
-    var stale = mins > 180;
+    /* ⚠️ Cara lama membandingkan jam WIB di string `dibuat` dgn jam WIB di
+       komputer pembaca — kalau jam komputer salah zona (mis. mesin Windows
+       dianggap WIB padahal bukan), data baru pun dilabel "stale". Sekarang
+       umur file diukur dari header Date respons HTTP (jam server Pages,
+       akurat): fallback ke jam-string hanya kalau header tak terbaca. */
+    var age = stamp.ageMs != null ? stamp.ageMs / 60000 : null;
+    if (age == null) {
+      var m = /(\d{2}):(\d{2})\s*WIB/.exec(s);
+      if (!m) return;
+      var now = new Date(Date.now() + (7 * 60 + new Date().getTimezoneOffset()) * 60000);
+      var mins = (now.getHours() * 60 + now.getMinutes()) - (+m[1] * 60 + +m[2]);
+      if (mins < 0) mins += 1440;
+      age = mins;
+    }
+    var stale = age > 180;
     $("#dot").classList.toggle("stale", stale);
     $("#state").textContent = stale ? "stale" : "live";
   }
   function render(first) {
     stamp(); gauge(); strip(); akurasi(); kamu();
+    scanNotif();
     if (first) charts();
     if (first || !bbBodies.length) bubbleDraw();   // jangan bangun ulang saat data 60 dtk segar — fisika jalan terus
     watch(wTf && DATA.live[wTf] ? wTf : ord()[0]);
@@ -985,7 +995,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   function load(first) {
     fetch("data.json?t=" + Date.now(), { cache: "no-store" })
-      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (r) {
+        var d = r.headers.get("last-modified") || r.headers.get("date"); // umur file = kapan file terakhir ditulis (bukan jam cache CDN)
+        if (d) { var t = Date.parse(d); if (isFinite(t)) stamp.ageMs = Date.now() - t; }
+        if (!r.ok) throw new Error(r.status);
+        return r.json();
+      })
       .then(function (j) {
         // Penjaga anti-loop: hanya kalau penanaman versi BERHASIL, keduanya ada
         // dan berbeda, dan belum memuat ulang untuk versi itu barusan.
@@ -998,6 +1013,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
             return;
           }
         }
+        /* ⚠️ JANGAN reset NOTE.seen di sini — kalau baseline di-reset tiap
+           poll, baris baru selalu terserap diam-diam dan tidak pernah
+           dibunyikan. Basis segar otomatis terbentuk saat halaman reload
+           karena versi build berubah. */
         DATA = j; LEFT = 60; render(first);
       })
       .catch(function () {
@@ -1010,9 +1029,126 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   $("#s-sort").addEventListener("change", function () {
     sSort = this.value; signals(sTf || ord()[0]);
   });
+
+  /* ── notifikasi watchlist / sinyal baru ──
+     Toast kanan-atas + bunyi pendek via Web Audio (tanpa file audio — CSP
+     situs hanya mengizinkan 'self'). Klik badan toast = buka chart
+     TradingView koin itu; tombol × = tutup notifikasi saja.
+     Pembandingnya KUNCI (timestamp WIB + simbol + timeframe): timestamp
+     tidak berubah saat resolver mengisi hasil, jadi baris yang sama tidak
+     dibunyikan dua kali. Muatan pertama = baseline, tidak di-toast. */
+  var NOTE = { seen: null, n: 0 };
+  var MUTE = false;
+  try { MUTE = localStorage.getItem("qkuk_mute") === "1"; } catch (e) {}
+  function unlockAudio() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (AC && !ding.ctx) ding.ctx = new AC();
+      if (ding.ctx && ding.ctx.state === "suspended") ding.ctx.resume();
+    } catch (e) {}
+    document.removeEventListener("pointerdown", unlockAudio);
+    document.removeEventListener("keydown", unlockAudio);
+  }
+  document.addEventListener("pointerdown", unlockAudio);
+  document.addEventListener("keydown", unlockAudio);
+  function ding() {
+    if (MUTE) return;
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!ding.ctx) ding.ctx = new AC();
+      if (ding.ctx.state === "suspended") { ding.ctx.resume(); return; }
+      var t0 = ding.ctx.currentTime, g = ding.ctx.createGain();
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(.09, t0 + .012);
+      g.gain.exponentialRampToValueAtTime(.0001, t0 + .42);
+      g.connect(ding.ctx.destination);
+      [880, 1318.5].forEach(function (f, i) {   // dua nada: "ting" lembut
+        var o = ding.ctx.createOscillator();
+        o.type = "sine"; o.frequency.value = f;
+        o.connect(g); o.start(t0 + i * .09); o.stop(t0 + i * .09 + .3);
+      });
+    } catch (e) {}
+  }
+  function muteIcon() {
+    var m = $("#mute");
+    if (!m) return;
+    m.textContent = MUTE ? "🔇" : "🔔";
+    m.setAttribute("aria-pressed", MUTE ? "true" : "false");
+    m.title = (MUTE ? "Suara notifikasi: MATI — klik untuk nyalakan"
+      : "Suara notifikasi: NYALA — klik untuk mati")
+      + (NOTE.n ? " · " + NOTE.n + " notifikasi sesi ini" : "");
+  }
+  var mbtn = $("#mute");
+  if (mbtn) mbtn.addEventListener("click", function () {
+    MUTE = !MUTE;
+    try { localStorage.setItem("qkuk_mute", MUTE ? "1" : "0"); } catch (e) {}
+    muteIcon();
+    if (!MUTE) ding();                          // umpan balik: bunyi contoh
+  });
+  muteIcon();
+  function toast(kind, sym, tf, ts, dir) {
+    var host = $("#toasts"); if (!host) return;
+    var t = el("div", "toast " + (kind === "sinyal" ? "t-sig" : "t-wat"));
+    var b = el("div", "tbody");
+    b.appendChild(el("span", "tkind", kind === "sinyal" ? "SINYAL BARU" : "WATCHLIST BARU"));
+    var row = el("div", "trow");
+    row.appendChild(el("b", "", sym));
+    var dTxt = dir === "long" ? "long" : dir === "short" ? "short" : "—";
+    row.appendChild(el("span", "tdir " + dTxt, dTxt));
+    row.appendChild(el("span", "ttf", (tf || "").toUpperCase()));
+    b.appendChild(row);
+    b.appendChild(el("span", "tsub", ts || ""));
+    var x = el("button", "tx"); x.type = "button";
+    x.setAttribute("aria-label", "Tutup notifikasi"); x.textContent = "×";
+    t.appendChild(b); t.appendChild(x);
+    host.appendChild(t);
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { t.classList.add("in"); });
+    });
+    var gone = false;
+    function close() {
+      if (gone) return; gone = true;
+      t.classList.remove("in"); t.classList.add("out");
+      setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 320);
+    }
+    t.addEventListener("click", function (ev) {  // klik badan = TradingView
+      if (ev.target === x) return;
+      try { window.open(tvUrl(sym, tf), "_blank", "noopener"); } catch (e) {}
+      close();
+    });
+    x.addEventListener("click", function (ev) {
+      ev.stopPropagation();                     // × = tutup saja, TIDAK buka TradingView
+      close();
+    });
+  }
+  function scanNotif() {
+    if (!DATA || !DATA.live) return;
+    var items = [];
+    ord().forEach(function (tf) {
+      var L = DATA.live[tf] || {};
+      (L.pantau || []).forEach(function (r) {
+        if (r && r.sym) items.push({ k: "watchlist", key: r.ts + "|" + r.sym + "|" + tf, tf: tf, sym: r.sym, dir: r.dir, ts: r.ts });
+      });
+      (L.sinyal || []).forEach(function (r) {
+        if (r && r.sym) items.push({ k: "sinyal", key: r.ts + "|" + r.sym + "|" + tf, tf: tf, sym: r.sym, dir: r.dir, ts: r.ts });
+      });
+    });
+    if (NOTE.seen == null) {                    // muatan pertama = baseline, tanpa banjir toast
+      NOTE.seen = {}; items.forEach(function (it) { NOTE.seen[it.key] = 1; });
+      return;
+    }
+    var fresh = items.filter(function (it) { return !NOTE.seen[it.key]; });
+    items.forEach(function (it) { NOTE.seen[it.key] = 1; });
+    fresh.forEach(function (it) { toast(it.k, it.sym, it.tf, it.ts, it.dir); NOTE.n++; });
+    if (fresh.length) { ding(); muteIcon(); }
+  }
   load(true);
   setInterval(clock, 1000); clock();
   setInterval(function () { load(false); }, 60000);
+  setInterval(function () {                  // reload penuh per jam: HTML/CSS/JS ikut segar, bukan cuma data.json
+    location.reload();
+  }, 3600000);
   setInterval(function () {                  // segarkan %24j tiap 90 detik selama tab terbuka
     if (DATA && !document.hidden) { bb24Ts = 0; bbLoad24(function () {}); }
   }, 90000);
