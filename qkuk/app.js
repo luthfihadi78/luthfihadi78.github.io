@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-note-20260918e";   /* 18 Sep v4: stale dihitung dari Last-Modified file, bukan jam cache/jam Mac */
+  var BUILD = "qkuk-note-20260918f";   /* 18 Sep v5: search box di tab Watchlist */
   var COLOR = { "1h": "#9CF2CE", "2h": "#6EE7B7", "4h": "#D8C89A" };
   var TVI = { "1h": "60", "2h": "120", "4h": "240" };
 
@@ -300,12 +300,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     return td;
   }
 
-  var wTf = null, sTf = null, sQ = "", sSort = "ts";
+  var wTf = null, sTf = null, sQ = "", sSort = "ts", wQ = "";
 
   function watch(tf) {
     wTf = tf; tabs($("#w-tabs"), tf, watch);
     var rows = (DATA.live[tf].pantau || []).slice()
       .sort(function (a, b) { return (b.ts || "").localeCompare(a.ts || ""); });
+    if (wQ) rows = rows.filter(function (r) { return (r.sym || "").toUpperCase().indexOf(wQ) !== -1; });
     table($("#w-table"), [
       { h: "", c: function (r) { return tvCell(r.sym, tf); } },
       { h: "time WIB", c: function (r) { return txt(r.ts); } },
@@ -1025,6 +1026,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   $("#s-q").addEventListener("input", function () {
     sQ = this.value.trim().toUpperCase(); signals(sTf || ord()[0]);
+  });
+  $("#w-q").addEventListener("input", function () {
+    wQ = this.value.trim().toUpperCase(); watch(wTf || ord()[0]);
   });
   $("#s-sort").addEventListener("change", function () {
     sSort = this.value; signals(sTf || ord()[0]);
