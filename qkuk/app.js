@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-note-20260919i";   /* 19 Sep v14: sumber ke-4 CoinPaprika (Binance sering diblokir ISP Indonesia) */
+  var BUILD = "qkuk-note-20260919j";   /* 19 Sep v15: tier ×2 (48–156px) + aura bola panas di mover tertinggi */
   var COLOR = { "1h": "#9CF2CE", "2h": "#6EE7B7", "4h": "#D8C89A" };
   var TVI = { "1h": "60", "2h": "120", "4h": "240" };
 
@@ -816,19 +816,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      besar % makin besar bubble — avax +30% besar, -30% juga besar tapi merah.
      Skala akar-kuadrat biar perbedaannya terasa tapi 20 koin tetap muat. */
   var bbNMax = 1;                             // fallback skala lama saat Binance tak terjangkau
-  /* ── 10 TINGKAT ukuran (revisi 19 Sep): lompatan antar tier lebih tajam
-     biar mover tinggi makin mencolok; legenda dihapus (tidak penting). */
+  /* ── 6 TINGKAT ukuran, semua px ×2 (revisi 19 Sep): user masih sulit
+     membedakan — sekarang 48/68/84/104/124/156px. Legenda dihapus. */
   var BB_TIERS = [
-    { m: 0,  dia: 24, lab: "~0%" },
-    { m: 1,  dia: 30, lab: "±1%" },
-    { m: 2,  dia: 36, lab: "±2%" },
-    { m: 4,  dia: 42, lab: "±4%" },
-    { m: 7,  dia: 48, lab: "±7%" },
-    { m: 10, dia: 54, lab: "±10%" },
-    { m: 15, dia: 60, lab: "±15%" },
-    { m: 20, dia: 66, lab: "±20%" },
-    { m: 25, dia: 72, lab: "±25%" },
-    { m: 30, dia: 78, lab: "±30%+" }
+    { m: 0,  dia: 48,  lab: "~0%" },
+    { m: 1,  dia: 68,  lab: "±2%" },
+    { m: 3,  dia: 84,  lab: "±5%" },
+    { m: 7,  dia: 104, lab: "±10%" },
+    { m: 15, dia: 124, lab: "±20%" },
+    { m: 25, dia: 156, lab: "±30%+" }
   ];
   function bbTier(c) {
     var a = Math.abs(c), t = 0;
@@ -1005,7 +1001,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       }
     });
     var list = Object.keys(uniq).map(function (k) { return uniq[k]; });
-    list.sort(function (a, b) { return bbDia(b) - bbDia(a); });  // besar dulu → z stabil
+    list.sort(function (a, b) {                 // besar dulu; tie → |%| asli menentukan
+      var ca = bb24 ? bubbleChg(a) : null, cb = bb24 ? bubbleChg(b) : null;
+      return bbDia(b) - bbDia(a)
+        || Math.abs(cb == null ? 0 : cb) - Math.abs(ca == null ? 0 : ca);
+    });  // → z stabil & bola panas selalu milik mover % tertinggi
     var placed = [];
     /* ── permintaan 19 Sep: mover terbesar di tengah panggung supaya
        langsung mencolok. Sel grid yang dekat tengah dicadangkan (tidak
@@ -1044,7 +1044,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         }
       }
       placed.push({ x: x, y: y, r: r });
-      d._x = x; d._y = y; d._r = r; d._dia = base;
+      d._x = x; d._y = y; d._r = r; d._dia = base; d._top = li === 0;   // _top = mover #1 (aura bola panas)
     });
     list.forEach(function (d) {
       var res = bubbleRes(d);
@@ -1065,6 +1065,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         au.style.background = "radial-gradient(circle, " + C.glow + " 0%, transparent 70%)";
         au.style.animationDelay = (Math.random() * 1200).toFixed(0) + "ms";
         b.appendChild(au);
+      }
+      /* bola panas: aura api besar di mover #1 — paling terang, beda sendiri */
+      if (d._top) {
+        var fl = el("span", "fire");
+        fl.style.background = "radial-gradient(circle, "
+          + (bubbleChg(d) !== null && bubbleChg(d) < 0
+              ? "rgba(255,138,101,.85) 0%, rgba(255,87,66,.45) 40%, transparent 72%)"
+              : "rgba(255,224,138,.9) 0%, rgba(255,152,67,.5) 40%, transparent 72%)");
+        b.appendChild(fl);
+        b.classList.add("hot");
       }
       var nm = d.sym.replace(/USDT$/, "");
       b.appendChild(el("b", null, nm));
@@ -1172,9 +1182,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (!DATA) return;
       bbBodies.forEach(function (body) {
         var d2 = list.filter(function (q) { return q.sym === body.sym; })[0];
-        if (!d2) return;
-        var res = bubbleRes(d2), C = BB[res];
-        bbApplyDia(body, bbDia(d2));             // ukuran sebenarnya mengikuti %24j yang baru tiba
+        if (!d2) return;        var res = bubbleRes(d2), C = BB[res];
+        bbApplyDia(body, bbDia(d2));             // ukuran mengikuti %24j yang baru tiba
+        body.el.classList.toggle("hot", !!d2._top);   // status bola panas ikut data terbaru
         body.el.style.background = "radial-gradient(circle at 32% 26%, rgba(255,255,255,.20), "
           + C.fill + " 46%, rgba(255,255,255,.03) 100%)";
         body.el.style.border = "1px solid " + C.edge;

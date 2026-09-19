@@ -331,3 +331,13 @@ td.dim{color:var(--line-2)}
 .b-chips .chip.pick{border-color:var(--gold);background:var(--gold-w);
   box-shadow:0 0 8px rgba(216,200,154,.25)}
 .b-chips .chip.pick::before{content:"★ ";color:var(--gold)}
+
+/* ── v15: aura bola panas di mover tertinggi ── */
+.bb .fire{position:absolute;left:50%;top:50%;width:280%;height:280%;
+  transform:translate(-50%,-50%);border-radius:999px;pointer-events:none;
+  animation:hotflicker 1.6s ease-in-out infinite;z-index:-1}
+@keyframes hotflicker{
+  0%,100%{opacity:.95;transform:translate(-50%,-50%) scale(1)}
+  50%{opacity:.7;transform:translate(-50%,-50%) scale(1.12)}}
+.bb.hot{border-width:2px}
+.bb.hot b,.bb.hot i{filter:drop-shadow(0 0 6px rgba(255,255,255,.65))}
