@@ -816,15 +816,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      besar % makin besar bubble — avax +30% besar, -30% juga besar tapi merah.
      Skala akar-kuadrat biar perbedaannya terasa tapi 20 koin tetap muat. */
   var bbNMax = 1;                             // fallback skala lama saat Binance tak terjangkau
-  /* ── 6 TINGKAT, selisih +30% antar tingkat (revisi 19 Sep): 48 → 62 →
-     81 → 105 → 137 → 178px. Legenda dihapus. */
+  /* ── 7 TINGKAT (revisi 19 Sep pt.2): ambil 20% / 30% / 40% WAJIB beda
+     ukuran. Selisih antar tingkat ≥ +30%: 48 → 62 → 81 → 105 → 137 → 178 → 232px. */
   var BB_TIERS = [
     { m: 0,  dia: 48,  lab: "~0%" },
     { m: 1,  dia: 62,  lab: "±2%" },
     { m: 3,  dia: 81,  lab: "±5%" },
     { m: 7,  dia: 105, lab: "±10%" },
     { m: 15, dia: 137, lab: "±20%" },
-    { m: 25, dia: 178, lab: "±30%+" }
+    { m: 25, dia: 178, lab: "±30%" },
+    { m: 35, dia: 232, lab: "±40%+" }
   ];
   function bbTier(c) {
     var a = Math.abs(c), t = 0;
@@ -1066,20 +1067,40 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         au.style.animationDelay = (Math.random() * 1200).toFixed(0) + "ms";
         b.appendChild(au);
       }
-      /* bola api: mover #1 — API HIJAU kalau naik, API MERAH kalau turun.
-         TANPA cahaya: lidah api tipis menempel di tepi bubble (conic-gradient
-         berputar, pusat transparan) — bubble tetangga tidak tertutup. */
+      /* bola api: mover #1 — BARA MEMBARA di tepi, TANPA cahaya.
+         3 lapis: (1) bara conic tidak rata, (2) lidah berkedip merah muda,
+         (3) dua titik bara yang mengorbit. Pusat tetap transparan penuh. */
       if (d._top) {
         var fc = bubbleChg(d);
         var fireUp = !(fc !== null && fc < 0);
         var fl = el("span", "fire");
         fl.style.background = fireUp
-          ? "conic-gradient(from 0deg, rgba(110,231,183,0) 0deg, rgba(110,231,183,.16) 30deg, rgba(110,231,183,0) 60deg,"
-            + " rgba(16,185,129,.14) 110deg, rgba(110,231,183,0) 150deg, rgba(110,231,183,.18) 200deg,"
-            + " rgba(110,231,183,0) 240deg, rgba(16,185,129,.15) 300deg, rgba(110,231,183,0) 360deg)"
-          : "conic-gradient(from 0deg, rgba(255,82,82,0) 0deg, rgba(255,82,82,.16) 30deg, rgba(255,82,82,0) 60deg,"
-            + " rgba(239,68,68,.14) 110deg, rgba(255,82,82,0) 150deg, rgba(255,82,82,.18) 200deg,"
-            + " rgba(255,82,82,0) 240deg, rgba(239,68,68,.15) 300deg, rgba(255,82,82,0) 360deg)";
+          ? "conic-gradient(from 0deg, rgba(110,231,183,0) 0deg, rgba(110,231,183,.22) 24deg, rgba(110,231,183,0) 55deg,"
+            + " rgba(16,185,129,.30) 80deg, rgba(110,231,183,.10) 105deg, rgba(110,231,183,0) 140deg,"
+            + " rgba(110,231,183,.26) 168deg, rgba(16,185,129,.14) 196deg, rgba(110,231,183,0) 235deg,"
+            + " rgba(16,185,129,.22) 262deg, rgba(110,231,183,.12) 288deg, rgba(110,231,183,0) 320deg,"
+            + " rgba(110,231,183,.18) 342deg, rgba(110,231,183,0) 360deg)"
+          : "conic-gradient(from 0deg, rgba(255,82,82,0) 0deg, rgba(255,82,82,.22) 24deg, rgba(255,82,82,0) 55deg,"
+            + " rgba(239,68,68,.30) 80deg, rgba(255,82,82,.10) 105deg, rgba(255,82,82,0) 140deg,"
+            + " rgba(255,82,82,.26) 168deg, rgba(239,68,68,.14) 196deg, rgba(255,82,82,0) 235deg,"
+            + " rgba(239,68,68,.22) 262deg, rgba(255,82,82,.12) 288deg, rgba(255,82,82,0) 320deg,"
+            + " rgba(255,82,82,.18) 342deg, rgba(255,82,82,0) 360deg)";
+        var tg = el("span", "fire-tongue");
+        tg.style.background = fireUp
+          ? "conic-gradient(from 40deg, rgba(167,243,208,0) 0deg, rgba(167,243,208,.30) 18deg, rgba(167,243,208,0) 40deg,"
+            + " rgba(167,243,208,0) 150deg, rgba(110,231,183,.30) 170deg, rgba(167,243,208,0) 195deg,"
+            + " rgba(167,243,208,0) 280deg, rgba(167,243,208,.24) 300deg, rgba(167,243,208,0) 322deg)"
+          : "conic-gradient(from 40deg, rgba(254,202,202,0) 0deg, rgba(254,202,202,.30) 18deg, rgba(254,202,202,0) 40deg,"
+            + " rgba(254,202,202,0) 150deg, rgba(255,82,82,.30) 170deg, rgba(254,202,202,0) 195deg,"
+            + " rgba(254,202,202,0) 280deg, rgba(254,202,202,.24) 300deg, rgba(254,202,202,0) 322deg)";
+        tg.style.animationDelay = (Math.random() * 900).toFixed(0) + "ms";
+        fl.appendChild(tg);
+        for (var ei = 0; ei < 2; ei++) {
+          var emb = el("span", "fire-ember");
+          emb.style.background = fireUp ? "rgba(167,243,208,.85)" : "rgba(254,202,202,.85)";
+          emb.style.animationDelay = (ei * 1700 + Math.random() * 500).toFixed(0) + "ms";
+          fl.appendChild(emb);
+        }
         b.appendChild(fl);
         b.classList.add("hot");
       }
@@ -1196,14 +1217,40 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         var fc2 = bubbleChg(d2);
         var fUp = !(fc2 !== null && fc2 < 0);
         var fBg = fUp
-          ? "conic-gradient(from 0deg, rgba(110,231,183,0) 0deg, rgba(110,231,183,.16) 30deg, rgba(110,231,183,0) 60deg,"
-            + " rgba(16,185,129,.14) 110deg, rgba(110,231,183,0) 150deg, rgba(110,231,183,.18) 200deg,"
-            + " rgba(110,231,183,0) 240deg, rgba(16,185,129,.15) 300deg, rgba(110,231,183,0) 360deg)"
-          : "conic-gradient(from 0deg, rgba(255,82,82,0) 0deg, rgba(255,82,82,.16) 30deg, rgba(255,82,82,0) 60deg,"
-            + " rgba(239,68,68,.14) 110deg, rgba(255,82,82,0) 150deg, rgba(255,82,82,.18) 200deg,"
-            + " rgba(255,82,82,0) 240deg, rgba(239,68,68,.15) 300deg, rgba(255,82,82,0) 360deg)";
-        if (!ffl) { ffl = el("span", "fire"); body.el.appendChild(ffl); }
+          ? "conic-gradient(from 0deg, rgba(110,231,183,0) 0deg, rgba(110,231,183,.22) 24deg, rgba(110,231,183,0) 55deg,"
+            + " rgba(16,185,129,.30) 80deg, rgba(110,231,183,.10) 105deg, rgba(110,231,183,0) 140deg,"
+            + " rgba(110,231,183,.26) 168deg, rgba(16,185,129,.14) 196deg, rgba(110,231,183,0) 235deg,"
+            + " rgba(16,185,129,.22) 262deg, rgba(110,231,183,.12) 288deg, rgba(110,231,183,0) 320deg,"
+            + " rgba(110,231,183,.18) 342deg, rgba(110,231,183,0) 360deg)"
+          : "conic-gradient(from 0deg, rgba(255,82,82,0) 0deg, rgba(255,82,82,.22) 24deg, rgba(255,82,82,0) 55deg,"
+            + " rgba(239,68,68,.30) 80deg, rgba(255,82,82,.10) 105deg, rgba(255,82,82,0) 140deg,"
+            + " rgba(255,82,82,.26) 168deg, rgba(239,68,68,.14) 196deg, rgba(255,82,82,0) 235deg,"
+            + " rgba(239,68,68,.22) 262deg, rgba(255,82,82,.12) 288deg, rgba(255,82,82,0) 320deg,"
+            + " rgba(255,82,82,.18) 342deg, rgba(255,82,82,0) 360deg)";
+        if (!ffl) {                             // buat lengkap: bara + lidah + ember
+          ffl = el("span", "fire");
+          var ftg = el("span", "fire-tongue");
+          ftg.style.animationDelay = (Math.random() * 900).toFixed(0) + "ms";
+          ffl.appendChild(ftg);
+          for (var fei = 0; fei < 2; fei++) {
+            var femb = el("span", "fire-ember");
+            femb.style.animationDelay = (fei * 1700 + Math.random() * 500).toFixed(0) + "ms";
+            ffl.appendChild(femb);
+          }
+          body.el.appendChild(ffl);
+        }
         ffl.style.background = fBg;
+        var ftg2 = ffl.querySelector(".fire-tongue");
+        if (ftg2) ftg2.style.background = fUp
+          ? "conic-gradient(from 40deg, rgba(167,243,208,0) 0deg, rgba(167,243,208,.30) 18deg, rgba(167,243,208,0) 40deg,"
+            + " rgba(167,243,208,0) 150deg, rgba(110,231,183,.30) 170deg, rgba(167,243,208,0) 195deg,"
+            + " rgba(167,243,208,0) 280deg, rgba(167,243,208,.24) 300deg, rgba(167,243,208,0) 322deg)"
+          : "conic-gradient(from 40deg, rgba(254,202,202,0) 0deg, rgba(254,202,202,.30) 18deg, rgba(254,202,202,0) 40deg,"
+            + " rgba(254,202,202,0) 150deg, rgba(255,82,82,.30) 170deg, rgba(254,202,202,0) 195deg,"
+            + " rgba(254,202,202,0) 280deg, rgba(254,202,202,.24) 300deg, rgba(254,202,202,0) 322deg)";
+        var fEmbs = ffl.querySelectorAll(".fire-ember");
+        for (var fei2 = 0; fei2 < fEmbs.length; fei2++)
+          fEmbs[fei2].style.background = fUp ? "rgba(167,243,208,.85)" : "rgba(254,202,202,.85)";
         body.el.classList.add("hot");
       } else {
         var ffl2 = body.el.querySelector(".fire");

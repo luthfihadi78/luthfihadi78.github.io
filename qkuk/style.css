@@ -332,12 +332,34 @@ td.dim{color:var(--line-2)}
   box-shadow:0 0 8px rgba(216,200,154,.25)}
 .b-chips .chip.pick::before{content:"★ ";color:var(--gold)}
 
-/* ── v18: bola api TANPA cahaya — lidah api tipis menempel di tepi bubble
-      (conic-gradient berputar, pusat transparan penuh) → bubble tetangga
-      tidak ikut tertutup warna. Pengaturan lebar & warna dari JS. ── */
-.bb .fire{position:absolute;inset:-14%;border-radius:999px;pointer-events:none;
-  z-index:-1;-webkit-mask:radial-gradient(circle, transparent 0 58%, #000 78% 100%);
-  mask:radial-gradient(circle, transparent 0 58%, #000 78% 100%);
-  animation:firespin 7s linear infinite}
+/* ── v19: bola api MEMBARA tanpa cahaya — 3 lapis di tepi bubble:
+   .fire        bara tidak rata (conic), pusat transparan, berputar pelan
+   .fire-tongue lidah api lebih terang yang berkedip muncul-hilang
+   .fire-ember  dua titik bara kecil mengorbit di tepi
+   Semua pakai mask radial → hanya menempel di tepi, bubble tetangga bersih. ── */
+.bb .fire{position:absolute;inset:-16%;border-radius:999px;pointer-events:none;
+  z-index:-1;-webkit-mask:radial-gradient(circle, transparent 0 55%, #000 74% 100%);
+  mask:radial-gradient(circle, transparent 0 55%, #000 74% 100%);
+  animation:firespin 9s linear infinite}
+.bb .fire-tongue{position:absolute;inset:0;border-radius:999px;
+  -webkit-mask:radial-gradient(circle, transparent 0 58%, #000 76% 100%);
+  mask:radial-gradient(circle, transparent 0 58%, #000 76% 100%);
+  animation:flickertongue 2.1s ease-in-out infinite}
+.bb .fire-ember{position:absolute;left:50%;top:50%;width:5px;height:5px;
+  border-radius:999px;opacity:0;
+  animation:emberorbit 5.2s linear infinite}
 @keyframes firespin{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){.bb .fire{animation:none}}
+@keyframes flickertongue{
+  0%,100%{opacity:.15}
+  18%{opacity:.9}
+  36%{opacity:.35}
+  55%{opacity:1}
+  74%{opacity:.25}}
+@keyframes emberorbit{
+  0%{transform:rotate(0deg) translateX(46%) rotate(0deg);opacity:0}
+  12%{opacity:.95}
+  50%{transform:rotate(180deg) translateX(50%) rotate(-180deg);opacity:.75}
+  88%{opacity:.9}
+  100%{transform:rotate(360deg) translateX(46%) rotate(-360deg);opacity:0}}
+@media(prefers-reduced-motion:reduce){.bb .fire,.bb .fire-tongue,.bb .fire-ember{animation:none}
+  .bb .fire-tongue{opacity:.5}}
