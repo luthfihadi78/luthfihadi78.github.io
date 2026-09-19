@@ -1066,17 +1066,20 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         au.style.animationDelay = (Math.random() * 1200).toFixed(0) + "ms";
         b.appendChild(au);
       }
-      /* bola api: mover #1 — API HIJAU kalau naik, API MERAH kalau turun;
-         nyala berkedip di sekeliling bubble, bukan cahaya lampu */
+      /* bola api: mover #1 — API HIJAU kalau naik, API MERAH kalau turun.
+         TANPA cahaya: lidah api tipis menempel di tepi bubble (conic-gradient
+         berputar, pusat transparan) — bubble tetangga tidak tertutup. */
       if (d._top) {
         var fc = bubbleChg(d);
         var fireUp = !(fc !== null && fc < 0);
         var fl = el("span", "fire");
         fl.style.background = fireUp
-          ? "radial-gradient(circle, rgba(200,255,228,.95) 0%, rgba(110,231,183,.60) 34%, rgba(110,231,183,.20) 56%, transparent 72%)"
-          : "radial-gradient(circle, rgba(255,205,196,.95) 0%, rgba(255,82,82,.60) 34%, rgba(255,82,82,.20) 56%, transparent 72%)";
-        fl.style.animationName = fireUp ? "hotflicker" : "hotflicker";
-        fl.style.animationDelay = (Math.random() * 900).toFixed(0) + "ms";
+          ? "conic-gradient(from 0deg, rgba(110,231,183,0) 0deg, rgba(110,231,183,.16) 30deg, rgba(110,231,183,0) 60deg,"
+            + " rgba(16,185,129,.14) 110deg, rgba(110,231,183,0) 150deg, rgba(110,231,183,.18) 200deg,"
+            + " rgba(110,231,183,0) 240deg, rgba(16,185,129,.15) 300deg, rgba(110,231,183,0) 360deg)"
+          : "conic-gradient(from 0deg, rgba(255,82,82,0) 0deg, rgba(255,82,82,.16) 30deg, rgba(255,82,82,0) 60deg,"
+            + " rgba(239,68,68,.14) 110deg, rgba(255,82,82,0) 150deg, rgba(255,82,82,.18) 200deg,"
+            + " rgba(255,82,82,0) 240deg, rgba(239,68,68,.15) 300deg, rgba(255,82,82,0) 360deg)";
         b.appendChild(fl);
         b.classList.add("hot");
       }
@@ -1188,7 +1191,25 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         var d2 = list.filter(function (q) { return q.sym === body.sym; })[0];
         if (!d2) return;        var res = bubbleRes(d2), C = BB[res];
         bbApplyDia(body, bbDia(d2));             // ukuran mengikuti %24j yang baru tiba
-        body.el.classList.toggle("hot", !!d2._top);   // status bola panas ikut data terbaru
+      if (d2._top) {
+        var ffl = body.el.querySelector(".fire");
+        var fc2 = bubbleChg(d2);
+        var fUp = !(fc2 !== null && fc2 < 0);
+        var fBg = fUp
+          ? "conic-gradient(from 0deg, rgba(110,231,183,0) 0deg, rgba(110,231,183,.16) 30deg, rgba(110,231,183,0) 60deg,"
+            + " rgba(16,185,129,.14) 110deg, rgba(110,231,183,0) 150deg, rgba(110,231,183,.18) 200deg,"
+            + " rgba(110,231,183,0) 240deg, rgba(16,185,129,.15) 300deg, rgba(110,231,183,0) 360deg)"
+          : "conic-gradient(from 0deg, rgba(255,82,82,0) 0deg, rgba(255,82,82,.16) 30deg, rgba(255,82,82,0) 60deg,"
+            + " rgba(239,68,68,.14) 110deg, rgba(255,82,82,0) 150deg, rgba(255,82,82,.18) 200deg,"
+            + " rgba(255,82,82,0) 240deg, rgba(239,68,68,.15) 300deg, rgba(255,82,82,0) 360deg)";
+        if (!ffl) { ffl = el("span", "fire"); body.el.appendChild(ffl); }
+        ffl.style.background = fBg;
+        body.el.classList.add("hot");
+      } else {
+        var ffl2 = body.el.querySelector(".fire");
+        if (ffl2) ffl2.remove();
+        body.el.classList.remove("hot");
+      }
         body.el.style.background = "radial-gradient(circle at 32% 26%, rgba(255,255,255,.20), "
           + C.fill + " 46%, rgba(255,255,255,.03) 100%)";
         body.el.style.border = "1px solid " + C.edge;

@@ -332,17 +332,12 @@ td.dim{color:var(--line-2)}
   box-shadow:0 0 8px rgba(216,200,154,.25)}
 .b-chips .chip.pick::before{content:"★ ";color:var(--gold)}
 
-/* ── v15: aura bola panas di mover tertinggi ── */
-.bb .fire{position:absolute;left:50%;top:50%;width:280%;height:280%;
-  transform:translate(-50%,-50%);border-radius:999px;pointer-events:none;
-  animation:hotflicker 1.6s ease-in-out infinite;z-index:-1}
-@keyframes hotflicker{
-  0%,100%{opacity:.95;transform:translate(-50%,-50%) scale(1)}
-  50%{opacity:.7;transform:translate(-50%,-50%) scale(1.12)}}
-.bb.hot{border-width:2px}
-.bb.hot b,.bb.hot i{filter:drop-shadow(0 0 6px rgba(255,255,255,.65))}
-
-/* v17: bola api — dua lapis nyala (inner kencang, outer lembut) */
-.bb .fire{animation:hotflicker .9s ease-in-out infinite}
-.bb .fire::after{content:"";position:absolute;inset:22%;border-radius:999px;
-  background:inherit;filter:blur(6px);animation:hotflicker 1.4s ease-in-out infinite reverse}
+/* ── v18: bola api TANPA cahaya — lidah api tipis menempel di tepi bubble
+      (conic-gradient berputar, pusat transparan penuh) → bubble tetangga
+      tidak ikut tertutup warna. Pengaturan lebar & warna dari JS. ── */
+.bb .fire{position:absolute;inset:-14%;border-radius:999px;pointer-events:none;
+  z-index:-1;-webkit-mask:radial-gradient(circle, transparent 0 58%, #000 78% 100%);
+  mask:radial-gradient(circle, transparent 0 58%, #000 78% 100%);
+  animation:firespin 7s linear infinite}
+@keyframes firespin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.bb .fire{animation:none}}
