@@ -298,3 +298,20 @@ td.dim{color:var(--line-2)}
   width:30px;height:24px;cursor:pointer;font-size:12px;line-height:1;
   display:inline-flex;align-items:center;justify-content:center;padding:0}
 .mute:hover{border-color:var(--ac-2);background:var(--ac-w)}
+
+/* ── v6: highlight pencarian, sorot bubble, filter side, ukuran %24j ── */
+.hlmark{background:var(--gold-w);color:var(--gold);border-radius:3px;padding:0 1px}
+.s-tools select{min-width:110px}
+#b-q{background:var(--s1);border:1px solid var(--line-2);color:var(--fg);
+  font:11px/1 var(--mono);padding:6px 10px;border-radius:var(--r);width:190px;
+  margin-left:14px}
+#b-q::placeholder{color:var(--fg-3)}
+#b-q:focus{outline:none;border-color:var(--ac)}
+.bb{transition:opacity .25s, box-shadow .25s}
+.bb.dim{opacity:.18;filter:saturate(.3)}
+.bb.hit{z-index:25}
+.bb.hit::after{content:"";position:absolute;inset:-5px;border-radius:999px;
+  border:2px solid var(--gold);pointer-events:none;
+  animation:bbpulse 1.2s ease-in-out infinite}
+@keyframes bbpulse{0%,100%{box-shadow:0 0 0 0 rgba(216,200,154,.45)}
+  50%{box-shadow:0 0 14px 3px rgba(216,200,154,.30)}}

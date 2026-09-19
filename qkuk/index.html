@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260918f">
+<link rel="stylesheet" href="style.css?v=20260919a">
 </head>
 <body>
 
@@ -81,6 +81,7 @@
           <span><i class="lg-dn"></i>down 24h</span>
           <span><i class="lg-id"></i>no 24h data</span>
         </div>
+        <input id="b-q" type="search" placeholder="sorot koin… (e.g. AVAX)" aria-label="Highlight bubbles by coin">
       </div>
       <div class="bb-plot" id="bb-plot"></div>
       <div class="bb-tip" id="bb-tip"></div>
@@ -99,6 +100,11 @@
     </div>
     <div class="s-tools">
       <input id="w-q" type="search" placeholder="search pair… (e.g. BTC)" aria-label="Search watchlist by pair">
+      <select id="w-side" aria-label="Filter watchlist by side">
+        <option value="">all sides</option>
+        <option value="long">long only</option>
+        <option value="short">short only</option>
+      </select>
     </div>
     <div class="tw" id="w-table"></div>
   </section>
@@ -117,6 +123,11 @@
         <option value="pnl">best R first</option>
         <option value="loss">worst R first</option>
         <option value="sym">pair A–Z</option>
+      </select>
+      <select id="s-side" aria-label="Filter signals by side">
+        <option value="">all sides</option>
+        <option value="long">long only</option>
+        <option value="short">short only</option>
       </select>
     </div>
     <div class="tw" id="s-table"></div>
@@ -173,6 +184,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20260918f" defer></script>
+<script src="app.js?v=20260919a" defer></script>
 </body>
 </html>
