@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-note-20260919c";   /* 19 Sep v8: bubble tersorot diklik/digeser → langsung buka TradingView */
+  var BUILD = "qkuk-note-20260919e";   /* 19 Sep v10: fallback %24j dgn timeout per sumber */
   var COLOR = { "1h": "#9CF2CE", "2h": "#6EE7B7", "4h": "#D8C89A" };
   var TVI = { "1h": "60", "2h": "120", "4h": "240" };
 
@@ -671,6 +671,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
                    fill: "rgba(216,200,154,.10)", txt: "#E4D6AE" } };
   var bbBodies = [];          // badan fisik: {el, x, y, vx, vy, r, ph}
   var bbRaf = null, bb24 = null, bbPx = null, bb24Ts = 0, bb24Fail = false;
+  var bb24Src = -1, bbSrcName = ["Binance futures", "Binance spot", "CoinGecko"];
   function bubbleData(mode, tf) {
     var L = (DATA.live || {})[tf];
     var src = mode === "sinyal" ? (L && L.sinyal) : (L && L.pantau);
@@ -691,9 +692,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (bb24 && bb24[sym] !== undefined) return bb24[sym];
     return null;
   }
-  function bbLoad24(cb) {
-    if (Date.now() - bb24Ts < 60000) { btcUpd(); cb(); return; }
-    fetch("https://fapi.binance.com/fapi/v1/ticker/24hr")
+  /* ── fallback %24j (permintaan 19 Sep): kalau fapi.binance.com diblokir
+     jaringan, coba Binance spot, lalu CoinGecko — persen tetap tampil.
+     Semua gagal → bb24Fail, ukuran bubble fallback ke jumlah engine. */
+  function bbFetch(url, ms) {                 // fetch dgn batas waktu 6 dtk —
+    var ctl = new AbortController();          // host diblokir tidak boleh menggantung
+    var t = setTimeout(function () { ctl.abort(); }, ms || 6000);
+    return fetch(url, { signal: ctl.signal }).finally(function () { clearTimeout(t); });
+  }
+  function bbFromBinance(host, path) {
+    return bbFetch("https://" + host + path)
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function (j) {
         var m = {}, px = {};
@@ -701,10 +709,47 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           m[t.symbol] = parseFloat(t.priceChangePercent);
           px[t.symbol] = parseFloat(t.lastPrice);
         });
-        bb24 = m; bbPx = px; bb24Ts = Date.now(); bb24Fail = false;
-        btcUpd(); cb();
-      })
-      .catch(function () { bb24Fail = true; bb24Ts = Date.now(); btcUpd(); cb(); });
+        return { m: m, px: px };
+      });
+  }
+  function bbFromGecko() {                    // 2 halaman x 250 koin teratas
+    var get = function (pg) {
+      return bbFetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd"
+        + "&order=market_cap_desc&per_page=250&page=" + pg + "&price_change_percentage=24h")
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+    };
+    return Promise.all([get(1), get(2)]).then(function (ps) {
+      var m = {}, px = {};
+      ps.forEach(function (arr) { (arr || []).forEach(function (c) {
+        var s = (c.symbol || "").toUpperCase() + "USDT";
+        m[s] = parseFloat(c.price_change_percentage_24h);
+        px[s] = parseFloat(c.current_price);
+      }); });
+      return { m: m, px: px };
+    });
+  }
+  function bbLoad24(cb) {
+    if (Date.now() - bb24Ts < 60000) { btcUpd(); cb(); return; }
+    var chain = [
+      function () { return bbFromBinance("fapi.binance.com", "/fapi/v1/ticker/24hr"); },
+      function () { return bbFromBinance("api.binance.com", "/api/v3/ticker/24hr"); },
+      bbFromGecko
+    ];
+    var i = 0;
+    (function next() {
+      if (i >= chain.length) { bb24Fail = true; bb24Ts = Date.now(); btcUpd(); cb(); return; }
+      var step = i++;
+      chain[step]()
+        .then(function (d) {
+          if (!d || !Object.keys(d.m).length) throw new Error("kosong");
+          bb24 = d.m; bbPx = d.px; bb24Ts = Date.now(); bb24Fail = false; bb24Src = step;
+          var h = $("#bubbles .hint");                      // transparansi sumber
+          if (h) h.textContent = "coins detected by this engine only — % change is live 24h via "
+            + bbSrcName[step];
+          btcUpd(); bbChips(); cb();
+        })
+        .catch(next);
+    })();
   }
   /* BTC live di top bar — satu request ticker yang sama dengan bubbles,
      jadi nol request tambahan. Gagal fetch → tampil "—". */
@@ -746,6 +791,36 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     body.el.style.width = body.el.style.height = dia.toFixed(1) + "px";
     var fs = dia > 56 ? 11.5 : dia > 44 ? 10 : 8.5;
     body.el.style.fontSize = fs + "px";
+  }
+  /* ── chip koin teraktif: 6 koin dengan |%24j| terbesar di kanal aktif,
+     satu klik = sorot bubble-nya (klik lagi = lepas sorot). Digenerate
+     ulang tiap data 24j segar, jadi selalu mengikuti kondisi pasar. */
+  function bbChips() {
+    var host = $("#b-chips");
+    if (!host) return;
+    var seen = {}, list = [];
+    bbBodies.forEach(function (b) {
+      if (seen[b.sym]) return; seen[b.sym] = 1;
+      var c = bubbleChg({ sym: b.sym });
+      if (c === null || !isFinite(c)) return;
+      list.push({ sym: b.sym, c: c });
+    });
+    list.sort(function (a, b) { return Math.abs(b.c) - Math.abs(a.c); });
+    host.innerHTML = "";
+    list.slice(0, 6).forEach(function (d) {
+      var nm = d.sym.replace(/USDT$/, "");
+      var ch = el("button", "chip", nm + " " + (d.c > 0 ? "+" : "") + d.c.toFixed(1) + "%");
+      ch.style.color = d.c > 0 ? "var(--up)" : "var(--dn)";
+      ch.title = "sorot bubble " + nm;
+      ch.addEventListener("click", function () {
+        var box = $("#b-q");
+        if (bq === nm) { bq = ""; if (box) box.value = ""; }
+        else { bq = nm; if (box) box.value = bq; }
+        bbSorot();
+      });
+      host.appendChild(ch);
+    });
+    if (!list.length) host.appendChild(el("span", "chip-empty", "menunggu data %24j…"));
   }
   /* ── sorot hasil pencarian bubble: yang cocok dapat ring berdenyut,
      sisanya diredupkan. Kosongkan kotak → semua normal lagi. */

@@ -331,3 +331,11 @@ td.dim{color:var(--line-2)}
 @media(max-width:700px){.bb-scale .s-note{margin-left:0;flex-basis:100%}}
 /* v8: kursor jelas pada bubble yang disorot */
 .bb.hit{cursor:pointer}
+
+/* ── v9: chip koin teraktif di atas kanvas ── */
+.b-chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.b-chips .chip{background:var(--s2);border:1px solid var(--line-2);color:var(--fg-2);
+  font:600 10px/1 var(--mono);padding:5px 9px;border-radius:999px;cursor:pointer;
+  transition:border-color .15s, background .15s}
+.b-chips .chip:hover{border-color:var(--gold);background:var(--gold-w)}
+.b-chips .chip-empty{font-size:10px;color:var(--fg-3);font-style:italic}
