@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-note-20260919h";   /* 19 Sep v13: 10 tier ukuran + legenda bubble size dihapus */
+  var BUILD = "qkuk-note-20260919i";   /* 19 Sep v14: sumber ke-4 CoinPaprika (Binance sering diblokir ISP Indonesia) */
   var COLOR = { "1h": "#9CF2CE", "2h": "#6EE7B7", "4h": "#D8C89A" };
   var TVI = { "1h": "60", "2h": "120", "4h": "240" };
 
@@ -671,7 +671,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
                    fill: "rgba(216,200,154,.10)", txt: "#E4D6AE" } };
   var bbBodies = [];          // badan fisik: {el, x, y, vx, vy, r, ph}
   var bbRaf = null, bb24 = null, bbPx = null, bb24Ts = 0, bb24Fail = false;
-  var bb24Src = -1, bbSrcName = ["Binance futures", "Binance spot", "CoinGecko"];
+  var bb24Src = -1, bbSrcName = ["Binance futures", "Binance spot", "CoinGecko", "CoinPaprika"];
   function bubbleData(mode, tf) {
     var L = (DATA.live || {})[tf];
     var src = mode === "sinyal" ? (L && L.sinyal) : (L && L.pantau);
@@ -736,6 +736,21 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         return { m: m, px: px };
       });
   }
+  function bbFromPaprika() {                  // sumber ke-4: jarang diblokir ISP
+    return bbFetch("https://api.coinpaprika.com/v1/tickers?limit=500")
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (j) {
+        var m = {}, px = {};
+        (j || []).forEach(function (c) {
+          var u = c.quotes && c.quotes.USD;
+          if (!u) return;
+          var s = (c.symbol || "").toUpperCase() + "USDT";
+          m[s] = parseFloat(u.percent_change_24h);
+          px[s] = parseFloat(u.price);
+        });
+        return { m: m, px: px };
+      });
+  }
   function bbFromGecko() {                    // 2 halaman x 250 koin teratas
     var get = function (pg) {
       return bbFetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd"
@@ -757,7 +772,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var chain = [
       function () { return bbFromBinance("fapi.binance.com", "/fapi/v1/ticker/24hr"); },
       function () { return bbFromBinance("api.binance.com", "/api/v3/ticker/24hr"); },
-      bbFromGecko
+      bbFromGecko,
+      bbFromPaprika
     ];
     var i = 0;
     (function next() {
