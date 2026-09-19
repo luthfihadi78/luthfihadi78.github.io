@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-note-20260919e";   /* 19 Sep v10: fallback %24j dgn timeout per sumber */
+  var BUILD = "qkuk-note-20260919f";   /* 19 Sep v11: placeholder chip sebelum data 24j tiba */
   var COLOR = { "1h": "#9CF2CE", "2h": "#6EE7B7", "4h": "#D8C89A" };
   var TVI = { "1h": "60", "2h": "120", "4h": "240" };
 
@@ -1092,6 +1092,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       b.addEventListener("mouseleave", function () { tip.classList.remove("on"); });
     });
     bbRaf = requestAnimationFrame(bbTick);
+    bbChips();                    // placeholder chip langsung tampil;
+                                  // digenerate ulang saat %24j tiba
     bbLoad24(function () {        // angka %24j datang belakangan — pasang saat tiba
       if (!DATA) return;
       bbBodies.forEach(function (body) {
