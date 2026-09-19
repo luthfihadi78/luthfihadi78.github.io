@@ -341,3 +341,8 @@ td.dim{color:var(--line-2)}
   50%{opacity:.7;transform:translate(-50%,-50%) scale(1.12)}}
 .bb.hot{border-width:2px}
 .bb.hot b,.bb.hot i{filter:drop-shadow(0 0 6px rgba(255,255,255,.65))}
+
+/* v17: bola api — dua lapis nyala (inner kencang, outer lembut) */
+.bb .fire{animation:hotflicker .9s ease-in-out infinite}
+.bb .fire::after{content:"";position:absolute;inset:22%;border-radius:999px;
+  background:inherit;filter:blur(6px);animation:hotflicker 1.4s ease-in-out infinite reverse}

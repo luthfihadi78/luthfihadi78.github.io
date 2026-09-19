@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-note-20260919j";   /* 19 Sep v15: tier ×2 (48–156px) + aura bola panas di mover tertinggi */
+  var BUILD = "qkuk-note-20260919k";   /* 19 Sep v16: tier +30%/tingkat (48–178px) + bola api hijau/merah sesuai arah */
   var COLOR = { "1h": "#9CF2CE", "2h": "#6EE7B7", "4h": "#D8C89A" };
   var TVI = { "1h": "60", "2h": "120", "4h": "240" };
 
@@ -816,15 +816,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      besar % makin besar bubble — avax +30% besar, -30% juga besar tapi merah.
      Skala akar-kuadrat biar perbedaannya terasa tapi 20 koin tetap muat. */
   var bbNMax = 1;                             // fallback skala lama saat Binance tak terjangkau
-  /* ── 6 TINGKAT ukuran, semua px ×2 (revisi 19 Sep): user masih sulit
-     membedakan — sekarang 48/68/84/104/124/156px. Legenda dihapus. */
+  /* ── 6 TINGKAT, selisih +30% antar tingkat (revisi 19 Sep): 48 → 62 →
+     81 → 105 → 137 → 178px. Legenda dihapus. */
   var BB_TIERS = [
     { m: 0,  dia: 48,  lab: "~0%" },
-    { m: 1,  dia: 68,  lab: "±2%" },
-    { m: 3,  dia: 84,  lab: "±5%" },
-    { m: 7,  dia: 104, lab: "±10%" },
-    { m: 15, dia: 124, lab: "±20%" },
-    { m: 25, dia: 156, lab: "±30%+" }
+    { m: 1,  dia: 62,  lab: "±2%" },
+    { m: 3,  dia: 81,  lab: "±5%" },
+    { m: 7,  dia: 105, lab: "±10%" },
+    { m: 15, dia: 137, lab: "±20%" },
+    { m: 25, dia: 178, lab: "±30%+" }
   ];
   function bbTier(c) {
     var a = Math.abs(c), t = 0;
@@ -1066,13 +1066,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         au.style.animationDelay = (Math.random() * 1200).toFixed(0) + "ms";
         b.appendChild(au);
       }
-      /* bola panas: aura api besar di mover #1 — paling terang, beda sendiri */
+      /* bola api: mover #1 — API HIJAU kalau naik, API MERAH kalau turun;
+         nyala berkedip di sekeliling bubble, bukan cahaya lampu */
       if (d._top) {
+        var fc = bubbleChg(d);
+        var fireUp = !(fc !== null && fc < 0);
         var fl = el("span", "fire");
-        fl.style.background = "radial-gradient(circle, "
-          + (bubbleChg(d) !== null && bubbleChg(d) < 0
-              ? "rgba(255,138,101,.85) 0%, rgba(255,87,66,.45) 40%, transparent 72%)"
-              : "rgba(255,224,138,.9) 0%, rgba(255,152,67,.5) 40%, transparent 72%)");
+        fl.style.background = fireUp
+          ? "radial-gradient(circle, rgba(200,255,228,.95) 0%, rgba(110,231,183,.60) 34%, rgba(110,231,183,.20) 56%, transparent 72%)"
+          : "radial-gradient(circle, rgba(255,205,196,.95) 0%, rgba(255,82,82,.60) 34%, rgba(255,82,82,.20) 56%, transparent 72%)";
+        fl.style.animationName = fireUp ? "hotflicker" : "hotflicker";
+        fl.style.animationDelay = (Math.random() * 900).toFixed(0) + "ms";
         b.appendChild(fl);
         b.classList.add("hot");
       }
