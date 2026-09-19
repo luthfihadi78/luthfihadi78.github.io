@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-note-20260919f";   /* 19 Sep v11: placeholder chip sebelum data 24j tiba */
+  var BUILD = "qkuk-note-20260919g";   /* 19 Sep v12: 6 tier ukuran + cache %24j localStorage + badge picked di chip */
   var COLOR = { "1h": "#9CF2CE", "2h": "#6EE7B7", "4h": "#D8C89A" };
   var TVI = { "1h": "60", "2h": "120", "4h": "240" };
 
@@ -692,6 +692,30 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (bb24 && bb24[sym] !== undefined) return bb24[sym];
     return null;
   }
+  /* ── cache %24j di localStorage (permintaan 19 Sep): saat reload, chip &
+     ukuran langsung tampil dari data terakhir sebelum fetch selesai. */
+  var BB_CACHE_KEY = "qkuk_bb24_v1";
+  function bbCacheSave() {
+    try {
+      var s = {};
+      for (var k in bb24) if (Object.prototype.hasOwnProperty.call(bb24, k)) s[k] = bb24[k];
+      localStorage.setItem(BB_CACHE_KEY, JSON.stringify({ t: Date.now(), src: bb24Src, m: s }));
+    } catch (e) {}
+  }
+  function bbCacheLoad() {
+    try {
+      var j = JSON.parse(localStorage.getItem(BB_CACHE_KEY) || "null");
+      if (!j || !j.m) return false;
+      var age = Date.now() - (j.t || 0);
+      if (age > 24 * 3600e3) return false;        // lebih dari sehari → buang
+      bb24 = j.m; bb24Ts = 0;                     // t=0 → fetch segar tetap jalan
+      bb24Src = (typeof j.src === "number" && j.src >= 0) ? j.src : -1;
+      var h = $("#bubbles .hint");
+      if (h && bb24Src >= 0) h.textContent = "coins detected by this engine only — % change is live 24h via "
+        + bbSrcName[bb24Src] + " (cache)";
+      return true;
+    } catch (e) { return false; }
+  }
   /* ── fallback %24j (permintaan 19 Sep): kalau fapi.binance.com diblokir
      jaringan, coba Binance spot, lalu CoinGecko — persen tetap tampil.
      Semua gagal → bb24Fail, ukuran bubble fallback ke jumlah engine. */
@@ -743,6 +767,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         .then(function (d) {
           if (!d || !Object.keys(d.m).length) throw new Error("kosong");
           bb24 = d.m; bbPx = d.px; bb24Ts = Date.now(); bb24Fail = false; bb24Src = step;
+          bbCacheSave();
           var h = $("#bubbles .hint");                      // transparansi sumber
           if (h) h.textContent = "coins detected by this engine only — % change is live 24h via "
             + bbSrcName[step];
@@ -775,16 +800,30 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      besar % makin besar bubble — avax +30% besar, -30% juga besar tapi merah.
      Skala akar-kuadrat biar perbedaannya terasa tapi 20 koin tetap muat. */
   var bbNMax = 1;                             // fallback skala lama saat Binance tak terjangkau
-  function bbDia(d) {                         // %24j -> diameter px
-    var c = bb24 ? bubbleChg(d) : null;
-    if (c !== null) {
-      var m = Math.min(1, Math.abs(c) / 30);  // jenuh di ±30%
-      return 26 + Math.sqrt(m) * 44;          // 26px (~0%) … 70px (±30%+)
+  /* ── 6 TINGKAT ukuran (permintaan 19 Sep): skala kontinu dulu bikin mover
+     tinggi kurang mencolok — sekarang diskrit bertahap, lompatannya jelas. */
+  var BB_TIERS = [
+    { m: 0,  dia: 26, lab: "~0%" },
+    { m: 1,  dia: 34, lab: "±2%" },
+    { m: 3,  dia: 42, lab: "±5%" },
+    { m: 7,  dia: 52, lab: "±10%" },
+    { m: 15, dia: 62, lab: "±20%" },
+    { m: 25, dia: 72, lab: "±30%+" }
+  ];
+  function bbTier(c) {
+    var a = Math.abs(c), t = 0;
+    for (var i = BB_TIERS.length - 1; i >= 0; i--) {
+      if (a >= BB_TIERS[i].m) { t = i; break; }
     }
+    return t;
+  }
+  function bbDia(d) {                         // %24j -> diameter px (tier)
+    var c = bb24 ? bubbleChg(d) : null;
+    if (c !== null) return BB_TIERS[bbTier(c)].dia;
     if (!bb24) {                              // offline: pakai skala jumlah engine (perilaku lama)
       return 34 + Math.min(1, ((d.n || 1) - 1) / Math.max(1, bbNMax - 1)) * 34;
     }
-    return 26;                                // Binance OK tapi koin tak terdaftar di futures
+    return BB_TIERS[0].dia;                   // sumber OK tapi koin tak terdaftar
   }
   function bbApplyDia(body, dia) {            // tulis ukuran baru ke badan fisik
     body.r = dia / 2;
@@ -798,20 +837,35 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function bbChips() {
     var host = $("#b-chips");
     if (!host) return;
+    /* koin yang dipilih user di CSV (kolom picked) — dapat badge bintang */
+    var picked = {};
+    var L = (DATA && DATA.live && bTf && DATA.live[bTf]) || {};
+    ((bMode === "sinyal" ? L.sinyal : L.pantau) || []).forEach(function (r) {
+      if (r.pick) picked[r.sym] = true;
+    });
     var seen = {}, list = [];
     bbBodies.forEach(function (b) {
       if (seen[b.sym]) return; seen[b.sym] = 1;
       var c = bubbleChg({ sym: b.sym });
-      if (c === null || !isFinite(c)) return;
-      list.push({ sym: b.sym, c: c });
+      if (c === null || !isFinite(c)) {
+        /* picked tanpa data %24j tetap masuk (di urutan depan), tanpa persen */
+        if (picked[b.sym]) list.push({ sym: b.sym, c: null, pick: true });
+        return;
+      }
+      list.push({ sym: b.sym, c: c, pick: !!picked[b.sym] });
     });
-    list.sort(function (a, b) { return Math.abs(b.c) - Math.abs(a.c); });
+    list.sort(function (a, b) {                 // picked user selalu tampil,
+      return (b.pick ? 1 : 0) - (a.pick ? 1 : 0)
+        || Math.abs(b.c == null ? -1 : b.c) - Math.abs(a.c == null ? -1 : a.c);
+    });
     host.innerHTML = "";
-    list.slice(0, 6).forEach(function (d) {
+    list.slice(0, 8).forEach(function (d) {
       var nm = d.sym.replace(/USDT$/, "");
-      var ch = el("button", "chip", nm + " " + (d.c > 0 ? "+" : "") + d.c.toFixed(1) + "%");
-      ch.style.color = d.c > 0 ? "var(--up)" : "var(--dn)";
-      ch.title = "sorot bubble " + nm;
+      var pct = d.c == null ? "" : " " + (d.c > 0 ? "+" : "") + d.c.toFixed(1) + "%";
+      var ch = el("button", "chip" + (d.pick ? " pick" : ""),
+        (d.pick ? "★ " : "") + nm + pct);
+      ch.style.color = d.c == null ? "var(--fg-2)" : d.c > 0 ? "var(--up)" : "var(--dn)";
+      ch.title = "sorot bubble " + nm + (d.pick ? " — picked by you" : "");
       ch.addEventListener("click", function () {
         var box = $("#b-q");
         if (bq === nm) { bq = ""; if (box) box.value = ""; }
@@ -1315,6 +1369,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     fresh.forEach(function (it) { toast(it.k, it.sym, it.tf, it.ts, it.dir); NOTE.n++; });
     if (fresh.length) { ding(); muteIcon(); }
   }
+  bbCacheLoad();   // %24j terakhir langsung hidup sebelum fetch pertama selesai
   load(true);
   setInterval(clock, 1000); clock();
   setInterval(function () { load(false); }, 60000);

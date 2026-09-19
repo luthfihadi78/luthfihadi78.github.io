@@ -339,3 +339,11 @@ td.dim{color:var(--line-2)}
   transition:border-color .15s, background .15s}
 .b-chips .chip:hover{border-color:var(--gold);background:var(--gold-w)}
 .b-chips .chip-empty{font-size:10px;color:var(--fg-3);font-style:italic}
+
+/* ── v12: badge picked di chip + legenda 6 tier ── */
+.b-chips .chip.pick{border-color:var(--gold);background:var(--gold-w);
+  box-shadow:0 0 8px rgba(216,200,154,.25)}
+.b-chips .chip.pick::before{content:"★ ";color:var(--gold)}
+.bb-scale .s4{width:36px;height:36px}
+.bb-scale .s5{width:42px;height:42px}
+.bb-scale .s6{width:48px;height:48px}
