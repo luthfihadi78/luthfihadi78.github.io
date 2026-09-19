@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-note-20260919a";   /* 19 Sep v6: ukuran bubble dari %24j + sorot pencarian + filter side + highlight pair */
+  var BUILD = "qkuk-note-20260919b";   /* 19 Sep v7: legenda skala ukuran + mover terbesar di pusat kanvas */
   var COLOR = { "1h": "#9CF2CE", "2h": "#6EE7B7", "4h": "#D8C89A" };
   var TVI = { "1h": "60", "2h": "120", "4h": "240" };
 
@@ -858,17 +858,34 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var list = Object.keys(uniq).map(function (k) { return uniq[k]; });
     list.sort(function (a, b) { return bbDia(b) - bbDia(a); });  // besar dulu → z stabil
     var placed = [];
-    list.forEach(function (d) {
+    /* ── permintaan 19 Sep: mover terbesar di tengah panggung supaya
+       langsung mencolok. Sel grid yang dekat tengah dicadangkan (tidak
+       dipakai koin lain), 3 terbesar diletakkan segitiga golden-angle
+       mengelilingi pusat; sisanya disebar ke sel luar seperti sebelumnya. */
+    var cols = Math.max(1, Math.floor(W / 90)), rowsN = Math.max(1, Math.floor(H / 90));
+    var cells = [];
+    for (var ci = 0; ci < cols; ci++) for (var cj = 0; cj < rowsN; cj++)
+      cells.push({ gx: (ci + .5) / cols, gy: (cj + .5) / rowsN });
+    var ccx = W / 2, ccy = H / 2, keep = Math.min(W, H) * .16;   // zona pusat kosong
+    var outer = cells.filter(function (c) { return Math.hypot(c.gx * W - ccx, c.gy * H - ccy) > keep; });
+    var slots = outer.length >= Math.max(0, list.length - 3) ? outer : cells;
+    var TOPN = Math.min(3, list.length);
+    list.forEach(function (d, li) {
       var base = bbDia(d);                                    // diameter dari %24j live (cache 60 dtk)
       var r = base / 2;
-      // taruh merata di seluruh kanvas (grid acak bertingkat); tumbukan nanti
-      // yang menyibak sisa tumpukan
-      var cols = Math.max(1, Math.floor(W / 90)), rowsN = Math.max(1, Math.floor(H / 90));
-      var gi = list.indexOf(d), gc = cols * rowsN;
-      var gx = (gi % cols + .3 + Math.random() * .4) / cols;
-      var gy = (Math.floor(gi / cols) % rowsN + .3 + Math.random() * .4) / rowsN;
-      var x = Math.max(r + 4, Math.min(W - r - 4, gx * W));
-      var y = Math.max(r + 4, Math.min(H - r - 4, gy * H));
+      var x, y;
+      if (li < TOPN) {
+        /* pusat panggung: #1 tepat di tengah, #2 & #3 mengapit golden-angle */
+        var ang = li * 2.39996 + .35, rad = li === 0 ? 0 : Math.min(W, H) * .09;
+        x = ccx + Math.cos(ang) * rad;
+        y = ccy + Math.sin(ang) * rad;
+      } else {
+        var c = slots[(li - TOPN) % slots.length];
+        x = c.gx * W + (Math.random() - .5) * 24;
+        y = c.gy * H + (Math.random() - .5) * 24;
+      }
+      x = Math.max(r + 4, Math.min(W - r - 4, x));
+      y = Math.max(r + 4, Math.min(H - r - 4, y));
       var tries = 0, ok = false;
       while (tries++ < 40 && !ok) {
         ok = placed.every(function (p) { return Math.hypot(p.x - x, p.y - y) > (p.r + r) * 1.02; });
