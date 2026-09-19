@@ -329,3 +329,5 @@ td.dim{color:var(--line-2)}
 .bb-scale .s3{width:30px;height:30px}
 .bb-scale .s-note{margin-left:auto;font-style:italic;color:var(--fg-3)}
 @media(max-width:700px){.bb-scale .s-note{margin-left:0;flex-basis:100%}}
+/* v8: kursor jelas pada bubble yang disorot */
+.bb.hit{cursor:pointer}
