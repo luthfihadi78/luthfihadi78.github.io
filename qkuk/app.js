@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-note-20260919g";   /* 19 Sep v12: 6 tier ukuran + cache %24j localStorage + badge picked di chip */
+  var BUILD = "qkuk-note-20260919h";   /* 19 Sep v13: 10 tier ukuran + legenda bubble size dihapus */
   var COLOR = { "1h": "#9CF2CE", "2h": "#6EE7B7", "4h": "#D8C89A" };
   var TVI = { "1h": "60", "2h": "120", "4h": "240" };
 
@@ -800,15 +800,19 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      besar % makin besar bubble — avax +30% besar, -30% juga besar tapi merah.
      Skala akar-kuadrat biar perbedaannya terasa tapi 20 koin tetap muat. */
   var bbNMax = 1;                             // fallback skala lama saat Binance tak terjangkau
-  /* ── 6 TINGKAT ukuran (permintaan 19 Sep): skala kontinu dulu bikin mover
-     tinggi kurang mencolok — sekarang diskrit bertahap, lompatannya jelas. */
+  /* ── 10 TINGKAT ukuran (revisi 19 Sep): lompatan antar tier lebih tajam
+     biar mover tinggi makin mencolok; legenda dihapus (tidak penting). */
   var BB_TIERS = [
-    { m: 0,  dia: 26, lab: "~0%" },
-    { m: 1,  dia: 34, lab: "±2%" },
-    { m: 3,  dia: 42, lab: "±5%" },
-    { m: 7,  dia: 52, lab: "±10%" },
-    { m: 15, dia: 62, lab: "±20%" },
-    { m: 25, dia: 72, lab: "±30%+" }
+    { m: 0,  dia: 24, lab: "~0%" },
+    { m: 1,  dia: 30, lab: "±1%" },
+    { m: 2,  dia: 36, lab: "±2%" },
+    { m: 4,  dia: 42, lab: "±4%" },
+    { m: 7,  dia: 48, lab: "±7%" },
+    { m: 10, dia: 54, lab: "±10%" },
+    { m: 15, dia: 60, lab: "±15%" },
+    { m: 20, dia: 66, lab: "±20%" },
+    { m: 25, dia: 72, lab: "±25%" },
+    { m: 30, dia: 78, lab: "±30%+" }
   ];
   function bbTier(c) {
     var a = Math.abs(c), t = 0;
