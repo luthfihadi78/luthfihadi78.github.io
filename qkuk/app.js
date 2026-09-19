@@ -816,16 +816,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      besar % makin besar bubble — avax +30% besar, -30% juga besar tapi merah.
      Skala akar-kuadrat biar perbedaannya terasa tapi 20 koin tetap muat. */
   var bbNMax = 1;                             // fallback skala lama saat Binance tak terjangkau
-  /* ── 7 TINGKAT (revisi 19 Sep pt.2): ambil 20% / 30% / 40% WAJIB beda
-     ukuran. Selisih antar tingkat ≥ +30%: 48 → 62 → 81 → 105 → 137 → 178 → 232px. */
+  /* ── 7 TINGKAT dikurangi 30% (revisi 19 Sep): 34 → 43 → 57 → 74 → 96 →
+     125 → 162px. Ambil 20/30/40% tetap terpisah jelas. */
   var BB_TIERS = [
-    { m: 0,  dia: 48,  lab: "~0%" },
-    { m: 1,  dia: 62,  lab: "±2%" },
-    { m: 3,  dia: 81,  lab: "±5%" },
-    { m: 7,  dia: 105, lab: "±10%" },
-    { m: 15, dia: 137, lab: "±20%" },
-    { m: 25, dia: 178, lab: "±30%" },
-    { m: 35, dia: 232, lab: "±40%+" }
+    { m: 0,  dia: 34,  lab: "~0%" },
+    { m: 1,  dia: 43,  lab: "±2%" },
+    { m: 3,  dia: 57,  lab: "±5%" },
+    { m: 7,  dia: 74,  lab: "±10%" },
+    { m: 15, dia: 96,  lab: "±20%" },
+    { m: 25, dia: 125, lab: "±30%" },
+    { m: 35, dia: 162, lab: "±40%+" }
   ];
   function bbTier(c) {
     var a = Math.abs(c), t = 0;
@@ -1045,7 +1045,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         }
       }
       placed.push({ x: x, y: y, r: r });
-      d._x = x; d._y = y; d._r = r; d._dia = base; d._top = li === 0;   // _top = mover #1 (aura bola panas)
+      d._x = x; d._y = y; d._r = r; d._dia = base;   // _top tidak dipakai lagi (api dihapus)
     });
     list.forEach(function (d) {
       var res = bubbleRes(d);
@@ -1067,43 +1067,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         au.style.animationDelay = (Math.random() * 1200).toFixed(0) + "ms";
         b.appendChild(au);
       }
-      /* bola api: mover #1 — BARA MEMBARA di tepi, TANPA cahaya.
-         3 lapis: (1) bara conic tidak rata, (2) lidah berkedip merah muda,
-         (3) dua titik bara yang mengorbit. Pusat tetap transparan penuh. */
-      if (d._top) {
-        var fc = bubbleChg(d);
-        var fireUp = !(fc !== null && fc < 0);
-        var fl = el("span", "fire");
-        fl.style.background = fireUp
-          ? "conic-gradient(from 0deg, rgba(110,231,183,0) 0deg, rgba(110,231,183,.22) 24deg, rgba(110,231,183,0) 55deg,"
-            + " rgba(16,185,129,.30) 80deg, rgba(110,231,183,.10) 105deg, rgba(110,231,183,0) 140deg,"
-            + " rgba(110,231,183,.26) 168deg, rgba(16,185,129,.14) 196deg, rgba(110,231,183,0) 235deg,"
-            + " rgba(16,185,129,.22) 262deg, rgba(110,231,183,.12) 288deg, rgba(110,231,183,0) 320deg,"
-            + " rgba(110,231,183,.18) 342deg, rgba(110,231,183,0) 360deg)"
-          : "conic-gradient(from 0deg, rgba(255,82,82,0) 0deg, rgba(255,82,82,.22) 24deg, rgba(255,82,82,0) 55deg,"
-            + " rgba(239,68,68,.30) 80deg, rgba(255,82,82,.10) 105deg, rgba(255,82,82,0) 140deg,"
-            + " rgba(255,82,82,.26) 168deg, rgba(239,68,68,.14) 196deg, rgba(255,82,82,0) 235deg,"
-            + " rgba(239,68,68,.22) 262deg, rgba(255,82,82,.12) 288deg, rgba(255,82,82,0) 320deg,"
-            + " rgba(255,82,82,.18) 342deg, rgba(255,82,82,0) 360deg)";
-        var tg = el("span", "fire-tongue");
-        tg.style.background = fireUp
-          ? "conic-gradient(from 40deg, rgba(167,243,208,0) 0deg, rgba(167,243,208,.30) 18deg, rgba(167,243,208,0) 40deg,"
-            + " rgba(167,243,208,0) 150deg, rgba(110,231,183,.30) 170deg, rgba(167,243,208,0) 195deg,"
-            + " rgba(167,243,208,0) 280deg, rgba(167,243,208,.24) 300deg, rgba(167,243,208,0) 322deg)"
-          : "conic-gradient(from 40deg, rgba(254,202,202,0) 0deg, rgba(254,202,202,.30) 18deg, rgba(254,202,202,0) 40deg,"
-            + " rgba(254,202,202,0) 150deg, rgba(255,82,82,.30) 170deg, rgba(254,202,202,0) 195deg,"
-            + " rgba(254,202,202,0) 280deg, rgba(254,202,202,.24) 300deg, rgba(254,202,202,0) 322deg)";
-        tg.style.animationDelay = (Math.random() * 900).toFixed(0) + "ms";
-        fl.appendChild(tg);
-        for (var ei = 0; ei < 2; ei++) {
-          var emb = el("span", "fire-ember");
-          emb.style.background = fireUp ? "rgba(167,243,208,.85)" : "rgba(254,202,202,.85)";
-          emb.style.animationDelay = (ei * 1700 + Math.random() * 500).toFixed(0) + "ms";
-          fl.appendChild(emb);
-        }
-        b.appendChild(fl);
-        b.classList.add("hot");
-      }
+      /* aura bola panas dihapus (revisi 19 Sep) — kanvas bersih tanpa api */
       var nm = d.sym.replace(/USDT$/, "");
       b.appendChild(el("b", null, nm));
       var chg = bubbleChg(d);
@@ -1212,51 +1176,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         var d2 = list.filter(function (q) { return q.sym === body.sym; })[0];
         if (!d2) return;        var res = bubbleRes(d2), C = BB[res];
         bbApplyDia(body, bbDia(d2));             // ukuran mengikuti %24j yang baru tiba
-      if (d2._top) {
-        var ffl = body.el.querySelector(".fire");
-        var fc2 = bubbleChg(d2);
-        var fUp = !(fc2 !== null && fc2 < 0);
-        var fBg = fUp
-          ? "conic-gradient(from 0deg, rgba(110,231,183,0) 0deg, rgba(110,231,183,.22) 24deg, rgba(110,231,183,0) 55deg,"
-            + " rgba(16,185,129,.30) 80deg, rgba(110,231,183,.10) 105deg, rgba(110,231,183,0) 140deg,"
-            + " rgba(110,231,183,.26) 168deg, rgba(16,185,129,.14) 196deg, rgba(110,231,183,0) 235deg,"
-            + " rgba(16,185,129,.22) 262deg, rgba(110,231,183,.12) 288deg, rgba(110,231,183,0) 320deg,"
-            + " rgba(110,231,183,.18) 342deg, rgba(110,231,183,0) 360deg)"
-          : "conic-gradient(from 0deg, rgba(255,82,82,0) 0deg, rgba(255,82,82,.22) 24deg, rgba(255,82,82,0) 55deg,"
-            + " rgba(239,68,68,.30) 80deg, rgba(255,82,82,.10) 105deg, rgba(255,82,82,0) 140deg,"
-            + " rgba(255,82,82,.26) 168deg, rgba(239,68,68,.14) 196deg, rgba(255,82,82,0) 235deg,"
-            + " rgba(239,68,68,.22) 262deg, rgba(255,82,82,.12) 288deg, rgba(255,82,82,0) 320deg,"
-            + " rgba(255,82,82,.18) 342deg, rgba(255,82,82,0) 360deg)";
-        if (!ffl) {                             // buat lengkap: bara + lidah + ember
-          ffl = el("span", "fire");
-          var ftg = el("span", "fire-tongue");
-          ftg.style.animationDelay = (Math.random() * 900).toFixed(0) + "ms";
-          ffl.appendChild(ftg);
-          for (var fei = 0; fei < 2; fei++) {
-            var femb = el("span", "fire-ember");
-            femb.style.animationDelay = (fei * 1700 + Math.random() * 500).toFixed(0) + "ms";
-            ffl.appendChild(femb);
-          }
-          body.el.appendChild(ffl);
-        }
-        ffl.style.background = fBg;
-        var ftg2 = ffl.querySelector(".fire-tongue");
-        if (ftg2) ftg2.style.background = fUp
-          ? "conic-gradient(from 40deg, rgba(167,243,208,0) 0deg, rgba(167,243,208,.30) 18deg, rgba(167,243,208,0) 40deg,"
-            + " rgba(167,243,208,0) 150deg, rgba(110,231,183,.30) 170deg, rgba(167,243,208,0) 195deg,"
-            + " rgba(167,243,208,0) 280deg, rgba(167,243,208,.24) 300deg, rgba(167,243,208,0) 322deg)"
-          : "conic-gradient(from 40deg, rgba(254,202,202,0) 0deg, rgba(254,202,202,.30) 18deg, rgba(254,202,202,0) 40deg,"
-            + " rgba(254,202,202,0) 150deg, rgba(255,82,82,.30) 170deg, rgba(254,202,202,0) 195deg,"
-            + " rgba(254,202,202,0) 280deg, rgba(254,202,202,.24) 300deg, rgba(254,202,202,0) 322deg)";
-        var fEmbs = ffl.querySelectorAll(".fire-ember");
-        for (var fei2 = 0; fei2 < fEmbs.length; fei2++)
-          fEmbs[fei2].style.background = fUp ? "rgba(167,243,208,.85)" : "rgba(254,202,202,.85)";
-        body.el.classList.add("hot");
-      } else {
-        var ffl2 = body.el.querySelector(".fire");
-        if (ffl2) ffl2.remove();
-        body.el.classList.remove("hot");
-      }
+        body.el.classList.remove("hot");         // api dihapus — tidak ada status hot lagi
         body.el.style.background = "radial-gradient(circle at 32% 26%, rgba(255,255,255,.20), "
           + C.fill + " 46%, rgba(255,255,255,.03) 100%)";
         body.el.style.border = "1px solid " + C.edge;
