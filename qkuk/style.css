@@ -462,3 +462,6 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 /* v26: tombol keluar di header — kembali ke gerbang login */
 .gate-out{color:var(--dn)!important}
 .gate-out:hover{color:#fff!important;border-color:var(--dn)!important}
+
+/* v27: subtitle kosong tak menyisakan celah di halaman login */
+.gate-sub:empty{display:none;margin:0}
