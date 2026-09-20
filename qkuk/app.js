@@ -1669,7 +1669,20 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         }).join("");
       });
   }
-  function isLogged() { try { return sessionStorage.getItem("qkuk_admin_ok") === "1"; } catch (e) { return false; } }
+  /* 21 Sep — penyimpanan sesi tahan-banting: kalau sessionStorage diblokir
+     (WebView in-app, mode privat ketat, cookie pihak-ketiga off), login tetap
+     TERSIMPAN di memori — menu edit admin tidak hilang lagi di device itu. */
+  var SS = (function () {
+    var mem = {};
+    function ok() { try { var k = "__qk"; sessionStorage.setItem(k, "1"); sessionStorage.removeItem(k); return true; } catch (e) { return false; } }
+    var good = ok();
+    return {
+      get: function (k) { if (good) { try { return sessionStorage.getItem(k); } catch (e) {} } return mem.hasOwnProperty(k) ? mem[k] : null; },
+      set: function (k, v) { mem[k] = v; if (good) { try { sessionStorage.setItem(k, v); } catch (e) {} } },
+      del: function (k) { delete mem[k]; if (good) { try { sessionStorage.removeItem(k); } catch (e) {} } }
+    };
+  })();
+  function isLogged() { return SS.get("qkuk_admin_ok") === "1"; }
   function isAdmin() { return isLogged(); }
   var PLOG = [];          // riwayat semua aksi admin (ambil/koreksi/hapus)
   var AUTHCLOUD = null;   // hash password hasil "ganti password" (dari cloud)
@@ -1698,9 +1711,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function b64(s) { return btoa(unescape(encodeURIComponent(s))); }
   function loadPicks() {
     /* dua sumber digabung: picks.json di repo + cloud (mode login). Cloud menang. */
-    var got = 0, repo = {}, repoLog = [], cloud = {}, cloudLog = [];
+    var got = 0, done = false, repo = {}, repoLog = [], cloud = {}, cloudLog = [];
     function tick() {
+      if (done) return;
       if (++got < 2) return;
+      done = true;
       PICKS = Object.assign({}, repo, cloud);
       PLOG = cloudLog.length ? cloudLog : repoLog;
       /* riwayat kosong padahal ada pick? (mis. log tertimpa) — rekonstruksi
@@ -1716,6 +1731,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       }
       applyPicks();
     }
+    /* 21 Sep — timeout 8 dtk: kalau satu sumber menggantung (jaringan yang
+       memblokir textdb.dev/picks.json), jangan biarkan tombol admin tidak
+       pernah terpasang — pakai apa yang sudah ada. */
+    setTimeout(function () { tick(); tick(); }, 8000);
     fetch("picks.json?t=" + Date.now(), { cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : {}; })
       .then(function (j) { repo = (j && j.picks) || {}; repoLog = (j && j.log) || []; tick(); })
@@ -1866,7 +1885,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       sha256hex(u + ":" + p)
         .then(function (h) {
           if (u === AUTH.user && h === curHash()) {
-            try { sessionStorage.setItem("qkuk_admin_ok", "1"); } catch (e) {}
+            SS.set("qkuk_admin_ok", "1");
             st.textContent = "selamat datang, admin ✓";
             setTimeout(function () { admClose(); reapply(); }, 450);
           } else st.textContent = "username / password salah";
@@ -2099,8 +2118,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   function gateLogout() {
     try {
-      sessionStorage.removeItem("qkuk_admin_ok");
-      sessionStorage.removeItem("qkuk_user_ok");
+      SS.del("qkuk_admin_ok"); SS.del("qkuk_user_ok");
     } catch (e) {}
     location.reload();                       // gerbang menyambut lagi dengan animasinya
   }
@@ -2199,7 +2217,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var gate = document.getElementById("gate");
     if (!gate) return;
     var ok = false;
-    try { ok = sessionStorage.getItem("qkuk_admin_ok") === "1" || sessionStorage.getItem("qkuk_user_ok") === "1"; } catch (e) {}
+    var ok = SS.get("qkuk_admin_ok") === "1" || SS.get("qkuk_user_ok") === "1";
     if (ok) {                                   // pengunjung balik — langsung masuk, tanpa gerbang
       document.documentElement.classList.add("authed");
       if (gate.parentNode) gate.parentNode.removeChild(gate);
@@ -2264,10 +2282,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (!u || !p) { err.textContent = "isi username dan password"; return; }
       sha256hex(u + ":" + p).then(function (h) {
         if (u === AUTH.user && h === curHash()) {           // admin
-          try { sessionStorage.setItem("qkuk_admin_ok", "1"); } catch (e) {}
+          SS.set("qkuk_admin_ok", "1");
           finish();
         } else if (u === USER_AUTH.user && h === USER_AUTH.hash) {   // user biasa
-          try { sessionStorage.setItem("qkuk_user_ok", "1"); } catch (e) {}
+          SS.set("qkuk_user_ok", "1");
           finish();
         } else {
           err.textContent = "username / password salah";
