@@ -135,19 +135,6 @@
     <div class="tw" id="s-table"></div>
   </section>
 
-  <section id="akurasi">
-    <div class="sec-h">
-      <h2><i>&gt;</i> Watchlist accuracy</h2>
-      <span class="hint">every reclaim scored mechanically — entries you never took</span>
-    </div>
-    <div class="ak-grid" id="ak-grid"></div>
-    <p class="cap">Every watchlist row is scored by a fixed rule: entry at the reclaim close,
-    stop at the sweep extreme, symmetric 1R target, whichever is hit first within 7 days.
-    If one bar touches both, it counts as a loss; timeouts are scored from the last close,
-    never discarded. This measures raw entry quality across every detection — your own
-    filtering on top is exactly what the raw number cannot see.</p>
-  </section>
-
   <section id="kamu">
     <div class="sec-h">
       <h2><i>&gt;</i> Picked by you</h2>
@@ -164,10 +151,23 @@
     setiap siklus; centang selamat meski CSV diperbarui mesin lain).</p>
   </section>
 
+  <section id="akurasi">
+    <div class="sec-h">
+      <h2><i>&gt;</i> Winrate watchlist accuracy</h2>
+      <span class="hint">every reclaim scored mechanically — entries you never took</span>
+    </div>
+    <div class="ak-grid" id="ak-grid"></div>
+    <p class="cap">Every watchlist row is scored by a fixed rule: entry at the reclaim close,
+    stop at the sweep extreme, symmetric 1R target, whichever is hit first within 7 days.
+    If one bar touches both, it counts as a loss; timeouts are scored from the last close,
+    never discarded. This measures raw entry quality across every detection — your own
+    filtering on top is exactly what the raw number cannot see.</p>
+  </section>
+
   <section id="charts">
     <div class="grid2">
       <div class="card">
-        <div class="card-h"><h3>Cumulative R — 733d panel</h3><div class="lg" id="eq-lg"></div></div>
+        <div class="card-h"><h3>Winrate sinyal scalping kilat, scalping dan swing trade</h3><div class="lg" id="eq-lg"></div></div>
         <svg class="ch" id="eq" role="img" aria-label="Cumulative R per channel"></svg>
       </div>
       <div class="card">
@@ -186,6 +186,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20260919o" defer></script>
+<script src="app.js?v=20260919p" defer></script>
 </body>
 </html>
