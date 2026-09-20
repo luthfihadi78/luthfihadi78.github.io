@@ -396,3 +396,8 @@ button.apbadge{cursor:pointer}
 
 /* ── v23: badge koreksi admin di kolom koreksi ── */
 .apbadge.corr{border-color:var(--gold);color:var(--gold);background:rgba(255,213,84,.07)}
+
+/* ── v24: baris watchlist/sinyal yang diambil admin — latar emas tipis ── */
+tbody tr.pickrow{background:rgba(255,213,79,.055)}
+tbody tr.pickrow td:first-child{box-shadow:inset 3px 0 0 rgba(255,213,79,.5)}
+tbody tr.pickrow:hover{background:rgba(255,213,79,.09)}

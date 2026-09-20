@@ -488,7 +488,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     cols.forEach(function (c) { var h = el("th", null, c.h); if (c.n) h.style.textAlign = "right"; tr.appendChild(h); });
     th.appendChild(tr); t.appendChild(th);
     var tb = el("tbody");
-    rows.forEach(function (r) { var x = el("tr"); cols.forEach(function (c) { x.appendChild(c.c(r)); }); tb.appendChild(x); });
+    rows.forEach(function (r) {
+      var x = el("tr");
+      /* baris watchlist/sinyal yang diambil admin → latar emas tipis */
+      if (r && r.apick && r.apick.taken) x.classList.add("pickrow");
+      cols.forEach(function (c) { x.appendChild(c.c(r)); });
+      tb.appendChild(x);
+    });
     t.appendChild(tb); host.appendChild(t);
   }
   function side(d) {
