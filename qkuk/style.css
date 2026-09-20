@@ -456,3 +456,7 @@ html.authed body{animation:qkReveal .55s ease both}
 
 /* v25b: kunci scroll di balik gerbang — konten tidak bisa digulir saat login tampil */
 html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!important}
+
+/* v26: tombol keluar di header — kembali ke gerbang login */
+.gate-out{color:var(--dn)!important}
+.gate-out:hover{color:#fff!important;border-color:var(--dn)!important}

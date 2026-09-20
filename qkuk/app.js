@@ -1784,8 +1784,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       admShow(box);
       ganti.addEventListener("click", openChgPass);
       out.addEventListener("click", function () {
-        try { sessionStorage.removeItem("qkuk_admin_ok"); } catch (e) {}
-        admClose(); reapply();
+        admClose(); gateLogout();
       });
       return;
     }
@@ -2027,7 +2026,21 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       g.addEventListener("click", openAdmin);
       bar.appendChild(g);
     }
+    /* tombol keluar di header — hapus sesi & kembali ke gerbang login */
+    if (bar && !document.getElementById("gate-out")) {
+      var lo = el("button", "adm-gear gate-out", "\u23FB"); lo.id = "gate-out"; lo.type = "button";
+      lo.title = "keluar — ganti akun";
+      lo.addEventListener("click", gateLogout);
+      bar.appendChild(lo);
+    }
     loadPicks();
+  }
+  function gateLogout() {
+    try {
+      sessionStorage.removeItem("qkuk_admin_ok");
+      sessionStorage.removeItem("qkuk_user_ok");
+    } catch (e) {}
+    location.reload();                       // gerbang menyambut lagi dengan animasinya
   }
 
   var mbtn = $("#mute");
