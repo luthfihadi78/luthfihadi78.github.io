@@ -1340,17 +1340,31 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      selain api.github.com. Semua pengunjung mewarisi hasilnya, dan
      section "Picked by you" menampilkan WINRATE LIVE dari resolve ini
      — bukan backtest. */
-  var GH_REPO = "luthfihadi78/qkuk", GH_BRANCH = "master";
+  var GH_REPO = "luthfihadi78/luthfihadi78.github.io", GH_BRANCH = "master", GH_PATH = "qkuk/picks.json";
+  var TXTDB_ID = "qkuk-53bc732eb802f8c087142876"; // penyimpanan cloud mode password (textdb.dev)
   var PICKS = {};
   function adminToken() { try { return localStorage.getItem("qkuk_admin_token") || ""; } catch (e) { return ""; } }
-  function isAdmin() { return !!adminToken(); }
+  function adminPass() { try { return localStorage.getItem("qkuk_admin_pass") || ""; } catch (e) { return ""; } }
+  function isPassOk() { try { return sessionStorage.getItem("qkuk_admin_ok") === "1"; } catch (e) { return false; } }
+  function isAdmin() { return !!adminToken() || isPassOk(); }
   function pickKey(tf, jenis, r) { return tf + "|" + jenis + "|" + (r.ts || "") + "|" + (r.sym || ""); }
   function b64(s) { return btoa(unescape(encodeURIComponent(s))); }
   function loadPicks() {
+    /* dua sumber digabung: picks.json di repo + cloud (mode password). Cloud menang. */
+    var got = 0, repo = {}, cloud = {};
+    function tick() { if (++got < 2) return; PICKS = Object.assign({}, repo, cloud); applyPicks(); }
     fetch("picks.json?t=" + Date.now(), { cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : {}; })
-      .then(function (j) { PICKS = (j && j.picks) || {}; applyPicks(); })
-      .catch(function () {});
+      .then(function (j) { repo = (j && j.picks) || {}; tick(); })
+      .catch(function () { tick(); });
+    fetch("https://textdb.dev/api/data/" + TXTDB_ID + "?t=" + Date.now(), { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.text() : ""; })
+      .then(function (t) {
+        var j = null; try { j = JSON.parse(t); } catch (e) {}
+        if (j && typeof j.value === "string") { try { j = JSON.parse(j.value); } catch (e) {} }
+        cloud = (j && j.picks) || {}; tick();
+      })
+      .catch(function () { tick(); });
   }
   function applyPicks() {
     if (!DATA || !DATA.live) return;
@@ -1364,13 +1378,19 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     });
     if (wTf) watch(wTf); if (sTf) signals(sTf); liveStats();
   }
+  /* simpan picks — pilih jalur otomatis: token GitHub kalau ada, kalau tidak
+     mode password lewat textdb.dev. Pesan error dijelaskan agar mudah diperbaiki. */
   function savePicks(st, done) {
+    if (adminToken()) return savePicksGH(st, done);
+    if (isPassOk())   return savePicksCloud(st, done);
+    st.textContent = "masuk admin dulu (⚙ di kanan atas)";
+  }
+  function savePicksGH(st, done) {
     var tok = adminToken();
-    if (!tok) { st.textContent = "token admin belum diisi (\\u2699 di kanan atas)"; return; }
-    st.textContent = "menyimpan\u2026";
+    st.textContent = "menyimpan via GitHub…";
     var H = { "Accept": "application/vnd.github+json", "Authorization": "token " + tok,
               "Content-Type": "application/json" };
-    var base = "https://api.github.com/repos/" + GH_REPO + "/contents/picks.json";
+    var base = "https://api.github.com/repos/" + GH_REPO + "/contents/" + GH_PATH;
     fetch(base + "?ref=" + GH_BRANCH, { headers: H })
       .then(function (g) {
         if (g.ok) return g.json();
@@ -1384,11 +1404,35 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         return fetch(base, { method: "PUT", headers: H, body: JSON.stringify(body) });
       })
       .then(function (p) {
-        if (!p.ok) return p.json().then(function (j) { throw new Error(j.message || p.status); });
-        st.textContent = "tersimpan \u2713 (live \u00b11 menit)";
+        if (!p.ok) return p.json().then(function (j) {
+          throw new Error((j.message || p.status)
+            + (p.status === 404 ? " — token perlu scope repo" : ""));
+        });
+        st.textContent = "tersimpan ✓ via GitHub (live ±1 menit)";
         if (done) done();
       })
-      .catch(function (e) { st.textContent = "gagal: " + e.message; });
+      .catch(function (e) {
+        st.textContent = (e.message && e.message.indexOf("Failed to fetch") >= 0)
+          ? "gagal: jaringan memblokir api.github.com — pakai mode password"
+          : "gagal: " + e.message;
+      });
+  }
+  function savePicksCloud(st, done) {
+    st.textContent = "menyimpan…";
+    fetch("https://textdb.dev/api/data/" + TXTDB_ID, {
+      method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ __id: TXTDB_ID, value: JSON.stringify({ picks: PICKS }) })
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        st.textContent = "tersimpan ✓ (live seketika)";
+        if (done) done();
+      })
+      .catch(function (e) {
+        st.textContent = (e.message && e.message.indexOf("Failed to fetch") >= 0)
+          ? "gagal: jaringan memblokir textdb.dev — coba lagi / ganti jaringan"
+          : "gagal: " + e.message;
+      });
   }
   function admShow(inner) {
     var m = document.getElementById("adm-modal");
@@ -1456,27 +1500,51 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function openAdmin() {
     var box = el("div");
     box.appendChild(admHead("Admin \u2014 live picks"));
+    var mode = adminToken() ? "GitHub token" : isPassOk() ? "password" : "viewer";
+    box.appendChild(el("div", "adm-desc", "Mode aktif: " + mode
+      + ". Pilih salah satu cara masuk di bawah \u2014 hasilnya sama-sama tampil untuk semua pengunjung."));
+    box.appendChild(el("div", "adm-sub", "Cara 1 \u2014 password admin (paling gampang)"));
+    var pwIn = el("input", "adm-in"); pwIn.type = "password";
+    pwIn.placeholder = adminPass() ? "password admin" : "buat password admin (sekali saja)";
+    var st = el("div", "adm-status");
+    var row1 = el("div", "adm-row");
+    var pwBtn = el("button", "adm-save", adminPass() ? "masuk" : "set password"); pwBtn.type = "button";
+    row1.appendChild(pwBtn);
+    box.appendChild(pwIn); box.appendChild(row1);
+    box.appendChild(el("div", "adm-sub", "Cara 2 \u2014 GitHub token (opsional)"));
     box.appendChild(el("div", "adm-desc",
-      "Token GitHub (PAT) dengan scope repo. Token disimpan HANYA di browser ini "
-      + "(localStorage) dan dipakai menulis picks.json lewat GitHub API. Buat di "
-      + "github.com/settings/tokens \u2192 Generate new token (classic) \u2192 centang scope repo."));
+      "PAT klasik HARUS dicentang scope repo (github.com/settings/tokens). "
+      + "Token disimpan hanya di browser ini."));
     var tokIn = el("input", "adm-in"); tokIn.type = "password"; tokIn.placeholder = "ghp_\u2026";
     tokIn.value = adminToken();
-    var st = el("div", "adm-status");
-    var row = el("div", "adm-row");
+    var row2 = el("div", "adm-row");
     var save = el("button", "adm-save", "simpan token"); save.type = "button";
     var del = el("button", "adm-del", "keluar admin"); del.type = "button";
-    row.appendChild(save); row.appendChild(del);
-    box.appendChild(tokIn); box.appendChild(row); box.appendChild(st);
+    row2.appendChild(save); row2.appendChild(del);
+    box.appendChild(tokIn); box.appendChild(row2); box.appendChild(st);
     admShow(box);
     function reapply() { if (wTf) watch(wTf); if (sTf) signals(sTf); liveStats(); }
+    pwBtn.addEventListener("click", function () {
+      var v = (pwIn.value || "").trim();
+      if (!v) { st.textContent = "isi password dulu"; return; }
+      if (!adminPass()) {
+        try { localStorage.setItem("qkuk_admin_pass", v); } catch (e) {}
+        try { sessionStorage.setItem("qkuk_admin_ok", "1"); } catch (e) {}
+        st.textContent = "password dibuat \u2014 admin aktif \u2713";
+      } else if (v === adminPass()) {
+        try { sessionStorage.setItem("qkuk_admin_ok", "1"); } catch (e) {}
+        st.textContent = "password benar \u2014 admin aktif \u2713";
+      } else { st.textContent = "password salah"; return; }
+      setTimeout(function () { admClose(); reapply(); }, 500);
+    });
     save.addEventListener("click", function () {
       try { localStorage.setItem("qkuk_admin_token", tokIn.value.trim()); } catch (e) {}
-      st.textContent = "token tersimpan \u2014 mode admin aktif \u2713";
+      st.textContent = "token tersimpan \u2014 mode GitHub aktif \u2713";
       setTimeout(function () { admClose(); reapply(); }, 500);
     });
     del.addEventListener("click", function () {
       try { localStorage.removeItem("qkuk_admin_token"); } catch (e) {}
+      try { sessionStorage.removeItem("qkuk_admin_ok"); } catch (e) {}
       st.textContent = "keluar \u2014 mode viewer";
       setTimeout(function () { admClose(); reapply(); }, 400);
     });
