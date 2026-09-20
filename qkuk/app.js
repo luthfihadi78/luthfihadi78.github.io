@@ -1391,6 +1391,31 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     fresh.forEach(function (it) { toast(it.k, it.sym, it.tf, it.ts, it.dir); NOTE.n++; });
     if (fresh.length) { ding(); muteIcon(); }
   }
+  /* ── 20 Sep: tata letak dipindah ke sini (runtime) ──
+     Keluhan "masih sama kaya sebelumnya" terbukti dari cache HTML: GitHub Pages
+     menyajikan index.html dengan cache 10 menit, dan beberapa jalur jaringan
+     menggantungkannya lebih lama lagi — app.js selalu segar (ada ?v=), index.html
+     tidak. Solusinya: urutan section TIDAK lagi dipercaya ke HTML. app.js yang
+     memindahkan section ke urutan final saat halaman dibuka, jadi walau HTML
+     cache-nya lama (urutan salah / judul lama), tampilan tetap benar:
+     1 gauge arah  2 bubbles  3 watchlist  4 signals  5 picked by you
+     6 winrate watchlist accuracy  7 winrate sinyal (scalping kilat/scalping/swing) */
+  (function reOrder() {
+    var ids  = ["dir", "bubbles", "watch", "signals", "kamu", "akurasi", "charts"];
+    var host = document.querySelector(".wrap") || document.body;
+    ids.forEach(function (id) {
+      var s = document.getElementById(id);
+      if (s) host.appendChild(s);          // appendChild = pindah, bukan duplikat
+    });
+    var stripEl = document.getElementById("strip");
+    var dirEl   = document.getElementById("dir");
+    if (stripEl && dirEl) dirEl.parentNode.insertBefore(stripEl, dirEl.nextSibling);
+    var ak = document.querySelector("#akurasi h2");
+    if (ak) ak.innerHTML = "<i>&gt;</i> Winrate watchlist accuracy";
+    var eqH = document.querySelector("#charts h3");
+    if (eqH) eqH.textContent = "Winrate sinyal scalping kilat, scalping dan swing trade";
+  })();
+
   bbCacheLoad();   // %24j terakhir langsung hidup sebelum fetch pertama selesai
   load(true);
   setInterval(clock, 1000); clock();
