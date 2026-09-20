@@ -672,6 +672,35 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
              id: { glow: "rgba(216,200,154,.28)", edge: "rgba(216,200,154,.80)",
                    fill: "rgba(216,200,154,.10)", txt: "#E4D6AE" } };
   var bbBodies = [];          // badan fisik: {el, x, y, vx, vy, r, ph}
+  /* ── koin yang diambil admin (live picks): bintang + garis emas di bubble ── */
+  var bbPicked = {};
+  function bbPickedSync() {
+    bbPicked = {};
+    Object.keys(PICKS).forEach(function (k) {
+      var sym = (k.split("|")[3] || "").toUpperCase();
+      if (sym) bbPicked[sym] = true;
+    });
+  }
+  function bbPickedMark() {
+    var plot = $("#bb-plot"); if (!plot) return;
+    Array.prototype.forEach.call(plot.children, function (b) {
+      var sym = b.dataset && b.dataset.sym; if (!sym) return;
+      var on = !!bbPicked[sym];
+      b.classList.toggle("picked", on);
+      var st = b.querySelector(".bbstar");
+      if (on && !st) b.appendChild(el("span", "bbstar", "\u2605"));
+      else if (!on && st && st.parentNode) st.parentNode.removeChild(st);
+      if (on) {
+        if (!b.dataset.ob) { b.dataset.ob = b.style.border || ""; b.dataset.os = b.style.boxShadow || ""; }
+        var dia = b.offsetWidth || 40;
+        b.style.border = "2px solid #ffd54f";
+        b.style.boxShadow = "0 0 " + Math.round(dia * .45) + "px rgba(255,213,84,.42)"
+          + ", inset 0 0 " + Math.round(dia * .22) + "px rgba(255,255,255,.06)";
+      } else if (b.dataset.ob) {
+        b.style.border = b.dataset.ob; b.style.boxShadow = b.dataset.os;
+      }
+    });
+  }
   var bbRaf = null, bb24 = null, bbPx = null, bb24Ts = 0, bb24Fail = false;
   var bb24Src = -1, bbSrcName = ["Binance futures", "Binance spot", "CoinGecko", "CoinPaprika"];
   function bubbleData(mode, tf) {
@@ -1171,6 +1200,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     });
     bbRaf = requestAnimationFrame(bbTick);
     bbChips();                    // placeholder chip langsung tampil;
+    bbPickedMark();               // tanda admin untuk render awal (kalau picks sudah ada)
                                   // digenerate ulang saat %24j tiba
     bbLoad24(function () {        // angka %24j datang belakangan — pasang saat tiba
       if (!DATA) return;
@@ -1190,6 +1220,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         if (iEl && chg !== null)
           iEl.textContent = (chg > 0 ? "+" : "") + chg.toFixed(2) + "%";
       });
+      bbPickedMark();           // border di-reset saat %24j tiba — tanda admin dipasang ulang
     });
   }
 
@@ -1343,7 +1374,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   var TXTDB_ID = "qkuk-53bc732eb802f8c087142876"; // penyimpanan cloud live picks (textdb.dev)
   var PICKS = {};
   /* login admin tunggal — kredensial hanya diketahui pemilik situs */
-  var AUTH = { user: "admin", pass: "wanayasa1" };
+  /* login admin tunggal — di kode hanya SHA-256 dari "username:password",
+     jadi kredensial tidak terbaca mentah di view source. */
+  var AUTH = { user: "admin", hash: "d78f6114b477459dfaacf645a3d5453b33437cce560a016ffbc2051408d3caa0" };
+  function sha256hex(s) {
+    return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s))
+      .then(function (buf) {
+        return Array.prototype.map.call(new Uint8Array(buf), function (b) {
+          return ("0" + b.toString(16)).slice(-2);
+        }).join("");
+      });
+  }
   function isLogged() { try { return sessionStorage.getItem("qkuk_admin_ok") === "1"; } catch (e) { return false; } }
   function isAdmin() { return isLogged(); }
   function pickKey(tf, jenis, r) { return tf + "|" + jenis + "|" + (r.ts || "") + "|" + (r.sym || ""); }
@@ -1376,6 +1417,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       });
     });
     if (wTf) watch(wTf); if (sTf) signals(sTf); liveStats();
+    bbPickedSync(); bbPickedMark();   // bintang & garis emas bubble ikut picks terbaru
   }
   /* simpan picks — hanya lewat cloud (textdb.dev); wajib login admin.
      Jalur GitHub dihapus (token repot & rawan salah scope). */
@@ -1489,11 +1531,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     admShow(box);
     function tryLogin() {
       var u = (uIn.value || "").trim(), p = pIn.value || "";
-      if (u === AUTH.user && p === AUTH.pass) {
-        try { sessionStorage.setItem("qkuk_admin_ok", "1"); } catch (e) {}
-        st.textContent = "selamat datang, admin ✓";
-        setTimeout(function () { admClose(); reapply(); }, 450);
-      } else st.textContent = "username / password salah";
+      sha256hex(u + ":" + p)
+        .then(function (h) {
+          if (u === AUTH.user && h === AUTH.hash) {
+            try { sessionStorage.setItem("qkuk_admin_ok", "1"); } catch (e) {}
+            st.textContent = "selamat datang, admin ✓";
+            setTimeout(function () { admClose(); reapply(); }, 450);
+          } else st.textContent = "username / password salah";
+        })
+        .catch(function () { st.textContent = "gagal memverifikasi login"; });
     }
     btn.addEventListener("click", tryLogin);
     pIn.addEventListener("keydown", function (ev) { if (ev.key === "Enter") tryLogin(); });

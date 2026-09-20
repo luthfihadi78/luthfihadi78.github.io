@@ -375,3 +375,9 @@ button.apbadge{cursor:pointer}
 .adm-cancel:hover{border-color:var(--fg-2)}
 .adm-status{margin-top:10px;font-size:11.5px;color:var(--fg-3);min-height:15px}
 .lv-sub{margin:14px 0 2px;text-transform:uppercase;letter-spacing:.1em;font-size:10.5px}
+
+/* ── v20: koin pilihan admin di bubbles — bintang + garis tepi emas ── */
+.bb .bbstar{position:absolute;top:-5px;right:3px;font-size:14px;line-height:1;font-style:normal;
+  color:#ffd54f;text-shadow:0 0 6px rgba(255,213,84,.9),0 1px 2px rgba(0,0,0,.6);
+  pointer-events:none;z-index:3;animation:bbstarPulse 2s ease-in-out infinite}
+@keyframes bbstarPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
