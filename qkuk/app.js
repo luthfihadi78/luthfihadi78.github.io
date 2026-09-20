@@ -888,7 +888,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var hari = wibDate(new Date().toISOString());
     Object.keys(PICKS).forEach(function (k) {
       var p = PICKS[k];
-      if (!p || !p.ts || wibDate(p.ts) !== hari) return;
+      if (!p || !p.taken) return;
+      /* tanggal SINYAL di kunci (bukan waktu ambil) — pick untuk sinyal
+         hari-hari sebelumnya tidak menandai bubble walau diedit hari ini */
+      var tglSig = (k.split("|")[2] || "").slice(0, 10);
+      if (!tglSig || tglSig !== hari) return;
       var sym = (k.split("|")[3] || "").toUpperCase();
       if (sym) bbPicked[sym] = true;
     });
