@@ -348,7 +348,7 @@ button.apbadge{cursor:pointer}
 .adm-gear{margin-left:8px;background:transparent;border:1px solid transparent;color:var(--fg-3);
   font-size:15px;cursor:pointer;border-radius:5px;padding:2px 7px;line-height:1}
 .adm-gear:hover{color:var(--ac);border-color:var(--ac)}
-.adm-modal{position:fixed;inset:0;background:rgba(4,7,6,.72);display:none;
+.adm-modal{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(4,7,6,.72);display:none;
   align-items:center;justify-content:center;z-index:90;padding:16px}
 .adm-modal.in{display:flex}
 .adm-box{background:var(--s2,#101614);border:1px solid var(--line-2,#2a3532);border-radius:10px;
@@ -422,8 +422,8 @@ html.authed #gate{display:none}
   background:#0A100D;color:#DCE8E1;font-size:15px;outline:none;transition:border-color .15s,box-shadow .15s}
 .gate-form input:focus{border-color:rgba(216,200,154,.55);box-shadow:0 0 0 3px rgba(216,200,154,.10)}
 #gate-btn{margin-top:7px;padding:15px;border-radius:12px;border:0;cursor:pointer;font-weight:800;letter-spacing:.22em;font-size:13.5px;
-  color:#0A0F0C;background:linear-gradient(135deg,#EFE5BC,#C8B077);box-shadow:0 8px 24px rgba(216,200,154,.14);transition:filter .15s,transform .1s,box-shadow .15s}
-#gate-btn:hover{filter:brightness(1.08);box-shadow:0 10px 30px rgba(216,200,154,.2)}
+  color:#07120C;background:linear-gradient(135deg,#8FF0C8,#3EBA8B);box-shadow:0 8px 24px rgba(110,231,183,.16);transition:filter .15s,transform .1s,box-shadow .15s}
+#gate-btn:hover{filter:brightness(1.08);box-shadow:0 10px 30px rgba(110,231,183,.26)}
 #gate-btn:active{transform:scale(.97)}
 .gate-err{min-height:18px;margin-top:13px;font-size:12.5px;color:var(--dn)}
 
@@ -453,8 +453,16 @@ html.authed #gate{display:none}
 @keyframes ggrantIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 #gate.bye{animation:gateBye .65s ease forwards}
 @keyframes gateBye{to{opacity:0;transform:scale(1.05);visibility:hidden}}
-html.authed body{animation:qkReveal .55s ease both}
-@keyframes qkReveal{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+/* 21 Sep — KRITIS: animasi transform di BODY menjadikan body containing
+   block bagi semua position:fixed (modal edit, toast, gerbang) — modal
+   edit ter-center terhadap SELURUH DOKUMEN (bisa 4000px+) dan jatuh di
+   bawah lipatan layar = tampak "blank" saat tombol ambil diklik.
+   Solusi: body hanya fade (opacity tidak membuat containing block),
+   efek naik translateY dipindah ke .wrap (tak punya keturunan fixed). */
+html.authed body{animation:qkFade .5s ease both}
+html.authed .wrap{animation:qkRise .55s ease both}
+@keyframes qkFade{from{opacity:0}to{opacity:1}}
+@keyframes qkRise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
 /* v25b: kunci scroll di balik gerbang — konten tidak bisa digulir saat login tampil */
 html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!important}
@@ -465,3 +473,23 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 
 /* v27: subtitle kosong tak menyisakan celah di halaman login */
 .gate-sub:empty{display:none;margin:0}
+
+/* ═══ v28: partikel heksagon melayang + toggle password ═══ */
+.gparts{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.gp{position:absolute;bottom:-34px;clip-path:polygon(25% 4%,75% 4%,98% 50%,75% 96%,25% 96%,2% 50%);
+  background:rgba(216,200,154,.13);animation:gpFloat linear infinite;will-change:transform}
+.gp.mint{background:rgba(110,231,183,.11)}
+@keyframes gpFloat{
+  0%{transform:translate3d(0,0,0) rotate(0deg)}
+  50%{transform:translate3d(var(--sway,24px),-58vh,0) rotate(180deg)}
+  100%{transform:translate3d(calc(var(--sway,24px) * -0.4),-116vh,0) rotate(360deg)}
+}
+@media(prefers-reduced-motion:reduce){.gp{display:none}}
+.gpw{position:relative}
+.gpw input{padding-right:46px}
+#gate-eye{position:absolute;right:7px;top:50%;transform:translateY(-50%);width:33px;height:33px;
+  display:flex;align-items:center;justify-content:center;background:transparent;border:0;border-radius:9px;
+  color:#7E938A;cursor:pointer;transition:color .15s,background .15s}
+#gate-eye:hover{color:#DCE8E1;background:rgba(216,200,154,.09)}
+#gate-eye.on{color:var(--ac)}
+#gate-eye svg{width:17px;height:17px}

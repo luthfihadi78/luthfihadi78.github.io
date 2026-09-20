@@ -19,6 +19,33 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function num(v) { var f = parseFloat(v); return isFinite(f) ? f : null; }
   function sgn(v, d) { var f = num(v); return f === null ? "—" : (f > 0 ? "+" : "") + f.toFixed(d == null ? 2 : d); }
   function ord() { return ORDER.filter(function (t) { return DATA.live && DATA.live[t]; }); }
+  /* 21 Sep — pelapor error di layar: error JS apa pun yang tadinya hilang diam
+     di konsol (yang tidak dilihat pengunjung) kini tampil sebagai chip merah
+     kecil di kiri-bawah — klik untuk menutup. Memudahkan diagnosis bila ada
+     yang gagal di device tertentu. */
+  function showErr(msg) {
+    try {
+      var c = document.getElementById("qk-err");
+      if (!c) {
+        c = document.createElement("button"); c.id = "qk-err"; c.type = "button";
+        c.style.cssText = "position:fixed;left:10px;bottom:10px;z-index:9999;max-width:76vw;"
+          + "background:#3a1418;color:#ffb4ab;border:1px solid rgba(232,135,124,.45);"
+          + "border-radius:8px;padding:6px 10px;font:11px/1.5 monospace;text-align:left;cursor:pointer";
+        c.addEventListener("click", function () { c.style.display = "none"; });
+        (document.body || document.documentElement).appendChild(c);
+      }
+      c.textContent = "⚠ " + String(msg || "error").slice(0, 220);
+      c.style.display = "block";
+      clearTimeout(c._t); c._t = setTimeout(function () { c.style.display = "none"; }, 15000);
+    } catch (e) {}
+  }
+  window.addEventListener("error", function (ev) {
+    showErr((ev && ev.error && (ev.error.stack || ev.error.message)) || (ev && ev.message) || "error");
+  });
+  window.addEventListener("unhandledrejection", function (ev) {
+    var rsn = ev && ev.reason;
+    showErr((rsn && (rsn.stack || rsn.message || String(rsn))) || "promise rejected");
+  });
   /* harga dari CSV adalah hasil float mentah (0.013629999999999998) */
   function fp(v) {
     var f = num(v); if (f === null) return "—";
@@ -1787,19 +1814,48 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           : "gagal: " + e.message;
       });
   }
+  /* 21 Sep — jaring pengaman modal: kalau ada error apa pun saat membangun
+     form edit, JANGAN diam-diam blank — tampilkan modal darurat bergaya
+     inline (bebas CSS eksternal) yang memuat pesan errornya. */
+  function admFallback(err) {
+    try { if (window.console) console.error("openResolve:", err); } catch (e) {}
+    var m = document.getElementById("adm-modal");
+    if (!m) {
+      m = document.createElement("div"); m.id = "adm-modal";
+      document.body.appendChild(m);
+    }
+    m.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(4,7,6,.8);display:flex;"
+      + "align-items:center;justify-content:center;z-index:9999;padding:16px";
+    var b = document.createElement("div");
+    b.style.cssText = "background:#101614;border:1px solid #2a3532;border-radius:10px;"
+      + "padding:18px;width:min(430px,94vw);color:#e8efe9;font:12.5px/1.6 monospace";
+    b.innerHTML = "<b>Form edit gagal dibuka.</b><br><br>Pesan error "
+      + "(kirim ini bila masih bermasalah):<br><code style='color:#ffb4ab;word-break:break-all'></code>"
+      + "<br><button type='button' style='margin-top:12px;padding:8px 14px;border-radius:6px;"
+      + "border:1px solid #2a3532;background:#18201c;color:#e8efe9;cursor:pointer'>tutup</button>";
+    b.querySelector("code").textContent = String((err && (err.stack || err.message)) || err).slice(0, 400);
+    b.querySelector("button").onclick = function () { m.style.display = "none"; };
+    m.innerHTML = ""; m.appendChild(b);
+  }
   function admShow(inner) {
     var m = document.getElementById("adm-modal");
     if (!m) {
       m = el("div", "adm-modal"); m.id = "adm-modal";
       m.appendChild(el("div", "adm-box"));
       document.body.appendChild(m);
-      m.addEventListener("click", function (ev) { if (ev.target === m) m.classList.remove("in"); });
+      m.addEventListener("click", function (ev) {
+        if (ev.target === m) { m.classList.remove("in"); m.style.display = "none"; }
+      });
     }
-    var box = m.firstChild; box.innerHTML = "";
+    var box = m.querySelector(".adm-box");
+    if (!box) { box = el("div", "adm-box"); m.appendChild(box); }
+    box.innerHTML = "";
     box.appendChild(inner);
     m.classList.add("in");
+    m.style.display = "flex";
   }
-  function admClose() { var m = document.getElementById("adm-modal"); if (m) m.classList.remove("in"); }
+  function admClose() { var m = document.getElementById("adm-modal");
+    if (m) { m.classList.remove("in"); m.style.display = "none"; } }
   function admHead(title, sub) {
     var h = el("div", "adm-h");
     h.appendChild(el("b", null, title));
@@ -1810,6 +1866,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   function openResolve(tf, jenis, r, p) {
     if (!isAdmin()) { openAdmin(); return; }
+    try {
     var key = pickKey(tf, jenis, r), box = el("div");
     box.appendChild(admHead("Live pick \u2014 " + (r.sym || "").replace(/USDT$/, ""),
       tf.toUpperCase() + " \u00b7 " + jenis + " \u00b7 " + (r.ts || "")));
@@ -1851,6 +1908,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       savePicks(st, function () { applyPicks(); admClose(); });
     });
     cancel.addEventListener("click", admClose);
+    } catch (err) { admFallback(err); }
   }
   function openAdmin() {
     var box = el("div");
