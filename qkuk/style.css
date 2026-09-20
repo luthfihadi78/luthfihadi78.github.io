@@ -406,26 +406,26 @@ tbody tr.pickrow:hover{background:rgba(255,213,79,.09)}
 #gate{position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;
   background:radial-gradient(ellipse at 50% 30%, #0D1512 0%, var(--bg) 62%)}
 html.authed #gate{display:none}
-.gate-box{width:min(360px,92vw);padding:34px 30px 28px;border:1px solid var(--line);border-radius:16px;
-  background:#0D1411;box-shadow:0 24px 70px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.02) inset;
+.gate-box{width:min(432px,92vw);padding:48px 44px 40px;border:1px solid #22322A;border-radius:20px;
+  background:#0D1411;box-shadow:0 30px 90px rgba(0,0,0,.65),0 0 0 1px rgba(216,200,154,.06) inset,0 1px 0 rgba(255,255,255,.045) inset;
   text-align:center;animation:gboxIn .6s cubic-bezier(.2,.9,.3,1.2) both}
 @keyframes gboxIn{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}
 .gate-box.shake{animation:gshake .4s}
 @keyframes gshake{20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
-.gate-logo{display:flex;justify-content:center;padding:2px 0 8px}
+.gate-logo{display:flex;justify-content:center;padding:4px 0 22px}
 .gate-logo .mark{width:36px;height:36px}
 .gate-logo .wm{font-size:21px}
 .gate-logo .wm b{font-weight:800}
 .gate-sub{margin:14px 0 20px;font-size:12.5px;color:#93A69B}
-.gate-form{display:flex;flex-direction:column;gap:10px}
-.gate-form input{width:100%;box-sizing:border-box;padding:11px 13px;border-radius:10px;border:1px solid #2A3A31;
-  background:#0A100D;color:#DCE8E1;font-size:14px;outline:none;transition:border-color .15s,box-shadow .15s}
+.gate-form{display:flex;flex-direction:column;gap:13px}
+.gate-form input{width:100%;box-sizing:border-box;padding:14px 16px;border-radius:12px;border:1px solid #2A3A31;
+  background:#0A100D;color:#DCE8E1;font-size:15px;outline:none;transition:border-color .15s,box-shadow .15s}
 .gate-form input:focus{border-color:rgba(216,200,154,.55);box-shadow:0 0 0 3px rgba(216,200,154,.10)}
-#gate-btn{padding:11px;border-radius:10px;border:0;cursor:pointer;font-weight:800;letter-spacing:.14em;font-size:13px;
-  color:#0A0F0C;background:linear-gradient(135deg,#E9DFB4,#C8B077);transition:filter .15s,transform .1s}
-#gate-btn:hover{filter:brightness(1.08)}
+#gate-btn{margin-top:7px;padding:15px;border-radius:12px;border:0;cursor:pointer;font-weight:800;letter-spacing:.22em;font-size:13.5px;
+  color:#0A0F0C;background:linear-gradient(135deg,#EFE5BC,#C8B077);box-shadow:0 8px 24px rgba(216,200,154,.14);transition:filter .15s,transform .1s,box-shadow .15s}
+#gate-btn:hover{filter:brightness(1.08);box-shadow:0 10px 30px rgba(216,200,154,.2)}
 #gate-btn:active{transform:scale(.97)}
-.gate-err{min-height:18px;margin-top:10px;font-size:12.5px;color:var(--dn)}
+.gate-err{min-height:18px;margin-top:13px;font-size:12.5px;color:var(--dn)}
 
 /* ── animasi transisi blockchain ── */
 .gate-chain{display:none;margin-top:6px}
