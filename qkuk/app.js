@@ -337,6 +337,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           else if (r.h === "kalah") td.style.color = "var(--dn)";
           return td; } },
       { h: "R (1:1)", n: true, c: function (r) { return rcell(r.r, false); } },
+      { h: "live", c: function (r) { return pickCell(r, tf, "watch"); } },
       { h: "★", c: function (r) {                 // dipilih user di CSV (kolom picked)
           var td = el("td", "st" + (r.pick ? " pickb" : " dim"));
           td.textContent = r.pick ? (r.flip ? "★⇄" : "★") : "—";
@@ -381,6 +382,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           var td = el("td", "st" + (r.st === "fired" ? " open" : ""));
           td.textContent = r.st === "fired" ? "open" : r.st; return td; } },
       { h: "result R", n: true, c: function (r) { return rcell(r.pnl, r.st === "fired"); } },
+      { h: "live", c: function (r) { return pickCell(r, tf, "sig"); } },
       { h: "★", c: function (r) {                 // dipilih user di CSV (kolom picked)
           var td = el("td", "st" + (r.pick ? " pickb" : " dim"));
           td.textContent = r.pick ? (r.flip ? "★⇄" : "★") : "—";
@@ -1222,7 +1224,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     $("#state").textContent = stale ? "stale" : "live";
   }
   function render(first) {
-    stamp(); gauge(); strip(); akurasi(); kamu();
+    stamp(); gauge(); strip(); akurasi(); kamu(); applyPicks();
     scanNotif();
     if (first) charts();
     if (first || !bbBodies.length) bubbleDraw();   // jangan bangun ulang saat data 60 dtk segar — fisika jalan terus
@@ -1327,6 +1329,241 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       : "Suara notifikasi: NYALA — klik untuk mati")
       + (NOTE.n ? " · " + NOTE.n + " notifikasi sesi ini" : "");
   }
+  /* ═══════════════════════════════════════════════════════════════════
+     20 Sep — LIVE PICKS ADMIN: ambil koin + koreksi + resolve manual
+     ════════════════════════════════════════════════════════════════════
+     Admin menandai koin yang benar-benar diambil di tabel Watchlist /
+     Signals, mengoreksi arah (harusnya long/short), mengisi hasil naik/
+     turun berapa %, dan menandai win/loss. Tersimpan ke picks.json di
+     repo Pages lewat GitHub Contents API — token PAT disimpan LOKAL di
+     browser admin (localStorage), tidak pernah dikirim ke mana pun
+     selain api.github.com. Semua pengunjung mewarisi hasilnya, dan
+     section "Picked by you" menampilkan WINRATE LIVE dari resolve ini
+     — bukan backtest. */
+  var GH_REPO = "luthfihadi78/qkuk", GH_BRANCH = "master";
+  var PICKS = {};
+  function adminToken() { try { return localStorage.getItem("qkuk_admin_token") || ""; } catch (e) { return ""; } }
+  function isAdmin() { return !!adminToken(); }
+  function pickKey(tf, jenis, r) { return tf + "|" + jenis + "|" + (r.ts || "") + "|" + (r.sym || ""); }
+  function b64(s) { return btoa(unescape(encodeURIComponent(s))); }
+  function loadPicks() {
+    fetch("picks.json?t=" + Date.now(), { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : {}; })
+      .then(function (j) { PICKS = (j && j.picks) || {}; applyPicks(); })
+      .catch(function () {});
+  }
+  function applyPicks() {
+    if (!DATA || !DATA.live) return;
+    ord().forEach(function (tf) {
+      (DATA.live[tf].pantau || []).forEach(function (r) {
+        r.apick = PICKS[pickKey(tf, "watch", r)] || null;
+      });
+      (DATA.live[tf].sinyal || []).forEach(function (r) {
+        r.apick = PICKS[pickKey(tf, "sig", r)] || null;
+      });
+    });
+    if (wTf) watch(wTf); if (sTf) signals(sTf); liveStats();
+  }
+  function savePicks(st, done) {
+    var tok = adminToken();
+    if (!tok) { st.textContent = "token admin belum diisi (\\u2699 di kanan atas)"; return; }
+    st.textContent = "menyimpan\u2026";
+    var H = { "Accept": "application/vnd.github+json", "Authorization": "token " + tok,
+              "Content-Type": "application/json" };
+    var base = "https://api.github.com/repos/" + GH_REPO + "/contents/picks.json";
+    fetch(base + "?ref=" + GH_BRANCH, { headers: H })
+      .then(function (g) {
+        if (g.ok) return g.json();
+        if (g.status === 404) return { sha: null };
+        return g.json().then(function (j) { throw new Error(j.message || g.status); });
+      })
+      .then(function (cur) {
+        var body = { message: "qkuk: live picks update (admin)",
+                     content: b64(JSON.stringify({ picks: PICKS }, null, 1)), branch: GH_BRANCH };
+        if (cur && cur.sha) body.sha = cur.sha;
+        return fetch(base, { method: "PUT", headers: H, body: JSON.stringify(body) });
+      })
+      .then(function (p) {
+        if (!p.ok) return p.json().then(function (j) { throw new Error(j.message || p.status); });
+        st.textContent = "tersimpan \u2713 (live \u00b11 menit)";
+        if (done) done();
+      })
+      .catch(function (e) { st.textContent = "gagal: " + e.message; });
+  }
+  function admShow(inner) {
+    var m = document.getElementById("adm-modal");
+    if (!m) {
+      m = el("div", "adm-modal"); m.id = "adm-modal";
+      m.appendChild(el("div", "adm-box"));
+      document.body.appendChild(m);
+      m.addEventListener("click", function (ev) { if (ev.target === m) m.classList.remove("in"); });
+    }
+    var box = m.firstChild; box.innerHTML = "";
+    box.appendChild(inner);
+    m.classList.add("in");
+  }
+  function admClose() { var m = document.getElementById("adm-modal"); if (m) m.classList.remove("in"); }
+  function admHead(title, sub) {
+    var h = el("div", "adm-h");
+    h.appendChild(el("b", null, title));
+    if (sub) h.appendChild(el("span", "adm-sub", sub));
+    var x = el("button", "adm-x", "\u00d7"); x.type = "button";
+    x.addEventListener("click", admClose); h.appendChild(x);
+    return h;
+  }
+  function openResolve(tf, jenis, r, p) {
+    if (!isAdmin()) { openAdmin(); return; }
+    var key = pickKey(tf, jenis, r), box = el("div");
+    box.appendChild(admHead("Live pick \u2014 " + (r.sym || "").replace(/USDT$/, ""),
+      tf.toUpperCase() + " \u00b7 " + jenis + " \u00b7 " + (r.ts || "")));
+    var sideSel = el("select", "adm-in");
+    [["", "arah: ikut engine (" + r.dir + ")"], ["long", "koreksi: LONG"], ["short", "koreksi: SHORT"]]
+      .forEach(function (o) { var op = el("option", null, o[1]); op.value = o[0]; sideSel.appendChild(op); });
+    if (p && p.side) sideSel.value = p.side;
+    var pctIn = el("input", "adm-in"); pctIn.type = "number"; pctIn.step = "0.01";
+    pctIn.placeholder = "hasil: naik/turun berapa % (mis. -2.4)";
+    if (p && isFinite(p.pct)) pctIn.value = p.pct;
+    var winSel = el("select", "adm-in");
+    [["", "hasil: masih open / belum ditentukan"], ["win", "hasil: WIN"], ["loss", "hasil: LOSS"]]
+      .forEach(function (o) { var op = el("option", null, o[1]); op.value = o[0]; winSel.appendChild(op); });
+    if (p && p.win === 1) winSel.value = "win"; else if (p && p.win === 0) winSel.value = "loss";
+    var noteIn = el("input", "adm-in"); noteIn.type = "text";
+    noteIn.placeholder = "catatan (alasan koreksi, dll)";
+    if (p && p.note) noteIn.value = p.note;
+    var st = el("div", "adm-status");
+    var row = el("div", "adm-row");
+    var save = el("button", "adm-save", p ? "update pick" : "ambil & simpan"); save.type = "button";
+    var cancel = el("button", "adm-cancel", "batal"); cancel.type = "button";
+    row.appendChild(save); row.appendChild(cancel);
+    if (p) { var del = el("button", "adm-del", "hapus pick"); del.type = "button";
+      row.insertBefore(del, cancel);
+      del.addEventListener("click", function () {
+        delete PICKS[key]; savePicks(st, function () { applyPicks(); admClose(); });
+      });
+    }
+    box.appendChild(sideSel); box.appendChild(pctIn); box.appendChild(winSel);
+    box.appendChild(noteIn); box.appendChild(row); box.appendChild(st);
+    admShow(box);
+    save.addEventListener("click", function () {
+      PICKS[key] = { taken: 1, side: sideSel.value || null,
+        pct: pctIn.value === "" ? null : parseFloat(pctIn.value),
+        win: winSel.value === "win" ? 1 : winSel.value === "loss" ? 0 : null,
+        note: noteIn.value || null, ts: new Date().toISOString(), by: "admin" };
+      savePicks(st, function () { applyPicks(); admClose(); });
+    });
+    cancel.addEventListener("click", admClose);
+  }
+  function openAdmin() {
+    var box = el("div");
+    box.appendChild(admHead("Admin \u2014 live picks"));
+    box.appendChild(el("div", "adm-desc",
+      "Token GitHub (PAT) dengan scope repo. Token disimpan HANYA di browser ini "
+      + "(localStorage) dan dipakai menulis picks.json lewat GitHub API. Buat di "
+      + "github.com/settings/tokens \u2192 Generate new token (classic) \u2192 centang scope repo."));
+    var tokIn = el("input", "adm-in"); tokIn.type = "password"; tokIn.placeholder = "ghp_\u2026";
+    tokIn.value = adminToken();
+    var st = el("div", "adm-status");
+    var row = el("div", "adm-row");
+    var save = el("button", "adm-save", "simpan token"); save.type = "button";
+    var del = el("button", "adm-del", "keluar admin"); del.type = "button";
+    row.appendChild(save); row.appendChild(del);
+    box.appendChild(tokIn); box.appendChild(row); box.appendChild(st);
+    admShow(box);
+    function reapply() { if (wTf) watch(wTf); if (sTf) signals(sTf); liveStats(); }
+    save.addEventListener("click", function () {
+      try { localStorage.setItem("qkuk_admin_token", tokIn.value.trim()); } catch (e) {}
+      st.textContent = "token tersimpan \u2014 mode admin aktif \u2713";
+      setTimeout(function () { admClose(); reapply(); }, 500);
+    });
+    del.addEventListener("click", function () {
+      try { localStorage.removeItem("qkuk_admin_token"); } catch (e) {}
+      st.textContent = "keluar \u2014 mode viewer";
+      setTimeout(function () { admClose(); reapply(); }, 400);
+    });
+  }
+  /* sel kolom "live" di tabel: tombol ambil (admin) / badge hasil (semua) */
+  function pickCell(r, tf, jenis) {
+    var td = el("td", "st apick");
+    var p = r.apick;
+    if (!p) {
+      if (isAdmin()) {
+        var b = el("button", "apbtn", "ambil"); b.type = "button";
+        b.addEventListener("click", function () { openResolve(tf, jenis, r, null); });
+        td.appendChild(b);
+      } else { td.textContent = "\u2014"; td.classList.add("dim"); }
+      return td;
+    }
+    var side = p.side || r.dir;
+    var b2 = el("button", "apbadge " + (p.win === 1 ? "apwin" : p.win === 0 ? "aploss" : "apopen"));
+    b2.type = "button";
+    b2.textContent = (side === "long" ? "\u25b2" : "\u25bc")
+      + (p.side && p.side !== r.dir ? "\u21c4" : "")
+      + (p.win === 1 ? " W" : p.win === 0 ? " L" : " \u00b7")
+      + (isFinite(p.pct) ? " " + sgn(p.pct, 1) + "%" : "");
+    b2.title = (isAdmin() ? "klik untuk koreksi" : "live pick") + " \u2014 ambil " + side
+      + (p.side && p.side !== r.dir ? " (arah dikoreksi dari " + r.dir + ")" : "")
+      + (isFinite(p.pct) ? ", hasil " + sgn(p.pct, 1) + "%" : "")
+      + (p.note ? " \u2014 " + p.note : "");
+    if (isAdmin()) b2.addEventListener("click", function () { openResolve(tf, jenis, r, p); });
+    td.appendChild(b2);
+    return td;
+  }
+  /* kartu winrate LIVE dari resolve admin — per engine, di section Picked by you */
+  function liveStats() {
+    var kamu = document.getElementById("kamu");
+    if (!kamu) return;
+    var host = document.getElementById("live-grid");
+    if (!host) {
+      host = el("div", "ak-grid"); host.id = "live-grid";
+      var grid = document.getElementById("kamu-grid");
+      if (grid && grid.parentNode === kamu) kamu.insertBefore(host, grid.nextSibling);
+      else kamu.appendChild(host);
+    }
+    host.innerHTML = "";
+    host.appendChild(el("div", "pn-h lv-sub", "live resolve \u2014 pilihan admin (bukan backtest)"));
+    ord().forEach(function (tf) {
+      var n = 0, w = 0, l = 0, open = 0, tot = 0;
+      ["pantau", "sinyal"].forEach(function (jenis) {
+        (DATA.live[tf][jenis] || []).forEach(function (r) {
+          var p = r.apick; if (!p) return;
+          n++;
+          if (p.win === 1) w++; else if (p.win === 0) l++; else open++;
+          if (isFinite(p.pct)) tot += ((p.side || r.dir) === "short" ? -p.pct : p.pct);
+        });
+      });
+      var c = el("div", "ch"); var hh = el("div", "ch-h");
+      hh.appendChild(el("span", "ch-n", "live " + (DATA.live[tf].nama || tf).toLowerCase()));
+      hh.appendChild(el("span", "ch-tf", tf.toUpperCase()));
+      c.appendChild(hh);
+      var rows = el("div", "rows");
+      function row(a, b, cls) { var x2 = el("div", "row"); x2.appendChild(el("span", "l", a));
+        x2.appendChild(el("span", "d")); x2.appendChild(el("span", "v " + (cls || ""), b)); rows.appendChild(x2); }
+      if (!n) {
+        row("live picks", "belum ada", "mut");
+        row("cara", "klik \"ambil\" di tabel", "mut");
+      } else {
+        var res = w + l, wr = res ? w / res * 100 : null;
+        row("live picks", String(n));
+        row("win rate", wr === null ? "\u2014" : wr.toFixed(1) + "%",
+          wr === null ? "mut" : (wr >= 50 ? "pos" : "neg"));
+        row("total hasil", sgn(tot, 1) + "%", tot > 0 ? "pos" : tot < 0 ? "neg" : "mut");
+        row("avg / pick", sgn(tot / n, 2) + "%", tot / n > 0 ? "pos" : tot / n < 0 ? "neg" : "mut");
+        row("W \u00b7 L \u00b7 open", w + " \u00b7 " + l + " \u00b7 " + open, "mut");
+      }
+      c.appendChild(rows); host.appendChild(c);
+    });
+  }
+  function adminInit() {
+    var bar = document.querySelector(".bar-in");
+    if (bar && !document.getElementById("adm-gear")) {
+      var g = el("button", "adm-gear", "\u2699"); g.id = "adm-gear"; g.type = "button";
+      g.title = "Admin \u2014 live picks (token & koreksi)";
+      g.addEventListener("click", openAdmin);
+      bar.appendChild(g);
+    }
+    loadPicks();
+  }
+
   var mbtn = $("#mute");
   if (mbtn) mbtn.addEventListener("click", function () {
     MUTE = !MUTE;
@@ -1412,10 +1649,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (ak) ak.innerHTML = "<i>&gt;</i> Winrate watchlist accuracy";
   })();
 
+  adminInit();
   bbCacheLoad();   // %24j terakhir langsung hidup sebelum fetch pertama selesai
   load(true);
   setInterval(clock, 1000); clock();
-  setInterval(function () { load(false); }, 60000);
+  setInterval(function () { load(false); loadPicks(); }, 60000);
   setInterval(function () {                  // reload penuh per jam: HTML/CSS/JS ikut segar, bukan cuma data.json
     location.reload();
   }, 3600000);

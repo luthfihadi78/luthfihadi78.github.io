@@ -140,8 +140,11 @@
     </div>
     <div class="ak-grid" id="kamu-grid"></div>
     <p class="cap">Cara pakai: buka CSV engine di mesin bot — logs/reclaim_pantau_&lt;tf&gt;.csv
-    untuk watchlist, logs/reclaim_swing_&lt;tf&gt;.csv untuk sinyal. Tambahkan tanda "1" di
-    kolom <b>picked</b> pada baris koin yang menurutmu bagus, lalu simpan. Bot akan
+    untuk watchlist, logs/reclaim_swing_&lt;tf&gt;.csv untuk sinyal. Admin juga bisa
+    menandai &amp; meresolve koin LANGSUNG di tabel (tombol "ambil" + ikon ⚙ di kanan
+    atas) — hasilnya tampil di kartu <b>live resolve</b> di bawah ini, bukan backtest.
+    Selain itu: tambahkan tanda "1" di kolom <b>picked</b> pada CSV untuk penyaringan
+    engine. Bot akan
     menerbitkan ulang data, dan winrate di sini dihitung dari hasil LIVE-nya: sinyal
     dinilai dari pnl_r yang sudah di-resolve engine, watchlist dari aturan 1R:1R yang
     sama dengan akurasi mekanis. Populasinya kecil — memang itu poinnya: ini penyaringanmu
@@ -186,6 +189,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20260919q" defer></script>
+<script src="app.js?v=20260919r" defer></script>
 </body>
 </html>
