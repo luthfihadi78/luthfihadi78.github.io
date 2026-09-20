@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-note-20260919k";   /* 19 Sep v16: tier +30%/tingkat (48–178px) + bola api hijau/merah sesuai arah */
+  var BUILD = "qkuk-note-20260920d";   /* 20 Sep v25: gerbang login privat (admin+user) + transisi animasi blockchain */
   var COLOR = { "1h": "#9CF2CE", "2h": "#6EE7B7", "4h": "#D8C89A" };
   var TVI = { "1h": "60", "2h": "120", "4h": "240" };
 
@@ -2114,6 +2114,67 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var ak = document.querySelector("#akurasi h2");
     if (ak) ak.innerHTML = "<i>&gt;</i> Winrate watchlist accuracy";
   })();
+
+  /* ── GERBANG LOGIN PRIVAT (v25) ────────────────────────────────────────
+     Seluruh terminal berada di balik gerbang: admin (kredensial lama) dan
+     user biasa. Password diverifikasi SHA-256, sesi hidup sampai tab ditutup.
+     Login sukses → animasi penautan blok blockchain → dashboard. */
+  var USER_AUTH = { user: "user", hash: "7d1e87fd6803a1d1ae6069ecd635c81960d5af1629a1a0fc85912685f8f25196" };
+  function gateInit() {
+    var gate = document.getElementById("gate");
+    if (!gate) return;
+    var ok = false;
+    try { ok = sessionStorage.getItem("qkuk_admin_ok") === "1" || sessionStorage.getItem("qkuk_user_ok") === "1"; } catch (e) {}
+    if (ok) {                                   // pengunjung balik — langsung masuk, tanpa gerbang
+      document.documentElement.classList.add("authed");
+      if (gate.parentNode) gate.parentNode.removeChild(gate);
+      return;
+    }
+    var uIn = gate.querySelector("#gate-user"), pIn = gate.querySelector("#gate-pass"),
+        btn = gate.querySelector("#gate-btn"), err = gate.querySelector("#gate-err"),
+        sub = gate.querySelector(".gate-sub"), chain = gate.querySelector("#gate-chain"),
+        hashEl = gate.querySelector("#gate-hash");
+    function finish() {
+      err.textContent = "";
+      gate.querySelector(".gate-form").style.display = "none";
+      sub.textContent = "menautkan blok…";
+      chain.classList.add("run");
+      var bs = 1;
+      var tick = setInterval(function () {          // efek hashing blok
+        var hex = "", cs = "0123456789abcdef";
+        for (var i = 0; i < 14; i++) hex += cs[Math.floor(Math.random() * 16)];
+        hashEl.textContent = "0x" + hex + "  ▸ block #" + (bs++) + " … verifying";
+      }, 85);
+      setTimeout(function () {
+        clearInterval(tick);
+        hashEl.textContent = "0x… chain synced ✓";
+        gate.classList.add("bye");
+        document.documentElement.classList.add("authed");   // memicu reveal dashboard
+        if (isLogged()) applyPicks();               // tombol admin muncul tanpa reload
+        setTimeout(function () { if (gate.parentNode) gate.parentNode.removeChild(gate); }, 750);
+      }, 2450);
+    }
+    function tryGate() {
+      var u = (uIn.value || "").trim(), p = pIn.value || "";
+      if (!u || !p) { err.textContent = "isi username dan password"; return; }
+      sha256hex(u + ":" + p).then(function (h) {
+        if (u === AUTH.user && h === curHash()) {           // admin
+          try { sessionStorage.setItem("qkuk_admin_ok", "1"); } catch (e) {}
+          finish();
+        } else if (u === USER_AUTH.user && h === USER_AUTH.hash) {   // user biasa
+          try { sessionStorage.setItem("qkuk_user_ok", "1"); } catch (e) {}
+          finish();
+        } else {
+          err.textContent = "username / password salah";
+          gate.classList.remove("shake"); void gate.offsetWidth; gate.classList.add("shake");
+        }
+      }).catch(function () { err.textContent = "gagal memverifikasi login"; });
+    }
+    btn.addEventListener("click", tryGate);
+    pIn.addEventListener("keydown", function (ev) { if (ev.key === "Enter") tryGate(); });
+    uIn.addEventListener("keydown", function (ev) { if (ev.key === "Enter") pIn.focus(); });
+  }
+  gateInit();
 
   adminInit();
   bbCacheLoad();   // %24j terakhir langsung hidup sebelum fetch pertama selesai

@@ -401,3 +401,58 @@ button.apbadge{cursor:pointer}
 tbody tr.pickrow{background:rgba(255,213,79,.055)}
 tbody tr.pickrow td:first-child{box-shadow:inset 3px 0 0 rgba(255,213,79,.5)}
 tbody tr.pickrow:hover{background:rgba(255,213,79,.09)}
+
+/* ═══════════ GERBANG LOGIN PRIVAT (v25) ═══════════ */
+#gate{position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 30%, #0D1512 0%, var(--bg) 62%)}
+html.authed #gate{display:none}
+.gate-box{width:min(360px,92vw);padding:34px 30px 28px;border:1px solid var(--line);border-radius:16px;
+  background:#0D1411;box-shadow:0 24px 70px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.02) inset;
+  text-align:center;animation:gboxIn .6s cubic-bezier(.2,.9,.3,1.2) both}
+@keyframes gboxIn{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}
+.gate-box.shake{animation:gshake .4s}
+@keyframes gshake{20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
+.gate-logo{font-size:26px;font-weight:800;letter-spacing:.06em;color:#E9F2ED}
+.gate-logo span{color:var(--gold);font-weight:600;font-size:15px;display:block;letter-spacing:.34em;margin-top:2px}
+.gate-sub{margin:14px 0 20px;font-size:12.5px;color:#93A69B}
+.gate-form{display:flex;flex-direction:column;gap:10px}
+.gate-form input{width:100%;box-sizing:border-box;padding:11px 13px;border-radius:10px;border:1px solid #2A3A31;
+  background:#0A100D;color:#DCE8E1;font-size:14px;outline:none;transition:border-color .15s,box-shadow .15s}
+.gate-form input:focus{border-color:rgba(216,200,154,.55);box-shadow:0 0 0 3px rgba(216,200,154,.10)}
+#gate-btn{padding:11px;border-radius:10px;border:0;cursor:pointer;font-weight:800;letter-spacing:.14em;font-size:13px;
+  color:#0A0F0C;background:linear-gradient(135deg,#E9DFB4,#C8B077);transition:filter .15s,transform .1s}
+#gate-btn:hover{filter:brightness(1.08)}
+#gate-btn:active{transform:scale(.97)}
+.gate-err{min-height:18px;margin-top:10px;font-size:12.5px;color:var(--dn)}
+
+/* ── animasi transisi blockchain ── */
+.gate-chain{display:none;margin-top:6px}
+.gate-chain.run{display:block;animation:chainIn .4s both}
+@keyframes chainIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.glink{display:flex;align-items:center;justify-content:center;gap:0}
+.gnode{width:20px;height:22px;margin:0 7px;clip-path:polygon(25% 4%,75% 4%,98% 50%,75% 96%,25% 96%,2% 50%);
+  background:#18241E;opacity:.28;transform:scale(.7)}
+.glink i{width:16px;height:2px;background:#2A3A31;transform:scaleX(0);border-radius:2px}
+.gate-chain.run .gnode{animation:gnodeOn .55s cubic-bezier(.2,.9,.3,1.3) forwards}
+.gate-chain.run .gnode:nth-child(1){animation-delay:.15s}
+.gate-chain.run .gnode:nth-child(3){animation-delay:.50s}
+.gate-chain.run .gnode:nth-child(5){animation-delay:.85s}
+.gate-chain.run .gnode:nth-child(7){animation-delay:1.20s}
+.gate-chain.run .gnode:nth-child(9){animation-delay:1.55s}
+.gate-chain.run .glink i:nth-child(2){animation:glnkOn .3s .42s forwards}
+.gate-chain.run .glink i:nth-child(4){animation:glnkOn .3s .77s forwards}
+.gate-chain.run .glink i:nth-child(6){animation:glnkOn .3s 1.12s forwards}
+.gate-chain.run .glink i:nth-child(8){animation:glnkOn .3s 1.47s forwards}
+@keyframes gnodeOn{40%{transform:scale(1.22)}to{opacity:1;transform:scale(1);background:linear-gradient(160deg,#E4D5A6,#B69B5F);box-shadow:0 0 18px rgba(216,200,154,.5)}}
+@keyframes glnkOn{to{transform:scaleX(1);background:var(--gold);box-shadow:0 0 8px rgba(216,200,154,.45)}}
+.ghash{margin-top:16px;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:#93A69B;letter-spacing:.05em;min-height:16px}
+.ggrant{margin-top:10px;font-size:12.5px;font-weight:700;letter-spacing:.14em;color:var(--up);opacity:0}
+.gate-chain.run .ggrant{animation:ggrantIn .45s 2.0s forwards}
+@keyframes ggrantIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+#gate.bye{animation:gateBye .65s ease forwards}
+@keyframes gateBye{to{opacity:0;transform:scale(1.05);visibility:hidden}}
+html.authed body{animation:qkReveal .55s ease both}
+@keyframes qkReveal{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* v25b: kunci scroll di balik gerbang — konten tidak bisa digulir saat login tampil */
+html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!important}
