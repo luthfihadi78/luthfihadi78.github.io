@@ -534,6 +534,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       { h: "time WIB", c: function (r) { return txt(r.ts); } },
       { h: "pair", c: function (r) { return pairCell(r.sym, wQ); } },
       { h: "side", c: function (r) { return side(r.dir); } },
+      { h: "koreksi admin", c: function (r) { return corrCell(r, tf, "watch"); } },
       { h: "reclaimed level", n: true, c: function (r) { return txt(fp(r.lv), "n"); } },
       { h: "outcome", c: function (r) {
           var td = el("td", "st");
@@ -580,6 +581,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       { h: "time WIB", c: function (r) { return txt(r.ts); } },
       { h: "pair", c: function (r) { return pairCell(r.sym, sQ); } },
       { h: "side", c: function (r) { return side(r.dir); } },
+      { h: "koreksi admin", c: function (r) { return corrCell(r, tf, "sig"); } },
       { h: "entry", n: true, c: function (r) { return txt(fp(r.e), "n"); } },
       { h: "stop", n: true, c: function (r) { return txt(fp(r.s), "n"); } },
       { h: "target", n: true, c: function (r) { return txt(fp(r.t), "n"); } },
@@ -880,8 +882,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* ── koin yang diambil admin (live picks): bintang + garis emas di bubble ── */
   var bbPicked = {};
   function bbPickedSync() {
+    /* tanda bubble hanya untuk pick HARI INI (WIB) — pick hari-hari
+       sebelumnya tidak lagi ditandai di kanvas */
     bbPicked = {};
+    var hari = wibDate(new Date().toISOString());
     Object.keys(PICKS).forEach(function (k) {
+      var p = PICKS[k];
+      if (!p || !p.ts || wibDate(p.ts) !== hari) return;
       var sym = (k.split("|")[3] || "").toUpperCase();
       if (sym) bbPicked[sym] = true;
     });
@@ -1602,6 +1609,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     return ("0" + d.getUTCDate()).slice(-2) + " " + B[d.getUTCMonth()] + " "
       + ("0" + d.getUTCHours()).slice(-2) + ":" + ("0" + d.getUTCMinutes()).slice(-2) + " WIB";
   }
+  function wibDate(iso) {
+    var d = new Date(new Date(iso).getTime() + 7 * 3600e3);
+    return d.getUTCFullYear() + "-" + ("0" + (d.getUTCMonth() + 1)).slice(-2) + "-" + ("0" + d.getUTCDate()).slice(-2);
+  }
   function plogAdd(act, key, p, r) {
     var kp = (key || "").split("|");
     PLOG.unshift({ t: new Date().toISOString(), act: act,
@@ -1821,6 +1832,35 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         .catch(function (e) { st.textContent = "gagal: " + (e.message || e); });
     });
     cc.addEventListener("click", admClose);
+  }
+  /* kolom KOREKSI ADMIN — tepat di samping kolom side supaya pengunjung
+     tidak salah baca: arah engine tetap di kolom side, koreksian admin
+     tampil TERPISAH di sini (mis. sinyal short dikoreksi jadi long). */
+  function corrCell(r, tf, jenis) {
+    var td = el("td", "st apick");
+    var p = r.apick;
+    if (!p) { td.textContent = "—"; td.classList.add("dim"); return td; }
+    var fixed = p.side && p.side !== r.dir ? p.side : null;
+    if (!fixed) {
+      td.textContent = "ikut engine";
+      td.classList.add("dim");
+      if (isAdmin()) {
+        td.style.cursor = "pointer";
+        td.title = "admin: klik untuk koreksi arah";
+        td.addEventListener("click", function () { openResolve(tf, jenis, r, p); });
+      }
+      return td;
+    }
+    var b = el("button", "apbadge corr " + (fixed === "long" ? "apwin" : "aploss"));
+    b.type = "button";
+    b.textContent = "⇄ " + fixed;
+    b.title = "KOREKSI ADMIN: sinyal engine " + r.dir + " dikoreksi jadi " + fixed
+      + (isFinite(p.pct) ? " · hasil " + sgn(p.pct, 1) + "%" : "")
+      + (p.win === 1 ? " · WIN" : p.win === 0 ? " · LOSS" : " · open")
+      + (p.note ? " — " + p.note : "");
+    if (isAdmin()) b.addEventListener("click", function () { openResolve(tf, jenis, r, p); });
+    td.appendChild(b);
+    return td;
   }
   /* sel kolom "live" di tabel: tombol ambil (admin) / badge hasil (semua) */
   function pickCell(r, tf, jenis) {

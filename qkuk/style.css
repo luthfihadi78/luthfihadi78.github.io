@@ -393,3 +393,6 @@ button.apbadge{cursor:pointer}
 .plog-t td{padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.045);white-space:nowrap}
 .plog-t tr:last-child td{border-bottom:none}
 .plog-empty{padding:12px;color:var(--fg-3);font-size:12px}
+
+/* ── v23: badge koreksi admin di kolom koreksi ── */
+.apbadge.corr{border-color:var(--gold);color:var(--gold);background:rgba(255,213,84,.07)}
