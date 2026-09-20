@@ -166,6 +166,211 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         + sgn(A.acuan, 2) + "% baseline \u2014 not significant. Context, not a verdict; "
         + "the engine does not trade on it.";
     m.appendChild(note);
+    gaugeLivePaint();
+  }
+  function btc1h(cb) {
+    if (GBTC.rows && Date.now() - GBTC.at < 5 * 60e3) { cb(GBTC.rows); return; }
+    var ctl = ("AbortController" in window) ? new AbortController() : null;
+    var to = ctl ? setTimeout(function () { ctl.abort(); }, 8000) : null;
+    fetch("https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=120",
+        { signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { if (!r.ok) throw 0; clearTimeout(to); return r.json(); })
+      .then(function (k) {
+        GBTC.rows = k.slice(0, -1).map(function (x) { return { h: +x[2], l: +x[3], c: +x[4] }; });
+        GBTC.at = Date.now();
+        cb(GBTC.rows);
+      })
+      .catch(function () { clearTimeout(to); cb(GBTC.rows); });
+  }
+  function gaugeLivePaint() {
+    if (!DATA || !DATA.altdir) return;
+    var A = DATA.altdir;
+    function paint(V) {
+      GLIVE = V;
+      var col = GC[V.bias] || GC.netral;
+      var lab = V.bias === "long" ? "LONG" : V.bias === "short" ? "SHORT" : "NETRAL";
+      var v = Math.max(-1, Math.min(1, V.score / 3)) * .85;
+      var deg = 90 - v * 90;
+      var g = $("#ndl-g");
+      if (g) {
+        g.setAttribute("transform", "rotate(" + (90 - deg).toFixed(2) + " " + GA + " " + GB + ")");
+        g.querySelectorAll("path,circle").forEach(function (e, i) {
+          if (i < 2) { e.setAttribute("fill", col); e.setAttribute("stroke", "none"); }
+        });
+      }
+      $("#g-fl").querySelectorAll(".fl").forEach(function (e) { e.setAttribute("fill", col); });
+      $("#glow").style.background = "radial-gradient(circle, " + col + "55 0%, transparent 68%)";
+      var bA = $("#gbias"); bA.textContent = lab + " · LIVE"; bA.style.color = col;
+      var m = $("#dmeta"); m.innerHTML = "";
+      function r(l, v2, c) {
+        var x = el("div", "dr");
+        x.appendChild(el("span", "l", l));
+        x.appendChild(el("span", "d"));
+        x.appendChild(el("span", "v " + (c || ""), v2));
+        m.appendChild(x);
+      }
+      var ar = function (d) { return d > 0 ? "↑" : d < 0 ? "↓" : "→"; };
+      var bp = bbTicker("BTCUSDT");
+      if (bp === null || !isFinite(bp)) bp = A.btc_chg;
+      r("BTC", ar(V.dirBtc) + "  " + sgn(bp, 2) + "% (24 jam live)", bp < 0 ? "neg" : "pos");
+      r("BTC.D", GD.btcd
+        ? ar(V.dirBtcd) + "  " + GD.btcdNow.toFixed(2) + "% · " + sgn(V.dBtcd, 2) + "pp (12 jam)"
+        : "— dominan offline",
+        V.dirBtcd > 0 ? "neg" : V.dirBtcd < 0 ? "pos" : "mut");
+      r("USDT.D", GD.usdtd
+        ? ar(V.dirUsdtd) + "  " + GD.usdtdNow.toFixed(2) + "% · " + sgn(V.dUsdtd, 2) + "pp (12 jam)"
+        : "— dominan offline",
+        V.dirUsdtd > 0 ? "neg" : V.dirUsdtd < 0 ? "pos" : "mut");
+      r("reclaim 1h",
+        "BTC " + ar(V.dirBtc) + " · BTC.D " + ar(V.dirBtcd) + " · USDT.D " + ar(V.dirUsdtd)
+        + " → skor " + sgn(V.score, 0),
+        V.bias === "long" ? "pos" : V.bias === "short" ? "neg" : "mut");
+      r("rezim engine (backtest)", (A.nama || "--") + " · bias tabel: " + (A.bias || "netral"), "mut");
+      var note = el("div", "dnote");
+      note.textContent = "Arah LIVE dari engine reclaim 1 jam (logika _detect_sweep: sweep swing "
+        + "+ close balik; candle forming dibuang). BTC: klines Binance; dominan: CoinGecko. "
+        + "Antara dua sweep dipakai momentum (BTC 24 jam, dominan 12 jam) biar jarum tetap peka.";
+      m.appendChild(note);
+    }
+    btc1h(function (rows) {
+      gdSeries(function (okGd) {
+        var V = { dirBtc: 0, dirBtcd: 0, dirUsdtd: 0, score: 0, bias: "netral", dBtcd: 0, dUsdtd: 0 };
+        if (rows && rows.length > 30) {
+          V.dirBtc = rclSweep(rows.map(function (r) { return r.h; }),
+                               rows.map(function (r) { return r.l; }),
+                               rows.map(function (r) { return r.c; }), .01)
+            || rclSlope(rows.map(function (r) { return r.c; }), 24, .3);
+        }
+        if (okGd && GD.btcd) {
+          V.dirBtcd = rclSweep(GD.btcd, GD.btcd.slice(), GD.btcd, .0015, 12) || rclSlope(GD.btcd, 12, .05);
+          V.dirUsdtd = rclSweep(GD.usdtd, GD.usdtd.slice(), GD.usdtd, .0015, 12) || rclSlope(GD.usdtd, 12, .05);
+          var nn = Math.min(12, GD.btcd.length - 1);
+          V.dBtcd = GD.btcd[GD.btcd.length - 1] - GD.btcd[GD.btcd.length - 1 - nn];
+          V.dUsdtd = GD.usdtd[GD.usdtd.length - 1] - GD.usdtd[GD.usdtd.length - 1 - nn];
+        }
+        V.score = V.dirBtc - V.dirBtcd - V.dirUsdtd;
+        V.bias = V.score > 0 ? "long" : V.score < 0 ? "short" : "netral";
+        if ((rows && rows.length > 30) || (okGd && GD.btcd)) paint(V);
+      });
+    });
+  }
+  /* ===== PENENTU ARAH LIVE — engine reclaim 1 jam =====
+     Replikasi _detect_sweep + _find_pivots (smc_engine): pivot order 3,
+     sweep di luar level ±EPS 0.15%, MAX_WAIT 48 bar. Tiga pemilih:
+     BTC (klines Binance 1h) + BTC.D & USDT.D (share mcap CoinGecko dari
+     basket 5 koin besar, di-anchor ke nilai sejati dari /global).
+     Arah alt: BTC mengikuti arahnya; BTC.D / USDT.D naik = menekan alts. */
+  var RCL = { order: 3, eps: 0.0015, maxWait: 48 };
+  var GLIVE = null;   // hasil arah live terakhir (untuk debug/inspeksi)
+  var GD = { at: 0, btcd: null, usdtd: null, btcdNow: 0, usdtdNow: 0 };
+  var GBTC = { at: 0, rows: null };
+  function rclPivots(hi, lo, minMove) {
+    var n = hi.length; if (n < RCL.order * 2 + 3) return [];
+    var raw = [];
+    for (var i = RCL.order; i < n - RCL.order; i++) {
+      var hm = -1e18, lm = 1e18;
+      for (var k = i - RCL.order; k <= i + RCL.order; k++) {
+        if (hi[k] > hm) hm = hi[k];
+        if (lo[k] < lm) lm = lo[k];
+      }
+      if (hi[i] >= hm - 1e-10) raw.push({ type: "high", price: hi[i], idx: i });
+      if (lo[i] <= lm + 1e-10) raw.push({ type: "low", price: lo[i], idx: i });
+    }
+    var alt = [];
+    raw.forEach(function (p) {
+      if (!alt.length) { alt.push(p); return; }
+      if (alt[alt.length - 1].type === p.type) {
+        if (p.type === "high" && p.price > alt[alt.length - 1].price) alt[alt.length - 1] = p;
+        else if (p.type === "low" && p.price < alt[alt.length - 1].price) alt[alt.length - 1] = p;
+      } else alt.push(p);
+    });
+    var out = [];
+    alt.forEach(function (p) {
+      if (!out.length) { out.push(p); return; }
+      var mv = Math.abs(p.price - out[out.length - 1].price) / Math.max(out[out.length - 1].price, 1e-10);
+      if (mv >= minMove) out.push(p);
+      else if (p.type === "high" && p.price > out[out.length - 1].price) out[out.length - 1] = p;
+      else if (p.type === "low" && p.price < out[out.length - 1].price) out[out.length - 1] = p;
+    });
+    return out;
+  }
+  /* arah sweep+reclaim pada bar tertutup terakhir: +1 bull, -1 bear, 0 netral.
+     Engine asli: sweep & reclaim di bar yang SAMA (lo[cur] menembus level,
+     close balik). Untuk seri close-only (dominan) dipakai kedalaman sweep
+     dari 6 bar sebelumnya. */
+  function rclSweep(hi, lo, cl, minMove, win) {
+    var n = cl.length; if (n < RCL.order * 2 + 6) return 0;
+    var cur = n - 1, piv = rclPivots(hi, lo, minMove);
+    var w0 = Math.max(RCL.order + 1, cur - (win || 6));
+    var loMin = Math.min.apply(null, lo.slice(w0, cur));
+    var hiMax = Math.max.apply(null, hi.slice(w0, cur));
+    for (var i = piv.length - 1; i >= 0; i--) {
+      var p = piv[i];
+      if (p.idx >= cur || p.idx + RCL.order > cur) continue;
+      if (cur - p.idx > RCL.maxWait) break;
+      if (p.type === "low") {
+        if ((lo[cur] < p.price * (1 - RCL.eps) || loMin < p.price * (1 - RCL.eps)) && cl[cur] > p.price) return 1;
+      } else {
+        if ((hi[cur] > p.price * (1 + RCL.eps) || hiMax > p.price * (1 + RCL.eps)) && cl[cur] < p.price) return -1;
+      }
+    }
+    return 0;
+  }
+  /* fallback peka: arah momentum di antara dua sweep supaya jarum tidak tidur */
+  function rclSlope(c, n, thr) {
+    if (!c || c.length < n + 1) return 0;
+    var d = (c[c.length - 1] - c[c.length - 1 - n]) / c[c.length - 1 - n] * 100;
+    return d > thr ? 1 : d < -thr ? -1 : 0;
+  }
+  /* seri dominan: share mcap per koin thd basket, di-anchor ke nilai sejati
+     /global saat ini (basket ~80% total, pergeserannya lambat — perubahan
+     poin persen tetap akurat). Cache 15 menit di memori. */
+  function gdSeries(cb) {
+    if (GD.btcd && Date.now() - GD.at < 15 * 60e3) { cb(true); return; }
+    if (GD.failAt && Date.now() - GD.failAt < 5 * 60e3) { cb(false); return; }
+    var ids = ["bitcoin", "ethereum", "tether", "binancecoin", "solana"];
+    var mc = {}, got = 0, fail = false, glob = null, done = false;
+    function fin() { if (!done) { done = true; if (fail) GD.failAt = Date.now(); cb(!fail); } }
+    setTimeout(function () { if (!done) { done = true; GD.failAt = Date.now(); cb(false); } }, 12000);
+    ids.forEach(function (id) {
+      fetch("https://api.coingecko.com/api/v3/coins/" + id + "/market_chart?vs_currency=usd&days=2")
+        .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+        .then(function (j) { mc[id] = (j.market_caps || []).map(function (x) { return x[1]; }); tick(); })
+        .catch(function () { fail = true; tick(); });
+    });
+    fetch("https://api.coingecko.com/api/v3/global")
+      .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+      .then(function (j) { glob = (j.data || {}).market_cap_percentage || null; })
+      .catch(function () {});
+    function tick() {
+      if (done) return;
+      if (++got < ids.length) return;
+      if (fail) { fin(); return; }
+      var n = Math.min.apply(null, ids.map(function (id) { return mc[id] ? mc[id].length : 0; }));
+      if (n < 30) { fail = true; fin(); return; }
+      var off = {}, basket = new Array(n).fill(0), i;
+      ids.forEach(function (id) {
+        var a = mc[id]; off[id] = a.length - n;
+        for (i = 0; i < n; i++) basket[i] += a[off[id] + i];
+      });
+      function series(id, anchor) {
+        var a = mc[id], s = [];
+        for (var i = 0; i < n; i++) s.push(a[off[id] + i] / basket[i] * 100);
+        if (anchor) { var k = anchor / s[s.length - 1]; s = s.map(function (v) { return v * k; }); }
+        return s;
+      }
+      /* anchor: nilai sejati dari /global; kalau rate-limit, pakai nilai
+         terakhir engine (data.json) supaya absolut tetap masuk akal */
+      var aBtc = glob && glob.btc ? glob.btc
+        : (DATA && DATA.altdir && DATA.altdir.btcd_now) || 0;
+      var aUsdt = (DATA && DATA.altdir && DATA.altdir.usdtd_now) || 0;
+      GD.btcd = series("bitcoin", aBtc);
+      GD.usdtd = series("tether", aUsdt);
+      GD.btcdNow = GD.btcd[GD.btcd.length - 1];
+      GD.usdtdNow = GD.usdtd[GD.usdtd.length - 1];
+      GD.at = Date.now();
+      cb(true);
+    }
   }
 
   function strip() {
@@ -1387,22 +1592,48 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   function isLogged() { try { return sessionStorage.getItem("qkuk_admin_ok") === "1"; } catch (e) { return false; } }
   function isAdmin() { return isLogged(); }
+  var PLOG = [];          // riwayat semua aksi admin (ambil/koreksi/hapus)
+  var AUTHCLOUD = null;   // hash password hasil "ganti password" (dari cloud)
+  function curHash() { return AUTHCLOUD || AUTH.hash; }
+  function wibStr(iso) {
+    if (!iso) return "—";
+    var d = new Date(new Date(iso).getTime() + 7 * 3600e3);
+    var B = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+    return ("0" + d.getUTCDate()).slice(-2) + " " + B[d.getUTCMonth()] + " "
+      + ("0" + d.getUTCHours()).slice(-2) + ":" + ("0" + d.getUTCMinutes()).slice(-2) + " WIB";
+  }
+  function plogAdd(act, key, p, r) {
+    var kp = (key || "").split("|");
+    PLOG.unshift({ t: new Date().toISOString(), act: act,
+      sym: (r && r.sym) || kp[3] || "", tf: kp[0] || "", jenis: kp[1] || "",
+      dir0: (r && r.dir) || null, side: p ? (p.side || null) : null,
+      pct: p && isFinite(p.pct) ? p.pct : null, win: p ? p.win : null,
+      note: p && p.note ? p.note : null });
+    if (PLOG.length > 200) PLOG.length = 200;
+  }
   function pickKey(tf, jenis, r) { return tf + "|" + jenis + "|" + (r.ts || "") + "|" + (r.sym || ""); }
   function b64(s) { return btoa(unescape(encodeURIComponent(s))); }
   function loadPicks() {
-    /* dua sumber digabung: picks.json di repo + cloud (mode password). Cloud menang. */
-    var got = 0, repo = {}, cloud = {};
-    function tick() { if (++got < 2) return; PICKS = Object.assign({}, repo, cloud); applyPicks(); }
+    /* dua sumber digabung: picks.json di repo + cloud (mode login). Cloud menang. */
+    var got = 0, repo = {}, repoLog = [], cloud = {}, cloudLog = [];
+    function tick() {
+      if (++got < 2) return;
+      PICKS = Object.assign({}, repo, cloud);
+      PLOG = cloudLog.length ? cloudLog : repoLog;
+      applyPicks();
+    }
     fetch("picks.json?t=" + Date.now(), { cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : {}; })
-      .then(function (j) { repo = (j && j.picks) || {}; tick(); })
+      .then(function (j) { repo = (j && j.picks) || {}; repoLog = (j && j.log) || []; tick(); })
       .catch(function () { tick(); });
     fetch("https://textdb.dev/api/data/" + TXTDB_ID + "?t=" + Date.now(), { cache: "no-store" })
       .then(function (r) { return r.ok ? r.text() : ""; })
       .then(function (t) {
         var j = null; try { j = JSON.parse(t); } catch (e) {}
         if (j && typeof j.value === "string") { try { j = JSON.parse(j.value); } catch (e) {} }
-        cloud = (j && j.picks) || {}; tick();
+        cloud = (j && j.picks) || {}; cloudLog = (j && j.log) || [];
+        if (j && j.auth && j.auth.hash) AUTHCLOUD = j.auth.hash;
+        tick();
       })
       .catch(function () { tick(); });
   }
@@ -1421,15 +1652,19 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   /* simpan picks — hanya lewat cloud (textdb.dev); wajib login admin.
      Jalur GitHub dihapus (token repot & rawan salah scope). */
+  function cloudWrite() {
+    return fetch("https://textdb.dev/api/data/" + TXTDB_ID, {
+      method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ __id: TXTDB_ID, value: JSON.stringify({
+        picks: PICKS, log: PLOG,
+        auth: AUTHCLOUD ? { user: AUTH.user, hash: AUTHCLOUD } : null }) })
+    }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); });
+  }
   function savePicks(st, done) {
     if (!isLogged()) { openAdmin(); return; }
     st.textContent = "menyimpan…";
-    fetch("https://textdb.dev/api/data/" + TXTDB_ID, {
-      method: "POST", headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ __id: TXTDB_ID, value: JSON.stringify({ picks: PICKS }) })
-    })
-      .then(function (r) {
-        if (!r.ok) throw new Error("HTTP " + r.status);
+    cloudWrite()
+      .then(function () {
         st.textContent = "tersimpan ✓ (live seketika)";
         if (done) done();
       })
@@ -1487,7 +1722,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (p) { var del = el("button", "adm-del", "hapus pick"); del.type = "button";
       row.insertBefore(del, cancel);
       del.addEventListener("click", function () {
-        delete PICKS[key]; savePicks(st, function () { applyPicks(); admClose(); });
+        delete PICKS[key]; plogAdd("hapus", key, p, r);
+        savePicks(st, function () { applyPicks(); admClose(); });
       });
     }
     box.appendChild(sideSel); box.appendChild(pctIn); box.appendChild(winSel);
@@ -1498,6 +1734,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         pct: pctIn.value === "" ? null : parseFloat(pctIn.value),
         win: winSel.value === "win" ? 1 : winSel.value === "loss" ? 0 : null,
         note: noteIn.value || null, ts: new Date().toISOString(), by: "admin" };
+      plogAdd(p ? "koreksi" : "ambil", key, PICKS[key], r);
       savePicks(st, function () { applyPicks(); admClose(); });
     });
     cancel.addEventListener("click", admClose);
@@ -1509,9 +1746,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (isLogged()) {
       box.appendChild(el("div", "adm-desc", "Login sebagai admin ✓ — tombol \"ambil\" aktif di semua tabel dan kamu bisa mengoreksi pick kapan pun."));
       var row0 = el("div", "adm-row");
+      var ganti = el("button", "adm-save", "ganti password"); ganti.type = "button";
       var out = el("button", "adm-del", "keluar"); out.type = "button";
-      row0.appendChild(out); box.appendChild(row0);
+      row0.appendChild(ganti); row0.appendChild(out); box.appendChild(row0);
       admShow(box);
+      ganti.addEventListener("click", openChgPass);
       out.addEventListener("click", function () {
         try { sessionStorage.removeItem("qkuk_admin_ok"); } catch (e) {}
         admClose(); reapply();
@@ -1533,7 +1772,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var u = (uIn.value || "").trim(), p = pIn.value || "";
       sha256hex(u + ":" + p)
         .then(function (h) {
-          if (u === AUTH.user && h === AUTH.hash) {
+          if (u === AUTH.user && h === curHash()) {
             try { sessionStorage.setItem("qkuk_admin_ok", "1"); } catch (e) {}
             st.textContent = "selamat datang, admin ✓";
             setTimeout(function () { admClose(); reapply(); }, 450);
@@ -1544,6 +1783,44 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     btn.addEventListener("click", tryLogin);
     pIn.addEventListener("keydown", function (ev) { if (ev.key === "Enter") tryLogin(); });
     uIn.addEventListener("keydown", function (ev) { if (ev.key === "Enter") pIn.focus(); });
+  }
+  function openChgPass() {
+    var box = el("div");
+    box.appendChild(admHead("Ganti password admin"));
+    box.appendChild(el("div", "adm-desc",
+      "Password baru disimpan sebagai hash SHA-256 di cloud — berlaku untuk semua perangkat, tanpa edit kode. Minimal 6 karakter."));
+    var oIn = el("input", "adm-in"); oIn.type = "password"; oIn.placeholder = "password lama";
+    var nIn = el("input", "adm-in"); nIn.type = "password"; nIn.placeholder = "password baru";
+    var rIn = el("input", "adm-in"); rIn.type = "password"; rIn.placeholder = "ulangi password baru";
+    var st = el("div", "adm-status");
+    var row = el("div", "adm-row");
+    var ok = el("button", "adm-save", "simpan password"); ok.type = "button";
+    var cc = el("button", "adm-cancel", "batal"); cc.type = "button";
+    row.appendChild(ok); row.appendChild(cc);
+    box.appendChild(oIn); box.appendChild(nIn); box.appendChild(rIn); box.appendChild(row); box.appendChild(st);
+    admShow(box);
+    ok.addEventListener("click", function () {
+      var o = oIn.value || "", n = nIn.value || "", r2 = rIn.value || "";
+      if (n.length < 6) { st.textContent = "password baru minimal 6 karakter"; return; }
+      if (n !== r2) { st.textContent = "ulangan password baru tidak sama"; return; }
+      st.textContent = "memverifikasi…";
+      sha256hex(AUTH.user + ":" + o)
+        .then(function (h) {
+          if (h !== curHash()) { st.textContent = "password lama salah"; return; }
+          return sha256hex(AUTH.user + ":" + n);
+        })
+        .then(function (h2) {
+          if (!h2) return;
+          AUTHCLOUD = h2;
+          plogAdd("password", "", null, null);
+          return cloudWrite().then(function () {
+            st.textContent = "password diganti ✓ — aktif untuk semua perangkat";
+            setTimeout(admClose, 1000);
+          });
+        })
+        .catch(function (e) { st.textContent = "gagal: " + (e.message || e); });
+    });
+    cc.addEventListener("click", admClose);
   }
   /* sel kolom "live" di tabel: tombol ambil (admin) / badge hasil (semua) */
   function pickCell(r, tf, jenis) {
@@ -1621,8 +1898,64 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         row("avg / pick", sgn(tot / n, 2) + "%", tot / n > 0 ? "pos" : tot / n < 0 ? "neg" : "mut");
         row("W \u00b7 L \u00b7 open", w + " \u00b7 " + l + " \u00b7 " + open, "mut");
       }
+      var E2 = DATA.live[tf] || {};
+      var btN = E2.tutup || 0;
+      var btWr = btN ? (E2.menang || 0) / btN * 100 : null;
+      var bh = el("div", "row bt-h"); bh.appendChild(el("span", "l", "— vs backtest engine —"));
+      rows.appendChild(bh);
+      row("backtest win rate", btWr === null ? "—" : btWr.toFixed(1) + "% (" + btN + " tutup)",
+        btWr === null ? "mut" : btWr >= 50 ? "pos" : "neg");
+      row("backtest hasil", sgn(E2.totR, 2) + "R", E2.totR > 0 ? "pos" : E2.totR < 0 ? "neg" : "mut");
       c.appendChild(rows); host.appendChild(c);
     });
+    plogRender();
+  }
+  /* tabel riwayat semua aksi admin — ambil/koreksi/hapus/password, terbaru dulu,
+     waktu ditampilkan WIB. Sumbernya log di cloud (PLOG), bukan backtest. */
+  function plogRender() {
+    var kamu = document.getElementById("kamu");
+    if (!kamu) return;
+    var host = document.getElementById("plog");
+    if (!host) {
+      host = el("div", "plog-wrap"); host.id = "plog";
+      var lg = document.getElementById("live-grid");
+      if (lg && lg.parentNode === kamu) kamu.insertBefore(host, lg.nextSibling);
+      else kamu.appendChild(host);
+    }
+    host.innerHTML = "";
+    host.appendChild(el("div", "pn-h lv-sub", "riwayat koreksi admin"));
+    if (!PLOG.length) {
+      host.appendChild(el("div", "plog-empty",
+        "belum ada koreksi — setiap ambil, koreksi, atau hapus pick tercatat di sini dengan waktu WIB-nya"));
+      return;
+    }
+    var sc = el("div", "plog-scroll"), tb = el("table", "plog-t");
+    var trh = el("tr");
+    ["waktu", "koin", "engine", "jenis", "aksi", "arah", "hasil", "status", "catatan"]
+      .forEach(function (x) { trh.appendChild(el("th", null, x)); });
+    var thead = el("thead"); thead.appendChild(trh); tb.appendChild(thead);
+    var tbody = el("tbody");
+    PLOG.slice(0, 50).forEach(function (e) {
+      var tr = el("tr");
+      function td(v, cls) { tr.appendChild(el("td", cls || "", v)); }
+      td(wibStr(e.t), "mut");
+      td((e.sym || "").replace(/USDT$/, "") || "—");
+      td((e.tf || "").toUpperCase() || "—", "mut");
+      td(e.jenis === "sig" ? "sinyal" : e.jenis === "watch" ? "watchlist" : (e.jenis || "—"), "mut");
+      td(e.act === "hapus" ? "hapus" : e.act === "koreksi" ? "koreksi" : e.act === "password" ? "password" : "ambil",
+        e.act === "hapus" ? "neg" : e.act === "koreksi" ? "warn" : "mut");
+      td(e.act === "hapus" ? "—"
+        : e.side ? e.side + (e.dir0 && e.side !== e.dir0 ? " ← " + e.dir0 : "")
+        : (e.dir0 || "—"));
+      td(isFinite(e.pct) ? sgn(e.pct, 1) + "%" : "—",
+        !isFinite(e.pct) ? "mut" : e.pct > 0 ? "pos" : e.pct < 0 ? "neg" : "mut");
+      td(e.act === "hapus" || e.act === "password" ? "—"
+        : e.win === 1 ? "WIN" : e.win === 0 ? "LOSS" : "open",
+        e.win === 1 ? "pos" : e.win === 0 ? "neg" : "mut");
+      td(e.note || "—", "mut");
+      tbody.appendChild(tr);
+    });
+    tb.appendChild(tbody); sc.appendChild(tb); host.appendChild(sc);
   }
   function adminInit() {
     try { localStorage.removeItem("qkuk_admin_token"); localStorage.removeItem("qkuk_admin_pass"); } catch (e) {} // bersihkan sisa mode lama
