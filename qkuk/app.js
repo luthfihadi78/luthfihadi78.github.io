@@ -211,8 +211,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       }
       var ar = function (d) { return d > 0 ? "↑" : d < 0 ? "↓" : "→"; };
       var bp = bbTicker("BTCUSDT");
-      if (bp === null || !isFinite(bp)) bp = A.btc_chg;
-      r("BTC", ar(V.dirBtc) + "  " + sgn(bp, 2) + "% (24 jam live)", bp < 0 ? "neg" : "pos");
+      if (bp === null || !isFinite(bp)) bp = (V.btc24h != null) ? V.btc24h : A.btc_chg;
+      var bpSrc = (bp === A.btc_chg && V.btc24h == null) ? " (cache)" : " (24 jam)";
+      r("BTC", ar(V.dirBtc) + "  " + sgn(bp, 2) + "%" + bpSrc, bp < 0 ? "neg" : "pos");
+      if (V.pubTs) r("dihitung engine", V.pubTs + " WIB", "mut");
       r("BTC.D", GD.btcd
         ? ar(V.dirBtcd) + "  " + GD.btcdNow.toFixed(2) + "% · " + sgn(V.dBtcd, 2) + "pp (12 jam)"
         : "— dominan offline",
@@ -227,10 +229,22 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         V.bias === "long" ? "pos" : V.bias === "short" ? "neg" : "mut");
       r("rezim engine (backtest)", (A.nama || "--") + " · bias tabel: " + (A.bias || "netral"), "mut");
       var note = el("div", "dnote");
-      note.textContent = "Arah LIVE dari engine reclaim 1 jam (logika _detect_sweep: sweep swing "
-        + "+ close balik; candle forming dibuang). BTC: klines Binance; dominan: CoinGecko. "
-        + "Antara dua sweep dipakai momentum (BTC 24 jam, dominan 12 jam) biar jarum tetap peka.";
+      note.textContent = "Arah LIVE dari engine reclaim 1 jam — dihitung di SERVER bot "
+        + "(sama untuk semua device; candle forming dibuang). Device yang bisa menjangkau "
+        + "Binance/CoinGecko menyegarkan real-time di atasnya. Antara dua sweep dipakai "
+        + "momentum (BTC 24 jam, dominan 12 jam) biar jarum tetap peka.";
       m.appendChild(note);
+    }
+    /* 20 Sep v28: nilai arah dihitung JUGA di engine (dashboard_data →
+       altdir_live, logika rcl identik) dan diterbitkan di data.json.
+       Semua device sekarang mulai dari nilai yang SAMA; device yang bisa
+       mencapai Binance/CoinGecko menyegarkan real-time di atasnya. */
+    var pub = DATA.altdir_live;
+    if (pub && (pub.src && (pub.src.btc || pub.src.dom))) {
+      paint({ dirBtc: pub.dirBtc || 0, dirBtcd: pub.dirBtcd || 0,
+              dirUsdtd: pub.dirUsdtd || 0, score: pub.score || 0,
+              bias: pub.bias || "netral", dBtcd: pub.dBtcd || 0, dUsdtd: pub.dUsdtd || 0,
+              pubTs: pub.ts, btc24h: pub.btc24h });
     }
     btc1h(function (rows) {
       gdSeries(function (okGd) {
@@ -2147,6 +2161,36 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         btn = gate.querySelector("#gate-btn"), err = gate.querySelector("#gate-err"),
         sub = gate.querySelector(".gate-sub"), chain = gate.querySelector("#gate-chain"),
         hashEl = gate.querySelector("#gate-hash");
+    /* partikel heksagon melayang — latar hidup bertema node blockchain */
+    (function () {
+      var host = gate.querySelector(".gparts");
+      if (!host) return;
+      for (var i = 0; i < 16; i++) {
+        var p = el("span", "gp" + (Math.random() < .38 ? " mint" : ""));
+        var sz = 6 + Math.random() * 12;
+        p.style.width = p.style.height = sz.toFixed(1) + "px";
+        p.style.left = (Math.random() * 96 + 2).toFixed(2) + "%";
+        p.style.opacity = (0.05 + Math.random() * 0.12).toFixed(2);
+        p.style.animationDuration = (14 + Math.random() * 16).toFixed(1) + "s";
+        p.style.animationDelay = (-Math.random() * 30).toFixed(1) + "s";
+        p.style.setProperty("--sway", (Math.random() * 90 - 45).toFixed(0) + "px");
+        host.appendChild(p);
+      }
+    })();
+    /* toggle lihat / sembunyikan password */
+    var eye = gate.querySelector("#gate-eye");
+    if (eye) {
+      var EYE_ON = eye.innerHTML;
+      var EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+      eye.addEventListener("click", function () {
+        var show = pIn.type === "password";
+        pIn.type = show ? "text" : "password";
+        eye.classList.toggle("on", show);
+        eye.innerHTML = show ? EYE_OFF : EYE_ON;
+        eye.title = show ? "sembunyikan password" : "tampilkan password";
+        eye.setAttribute("aria-label", eye.title);
+      });
+    }
     function finish() {
       err.textContent = "";
       gate.querySelector(".gate-form").style.display = "none";

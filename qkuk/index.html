@@ -13,11 +13,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=20260920i">
+<link rel="stylesheet" href="style.css?v=20260920l">
 </head>
 <body>
 
 <div id="gate">
+  <div class="gparts" aria-hidden="true"></div>
   <div class="gate-box">
     <div class="gate-logo">
       <span class="logo">
@@ -36,7 +37,12 @@
     <div class="gate-sub"></div>
     <div class="gate-form">
       <input id="gate-user" autocomplete="username" spellcheck="false" placeholder="username">
-      <input id="gate-pass" type="password" autocomplete="current-password" placeholder="password">
+      <div class="gpw">
+        <input id="gate-pass" type="password" autocomplete="current-password" placeholder="password">
+        <button id="gate-eye" type="button" title="tampilkan password" aria-label="tampilkan password">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
       <button id="gate-btn" type="button">MASUK</button>
     </div>
     <div id="gate-err" class="gate-err" role="alert"></div>
@@ -223,6 +229,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20260920i" defer></script>
+<script src="app.js?v=20260920l" defer></script>
 </body>
 </html>
