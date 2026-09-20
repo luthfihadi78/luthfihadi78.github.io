@@ -1631,6 +1631,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (++got < 2) return;
       PICKS = Object.assign({}, repo, cloud);
       PLOG = cloudLog.length ? cloudLog : repoLog;
+      /* riwayat kosong padahal ada pick? (mis. log tertimpa) — rekonstruksi
+         dari pick itu sendiri supaya tabel riwayat tidak pernah blank */
+      if (!PLOG.length && Object.keys(PICKS).length) {
+        PLOG = Object.keys(PICKS).map(function (k) {
+          var kp = k.split("|"), p = PICKS[k] || {};
+          return { t: p.ts || "", act: "ambil", sym: kp[3] || "", tf: kp[0] || "",
+            jenis: kp[1] || "", dir0: null, side: p.side || null,
+            pct: (typeof p.pct === "number") ? p.pct : null,
+            win: (p.win === 0 || p.win === 1) ? p.win : null, note: p.note || null };
+        }).sort(function (a, b) { return (b.t || "").localeCompare(a.t || ""); });
+      }
       applyPicks();
     }
     fetch("picks.json?t=" + Date.now(), { cache: "no-store" })
