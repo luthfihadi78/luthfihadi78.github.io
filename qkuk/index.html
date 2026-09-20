@@ -13,13 +13,26 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=20260920f">
+<link rel="stylesheet" href="style.css?v=20260920g">
 </head>
 <body>
 
 <div id="gate">
   <div class="gate-box">
-    <div class="gate-logo">&gt;QKUK<span>_TERMINAL</span></div>
+    <div class="gate-logo">
+      <span class="logo">
+        <svg class="mark" viewBox="0 0 32 32" role="img" aria-label="Qkuk Terminal">
+          <path d="M28 16 L22 26.39 L10 26.39 L4 16 L10 5.61 L22 5.61 Z"
+                fill="none" stroke="currentColor" stroke-width="2.1"
+                stroke-linejoin="round"/>
+          <path d="M11.7 11.9 L15.4 16 L11.7 20.1" fill="none" stroke="currentColor"
+                stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect class="cur" x="17.4" y="15.05" width="4.4" height="1.9" rx=".95"
+                fill="currentColor"/>
+        </svg>
+        <span class="wm"><b>Qkuk</b> Terminal</span>
+      </span>
+    </div>
     <div class="gate-sub">terminal privat — masuk untuk melanjutkan</div>
     <div class="gate-form">
       <input id="gate-user" autocomplete="username" spellcheck="false" placeholder="username">
@@ -210,6 +223,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20260920f" defer></script>
+<script src="app.js?v=20260920g" defer></script>
 </body>
 </html>

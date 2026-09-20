@@ -412,8 +412,10 @@ html.authed #gate{display:none}
 @keyframes gboxIn{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}
 .gate-box.shake{animation:gshake .4s}
 @keyframes gshake{20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
-.gate-logo{font-size:26px;font-weight:800;letter-spacing:.06em;color:#E9F2ED}
-.gate-logo span{color:var(--gold);font-weight:600;font-size:15px;display:block;letter-spacing:.34em;margin-top:2px}
+.gate-logo{display:flex;justify-content:center;padding:2px 0 8px}
+.gate-logo .mark{width:36px;height:36px}
+.gate-logo .wm{font-size:21px}
+.gate-logo .wm b{font-weight:800}
 .gate-sub{margin:14px 0 20px;font-size:12.5px;color:#93A69B}
 .gate-form{display:flex;flex-direction:column;gap:10px}
 .gate-form input{width:100%;box-sizing:border-box;padding:11px 13px;border-radius:10px;border:1px solid #2A3A31;
