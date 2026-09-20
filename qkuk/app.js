@@ -223,6 +223,54 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         ? ar(V.dirUsdtd) + "  " + GD.usdtdNow.toFixed(2) + "% · " + sgn(V.dUsdtd, 2) + "pp (12 jam)"
         : "— dominan offline",
         V.dirUsdtd > 0 ? "neg" : V.dirUsdtd < 0 ? "pos" : "mut");
+      /* sparkline riwayat arah per jam (48 jam terakhir, dari engine) */
+      (function () {
+        var H = DATA.altdir_hist || [];
+        if (H.length < 2) return;
+        var W = 210, Hh = 34, pad = 3;
+        var colmap = { long: "var(--up)", short: "var(--dn)", netral: "#8B968F" };
+        var NS = "http://www.w3.org/2000/svg";
+        var svg = document.createElementNS(NS, "svg");
+        svg.setAttribute("viewBox", "0 0 " + W + " " + Hh);
+        svg.setAttribute("width", W); svg.setAttribute("height", Hh);
+        svg.style.verticalAlign = "middle";
+        var n = H.length;
+        function cx(i) { return pad + i * (W - 2 * pad) / (n - 1); }
+        function cy(sc) { return Hh / 2 - Math.max(-1, Math.min(1, sc / 2)) * (Hh / 2 - pad); }
+        var pts = "", i;
+        for (i = 0; i < n; i++) pts += cx(i).toFixed(1) + "," + cy(H[i].score).toFixed(1) + " ";
+        var pl = document.createElementNS(NS, "polyline");
+        pl.setAttribute("points", pts);
+        pl.setAttribute("fill", "none");
+        pl.setAttribute("stroke", "rgba(139,150,143,.55)");
+        pl.setAttribute("stroke-width", "1.2");
+        svg.appendChild(pl);
+        var base = document.createElementNS(NS, "line");
+        base.setAttribute("x1", pad); base.setAttribute("x2", W - pad);
+        base.setAttribute("y1", Hh / 2); base.setAttribute("y2", Hh / 2);
+        base.setAttribute("stroke", "rgba(139,150,143,.25)");
+        base.setAttribute("stroke-dasharray", "2 3");
+        svg.appendChild(base);
+        for (i = 0; i < n; i++) {
+          var c = document.createElementNS(NS, "circle");
+          c.setAttribute("cx", cx(i).toFixed(1)); c.setAttribute("cy", cy(H[i].score).toFixed(1));
+          c.setAttribute("r", i === n - 1 ? 2.6 : 1.4);
+          c.setAttribute("fill", colmap[H[i].bias] || colmap.netral);
+          var tt = document.createElementNS(NS, "title");
+          var dt = new Date(H[i].t * 1000);
+          tt.textContent = (dt.getUTCHours() + 7) % 24 + ".00 WIB — " + H[i].bias.toUpperCase()
+            + " (skor " + H[i].score + ")";
+          c.appendChild(tt);
+          svg.appendChild(c);
+        }
+        var x = el("div", "dr");
+        x.appendChild(el("span", "l", "riwayat " + n + " jam"));
+        x.appendChild(el("span", "d"));
+        var vs = el("span", "v mut");
+        vs.appendChild(svg);
+        x.appendChild(vs);
+        m.appendChild(x);
+      })();
       r("reclaim 1h",
         "BTC " + ar(V.dirBtc) + " · BTC.D " + ar(V.dirBtcd) + " · USDT.D " + ar(V.dirUsdtd)
         + " → skor " + sgn(V.score, 0),
