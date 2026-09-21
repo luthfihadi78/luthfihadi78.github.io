@@ -382,6 +382,17 @@ button.apbadge{cursor:pointer}
   pointer-events:none;z-index:3;animation:bbstarPulse 2s ease-in-out infinite}
 @keyframes bbstarPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
 
+/* ── v23: label koreksi admin DI DALAM bubble (terlihat semua pengunjung) ──
+   "short" merah / "long" hijau — arah yang admin ambil dari engine */
+.bb .bbfix{font-style:normal;text-decoration:none;font-weight:800;text-transform:uppercase;
+  letter-spacing:.14em;font-size:.78em;line-height:1;pointer-events:none;
+  padding:1.5px 7px;border-radius:999px;text-shadow:none}
+.bb .bbfix.long{color:#39e08c;background:rgba(57,224,140,.13);
+  box-shadow:inset 0 0 0 1px rgba(57,224,140,.45)}
+.bb .bbfix.short{color:#ff7a70;background:rgba(255,122,112,.13);
+  box-shadow:inset 0 0 0 1px rgba(255,122,112,.45)}
+@media(max-width:700px){.bb .bbfix{padding:1px 5px;letter-spacing:.08em}}
+
 /* ── v21: riwayat koreksi admin + pembanding backtest ── */
 .row.bt-h{margin-top:7px;padding-top:6px;border-top:1px dashed var(--line)}
 .row.bt-h .l{color:var(--fg-3);font-size:10px;letter-spacing:.08em}

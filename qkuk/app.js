@@ -978,7 +978,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   var bbPicked = {};
   function bbPickedSync() {
     /* tanda bubble hanya untuk pick HARI INI (WIB) — pick hari-hari
-       sebelumnya tidak lagi ditandai di kanvas */
+       sebelumnya tidak lagi ditandai di kanvas. Nilai = arah pilihan admin
+       (p.side) supaya bubble menampilkan label koreksi long/short. */
     bbPicked = {};
     var hari = wibDate(new Date().toISOString());
     Object.keys(PICKS).forEach(function (k) {
@@ -989,7 +990,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var tglSig = (k.split("|")[2] || "").slice(0, 10);
       if (!tglSig || tglSig !== hari) return;
       var sym = (k.split("|")[3] || "").toUpperCase();
-      if (sym) bbPicked[sym] = true;
+      if (!sym) return;
+      if (p.side === "long" || p.side === "short") bbPicked[sym] = p.side;
+      else if (!bbPicked[sym]) bbPicked[sym] = true;
     });
   }
   function bbPickedMark() {
@@ -1001,6 +1004,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var st = b.querySelector(".bbstar");
       if (on && !st) b.appendChild(el("span", "bbstar", "\u2605"));
       else if (!on && st && st.parentNode) st.parentNode.removeChild(st);
+      /* label koreksi admin di dalam bubble (terlihat semua pengunjung):
+         "short" merah / "long" hijau — arah yang admin ambil */
+      var side = on && bbPicked[sym] !== true ? bbPicked[sym] : null;
+      var fx = b.querySelector(".bbfix");
+      if (side) {
+        if (!fx) { fx = el("u", "bbfix " + side, side); fx.dataset.side = side; b.appendChild(fx); }
+        else if (fx.dataset.side !== side) {
+          fx.className = "bbfix " + side; fx.textContent = side; fx.dataset.side = side;
+        }
+      } else if (fx && fx.parentNode) fx.parentNode.removeChild(fx);
       if (on) {
         if (!b.dataset.ob) { b.dataset.ob = b.style.border || ""; b.dataset.os = b.style.boxShadow || ""; }
         var dia = b.offsetWidth || 40;
