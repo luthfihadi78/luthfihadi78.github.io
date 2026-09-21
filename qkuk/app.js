@@ -228,6 +228,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       $("#g-fl").querySelectorAll(".fl").forEach(function (e) { e.setAttribute("fill", col); });
       $("#glow").style.background = "radial-gradient(circle, " + col + "55 0%, transparent 68%)";
       var bA = $("#gbias"); bA.textContent = lab + " · LIVE"; bA.style.color = col;
+      /* 21 Sep — gname = keterangan sumber arah, BUKAN rezim backtest.
+         Dulu menampilkan nama rezim tabel stale (mis. "SANGAT BULLISH
+         (altseason)" dari log berhari-hari lalu) persis di bawah label LIVE —
+         terbaca seperti gauge berkata dua hal bertentangan sekaligus. */
+      $("#gname").textContent = "arah live · engine reclaim 1 jam";
       var m = $("#dmeta"); m.innerHTML = "";
       function r(l, v2, c) {
         var x = el("div", "dr");
@@ -239,8 +244,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var ar = function (d) { return d > 0 ? "↑" : d < 0 ? "↓" : "→"; };
       var bp = bbTicker("BTCUSDT");
       if (bp === null || !isFinite(bp)) bp = (V.btc24h != null) ? V.btc24h : A.btc_chg;
-      var bpSrc = (bp === A.btc_chg && V.btc24h == null) ? " (cache)" : " (24 jam)";
-      r("BTC", ar(V.dirBtc) + "  " + sgn(bp, 2) + "%" + bpSrc, bp < 0 ? "neg" : "pos");
+      r("BTC", ar(V.dirBtc) + "  " + sgn(bp, 2) + "%" + (V.btc24h != null ? " (24 jam)" : ""), bp < 0 ? "neg" : "pos");
       if (V.pubTs) r("dihitung engine", V.pubTs + " WIB", "mut");
       r("BTC.D", GD.btcd
         ? ar(V.dirBtcd) + "  " + GD.btcdNow.toFixed(2) + "% · " + sgn(V.dBtcd, 2) + "pp (12 jam)"
@@ -302,7 +306,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         "BTC " + ar(V.dirBtc) + " · BTC.D " + ar(V.dirBtcd) + " · USDT.D " + ar(V.dirUsdtd)
         + " → skor " + sgn(V.score, 0),
         V.bias === "long" ? "pos" : V.bias === "short" ? "neg" : "mut");
-      r("rezim engine (backtest)", (A.nama || "--") + " · bias tabel: " + (A.bias || "netral"), "mut");
+      /* 21 Sep — momentum BTC 24 jam eksplisit: penyeimbang penalti dominan.
+         Dulu tidak dirinci, jadi BTC naik kencang + dominan bergerak terlihat
+         seperti "SHORT tanpa alasan" di panel. */
+      var btcMom = (V.btc24h != null) ? V.btc24h
+        : (isFinite(bp) ? bp : (A.btc_chg != null ? A.btc_chg : null));
+      if (btcMom != null && isFinite(btcMom))
+        r("momentum BTC", sgn(btcMom, 2) + "% (24 jam)", btcMom > 0 ? "pos" : btcMom < 0 ? "neg" : "mut");
+      r("rezim backtest (referensi)", (A.nama || "--") + " · " + (A.ts || ""), "mut");
       var note = el("div", "dnote");
       note.textContent = "Arah LIVE dari engine reclaim 1 jam — dihitung di SERVER bot "
         + "(sama untuk semua device; candle forming dibuang). Device yang bisa menjangkau "
@@ -337,7 +348,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           V.dBtcd = GD.btcd[GD.btcd.length - 1] - GD.btcd[GD.btcd.length - 1 - nn];
           V.dUsdtd = GD.usdtd[GD.usdtd.length - 1] - GD.usdtd[GD.usdtd.length - 1 - nn];
         }
-        V.score = V.dirBtc - V.dirBtcd - V.dirUsdtd;
+        V.score = 2 * V.dirBtc - V.dirBtcd - V.dirUsdtd;   // 21 Sep: BTC 2× dominan
         V.bias = V.score > 0 ? "long" : V.score < 0 ? "short" : "netral";
         if ((rows && rows.length > 30) || (okGd && GD.btcd)) paint(V);
       });
