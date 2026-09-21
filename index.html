@@ -1,402 +1,234 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Moch. Luthfi Hadiwidjaja — Software Engineer</title>
-<meta name="description" content="Software engineer focused on Web3 and autonomous systems. Building Qkuk Terminal: signal engines, statistical validation, and a TradingView indicator. Five years across 500+ Web3 testnets." />
-<meta name="theme-color" content="#08100C" />
-<meta property="og:title" content="Moch. Luthfi Hadiwidjaja — Software Engineer" />
-<meta property="og:description" content="Web3 and autonomous systems. Building Qkuk Terminal." />
-<meta property="og:type" content="website" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css" />
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%2308100C'/><rect x='5' y='12' width='8' height='8' fill='%233DDC84'/><rect x='19' y='12' width='8' height='8' fill='%233DDC84' opacity='.55'/><path d='M13 16h6' stroke='%233DDC84' stroke-width='1.6'/></svg>" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QKUK Terminal — live signal feed</title>
+<meta name="description" content="Live crypto signal terminal. Watchlist, signals and accuracy across three timeframes, written straight from the engine.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23070B09'/%3E%3Cg stroke='%236EE7B7' fill='none' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M27.4 16 L21.7 25.9 L10.3 25.9 L4.6 16 L10.3 6.1 L21.7 6.1 Z' stroke-width='2.3'/%3E%3Cpath d='M12 12.2 L15.5 16 L12 19.8' stroke-width='2.3'/%3E%3C/g%3E%3Crect x='17.4' y='15.1' width='4.2' height='1.9' rx='.95' fill='%236EE7B7'/%3E%3C/svg%3E">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-LXAUy0kvUSjxAz/fkXLmBF15ezkgQYHRQhirnM4uq2Y='; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://fapi.binance.com https://api.binance.com https://textdb.dev https://api.coingecko.com https://api.coinpaprika.com; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noarchive">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<script>try{if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
+<link rel="stylesheet" href="style.css?v=20260921a">
 </head>
 <body>
 
-<a class="skip" href="#main">Skip to content</a>
-<div class="grid-bg" aria-hidden="true"></div>
-
-<nav class="nav" id="nav">
-  <div class="nav-in">
-    <a class="brand" href="#top"><span class="blk" aria-hidden="true"></span>luthfi.dev</a>
-    <div class="nav-links">
-      <a class="opt" href="#projects">Projects</a>
-      <a class="opt" href="#work">Work</a>
-      <a class="opt" href="#credentials">Credentials</a>
-      <a href="#contact">Contact</a>
+<div id="gate">
+  <div class="gparts" aria-hidden="true"></div>
+  <div class="gate-box">
+    <div class="gate-logo">
+      <span class="logo">
+        <svg class="mark" viewBox="0 0 32 32" role="img" aria-label="Qkuk Terminal">
+          <path d="M28 16 L22 26.39 L10 26.39 L4 16 L10 5.61 L22 5.61 Z"
+                fill="none" stroke="currentColor" stroke-width="2.1"
+                stroke-linejoin="round"/>
+          <path d="M11.7 11.9 L15.4 16 L11.7 20.1" fill="none" stroke="currentColor"
+                stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect class="cur" x="17.4" y="15.05" width="4.4" height="1.9" rx=".95"
+                fill="currentColor"/>
+        </svg>
+        <span class="wm"><b>Qkuk</b> Terminal</span>
+      </span>
+    </div>
+    <div class="gate-sub"></div>
+    <div class="gate-form">
+      <input id="gate-user" autocomplete="username" spellcheck="false" placeholder="username">
+      <div class="gpw">
+        <input id="gate-pass" type="password" autocomplete="current-password" placeholder="password">
+        <button id="gate-eye" type="button" title="tampilkan password" aria-label="tampilkan password">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+      <button id="gate-btn" type="button">MASUK</button>
+    </div>
+    <div id="gate-err" class="gate-err" role="alert"></div>
+    <div id="gate-chain" class="gate-chain">
+      <div class="glink">
+        <span class="gnode"></span><i></i><span class="gnode"></span><i></i><span class="gnode"></span><i></i><span class="gnode"></span><i></i><span class="gnode"></span>
+      </div>
+      <div class="ghash" id="gate-hash">0x…</div>
+      <div class="ggrant">✓ AKSES DIBERIKAN — MENAUTKAN BLOK</div>
     </div>
   </div>
-</nav>
+</div>
 
-<main id="main">
-
-<!-- ══ HERO ══ split, left-weighted. Centered hero is banned at VARIANCE 8. -->
-<section class="hero" id="top">
-  <div class="wrap">
-    <div class="hero-g">
-      <div>
-        <p class="eyebrow">Software Engineer · Web3</p>
-        <h1>Systems that decide<br /><em>on their own</em></h1>
-        <p class="role" id="role"><span class="car"></span></p>
-        <p class="lede">
-          Software engineer based in Jakarta, Indonesia. I build software that keeps
-          working when nobody is watching — and I test other people's for a living,
-          which is the same skill pointed the other way. Four shipped projects below,
-          from a computer-vision instrument with two registered copyrights to an
-          offline-first field app in daily use.
-        </p>
-        <div class="cta">
-          <a class="btn btn-1" href="#terminal">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 17l6-6 4 4 6-8"/></svg>
-            See the build
-          </a>
-          <a class="btn btn-2" href="https://github.com/luthfihadi78" rel="noopener">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.7.5.9 5.3.9 11.6c0 4.9 3.2 9.1 7.6 10.6.6.1.8-.2.8-.6v-2c-3.1.7-3.7-1.5-3.7-1.5-.5-1.3-1.2-1.6-1.2-1.6-1-.7.1-.7.1-.7 1.1.1 1.7 1.1 1.7 1.1 1 1.7 2.6 1.2 3.2.9.1-.7.4-1.2.7-1.5-2.5-.3-5.1-1.2-5.1-5.5 0-1.2.4-2.2 1.1-3-.1-.3-.5-1.4.1-2.9 0 0 .9-.3 3 1.1.9-.2 1.8-.4 2.8-.4s1.9.1 2.8.4c2.1-1.4 3-1.1 3-1.1.6 1.5.2 2.6.1 2.9.7.8 1.1 1.8 1.1 3 0 4.3-2.6 5.2-5.1 5.5.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6 4.4-1.5 7.6-5.7 7.6-10.6C23.1 5.3 18.3.5 12 .5z"/></svg>
-            GitHub
-          </a>
-        </div>
-      </div>
-
-      <div class="chain rv">
-        <div class="chain-bar">
-          <span class="blk" aria-hidden="true"></span>
-          <span class="t">chain</span>
-          <span class="live">running</span>
-        </div>
-        <div class="chain-c">
-          <canvas id="chain" role="img" aria-label="Abstract animation of linked blocks forming a chain"></canvas>
-        </div>
-        <div class="chain-f">
-          <div><span class="k">Testnets</span><span class="v" data-count="500">0</span>+</div>
-          <div><span class="k">Pairs watched</span><span class="v" data-count="467">0</span></div>
-          <div><span class="k">Years</span><span class="v" data-count="5">0</span></div>
-        </div>
-      </div>
-    </div>
+<div class="bar">
+  <div class="bar-in">
+    <span class="logo">
+      <svg class="mark" viewBox="0 0 32 32" role="img" aria-label="Qkuk Terminal">
+        <!-- ⚠️ Versi pertama memakai kotak bulat + ekor diagonal (niatnya huruf Q).
+             Di ukuran 23px itu terbaca sebagai IKON KACA PEMBESAR — kotak bulat
+             mirip lensa, ekornya mirip gagang. Diganti HEKSAGON: bentuk blok /
+             node yang sudah baku di kripto dan tidak punya tabrakan makna itu.
+             Isinya prompt ">" + kursor berkedip = terminal yang hidup, sejalan
+             dgn lampu LIVE di sebelahnya. Huruf Q-nya dibawa oleh wordmark. -->
+        <path d="M28 16 L22 26.39 L10 26.39 L4 16 L10 5.61 L22 5.61 Z"
+              fill="none" stroke="currentColor" stroke-width="2.1"
+              stroke-linejoin="round"/>
+        <path d="M11.7 11.9 L15.4 16 L11.7 20.1" fill="none" stroke="currentColor"
+              stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect class="cur" x="17.4" y="15.05" width="4.4" height="1.9" rx=".95"
+              fill="currentColor"/>
+      </svg>
+      <span class="wm"><b>Qkuk</b> Terminal</span>
+    </span>
+    <span class="pill"><span class="dot" id="dot"></span><span id="state">connecting</span></span>
+    <span class="kv sp">WIB <b id="clock">--:--:--</b></span>
+    <span class="kv">engine <b id="stamp">—</b></span>
+    <span class="kv btc">BTC <b id="btcpx">—</b></span>
+    <span class="kv">refresh <b id="cd">60s</b></span>
+    <button id="mute" class="mute" type="button" aria-pressed="false"
+      title="Suara notifikasi: NYALA — klik untuk mati">🔔</button>
   </div>
-</section>
+</div>
 
-<!-- ══ WORK ══ ledger rows, not cards -->
-<section id="work">
-  <div class="wrap">
-    <p class="eyebrow rv">Experience</p>
-    <h2 class="rv">Build it, then try to break it</h2>
-    <p class="sec-lede rv">
-      At LG Sinarmas I move between development and quality assurance as each
-      client engagement needs. Doing both taught me the thing neither teaches
-      alone: how systems are meant to work, and how they actually fail.
-    </p>
+<div id="toasts" aria-live="polite"></div>
 
-    <div class="tl rv">
+<div class="wrap">
 
-      <div class="tli rv">
-        <div class="tlc">
-          <div class="tl-head">
-            <h3>Software Engineer &amp; QA Engineer</h3>
-            <span class="tl-when">2024 — now</span>
-          </div>
-          <p class="tl-org">PT. LG Sinarmas Technology Solutions · three client engagements</p>
-          <p><strong>KBI NGBS</strong> — built the APIs and services behind the Deposit
-            module in Java against an Oracle database, verifying results at the database
-            rather than trusting the happy path.</p>
-          <p><strong>CleverTap</strong> — partner-side QA on the customer engagement
-            platform, covering functional behaviour across the product. Completed the
-            vendor training programme and earned two partner certifications.</p>
-          <p><strong>LG Electronics</strong> — currently testing warehouse and
-            goods-shipping systems: inbound and outbound flows, inventory movement, and
-            the logistics records behind them.</p>
-          <div class="tags">
-            <span class="tag">Java</span><span class="tag">Oracle</span><span class="tag">SQL</span>
-            <span class="tag">C# / .NET</span><span class="tag">Test design</span>
-            <span class="tag cert">CleverTap Core Certified</span>
-            <span class="tag cert">CleverTap Advanced Certified</span>
-          </div>
-        </div>
+  <section id="dir">
+    <div class="dir">
+      <div class="gwrap">
+        <div class="glow" id="glow"></div>
+        <svg class="gauge" viewBox="0 0 280 180" role="img" aria-label="Altcoin direction gauge">
+          <g id="g-fl"></g><g id="g-arc"></g><g id="g-ndl"></g>
+        </svg>
+        <div class="gl"><span>SHORT</span><span>NEUTRAL</span><span>LONG</span></div>
+        <div class="gbias" id="gbias">--</div>
+        <div class="gname" id="gname">altcoin direction</div>
       </div>
-
-      <div class="tli rv">
-        <div class="tlc">
-          <div class="tl-head">
-            <h3>Web3 Testnet Contributor</h3>
-            <span class="tl-when">2019 — 2024</span>
-          </div>
-          <p class="tl-org">Freelance · remote · 500+ projects</p>
-          <p>Five years running nodes and clients across more than five hundred protocols —
-            walking through releases before they shipped, breaking things deliberately, and
-            reporting what failed and under what conditions. An unusual range of
-            architectures, token designs and failure modes, including a great many that
-            never reached mainnet.</p>
-          <div class="tags">
-            <span class="tag">Nodes &amp; RPC</span><span class="tag">Wallets</span>
-            <span class="tag">Bridges</span><span class="tag">On-chain data</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="tli rv">
-        <div class="tlc">
-          <div class="tl-head">
-            <h3>Research Assistant, Computer Vision</h3>
-            <span class="tl-when">2016 — 2018</span>
-          </div>
-          <p class="tl-org">LIPI Bandung · Indonesian Institute of Sciences</p>
-          <p>Built <strong>WoodID</strong>, a system that identifies a wood's species from
-            an image of the grain — from research method to a deployed instrument, validated
-            against thousands of specimens with the Ministry of Forestry. Published at
-            ICODIS 2018 through IOP Science, and two Indonesian software copyrights were
-            registered from the work.</p>
-          <div class="tags">
-            <span class="tag">C / C++</span><span class="tag">Computer vision</span>
-            <span class="tag cert">2 registered copyrights</span>
-            <span class="tag cert">IOP Science paper</span>
-          </div>
-        </div>
-      </div>
-
+      <div class="dmeta" id="dmeta"></div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- ══ GALERI PROJECT ══ bento, layout dari UI/UX Pro Max -->
-<section id="projects">
-  <div class="wrap">
-    <p class="eyebrow rv">Projects</p>
-    <h2 class="rv">Four things I built and still stand behind</h2>
-    <p class="sec-lede rv">
-      A trading system that runs itself, a field app used without a network, a
-      research instrument that became two registered copyrights, and the capstone
-      that finished my Android track.
-    </p>
-
-    <div class="filter rv" role="group" aria-label="Filter projects by category">
-      <button class="fbtn" type="button" data-f="all" aria-pressed="true">All · 4</button>
-      <button class="fbtn" type="button" data-f="mobile" aria-pressed="false">Mobile</button>
-      <button class="fbtn" type="button" data-f="ai" aria-pressed="false">AI &amp; Data</button>
-      <button class="fbtn" type="button" data-f="web3" aria-pressed="false">Web3</button>
-      <button class="fbtn" type="button" data-f="research" aria-pressed="false">Research</button>
+  <section id="bubbles">
+    <div class="sec-h">
+      <h2><i>&gt;</i> Bubbles</h2>
+      <span class="hint">coins detected by this engine only — % change is live 24h from Binance</span>
+      <div class="tabs" id="b-mode" role="tablist"></div>
+      <div class="tabs" id="b-tabs" role="tablist"></div>
+    </div>
+    <div class="bb-stage">
+      <div class="bb-bar">
+        <div class="bb-legend">
+          <span><i class="lg-up"></i>up 24h</span>
+          <span><i class="lg-dn"></i>down 24h</span>
+          <span><i class="lg-id"></i>no 24h data</span>
+        </div>
+        <input id="b-q" type="search" placeholder="sorot koin… (e.g. AVAX)" aria-label="Highlight bubbles by coin">
+      </div>
+      <div class="b-chips" id="b-chips"></div>
+      <div class="bb-plot" id="bb-plot"></div>
+      <div class="bb-tip" id="bb-tip"></div>
     </div>
 
-    <div class="bento" id="bento">
+    <p class="cap">Press and hold a bubble to drag it around — let go and it floats again.
+    Bubbles bounce off each other and drift like real ones. The number inside is the
+    live 24-hour price change from Binance, green up and red down. The fiery aura marks
+    coins the engine has on record today. Tap a bubble to open its TradingView chart.</p>
+  </section>
 
-      <article class="pj rv" data-cat="ai web3">
-        <div class="pj-top">
-          <div class="pj-ico"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="1"/><path d="M8 21h8M12 18v3M7 12l2.5-2.5L12 12l4-4.5"/></svg></div>
-          <div>
-            <p class="pj-kind">Personal · 2025 — now</p>
-            <h3>Qkuk Terminal</h3>
-            <p class="sub">Autonomous crypto trading system</p>
-          </div>
-        </div>
-        <div class="pj-num">
-          <div><span class="n" data-count="467">0</span><span class="l">pairs watched</span></div>
-          <div><span class="n" data-count="700">0</span><span class="l">days backtested</span></div>
-        </div>
-        <ul>
-          <li><b>Decides on its own.</b> Signal engines in Python read live futures data on two timeframes; entry, stop and target are fixed before a position opens.</li>
-          <li><b>Has to earn production.</b> Deflated Sharpe, PBO and purged cross-validation gate every strategy. Most are rejected — that is the point of the gate.</li>
-          <li><b>Says when it stops working.</b> A decay alarm compares live results against the baseline and flags the drift.</li>
-          <li><b>Mirrored on TradingView.</b> The same logic in Pine Script, so a setup can be checked on the chart. Disagreements between the two have caught real bugs.</li>
-        </ul>
-        <div class="foot">
-          <span class="tag">Python</span><span class="tag">pandas</span><span class="tag">NumPy</span>
-          <span class="tag">SciPy</span><span class="tag">Node.js</span><span class="tag">Pine Script</span>
-          <span class="tag">Binance API</span>
-        </div>
-      </article>
-
-      <article class="pj rv" data-cat="mobile">
-        <div class="pj-top">
-          <div class="pj-ico"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2"/><path d="M10.5 5.5h3M9 12l2 2 4-4"/></svg></div>
-          <div>
-            <p class="pj-kind">Client work · 2025</p>
-            <h3>SINERGI K3</h3>
-            <p class="sub">Field inspection &amp; reporting · Android<br />PT. Toba Royal Indonesia</p>
-          </div>
-        </div>
-        <div class="pj-num">
-          <div><span class="n" data-count="141">0</span><span class="l">dart files</span></div>
-          <div><span class="n">v0.65</span><span class="l">shipped</span></div>
-          <div><span class="n" data-count="9">0</span><span class="l">templates</span></div>
-        </div>
-        <ul>
-          <li><b>Offline by necessity, not preference.</b> Safety inspectors work in lift shafts and plant rooms with no signal, so the entire workflow runs with no network. Cloud sync exists and is off by default.</li>
-          <li><b>Produces the actual deliverable.</b> Official Microsoft Word reports assembled on the phone from nine templates aligned to Permenaker requirements.</li>
-          <li><b>Encrypted where it matters.</b> Hive sealed with an AES key held in the Android Keystore; passwords hashed with bcrypt.</li>
-          <li><b>Custom camera, for a real reason.</b> The system camera intent forces its own confirm screen that no third-party app can suppress. Writing an in-app preview turned two taps and a wait into one shutter press.</li>
-        </ul>
-        <div class="foot">
-          <span class="tag">Flutter</span><span class="tag">Dart</span><span class="tag">BLoC</span>
-          <span class="tag">Hive CE</span><span class="tag">bcrypt</span><span class="tag">Keystore</span>
-          <span class="tag">Firebase</span><span class="tag">OOXML</span>
-        </div>
-      </article>
-
-      <article class="pj wide rv" data-cat="ai research">
-        <div class="pj-top">
-          <div class="pj-ico"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21M8 11h6M11 8v6"/></svg></div>
-          <div>
-            <p class="pj-kind">Research · LIPI Bandung · 2016 — 2018</p>
-            <h3>WoodID</h3>
-            <p class="sub">Automated wood species identification · desktop &amp; mobile</p>
-          </div>
-        </div>
-        <div class="pj-num">
-          <div><span class="n" data-count="12">0</span><span class="l">species</span></div>
-          <div><span class="n">100%</span><span class="l">accuracy on 6 of 12</span></div>
-          <div><span class="n" data-count="2">0</span><span class="l">copyrights</span></div>
-        </div>
-        <p>
-          Identifies a wood's species from an image of its surface, using Local Binary
-          Pattern and Hough Transform. I built version one in C as a desktop application
-          and developed the interface, so forestry staff could operate it rather than
-          only the people who wrote it. Validated against thousands of specimens with the
-          Ministry of Forestry and presented at the Forestry postgraduate programme at IPB.
-        </p>
-        <p>
-          The comparison mattered: LBP proved the stronger method, identifying six of the
-          twelve species with perfect accuracy. Published at <strong>ICODIS 2018</strong>
-          through IOP Science, and registered as two Indonesian software copyrights —
-          WoodID itself and <strong>LignoIndo</strong>, the commercial wood image database
-          behind it.
-        </p>
-        <div class="foot">
-          <span class="tag">C</span><span class="tag">C++</span><span class="tag">Computer vision</span>
-          <span class="tag cert">ID 090683</span><span class="tag cert">ID 000113830</span>
-          <span class="tag cert">IOP Science</span>
-        </div>
-      </article>
-
-      <article class="pj slim rv" data-cat="mobile">
-        <div class="pj-top">
-          <div class="pj-ico"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.4 5.4 5.6.6-4.2 3.9 1.2 5.6L12 15.8 7 18.5l1.2-5.6L4 9l5.6-.6z"/></svg></div>
-          <div>
-            <p class="pj-kind">Capstone · 2023</p>
-            <h3>QurbanId</h3>
-            <p class="sub">Android application</p>
-          </div>
-        </div>
-        <p>
-          The graduation project of the Android Developer Expert track, built as a team.
-          Kotlin with Jetpack Compose over SQLite, applying SOLID principles and UX
-          fundamentals end to end rather than as an afterthought.
-        </p>
-        <div class="foot">
-          <span class="tag">Kotlin</span><span class="tag">Jetpack Compose</span>
-          <span class="tag">SQLite</span><span class="tag">Material</span>
-        </div>
-      </article>
-
+  <section id="watch">
+    <div class="sec-h">
+      <h2><i>&gt;</i> Watchlist</h2>
+      <span class="hint">reclaim detected, entry not confirmed</span>
+      <div class="tabs" id="w-tabs" role="tablist"></div>
     </div>
-  </div>
-</section>
+    <div class="s-tools">
+      <input id="w-q" type="search" placeholder="search pair… (e.g. BTC)" aria-label="Search watchlist by pair">
+      <select id="w-side" aria-label="Filter watchlist by side">
+        <option value="">all sides</option>
+        <option value="long">long only</option>
+        <option value="short">short only</option>
+      </select>
+    </div>
+    <div class="tw" id="w-table"></div>
+  </section>
 
-<!-- ══ KREDENSIAL ══ -->
-<section id="credentials">
-  <div class="wrap">
-    <p class="eyebrow rv">Credentials</p>
-    <h2 class="rv">Published, registered, certified</h2>
-    <p class="sec-lede rv">
-      The things with a number attached to them — a paper, two copyrights, vendor
-      partner certifications, and a national scholarship.
-    </p>
+  <section id="signals">
+    <div class="sec-h">
+      <h2><i>&gt;</i> Signals</h2>
+      <span class="hint">entries issued to the group</span>
+      <div class="tabs" id="s-tabs" role="tablist"></div>
+    </div>
+    <div class="s-tools">
+      <input id="s-q" type="search" placeholder="search pair… (e.g. BTC)" aria-label="Search signals by pair">
+      <select id="s-sort" aria-label="Sort signals">
+        <option value="ts">newest first</option>
+        <option value="pick">picked first</option>
+        <option value="pnl">best R first</option>
+        <option value="loss">worst R first</option>
+        <option value="sym">pair A–Z</option>
+      </select>
+      <select id="s-side" aria-label="Filter signals by side">
+        <option value="">all sides</option>
+        <option value="long">long only</option>
+        <option value="short">short only</option>
+      </select>
+    </div>
+    <div class="tw" id="s-table"></div>
+  </section>
 
-    <div class="cred rv">
-      <div class="cd hi">
-        <p class="t">Wood Identification with Local Binary Pattern and Hough Transform</p>
-        <p class="i">ICODIS 2018 · IOP Science · Nov 2018</p>
+  <section id="kamu">
+    <div class="sec-h">
+      <h2><i>&gt;</i> Picked by you</h2>
+      <span class="hint">winrate LIVE dari pilihanmu — bukan backtest</span>
+    </div>
+    <div class="ak-grid" id="kamu-grid"></div>
+    <p class="cap">Cara pakai: buka CSV engine di mesin bot — logs/reclaim_pantau_&lt;tf&gt;.csv
+    untuk watchlist, logs/reclaim_swing_&lt;tf&gt;.csv untuk sinyal. Admin juga bisa
+    menandai &amp; meresolve koin LANGSUNG di tabel (tombol "ambil" + ikon ⚙ di kanan
+    atas) — hasilnya tampil di kartu <b>live resolve</b> di bawah ini, bukan backtest.
+    Selain itu: tambahkan tanda "1" di kolom <b>picked</b> pada CSV untuk penyaringan
+    engine. Bot akan
+    menerbitkan ulang data, dan winrate di sini dihitung dari hasil LIVE-nya: sinyal
+    dinilai dari pnl_r yang sudah di-resolve engine, watchlist dari aturan 1R:1R yang
+    sama dengan akurasi mekanis. Populasinya kecil — memang itu poinnya: ini penyaringanmu
+    di atas engine mentah. Menghapus tanda akan menghapus pilihan (bot menyinkronkan
+    setiap siklus; centang selamat meski CSV diperbarui mesin lain).</p>
+  </section>
+
+  <section id="charts">
+    <div class="grid2">
+      <div class="card">
+        <div class="card-h"><h3>Winrate sinyal scalping kilat, scalping dan swing trade</h3><div class="lg" id="eq-lg"></div></div>
+        <svg class="ch" id="eq" role="img" aria-label="Cumulative R per channel"></svg>
       </div>
-      <div class="cd hi">
-        <p class="t">WoodID — automatic wood species identification software</p>
-        <p class="i">Indonesian software copyright · ID 090683 · Oct 2017</p>
-      </div>
-      <div class="cd hi">
-        <p class="t">LignoIndo — commercial wood image database of Indonesia</p>
-        <p class="i">Indonesian software copyright · ID 000113830 · Oct 2017</p>
-      </div>
-      <div class="cd hi">
-        <p class="t">CleverTap Platform Core Functionalities</p>
-        <p class="i">Partner certification · CleverTap</p>
-      </div>
-      <div class="cd hi">
-        <p class="t">CleverTap Platform Advanced Functionalities</p>
-        <p class="i">Partner certification · CleverTap</p>
-      </div>
-      <div class="cd">
-        <p class="t">Java, C# and Oracle Fusion Institute Bootcamp</p>
-        <p class="i">Tel-U × LG CNS · selective, 2024 · led to the LG Sinarmas role</p>
-      </div>
-      <div class="cd">
-        <p class="t">Android Developer Expert Bootcamp</p>
-        <p class="i">Dicoding Indonesia · 2022</p>
-      </div>
-      <div class="cd">
-        <p class="t">Cloud Computing &amp; Server Administration</p>
-        <p class="i">Kominfo Digitalent at ITB · 1,000-participant programme · 2018</p>
-      </div>
-      <div class="cd">
-        <p class="t">English — TOEFL 510, CEFR B2</p>
-        <p class="i">Assessed proficiency</p>
-      </div>
-      <div class="cd">
-        <p class="t">B.Sc. Computational Science</p>
-        <p class="i">Telkom University · 2014–2018 · GPA 3.37</p>
+      <div class="card">
+        <div class="card-h"><h3>Win rate by WIB hour — 00:00 to 23:00</h3><div class="lg" id="hr-lg"></div></div>
+        <svg class="ch" id="hr" role="img" aria-label="Win rate by hour"></svg>
+        <p class="cap">Every WIB hour from 00:00 to 23:00 gets its own bar; green means the win
+        rate is above 50%, red below it, and a dim dot means no signal was recorded that hour
+        (not zero — the 4H channel only closes a bar six times a day).</p>
       </div>
     </div>
+  </section>
 
-    <div class="mq rv" aria-label="Additional certifications">
-      <div class="mq-t" id="mq"></div>
+  <section id="akurasi">
+    <div class="sec-h">
+      <h2><i>&gt;</i> Winrate watchlist accuracy</h2>
+      <span class="hint">every reclaim scored mechanically — entries you never took</span>
     </div>
-  </div>
-</section>
+    <div class="ak-grid" id="ak-grid"></div>
+    <p class="cap">Every watchlist row is scored by a fixed rule: entry at the reclaim close,
+    stop at the sweep extreme, symmetric 1R target, whichever is hit first within 7 days.
+    If one bar touches both, it counts as a loss; timeouts are scored from the last close,
+    never discarded. This measures raw entry quality across every detection — your own
+    filtering on top is exactly what the raw number cannot see.</p>
+  </section>
 
-<!-- ══ STACK ══ -->
-<section id="stack">
-  <div class="wrap">
-    <p class="eyebrow rv">Stack</p>
-    <h2 class="rv">What I work with</h2>
-    <div class="stack rv">
-      <div><span class="k">Backend</span><span class="v">Java, Spring Boot, Oracle, C#, .NET, PostgreSQL, SQL Server, REST APIs</span></div>
-      <div><span class="k">Quality</span><span class="v">Functional testing, test case design, defect tracking, database-level verification</span></div>
-      <div><span class="k">Data &amp; AI</span><span class="v">Python, pandas, NumPy, SciPy, statistical validation, computer vision in C</span></div>
-      <div><span class="k">Web3</span><span class="v">Solidity, Node.js, testnets, on-chain data, exchange APIs</span></div>
-      <div><span class="k">Mobile</span><span class="v">Kotlin, native Android, Jetpack Compose, Flutter, Dart</span></div>
-      <div><span class="k">Tooling</span><span class="v">Git, Linux, Bash, Docker, Postman, Pine Script</span></div>
-    </div>
-  </div>
-</section>
+  <div class="strip" id="strip"></div>
 
-<!-- ══ CONTACT ══ one CTA intent, one label -->
-<section id="contact" class="end">
-  <div class="wrap">
-    <p class="eyebrow rv">Contact</p>
-    <h2 class="rv">Open to Web3, backend and QA roles</h2>
-    <p class="sec-lede rv">Based in Jakarta, originally from Purwakarta, West Java. Happy to talk remote.</p>
-    <div class="cta rv">
-      <a class="btn btn-1" href="mailto:luthfihadi78@gmail.com">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="15" rx="1"/><path d="M3 7l9 6 9-6"/></svg>
-        Email me
-      </a>
-      <a class="btn btn-2" href="https://www.linkedin.com/in/moch-luthfi-hadiwidjaja-aa91b5171/" rel="noopener">
-        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM10 9h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.4c0-1.3-.02-2.96-1.8-2.96-1.8 0-2.08 1.4-2.08 2.86V21h-4z"/></svg>
-        LinkedIn
-      </a>
-    </div>
-  </div>
-</section>
+  <footer>
+    <span>Built and operated by <a href="https://luthfihadi78.github.io">Moch. Luthfi Hadiwidjaja</a></span>
+    <span id="foot">—</span>
+  </footer>
+</div>
 
-</main>
-
-<footer>
-  <div class="wrap foot">
-    <span>© <span id="yr">2026</span> Moch. Luthfi Hadiwidjaja</span>
-    <span class="m">Built from scratch · no framework</span>
-  </div>
-</footer>
-
-<script src="script.js"></script>
+<script src="app.js?v=20260921a" defer></script>
 </body>
 </html>

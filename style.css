@@ -1,295 +1,506 @@
-/* ═══════════════════════════════════════════════════════════════════
-   luthfihadi78.github.io — Moch. Luthfi Hadiwidjaja
-   ROMBAK 10 Sep. Tiga keluhan yang diperbaiki:
-
-   "kotaknya tidak sempurna"  → Experience dulu grid 2 kolom dgn kolom kiri
-                                381px yang hanya berisi tanggal 12px. Diganti
-                                TIMELINE: rel vertikal + node, isi di kartu.
-   "masih sama seperti dulu"  → permukaan dulu nyaris sewarna, dipisah border
-                                1px saja → datar. Sekarang TANGGA PERMUKAAN
-                                berjenjang, radius 10px, bayangan bernada.
-   "warna kurang elegan"      → judul 73px dulu SELURUHNYA hijau terang.
-                                Sekarang putih; hijau turun jadi aksen kecil
-                                dan diganti #6EE7B7 (saturasi 52%, dari 72%).
-   ═══════════════════════════════════════════════════════════════════ */
-
 :root{
-  /* tangga permukaan — kedalaman dari NILAI, bukan dari garis */
-  --bg:#070B09;   --s1c:#0C1310;  --s2c:#121C17;  --s3c:#18251F;
+  --bg:#070B09; --s1:#0C1310; --s2:#121C17; --s3:#18251F;
   --line:#1B2822; --line-2:#2A3B33;
-
-  --fg:#EEF4F1;   --fg-2:#9DB0A7; --fg-3:#788A81;
-
-  --ac:#6EE7B7;                       /* aksen tunggal, sat 52%, 13:1 */
-  --ac-2:#2DD4A7;                     /* isian/rel, dipakai transparan */
-  --ac-w:rgba(110,231,183,.09);
-  --gold:#D8C89A;                     /* penanda kredensial, netral hangat */
-
-  --sans:"Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
-  --mono:"Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-
-  --r:10px;  --r-s:6px;               /* SATU skala, lembut */
-  --w:1180px;
-  --e:cubic-bezier(.22,1,.36,1);
-  --sh-1:0 1px 2px rgba(0,0,0,.5);
-  --sh-2:0 18px 40px -24px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.03) inset;
-  --sh-3:0 28px 60px -28px rgba(0,0,0,.95), 0 0 0 1px rgba(110,231,183,.10) inset;
-
-  --p1:.25rem; --p2:.5rem; --p3:.75rem; --p4:1rem; --p6:1.5rem;
-  --p8:2rem; --p12:3rem; --p16:4rem; --p20:5rem; --p24:6rem;
+  --fg:#EEF4F1; --fg-2:#9DB0A7; --fg-3:#788A81;
+  --ac:#6EE7B7; --ac-2:#2DD4A7; --ac-w:rgba(110,231,183,.09);
+  --gold:#D8C89A; --gold-w:rgba(216,200,154,.10);
+  --up:#6EE7B7; --up-w:rgba(110,231,183,.13);
+  --dn:#E8877C; --dn-w:rgba(232,135,124,.13);
+  --mono:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --r:8px;
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
-body{margin:0;min-height:100dvh;background:var(--bg);color:var(--fg);
-     font-family:var(--sans);font-size:16px;line-height:1.65;overflow-x:hidden;
-     -webkit-font-smoothing:antialiased}
-img{max-width:100%;display:block}
-a{color:var(--ac);text-decoration:none;transition:color .16s var(--e)}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--mono);
+  font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+/* kisi halus — tekstur terminal, bukan hiasan: menandai halaman ini alat baca */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:52px 52px;
+  -webkit-mask-image:radial-gradient(80rem 50rem at 50% 0,#000,transparent 78%);
+          mask-image:radial-gradient(80rem 50rem at 50% 0,#000,transparent 78%)}
+.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 18px}
+a{color:var(--ac);text-decoration:none}
 a:hover{color:#9CF2CE}
-:focus-visible{outline:2px solid var(--ac);outline-offset:3px;border-radius:var(--r-s)}
-::selection{background:rgba(110,231,183,.22);color:#fff}
-.skip{position:absolute;left:-9999px;top:0;background:var(--ac);color:#04100B;
-      padding:var(--p3) var(--p6);font-weight:600;z-index:200;border-radius:0 0 var(--r) 0}
-.skip:focus{left:0}
-.wrap{width:100%;max-width:var(--w);margin:0 auto;padding:0 var(--p6);position:relative;z-index:10}
-section{padding:var(--p24) 0;position:relative}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px;border-radius:4px}
 
-/* cahaya ambient — memberi kedalaman tanpa mesh gradient */
-.grid-bg{position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:
-    radial-gradient(760px 520px at 78% -6%, rgba(45,212,167,.10), transparent 62%),
-    radial-gradient(620px 420px at 4% 32%, rgba(110,231,183,.05), transparent 60%);}
+/* ── top bar ── */
+.bar{position:sticky;top:0;z-index:20;background:rgba(7,11,9,.9);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line)}
+.bar-in{max-width:1240px;margin:0 auto;padding:11px 18px;display:flex;align-items:center;
+  gap:18px;flex-wrap:wrap}
+.logo{display:inline-flex;align-items:center;gap:9px;white-space:nowrap;user-select:none}
+.mark{width:23px;height:23px;flex:none;color:var(--ac);overflow:visible;
+  filter:drop-shadow(0 0 5px rgba(110,231,183,.28))}
+.mark .cur{animation:blink 1.15s steps(1,end) infinite}
+@keyframes blink{0%,55%{opacity:1}56%,100%{opacity:.12}}
+.wm{font-size:13.5px;letter-spacing:.012em;color:var(--fg-2);font-weight:500}
+.wm b{color:var(--fg);font-weight:700;letter-spacing:-.01em}
+@media(prefers-reduced-motion:reduce){.mark .cur{animation:none}}
+.pill{display:inline-flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--fg-2);border:1px solid var(--line-2);
+  border-radius:999px;padding:4px 10px;white-space:nowrap}
+.dot{width:6px;height:6px;border-radius:999px;background:var(--ac);flex:none;
+  animation:p 2.6s cubic-bezier(.4,0,.6,1) infinite}
+.dot.stale{background:var(--gold);animation:none}
+@keyframes p{0%{box-shadow:0 0 0 0 rgba(110,231,183,.45)}70%{box-shadow:0 0 0 7px rgba(110,231,183,0)}100%{box-shadow:0 0 0 0 rgba(110,231,183,0)}}
+.bar .sp{margin-left:auto}
+.kv{font-size:11px;color:var(--fg-3);white-space:nowrap}
+.kv b{color:var(--fg-2);font-weight:500}
 
-/* ── nav ───────────────────────────────────────────────────────── */
-.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(7,11,9,.72);
-     backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-     border-bottom:1px solid transparent;transition:border-color .28s var(--e),background .28s var(--e)}
-.nav.on{border-bottom-color:var(--line);background:rgba(7,11,9,.93)}
-.nav-in{max-width:var(--w);margin:0 auto;padding:var(--p3) var(--p6);
-        display:flex;align-items:center;justify-content:space-between;gap:var(--p4)}
-.brand{font-family:var(--mono);font-size:.88rem;font-weight:600;color:var(--fg);
-       display:inline-flex;align-items:center;gap:var(--p2);min-height:44px}
-.blk{width:8px;height:8px;border-radius:2px;background:var(--ac);flex:none;
-     box-shadow:0 0 12px rgba(110,231,183,.7)}
-.nav-links{display:flex;gap:var(--p1)}
-.nav-links a{font-family:var(--mono);color:var(--fg-2);font-size:.8rem;padding:var(--p2) var(--p3);
-             min-height:44px;display:inline-flex;align-items:center;border-radius:var(--r-s);
-             transition:color .16s var(--e),background .16s var(--e)}
-.nav-links a:hover{color:var(--fg);background:var(--s2c)}
-@media(max-width:760px){.nav-links a.opt{display:none}}
+/* arah altcoin: spidometer + aura api */
+.dir{display:grid;grid-template-columns:minmax(280px,340px) 1fr;gap:16px;
+  background:var(--s1);border:1px solid var(--line);border-radius:var(--r);
+  padding:18px 20px;margin:18px 0 0}
+@media(max-width:820px){.dir{grid-template-columns:1fr}}
+.gwrap{position:relative;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;min-height:206px}
+/* Aura: cahaya lembut + lidah api. Opasitas sengaja RENDAH - ini penanda
+   kondisi, bukan hiasan yang merebut perhatian dari angkanya. */
+.glow{position:absolute;left:50%;top:54%;width:280px;height:280px;
+  transform:translate(-50%,-50%);pointer-events:none;filter:blur(28px);
+  opacity:.32;transition:background .5s ease}
+.gauge{position:relative;width:100%;max-width:300px;height:auto;display:block}
+.gauge .arcbg{fill:none;stroke:var(--line-2);stroke-width:2.4;stroke-linecap:round}
+.gauge .tick{stroke:var(--line-2);stroke-width:1.6;stroke-linecap:round}
+.gauge .tick.mid{stroke:var(--fg-3);stroke-width:2}
+/* ⚠️ Kunci terakhir supaya terbaca API, bukan daun: tepi lidahnya harus
+   LEMBUT dan saling tumpang tindih. Tanpa blur, tiap lidah adalah bentuk
+   berbatas tegas dan mata membacanya sebagai objek terpisah. */
+#g-fl{filter:blur(2.2px)}
+.fl{transform-box:fill-box;transform-origin:bottom center;
+  animation:fl 1.7s ease-in-out infinite;will-change:transform,opacity}
+@keyframes fl{
+  0%,100%{transform:scaleY(.7) scaleX(1.06)}
+  38%{transform:scaleY(1.42) scaleX(.86)}
+  61%{transform:scaleY(.92) scaleX(1.02)}
+  80%{transform:scaleY(1.18) scaleX(.94)}
+}
+.ndl{transition:transform .9s cubic-bezier(.16,1,.3,1)}
+.gl{display:flex;justify-content:space-between;width:100%;max-width:288px;
+  margin-top:-8px;font-size:10px;letter-spacing:.12em;color:var(--fg-3)}
+.gbias{margin-top:13px;font-size:20px;font-weight:700;letter-spacing:.1em;
+  transition:color .5s ease}
+.gname{font-size:10.5px;letter-spacing:.1em;color:var(--fg-3);margin-top:3px}
+.dmeta{display:flex;flex-direction:column;justify-content:center;gap:9px;min-width:0}
+.dr{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:baseline;font-size:12px}
+.dr .l{color:var(--fg-3);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
+.dr .d{border-bottom:1px dotted var(--line-2);transform:translateY(-3px)}
+.dr .v{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dnote{margin-top:6px;padding-top:9px;border-top:1px solid var(--line);
+  font-size:10.5px;color:var(--fg-3);line-height:1.55}
+@media(prefers-reduced-motion:reduce){.fl{animation:none;opacity:.4}.ndl{transition:none}}
 
-/* ── hero ──────────────────────────────────────────────────────── */
-.hero{padding-top:var(--p24);padding-bottom:var(--p20)}
-.hero-g{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,.98fr);
-        gap:var(--p12);align-items:center}
-@media(max-width:960px){.hero-g{grid-template-columns:1fr;gap:var(--p8)}}
+/* ── watchlist accuracy + tools sinyal (17 Sep) ── */
+.ak-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0 6px}
+@media(max-width:900px){.ak-grid{grid-template-columns:1fr}}
+.s-tools{display:flex;gap:8px;margin:0 0 10px;flex-wrap:wrap}
+.s-tools input,.s-tools select{background:var(--s1);border:1px solid var(--line-2);color:var(--fg);
+  border-radius:6px;padding:6px 10px;font-family:var(--mono);font-size:12px}
+.s-tools input{flex:1;min-width:150px}
+.s-tools input::placeholder{color:var(--fg-3)}
+@media(max-width:600px){.kv.btc{display:none}}
 
-.eyebrow{font-family:var(--mono);font-size:.73rem;letter-spacing:.2em;text-transform:uppercase;
-         color:var(--ac);margin:0 0 var(--p4);display:flex;align-items:center;gap:var(--p3)}
-.eyebrow::before{content:"";width:20px;height:1px;background:var(--ac);opacity:.8}
+/* ── channel strip ── */
+.strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0 26px}
+@media(max-width:900px){.strip{grid-template-columns:1fr}}
+.ch{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.ch-h{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.ch-n{font-weight:600;color:var(--fg);letter-spacing:.01em}
+.ch-tf{font-size:11px;color:var(--fg-3)}
+.tag{margin-left:auto;font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  padding:2px 7px;border-radius:999px;border:1px solid transparent;white-space:nowrap}
+.tag.live{background:var(--ac-w);color:var(--ac);border-color:rgba(110,231,183,.22)}
+.tag.test{background:var(--gold-w);color:var(--gold);border-color:rgba(216,200,154,.26)}
+.rows{display:grid;gap:7px}
+.row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:baseline;font-size:12px}
+.row .l{color:var(--fg-3);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
+.row .d{border-bottom:1px dotted var(--line-2);transform:translateY(-3px)}
+.row .v{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.v.pos{color:var(--up)} .v.neg{color:var(--dn)} .v.mut{color:var(--fg-3)}
+.ch-sep{margin:11px 0 9px;border-top:1px solid var(--line);padding-top:9px}
+.ch-sep-l{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-3);margin-bottom:8px}
 
-/* judul PUTIH — hijau cuma pada satu kata, itu yang membuatnya elegan */
-h1{font-size:clamp(2.5rem,6vw,4.3rem);font-weight:600;line-height:1.02;
-   letter-spacing:-.042em;margin:0 0 var(--p4);text-wrap:balance;color:var(--fg)}
-h1 em{font-style:normal;color:var(--fg);position:relative;white-space:nowrap}
-h1 em::after{content:"";position:absolute;left:0;right:0;bottom:.1em;height:.09em;
-             border-radius:2px;background:linear-gradient(90deg,var(--ac),rgba(110,231,183,0));
-             transform:scaleX(0);transform-origin:left;animation:uline 1.1s var(--e) .5s forwards}
-@keyframes uline{to{transform:scaleX(1)}}
+/* ── section ── */
+section{margin:0 0 30px}
+.sec-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+h2{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--fg);margin:0}
+h2 i{color:var(--ac);font-style:normal}
+.hint{font-size:11px;color:var(--fg-3)}
+.tabs{display:flex;gap:5px;margin-left:auto;flex-wrap:wrap}
+.tab{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  background:transparent;color:var(--fg-2);border:1px solid var(--line-2);border-radius:6px;
+  padding:6px 11px;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.tab:hover{border-color:var(--ac);color:var(--fg)}
+.tab[aria-selected="true"]{background:var(--ac);color:#04100B;border-color:var(--ac);font-weight:600}
+.tab:active{transform:scale(.98)}
 
-.role{font-family:var(--mono);font-size:.9rem;color:var(--fg-2);margin:0 0 var(--p6);min-height:1.7em}
-.role .car{display:inline-block;width:7px;height:1.05em;background:var(--ac);border-radius:1px;
-           vertical-align:text-bottom;margin-left:3px;animation:bl 1.05s step-end infinite}
-@keyframes bl{0%,100%{opacity:1}50%{opacity:0}}
-.lede{color:var(--fg-2);max-width:50ch;margin:0 0 var(--p8);font-size:1.02rem}
+/* ⚠️ Panel ber-scroll SENDIRI, bukan mengalir di halaman. Selain lebih
+   terminal, ini memperbaiki bug nyata: `th` sticky yang menempel pada
+   viewport akan MENUTUPI baris tabel saat tabelnya cuma berisi 1 baris
+   (terlihat di kanal 1H: header tampil, barisnya hilang). Di dalam
+   kotak ber-scroll, sticky menempel pada kotaknya, bukan halaman. */
+.tw{overflow:auto;max-height:60vh;border:1px solid var(--line);
+  border-radius:var(--r);background:var(--s1)}
+table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums;min-width:820px}
+th{text-align:left;padding:9px 12px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--fg-3);font-weight:500;border-bottom:1px solid var(--line);white-space:nowrap;
+  position:sticky;top:0;background:var(--s1);z-index:2}
+td{padding:8px 12px;border-bottom:1px solid var(--line);color:var(--fg-2);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tbody tr{transition:background .12s}
+tbody tr:hover{background:var(--s2)}
+td.sym{color:var(--fg);font-weight:600;letter-spacing:.01em}
+td.n{text-align:right}
+.side{font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:4px;font-weight:600}
+.side.long{background:var(--up-w);color:var(--up)}
+.side.short{background:var(--dn-w);color:var(--dn)}
+.st{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3)}
+.st.open{color:var(--gold)}
+.tv{display:inline-flex;align-items:center;justify-content:center;width:27px;height:25px;
+  border:1px solid var(--line-2);border-radius:5px;color:var(--fg-2);
+  transition:border-color .15s,color .15s,background .15s}
+.tv:hover{border-color:var(--ac);color:var(--ac);background:var(--ac-w)}
+.tv svg{width:13px;height:13px;display:block}
+.empty{padding:30px 16px;text-align:center;color:var(--fg-3);font-size:12px}
 
-.cta{display:flex;flex-wrap:wrap;gap:var(--p3)}
-.btn{display:inline-flex;align-items:center;gap:var(--p2);padding:var(--p3) var(--p6);
-     min-height:48px;border-radius:var(--r-s);font-family:var(--mono);font-size:.84rem;
-     font-weight:600;cursor:pointer;border:1px solid transparent;white-space:nowrap;
-     transition:transform .16s var(--e),background .16s var(--e),border-color .16s var(--e),box-shadow .16s var(--e)}
-.btn:active{transform:translateY(1px) scale(.985)}
-.btn-1{background:var(--ac);color:#04100B;box-shadow:0 8px 26px -12px rgba(110,231,183,.6)}
-.btn-1:hover{background:#9CF2CE;color:#04100B;box-shadow:0 12px 32px -12px rgba(110,231,183,.75)}
-.btn-2{background:var(--s2c);color:var(--fg);border-color:var(--line-2)}
-.btn-2:hover{background:var(--s3c);border-color:var(--ac);color:var(--fg)}
-.btn svg{width:16px;height:16px;flex:none}
+/* ── charts ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.card-h{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.card-h h3{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--fg-2);margin:0}
+.lg{display:flex;gap:12px;margin-left:auto;flex-wrap:wrap}
+.lg span{display:inline-flex;align-items:center;gap:6px;font-size:10px;color:var(--fg-3)}
+.lg i{width:12px;height:2px;border-radius:2px;display:inline-block}
+svg.ch{width:100%;height:190px;display:block;overflow:visible}
+svg.ch text{font-family:var(--mono);font-size:9px;fill:var(--fg-3)}
+svg.ch .g{stroke:var(--line);stroke-width:1}
+svg.ch .z{stroke:var(--line-2);stroke-width:1;stroke-dasharray:3 4}
+.cap{margin:11px 0 0;font-size:10.5px;color:var(--fg-3);line-height:1.5}
 
-/* kartu rantai — lebih tinggi supaya kolom seimbang, tak ada ruang mati */
-.chain{background:linear-gradient(168deg,var(--s2c),var(--s1c));border:1px solid var(--line);
-       border-radius:var(--r);overflow:hidden;box-shadow:var(--sh-2)}
-.chain-bar{display:flex;align-items:center;gap:var(--p2);padding:var(--p3) var(--p4);
-           border-bottom:1px solid var(--line);background:rgba(0,0,0,.22)}
-.chain-bar .t{font-family:var(--mono);font-size:.73rem;color:var(--fg-3)}
-.chain-bar .live{margin-left:auto;font-family:var(--mono);font-size:.68rem;color:var(--ac);
-                 display:inline-flex;align-items:center;gap:6px}
-.chain-bar .live::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ac);
-                         animation:pl 2.4s ease-out infinite}
-@keyframes pl{0%{box-shadow:0 0 0 0 rgba(110,231,183,.55)}70%{box-shadow:0 0 0 9px rgba(110,231,183,0)}100%{box-shadow:0 0 0 0 rgba(110,231,183,0)}}
-.chain-c{height:300px;background:rgba(0,0,0,.16)}
-.chain-c canvas{display:block;width:100%;height:100%}
-.chain-f{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line)}
-.chain-f div{padding:var(--p4);border-right:1px solid var(--line)}
-.chain-f div:last-child{border-right:none}
-.chain-f .k{font-family:var(--mono);font-size:.63rem;letter-spacing:.11em;text-transform:uppercase;
-            color:var(--fg-3);display:block;margin-bottom:3px}
-.chain-f .v{font-family:var(--mono);font-size:1.16rem;font-weight:600;color:var(--fg);
-            font-variant-numeric:tabular-nums}
+/* ── bubbles: gelembung FISIK koin hasil deteksi engine reclaim ──
+   Terinspirasi cryptobubbles/bubblescrypto: gelembung melayang, bisa
+   digeser (tekan-tahan), bertumbukan dgn sesamanya, dan selalu kembali
+   melayang. Isi gelembung = perubahan harga 24 jam dari Binance (bukan
+   hasil R). Warna: hijau naik, merah turun, kuning = koin engine yang
+   tidak ditemukan di ticker 24 jam. Aura api = status koin di engine. */
+.bb-stage{position:relative;background:var(--s1);border:1px solid var(--line);
+  border-radius:var(--r);padding:16px;overflow:hidden}
+.bb-bar{display:flex;align-items:center;margin-bottom:12px}
+.bb-legend{margin-left:auto;display:flex;gap:12px;flex-wrap:wrap}
+.bb-legend span{display:inline-flex;align-items:center;gap:6px;font-size:10px;color:var(--fg-3)}
+.bb-legend i{width:10px;height:10px;border-radius:999px;display:inline-block}
+.bb-plot{position:relative;height:480px;overflow:hidden;touch-action:none;
+  cursor:grab}
+.bb-plot.dragging{cursor:grabbing}
+@media(max-width:700px){.bb-plot{height:380px}}
+.bb{position:absolute;left:0;top:0;border-radius:999px;cursor:grab;
+  user-select:none;-webkit-user-select:none;touch-action:none;text-align:center;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1px;font-variant-numeric:tabular-nums;line-height:1.12;
+  will-change:transform}
+.bb.drag{cursor:grabbing;z-index:30}
+.bb b{font-weight:600;letter-spacing:.02em;white-space:nowrap;overflow:hidden;
+  max-width:92%;pointer-events:none;text-shadow:0 1px 2px rgba(0,0,0,.45)}
+.bb i{font-style:normal;font-weight:700;pointer-events:none;
+  text-shadow:0 1px 2px rgba(0,0,0,.45)}
+/* aura api: koin yang sedang ADA di catatan engine hari ini */
+.bb .aura{position:absolute;inset:-3px;border-radius:999px;pointer-events:none;
+  opacity:.5;filter:blur(3px);z-index:-1;
+  animation:bbflick 1.6s ease-in-out infinite alternate}
+@keyframes bbflick{from{opacity:.34;transform:scale(.985)}
+  to{opacity:.62;transform:scale(1.025)}}
+@media(prefers-reduced-motion:reduce){.bb .aura{animation:none;opacity:.4}}
+.bb-tip{position:absolute;z-index:40;pointer-events:none;opacity:0;transition:opacity .15s;
+  background:var(--s3);border:1px solid var(--line-2);border-radius:6px;
+  padding:10px 12px;font-size:11px;min-width:200px;max-width:250px;color:var(--fg-2);
+  box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.bb-tip.on{opacity:1}
+.bb-tip .hd{font-weight:700;color:var(--fg);margin-bottom:7px;letter-spacing:.02em}
+.bb-tip .t{display:grid;grid-template-columns:auto 1fr auto;gap:6px;font-size:11px}
+.bb-tip .t .l{color:var(--fg-3);font-size:10px;letter-spacing:.05em;text-transform:uppercase}
+.bb-tip .t .d{border-bottom:1px dotted var(--line-2);transform:translateY(-3px)}
+.bb-tip .t .v{font-weight:600;white-space:nowrap;text-align:right}
 
-/* ── judul bagian ──────────────────────────────────────────────── */
-h2{font-size:clamp(1.7rem,3.3vw,2.5rem);font-weight:600;letter-spacing:-.032em;
-   margin:0 0 var(--p3);text-wrap:balance}
-.sec-lede{color:var(--fg-2);max-width:58ch;margin:0 0 var(--p12)}
-
-/* ═══ EXPERIENCE — TIMELINE (pengganti grid 2 kolom yang timpang) ═══ */
-.tl{position:relative;padding-left:var(--p12);max-width:880px}
-/* dibatasi 880px: pada 1084px sisi kanan kartu kosong dan baris teks
-   terlalu panjang untuk dibaca nyaman. */
-@media(max-width:620px){.tl{padding-left:var(--p8)}}
-.tl::before{content:"";position:absolute;left:11px;top:6px;bottom:6px;width:2px;border-radius:2px;
-            background:linear-gradient(180deg,var(--ac-2),rgba(45,212,167,.16));
-            transform:scaleY(0);transform-origin:top;transition:transform 1.5s var(--e)}
-.tl.in::before{transform:scaleY(1)}
-@media(max-width:620px){.tl::before{left:7px}}
-
-.tli{position:relative;margin-bottom:var(--p6)}
-.tli:last-child{margin-bottom:0}
-.tli::before{content:"";position:absolute;left:calc(var(--p12) * -1 + 5px);top:26px;
-             width:14px;height:14px;border-radius:50%;background:var(--bg);
-             border:2px solid var(--ac-2);z-index:2;
-             transition:box-shadow .32s var(--e),background .32s var(--e),border-color .32s var(--e)}
-@media(max-width:620px){.tli::before{left:calc(var(--p8) * -1 + 1px)}}
-.tli:hover::before{background:var(--ac);border-color:var(--ac);
-                   box-shadow:0 0 0 6px rgba(110,231,183,.14),0 0 18px rgba(110,231,183,.5)}
-
-.tlc{background:linear-gradient(165deg,var(--s2c),var(--s1c));border:1px solid var(--line);
-     border-radius:var(--r);padding:var(--p8);box-shadow:var(--sh-2);
-     transition:transform .32s var(--e),box-shadow .32s var(--e),border-color .32s var(--e)}
-.tli:hover .tlc{transform:translateX(4px);border-color:var(--line-2);box-shadow:var(--sh-3)}
-@media(max-width:620px){.tlc{padding:var(--p6)}}
-
-.tl-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--p3);margin-bottom:var(--p2)}
-.tl-head h3{font-size:1.16rem;font-weight:600;margin:0;letter-spacing:-.016em}
-.tl-when{font-family:var(--mono);font-size:.71rem;letter-spacing:.09em;text-transform:uppercase;
-         color:var(--ac);background:var(--ac-w);border:1px solid rgba(110,231,183,.2);
-         border-radius:999px;padding:3px 10px;white-space:nowrap}
-.tl-org{font-family:var(--mono);font-size:.76rem;color:var(--fg-3);margin:0 0 var(--p4)}
-.tlc p{color:var(--fg-2);margin:0 0 var(--p3);font-size:.95rem;max-width:64ch}
-.tlc p:last-of-type{margin-bottom:var(--p4)}
-.tlc p strong{color:var(--fg);font-weight:600}
-.tags{display:flex;flex-wrap:wrap;gap:var(--p2);padding-top:var(--p3);border-top:1px solid var(--line)}
-.tag{font-family:var(--mono);font-size:.7rem;color:var(--fg-2);background:var(--s3c);
-     border:1px solid var(--line-2);border-radius:var(--r-s);padding:4px 9px}
-.tag.cert{border-color:rgba(216,200,154,.28);color:var(--gold);background:rgba(216,200,154,.06)}
-
-/* ── galeri project ────────────────────────────────────────────── */
-.filter{display:flex;flex-wrap:wrap;gap:var(--p2);margin:0 0 var(--p8)}
-.fbtn{font-family:var(--mono);font-size:.78rem;padding:var(--p3) var(--p4);min-height:44px;
-      background:var(--s1c);color:var(--fg-2);border:1px solid var(--line);border-radius:999px;
-      cursor:pointer;transition:color .16s var(--e),border-color .16s var(--e),
-                                background .16s var(--e),transform .16s var(--e)}
-.fbtn:hover{color:var(--fg);border-color:var(--line-2);background:var(--s2c)}
-.fbtn:active{transform:scale(.97)}
-.fbtn[aria-pressed="true"]{color:#04100B;background:var(--ac);border-color:var(--ac);
-                           box-shadow:0 6px 20px -10px rgba(110,231,183,.6)}
-
-.bento{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:var(--p4)}
-@media(max-width:980px){.bento{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:620px){.bento{grid-template-columns:1fr}}
-.pj{grid-column:span 3;position:relative;display:flex;flex-direction:column;
-    background:linear-gradient(165deg,var(--s2c),var(--s1c));border:1px solid var(--line);
-    border-radius:var(--r);padding:var(--p8);overflow:hidden;box-shadow:var(--sh-2);
-    transition:transform .34s var(--e),border-color .34s var(--e),box-shadow .34s var(--e)}
-.pj.wide{grid-column:span 4}
-.pj.slim{grid-column:span 2}
-@media(max-width:980px){.pj,.pj.wide,.pj.slim{grid-column:span 1}}
-@media(max-width:620px){.pj{padding:var(--p6)}}
-.pj:hover{transform:translateY(-4px);border-color:var(--line-2);box-shadow:var(--sh-3)}
-.pj::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;
-           background:radial-gradient(440px circle at var(--mx,50%) var(--my,0%),
-                      rgba(110,231,183,.10),transparent 62%);transition:opacity .34s var(--e)}
-.pj:hover::after{opacity:1}
-.pj.off{display:none}
-
-.pj-top{display:flex;align-items:flex-start;gap:var(--p3);margin-bottom:var(--p4)}
-.pj-ico{width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:var(--r-s);
-        background:linear-gradient(155deg,rgba(110,231,183,.16),rgba(110,231,183,.04));
-        border:1px solid rgba(110,231,183,.24)}
-.pj-ico svg{width:18px;height:18px;stroke:var(--ac);fill:none;stroke-width:1.7}
-.pj-kind{font-family:var(--mono);font-size:.65rem;letter-spacing:.13em;text-transform:uppercase;
-         color:var(--ac);margin:0 0 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pj h3{font-size:1.18rem;font-weight:600;margin:0;letter-spacing:-.018em}
-.pj .sub{font-family:var(--mono);font-size:.73rem;color:var(--fg-3);margin:3px 0 0;line-height:1.5}
-.pj p{color:var(--fg-2);font-size:.94rem;margin:0 0 var(--p3)}
-.pj ul{margin:0 0 var(--p4);padding-left:var(--p4);color:var(--fg-2);font-size:.9rem}
-.pj li{margin-bottom:var(--p2)}
-.pj li b{color:var(--fg);font-weight:600}
-.pj .foot{margin-top:auto;display:flex;flex-wrap:wrap;gap:var(--p2);padding-top:var(--p3);
-          border-top:1px solid var(--line)}
-.pj-num{display:flex;flex-wrap:wrap;gap:var(--p6);margin:0 0 var(--p4);padding:var(--p3) 0;
-        border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.pj-num .n{font-family:var(--mono);font-size:1.34rem;font-weight:600;color:var(--ac);
-           display:block;font-variant-numeric:tabular-nums;line-height:1.1}
-.pj-num .l{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;
-           color:var(--fg-3)}
-@media(max-width:620px){
-  .pj-kind{white-space:normal;overflow:visible}
-  .pj-top{flex-direction:column;gap:var(--p2)}
-  .pj .sub{overflow-wrap:anywhere}
-  .pj-num{gap:var(--p4)}
+footer{margin:34px 0 40px;padding-top:16px;border-top:1px solid var(--line);
+  display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;
+  font-size:11px;color:var(--fg-3)}
+@media(max-width:560px){
+  body{font-size:12px}
+  .bar-in{gap:10px;padding:9px 14px}
+  .tw{max-height:70vh}
 }
 
-/* ── kredensial ────────────────────────────────────────────────── */
-.cred{display:grid;grid-template-columns:repeat(auto-fill,minmax(238px,1fr));gap:var(--p4)}
-.cd{background:linear-gradient(165deg,var(--s2c),var(--s1c));border:1px solid var(--line);
-    border-radius:var(--r);padding:var(--p6);box-shadow:var(--sh-1);
-    transition:transform .26s var(--e),border-color .26s var(--e),box-shadow .26s var(--e)}
-.cd:hover{transform:translateY(-2px);border-color:var(--line-2);box-shadow:var(--sh-2)}
-.cd .t{font-size:.93rem;font-weight:600;margin:0 0 4px;line-height:1.38}
-.cd .i{font-family:var(--mono);font-size:.71rem;color:var(--fg-3);line-height:1.5}
-.cd.hi{border-color:rgba(216,200,154,.26)}
-.cd.hi .t{color:var(--gold)}
+/* legend bubbles (17 Sep: pindah dari style= inline agar lolos CSP) */
+.lg-up{background:rgba(110,231,183,.2);border:1px solid #6EE7B7}
+.lg-dn{background:rgba(232,135,124,.2);border:1px solid #E8877C}
+.lg-id{background:rgba(216,200,154,.2);border:1px solid #D8C89A}
 
-.mq{overflow:hidden;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
-    padding:var(--p4) 0;margin:var(--p8) 0 0;position:relative}
-.mq::before,.mq::after{content:"";position:absolute;top:0;bottom:0;width:80px;z-index:2;pointer-events:none}
-.mq::before{left:0;background:linear-gradient(90deg,var(--bg),transparent)}
-.mq::after{right:0;background:linear-gradient(270deg,var(--bg),transparent)}
-.mq-t{display:flex;gap:var(--p6);width:max-content;animation:mv 52s linear infinite}
-.mq:hover .mq-t{animation-play-state:paused}
-.mq-t span{font-family:var(--mono);font-size:.76rem;color:var(--fg-3);white-space:nowrap}
-.mq-t span::before{content:"◦ ";color:var(--ac)}
-@keyframes mv{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+/* ── picked by you (18 Sep) ── */
+.pickb{color:var(--gold);text-shadow:0 0 8px rgba(216,200,154,.45)}
+td.dim{color:var(--line-2)}
+#kamu .rows .row .v{font-weight:600}
 
-/* ── stack ─────────────────────────────────────────────────────── */
-.stack{display:grid;gap:var(--p2)}
-.stack div{display:grid;grid-template-columns:154px 1fr;gap:var(--p6);align-items:start;
-           padding:var(--p4) var(--p6);background:var(--s1c);border:1px solid var(--line);
-           border-radius:var(--r-s);transition:border-color .22s var(--e),background .22s var(--e)}
-.stack div:hover{border-color:var(--line-2);background:var(--s2c)}
-@media(max-width:600px){.stack div{grid-template-columns:1fr;gap:var(--p1)}}
-.stack .k{font-family:var(--mono);font-size:.73rem;letter-spacing:.1em;text-transform:uppercase;
-          color:var(--ac);padding-top:2px}
-.stack .v{color:var(--fg-2);font-size:.94rem}
+/* picked v2: flip badge + daftar catatan */
+.pickb{color:var(--gold);text-shadow:0 0 8px rgba(216,200,154,.45);white-space:nowrap}
+.pick-notes{grid-column:1/-1;background:var(--s1);border:1px solid var(--line);
+  border-radius:8px;padding:12px 14px;margin-top:2px}
+.pick-notes .pn-h{font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--fg-3);margin-bottom:8px}
+.pick-notes .pn-r{display:flex;gap:10px;align-items:baseline;padding:3px 0;
+  border-bottom:1px dotted var(--line-2);font-size:11.5px}
+.pick-notes .pn-r:last-child{border-bottom:0}
+.pick-notes .pn-tf{color:var(--fg-3);font-size:10px;min-width:24px}
+.pick-notes .pn-side{font-size:10px;font-weight:700;padding:0 6px;border-radius:3px}
+.pick-notes .pn-side.long{color:var(--up);background:var(--up-w)}
+.pick-notes .pn-side.short{color:var(--dn);background:var(--dn-w)}
+.pick-notes .pn-note{color:var(--fg-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* ── kontak ────────────────────────────────────────────────────── */
-.end{padding-bottom:var(--p16)}
-.end h2{margin-bottom:var(--p4)}
-footer{border-top:1px solid var(--line);padding:var(--p8) 0;color:var(--fg-3);font-size:.82rem}
-.foot{display:flex;flex-wrap:wrap;gap:var(--p4);justify-content:space-between;align-items:center}
-.foot .m{font-family:var(--mono);font-size:.76rem}
+/* ── notifikasi toast (18 Sep) ──
+   Kartu kanan-atas: klik badan = buka TradingView koin itu, × = tutup saja.
+   Warna aksen mengikuti tema terminal: emas = watchlist, hijau = sinyal. */
+#toasts{position:fixed;top:54px;right:14px;z-index:50;display:flex;
+  flex-direction:column;gap:8px;width:288px;pointer-events:none}
+.toast{pointer-events:auto;display:flex;align-items:stretch;cursor:pointer;
+  background:linear-gradient(180deg,var(--s2),var(--s1));
+  border:1px solid var(--line-2);border-left:3px solid var(--gold);
+  border-radius:8px;box-shadow:0 8px 26px rgba(0,0,0,.5);
+  opacity:0;transform:translateX(14px);
+  transition:opacity .28s ease,transform .28s ease}
+.toast.t-sig{border-left-color:var(--ac)}
+.toast.in{opacity:1;transform:translateX(0)}
+.toast.out{opacity:0;transform:translateX(14px)}
+.toast:hover{border-color:var(--ac-2)}
+.tbody{flex:1;padding:9px 4px 9px 12px;min-width:0}
+.tkind{display:block;font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--fg-3);margin-bottom:2px}
+.t-sig .tkind{color:var(--ac)}
+.trow{display:flex;align-items:baseline;gap:8px}
+.trow b{font-size:13.5px;color:var(--fg);letter-spacing:.02em}
+.tdir{font-size:10px;font-weight:700;padding:0 6px;border-radius:3px}
+.tdir.long{color:var(--up);background:var(--up-w)}
+.tdir.short{color:var(--dn);background:var(--dn-w)}
+.ttf{font-size:10px;color:var(--fg-3)}
+.tsub{display:block;font-size:10px;color:var(--fg-3);margin-top:2px}
+.tx{flex:none;width:30px;border:0;border-left:1px solid var(--line);
+  background:transparent;color:var(--fg-3);font-size:17px;cursor:pointer;
+  font-family:var(--mono)}
+.tx:hover{color:var(--fg);background:var(--s3)}
 
-/* ── reveal ────────────────────────────────────────────────────── */
-.rv{opacity:0;transform:translateY(20px);
-    transition:opacity .68s var(--e),transform .68s var(--e)}
-.rv.in{opacity:1;transform:none}
+/* tombol suara di bar atas — satu baris dengan pill LIVE */
+.mute{border:1px solid var(--line-2);background:transparent;border-radius:999px;
+  width:30px;height:24px;cursor:pointer;font-size:12px;line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;padding:0}
+.mute:hover{border-color:var(--ac-2);background:var(--ac-w)}
 
-@media(prefers-reduced-motion:reduce){
-  html{scroll-behavior:auto}
-  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;
-                       transition-duration:.001ms!important}
-  .rv{opacity:1;transform:none}
-  .tl::before{transform:scaleY(1)}
-  h1 em::after{transform:scaleX(1)}
-  .mq-t{animation:none;width:auto;flex-wrap:wrap}
+/* ── v6: highlight pencarian, sorot bubble, filter side, ukuran %24j ── */
+.hlmark{background:var(--gold-w);color:var(--gold);border-radius:3px;padding:0 1px}
+.s-tools select{min-width:110px}
+#b-q{background:var(--s1);border:1px solid var(--line-2);color:var(--fg);
+  font:11px/1 var(--mono);padding:6px 10px;border-radius:var(--r);width:190px;
+  margin-left:14px}
+#b-q::placeholder{color:var(--fg-3)}
+#b-q:focus{outline:none;border-color:var(--ac)}
+.bb{transition:opacity .25s, box-shadow .25s}
+.bb.dim{opacity:.18;filter:saturate(.3)}
+.bb.hit{z-index:25}
+.bb.hit::after{content:"";position:absolute;inset:-5px;border-radius:999px;
+  border:2px solid var(--gold);pointer-events:none;
+  animation:bbpulse 1.2s ease-in-out infinite}
+@keyframes bbpulse{0%,100%{box-shadow:0 0 0 0 rgba(216,200,154,.45)}
+  50%{box-shadow:0 0 14px 3px rgba(216,200,154,.30)}}
+
+/* v8: kursor jelas pada bubble yang disorot */
+.bb.hit{cursor:pointer}
+
+/* ── v9: chip koin teraktif di atas kanvas ── */
+.b-chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.b-chips .chip{background:var(--s2);border:1px solid var(--line-2);color:var(--fg-2);
+  font:600 10px/1 var(--mono);padding:5px 9px;border-radius:999px;cursor:pointer;
+  transition:border-color .15s, background .15s}
+.b-chips .chip:hover{border-color:var(--gold);background:var(--gold-w)}
+.b-chips .chip-empty{font-size:10px;color:var(--fg-3);font-style:italic}
+
+/* ── v12: badge picked di chip + legenda 6 tier ── */
+.b-chips .chip.pick{border-color:var(--gold);background:var(--gold-w);
+  box-shadow:0 0 8px rgba(216,200,154,.25)}
+.b-chips .chip.pick::before{content:"★ ";color:var(--gold)}
+
+
+/* ── v18: Live Picks Admin (ambil + koreksi + resolve) ─────────── */
+.apbtn{font:inherit;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  background:transparent;color:var(--ac);border:1px solid var(--ac);border-radius:4px;
+  padding:2px 8px;cursor:pointer}
+.apbtn:hover{background:var(--ac);color:#0a0f0d}
+.apbadge{font:inherit;font-size:10.5px;font-weight:700;letter-spacing:.04em;
+  border:1px solid transparent;border-radius:4px;padding:2px 7px;cursor:default;
+  background:rgba(216,200,154,.10);color:var(--fg-2)}
+button.apbadge{cursor:pointer}
+.apbadge.apwin{background:rgba(110,231,183,.13);color:var(--up);border-color:rgba(110,231,183,.45)}
+.apbadge.aploss{background:rgba(232,135,124,.13);color:var(--dn);border-color:rgba(232,135,124,.45)}
+.apbadge.apopen{background:rgba(216,200,154,.14);color:var(--fg-2);border-color:rgba(216,200,154,.4)}
+.adm-gear{margin-left:8px;background:transparent;border:1px solid transparent;color:var(--fg-3);
+  font-size:15px;cursor:pointer;border-radius:5px;padding:2px 7px;line-height:1}
+.adm-gear:hover{color:var(--ac);border-color:var(--ac)}
+.adm-modal{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(4,7,6,.72);display:none;
+  align-items:center;justify-content:center;z-index:90;padding:16px}
+.adm-modal.in{display:flex}
+.adm-box{background:var(--s2,#101614);border:1px solid var(--line-2,#2a3532);border-radius:10px;
+  padding:18px;width:min(430px,94vw);max-height:88vh;overflow:auto;
+  box-shadow:0 18px 60px rgba(0,0,0,.55)}
+.adm-h{display:flex;align-items:baseline;gap:8px;margin-bottom:12px}
+.adm-h b{font-size:14px;letter-spacing:.02em}
+.adm-sub{color:var(--fg-3);font-size:11px;flex:1}
+.adm-x{margin-left:auto;background:none;border:none;color:var(--fg-3);font-size:17px;cursor:pointer}
+.adm-x:hover{color:var(--dn)}
+.adm-desc{color:var(--fg-3);font-size:11.5px;line-height:1.55;margin-bottom:12px}
+.adm-in{width:100%;box-sizing:border-box;margin:0 0 9px;background:var(--s1,#0b100e);
+  border:1px solid var(--line-2,#2a3532);color:var(--fg);border-radius:6px;padding:8px 10px;
+  font:inherit;font-size:12.5px}
+.adm-in:focus{outline:none;border-color:var(--ac)}
+.adm-row{display:flex;gap:8px;margin-top:2px}
+.adm-save{flex:1;background:var(--ac);color:#0a0f0d;border:none;border-radius:6px;
+  padding:8px 10px;font:inherit;font-weight:700;cursor:pointer}
+.adm-save:hover{filter:brightness(1.1)}
+.adm-cancel,.adm-del{background:transparent;border:1px solid var(--line-2,#2a3532);
+  color:var(--fg-2);border-radius:6px;padding:8px 12px;font:inherit;cursor:pointer}
+.adm-del{color:var(--dn);border-color:rgba(232,135,124,.4)}
+.adm-del:hover{background:rgba(232,135,124,.12)}
+.adm-cancel:hover{border-color:var(--fg-2)}
+.adm-status{margin-top:10px;font-size:11.5px;color:var(--fg-3);min-height:15px}
+.lv-sub{margin:14px 0 2px;text-transform:uppercase;letter-spacing:.1em;font-size:10.5px}
+
+/* ── v20: koin pilihan admin di bubbles — bintang + garis tepi emas ── */
+.bb .bbstar{position:absolute;top:-5px;right:3px;font-size:14px;line-height:1;font-style:normal;
+  color:#ffd54f;text-shadow:0 0 6px rgba(255,213,84,.9),0 1px 2px rgba(0,0,0,.6);
+  pointer-events:none;z-index:3;animation:bbstarPulse 2s ease-in-out infinite}
+@keyframes bbstarPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+
+/* ── v23: label koreksi admin DI DALAM bubble (terlihat semua pengunjung) ──
+   "short" merah / "long" hijau — arah yang admin ambil dari engine */
+.bb .bbfix{font-style:normal;text-decoration:none;font-weight:800;text-transform:uppercase;
+  letter-spacing:.14em;font-size:.78em;line-height:1;pointer-events:none;
+  padding:1.5px 7px;border-radius:999px;text-shadow:none}
+.bb .bbfix.long{color:#39e08c;background:rgba(57,224,140,.13);
+  box-shadow:inset 0 0 0 1px rgba(57,224,140,.45)}
+.bb .bbfix.short{color:#ff7a70;background:rgba(255,122,112,.13);
+  box-shadow:inset 0 0 0 1px rgba(255,122,112,.45)}
+@media(max-width:700px){.bb .bbfix{padding:1px 5px;letter-spacing:.08em}}
+
+/* ── v21: riwayat koreksi admin + pembanding backtest ── */
+.row.bt-h{margin-top:7px;padding-top:6px;border-top:1px dashed var(--line)}
+.row.bt-h .l{color:var(--fg-3);font-size:10px;letter-spacing:.08em}
+.v.warn{color:var(--gold)}
+.plog-wrap{margin:14px 0 4px}
+.plog-scroll{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.015)}
+.plog-t{width:100%;border-collapse:collapse;font-size:11.5px}
+.plog-t th{position:sticky;top:0;background:var(--bg);text-align:left;padding:8px 10px;color:var(--fg-3);font-weight:600;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--line)}
+.plog-t td{padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.045);white-space:nowrap}
+.plog-t tr:last-child td{border-bottom:none}
+.plog-empty{padding:12px;color:var(--fg-3);font-size:12px}
+
+/* ── v23: badge koreksi admin di kolom koreksi ── */
+.apbadge.corr{border-color:var(--gold);color:var(--gold);background:rgba(255,213,84,.07)}
+
+/* ── v24: baris watchlist/sinyal yang diambil admin — latar emas tipis ── */
+tbody tr.pickrow{background:rgba(255,213,79,.055)}
+tbody tr.pickrow td:first-child{box-shadow:inset 3px 0 0 rgba(255,213,79,.5)}
+tbody tr.pickrow:hover{background:rgba(255,213,79,.09)}
+
+/* ═══════════ GERBANG LOGIN PRIVAT (v25) ═══════════ */
+#gate{position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 30%, #0D1512 0%, var(--bg) 62%)}
+html.authed #gate{display:none}
+.gate-box{width:min(432px,92vw);padding:48px 44px 40px;border:1px solid #22322A;border-radius:20px;
+  background:#0D1411;box-shadow:0 30px 90px rgba(0,0,0,.65),0 0 0 1px rgba(216,200,154,.06) inset,0 1px 0 rgba(255,255,255,.045) inset;
+  text-align:center;animation:gboxIn .6s cubic-bezier(.2,.9,.3,1.2) both}
+@keyframes gboxIn{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}
+.gate-box.shake{animation:gshake .4s}
+@keyframes gshake{20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
+.gate-logo{display:flex;justify-content:center;padding:4px 0 22px}
+.gate-logo .mark{width:36px;height:36px}
+.gate-logo .wm{font-size:21px}
+.gate-logo .wm b{font-weight:800}
+.gate-sub{margin:14px 0 20px;font-size:12.5px;color:#93A69B}
+.gate-form{display:flex;flex-direction:column;gap:13px}
+.gate-form input{width:100%;box-sizing:border-box;padding:14px 16px;border-radius:12px;border:1px solid #2A3A31;
+  background:#0A100D;color:#DCE8E1;font-size:15px;outline:none;transition:border-color .15s,box-shadow .15s}
+.gate-form input:focus{border-color:rgba(216,200,154,.55);box-shadow:0 0 0 3px rgba(216,200,154,.10)}
+#gate-btn{margin-top:7px;padding:15px;border-radius:12px;border:0;cursor:pointer;font-weight:800;letter-spacing:.22em;font-size:13.5px;
+  color:#07120C;background:linear-gradient(135deg,#8FF0C8,#3EBA8B);box-shadow:0 8px 24px rgba(110,231,183,.16);transition:filter .15s,transform .1s,box-shadow .15s}
+#gate-btn:hover{filter:brightness(1.08);box-shadow:0 10px 30px rgba(110,231,183,.26)}
+#gate-btn:active{transform:scale(.97)}
+.gate-err{min-height:18px;margin-top:13px;font-size:12.5px;color:var(--dn)}
+
+/* ── animasi transisi blockchain ── */
+.gate-chain{display:none;margin-top:6px}
+.gate-chain.run{display:block;animation:chainIn .4s both}
+@keyframes chainIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.glink{display:flex;align-items:center;justify-content:center;gap:0}
+.gnode{width:20px;height:22px;margin:0 7px;clip-path:polygon(25% 4%,75% 4%,98% 50%,75% 96%,25% 96%,2% 50%);
+  background:#18241E;opacity:.28;transform:scale(.7)}
+.glink i{width:16px;height:2px;background:#2A3A31;transform:scaleX(0);border-radius:2px}
+.gate-chain.run .gnode{animation:gnodeOn .55s cubic-bezier(.2,.9,.3,1.3) forwards}
+.gate-chain.run .gnode:nth-child(1){animation-delay:.15s}
+.gate-chain.run .gnode:nth-child(3){animation-delay:.50s}
+.gate-chain.run .gnode:nth-child(5){animation-delay:.85s}
+.gate-chain.run .gnode:nth-child(7){animation-delay:1.20s}
+.gate-chain.run .gnode:nth-child(9){animation-delay:1.55s}
+.gate-chain.run .glink i:nth-child(2){animation:glnkOn .3s .42s forwards}
+.gate-chain.run .glink i:nth-child(4){animation:glnkOn .3s .77s forwards}
+.gate-chain.run .glink i:nth-child(6){animation:glnkOn .3s 1.12s forwards}
+.gate-chain.run .glink i:nth-child(8){animation:glnkOn .3s 1.47s forwards}
+@keyframes gnodeOn{40%{transform:scale(1.22)}to{opacity:1;transform:scale(1);background:linear-gradient(160deg,#E4D5A6,#B69B5F);box-shadow:0 0 18px rgba(216,200,154,.5)}}
+@keyframes glnkOn{to{transform:scaleX(1);background:var(--gold);box-shadow:0 0 8px rgba(216,200,154,.45)}}
+.ghash{margin-top:16px;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:#93A69B;letter-spacing:.05em;min-height:16px}
+.ggrant{margin-top:10px;font-size:12.5px;font-weight:700;letter-spacing:.14em;color:var(--up);opacity:0}
+.gate-chain.run .ggrant{animation:ggrantIn .45s 2.0s forwards}
+@keyframes ggrantIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+#gate.bye{animation:gateBye .65s ease forwards}
+@keyframes gateBye{to{opacity:0;transform:scale(1.05);visibility:hidden}}
+/* 21 Sep — KRITIS: animasi transform di BODY menjadikan body containing
+   block bagi semua position:fixed (modal edit, toast, gerbang) — modal
+   edit ter-center terhadap SELURUH DOKUMEN (bisa 4000px+) dan jatuh di
+   bawah lipatan layar = tampak "blank" saat tombol ambil diklik.
+   Solusi: body hanya fade (opacity tidak membuat containing block),
+   efek naik translateY dipindah ke .wrap (tak punya keturunan fixed). */
+html.authed body{animation:qkFade .5s ease both}
+html.authed .wrap{animation:qkRise .55s ease both}
+@keyframes qkFade{from{opacity:0}to{opacity:1}}
+@keyframes qkRise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* v25b: kunci scroll di balik gerbang — konten tidak bisa digulir saat login tampil */
+html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!important}
+
+/* v26: tombol keluar di header — kembali ke gerbang login */
+.gate-out{color:var(--dn)!important}
+.gate-out:hover{color:#fff!important;border-color:var(--dn)!important}
+
+/* v27: subtitle kosong tak menyisakan celah di halaman login */
+.gate-sub:empty{display:none;margin:0}
+
+/* ═══ v28: partikel heksagon melayang + toggle password ═══ */
+.gparts{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.gp{position:absolute;bottom:-34px;clip-path:polygon(25% 4%,75% 4%,98% 50%,75% 96%,25% 96%,2% 50%);
+  background:rgba(216,200,154,.13);animation:gpFloat linear infinite;will-change:transform}
+.gp.mint{background:rgba(110,231,183,.11)}
+@keyframes gpFloat{
+  0%{transform:translate3d(0,0,0) rotate(0deg)}
+  50%{transform:translate3d(var(--sway,24px),-58vh,0) rotate(180deg)}
+  100%{transform:translate3d(calc(var(--sway,24px) * -0.4),-116vh,0) rotate(360deg)}
 }
+@media(prefers-reduced-motion:reduce){.gp{display:none}}
+.gpw{position:relative}
+.gpw input{padding-right:46px}
+#gate-eye{position:absolute;right:7px;top:50%;transform:translateY(-50%);width:33px;height:33px;
+  display:flex;align-items:center;justify-content:center;background:transparent;border:0;border-radius:9px;
+  color:#7E938A;cursor:pointer;transition:color .15s,background .15s}
+#gate-eye:hover{color:#DCE8E1;background:rgba(216,200,154,.09)}
+#gate-eye.on{color:var(--ac)}
+#gate-eye svg{width:17px;height:17px}
