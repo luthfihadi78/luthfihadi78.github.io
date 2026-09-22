@@ -426,6 +426,18 @@ button.apbadge{cursor:pointer}
 .hh-c .hh-star{position:absolute;margin-left:3px;color:#ffd54f;font-size:11px}
 .hh-c{position:relative}
 .hh-cap{border-top:1px solid var(--line);margin-top:6px}
+/* 23 Sep — toggle metode pewarnaan + baris aktif + sel terpilih + chip filter */
+.hh-toggle{display:flex;gap:6px;margin:2px 0 8px}
+.hh-tg{background:transparent;border:1px solid var(--line);color:var(--fg-3);border-radius:8px;padding:4px 12px;font:inherit;font-size:11px;cursor:pointer;letter-spacing:.03em}
+.hh-tg:hover{border-color:var(--up);color:var(--fg)}
+.hh-tg.on{background:var(--up-w);border-color:var(--up);color:var(--up);font-weight:600}
+.hh-t tbody tr.hh-active td{background:rgba(255,213,79,.035)}
+.hh-t tbody tr.hh-active td.hh-jam{color:var(--fg-2)}
+.hh-t tbody tr.hh-active td:first-child{box-shadow:inset 3px 0 0 rgba(255,213,79,.45)}
+.hh-t tbody tr.hh-sel td{outline:1px solid var(--up);outline-offset:-1px}
+.hh-c:hover{filter:brightness(1.18)}
+.hh-fchip{margin-left:10px;background:var(--up-w);border:1px solid var(--up);color:var(--up);border-radius:999px;padding:3px 12px;font:inherit;font-size:11px;cursor:pointer}
+.hh-fchip:hover{background:rgba(110,231,183,.22)}
 
 /* ── v23: badge koreksi admin di kolom koreksi ── */
 .apbadge.corr{border-color:var(--gold);color:var(--gold);background:rgba(255,213,84,.07)}

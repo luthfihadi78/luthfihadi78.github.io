@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-note-20260922a";   /* 22 Sep v26: heat table jam terbaik (winrate live resolve, 24 jam WIB) */
+  var BUILD = "qkuk-note-20260923a";   /* 23 Sep v27: heat table + toggle winrate/total% + baris aktif 09-21 + klik sel = filter riwayat */
   var COLOR = { "1h": "#9CF2CE", "2h": "#6EE7B7", "4h": "#D8C89A" };
   var TVI = { "1h": "60", "2h": "120", "4h": "240" };
 
@@ -2152,6 +2152,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
     var TFH = [["1h", "KILAT"], ["2h", "SCALP"], ["4h", "SWING"]];
     var per = {}, j;                       // per[jam][tf] = [n, w, sum%]
+    if (typeof HH_FILTER === "undefined") window.HH_FILTER = null;   // jam terpilih (klik sel)
     for (j = 0; j < 24; j++) { per[j] = {}; TFH.forEach(function (t) { per[j][t[0]] = [0, 0, 0]; }); }
     ord().forEach(function (tf) {
       (DATA.live[tf] || {}).pantau || [];
@@ -2170,8 +2171,30 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       });
     });
     var TOT = 0; for (j = 0; j < 24; j++) TOT += per[j]["1h"][0] + per[j]["2h"][0] + per[j]["4h"][0];
+    /* 23 Sep — toggle pewarnaan: "wr" = winrate (default), "pct" = total % hasil.
+       Tersimpan di localStorage supaya pilihan pembaca diingat antar kunjungan. */
+    var HH_MODE = "wr";
+    try { HH_MODE = localStorage.getItem("qkuk_hh_mode") === "pct" ? "pct" : "wr"; } catch (e) {}
     host.innerHTML = "";
-    host.appendChild(el("div", "pn-h lv-sub", "jam terbaik \u2014 heat table (winrate live resolve, 24 jam WIB)"));
+    host.appendChild(el("div", "pn-h lv-sub", "jam terbaik \u2014 heat table (live resolve, 24 jam WIB)"));
+    (function () {
+      var tg = el("div", "hh-toggle");
+      function btn(id, lab) {
+        var b = el("button", "hh-tg" + (HH_MODE === id ? " on" : ""), lab);
+        b.type = "button";
+        b.addEventListener("click", function () {
+          HH_MODE = id;
+          try { localStorage.setItem("qkuk_hh_mode", id); } catch (e) {}
+          tg.querySelectorAll(".hh-tg").forEach(function (x) { x.classList.remove("on"); });
+          b.classList.add("on");
+          hourHeat();                              // render ulang dgn metode baru
+        });
+        return b;
+      }
+      tg.appendChild(btn("wr", "winrate"));
+      tg.appendChild(btn("pct", "total %"));
+      host.appendChild(tg);
+    })();
     if (!TOT) {
       host.appendChild(el("div", "plog-empty", "belum ada resolve — isi win/loss lewat tombol ambil, heat table terisi otomatis"));
       return;
@@ -2183,18 +2206,24 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     ["KILAT 1H", "SCALP 2H", "SWING 4H", "TOTAL"].forEach(function (x) { trh.appendChild(el("th", null, x)); });
     thead.appendChild(trh); tab.appendChild(thead);
     var tby = el("tbody");
-    function paint2(wr, has) {
+    /* warna sel: mode "wr" → intensitas dari jarak winrate ke 50%;
+       mode "pct" → skala total % (netral di 0, pekat penuh di ±20%). */
+    function kelas(wr, has) {
       if (!has) return "hh-none";
       var a = Math.min(.75, .1 + Math.abs(wr - 50) / 66).toFixed(2);
       return (wr >= 50 ? "hh-w" : "hh-l") + a;
     }
-    function cell(tf, best) {
+    function cell(tf, best, hour) {
       var c = per[j][tf], has = c[0] > 0;
       var td = el("td", "hh-c");
       if (has) {
         var wr = c[1] / c[0] * 100;
-        td.className = "hh-c " + paint2(wr, has) + "";
-        td.style.setProperty("--a", (Math.min(.75, .1 + Math.abs(wr - 50) / 66)).toFixed(2));
+        if (HH_MODE === "pct") {
+          var p = c[2], st = Math.ceil(Math.min(1, Math.abs(p) / 20) * 7);
+          td.className = "hh-c " + (p >= 0 ? "hh-w" : "hh-l") + st;
+        } else {
+          td.className = "hh-c " + kelas(wr, has);
+        }
         td.appendChild(el("span", "hh-wr " + (wr >= 50 ? "pos" : "neg"), wr.toFixed(0) + "%"));
         td.appendChild(el("span", "hh-sub", c[0] + " picks · " + sgn(c[2], 1) + "%"));
         if (best) td.appendChild(el("span", "hh-star", "\u2726"));
@@ -2204,10 +2233,30 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         td.classList.add("hh-none");
         td.title = "belum ada resolve di jam ini";
       }
+      /* 23 Sep — klik sel = saring riwayat koreksi ke pick jam ini
+         (klik sel jam yang sama lagi = hapus filter) */
+      td.style.cursor = "pointer";
+      /* 23 Sep — jam disimpan di atribut sel & dibaca saat klik (this.dataset.j),
+         imun terhadap closure var j yang sudah mencapai 24 saat klik terjadi */
+      td.dataset.j = hour;
+      td.addEventListener("click", function () {
+        var h = parseInt(this.dataset.j, 10);
+        HH_FILTER = (HH_FILTER === h) ? null : h;
+        plogRender();
+        var tb = host.querySelector("tbody");
+        if (tb) {
+          tb.querySelectorAll("tr").forEach(function (x) {
+            x.classList.toggle("hh-sel", parseInt(x.getAttribute("data-j"), 10) === HH_FILTER);
+          });
+        }
+      });
       return td;
     }
     for (j = 0; j < 24; j++) {
       var tr = el("tr");
+      tr.dataset.j = j;
+      if (HH_FILTER === j) tr.classList.add("hh-sel");   // filter bertahan saat re-render (toggle mode)
+      if (j >= 9 && j <= 21) tr.classList.add("hh-active");   // 23 Sep: jam trading aktif 09–21
       tr.appendChild(el("td", "hh-jam", ("0" + j).slice(-2) + ".00"));
       var tt = [0, 0, 0];
       ["1h", "2h", "4h"].forEach(function (t) {
@@ -2219,13 +2268,29 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
                                    per[j]["4h"][0] ? per[j]["4h"][1] / per[j]["4h"][0] : -1) : 0;
       ["1h", "2h", "4h"].forEach(function (t) {
         var c = per[j][t];
-        tr.appendChild(cell.call(null, t, c[0] > 0 && c[1] / c[0] === best3));
+        tr.appendChild(cell.call(null, t, c[0] > 0 && c[1] / c[0] === best3, j));
       });
       var tdT = el("td", "hh-c");
+      tdT.dataset.j = j; tdT.style.cursor = "pointer";
+      tdT.addEventListener("click", function () {
+        var h = parseInt(this.dataset.j, 10);
+        HH_FILTER = (HH_FILTER === h) ? null : h;
+        plogRender();
+        var tb = host.querySelector("tbody");
+        if (tb) {
+          tb.querySelectorAll("tr").forEach(function (x) {
+            x.classList.toggle("hh-sel", parseInt(x.getAttribute("data-j"), 10) === HH_FILTER);
+          });
+        }
+      });
       if (totHas) {
         var wrT = tt[1] / tt[0] * 100;
-        tdT.className = "hh-c " + paint2(wrT, true);
-        tdT.style.setProperty("--a", (Math.min(.75, .1 + Math.abs(wrT - 50) / 66)).toFixed(2));
+        if (HH_MODE === "pct") {
+          var pT = tt[2];
+          tdT.className = "hh-c " + (pT >= 0 ? "hh-w" : "hh-l") + Math.ceil(Math.min(1, Math.abs(pT) / 20) * 7);
+        } else {
+          tdT.className = "hh-c " + kelas(wrT, true);
+        }
         tdT.appendChild(el("span", "hh-wr " + (wrT >= 50 ? "pos" : "neg"), wrT.toFixed(0) + "%"));
         tdT.appendChild(el("span", "hh-sub", tt[0] + " picks"));
       } else tdT.classList.add("hh-none");
@@ -2234,7 +2299,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
     tab.appendChild(tby); wrap.appendChild(tab); host.appendChild(wrap);
     host.appendChild(el("div", "plog-empty hh-cap",
-      "hijau = di atas 50%, merah = di bawah \u00b7 makin pekat makin kuat \u00b7 \u2726 = jam terbaik baris itu \u00b7 sumber: win/loss yang kamu isi di tabel (bukan backtest)"));
+      (HH_MODE === "pct"
+        ? "mode total %: hijau = hasil positif, merah = negatif · makin pekat makin besar · skala ±20% penuh"
+        : "hijau = di atas 50%, merah = di bawah · makin pekat makin kuat") +
+      " · baris teduh = jam trading aktif 09–21 · ✦ = jam terbaik baris itu · klik sel = riwayat koreksi jam itu"));
   }
   /* tabel riwayat semua aksi admin — ambil/koreksi/hapus/password, terbaru dulu,
      waktu ditampilkan WIB. Sumbernya log di cloud (PLOG), bukan backtest. */
@@ -2249,10 +2317,43 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       else kamu.appendChild(host);
     }
     host.innerHTML = "";
-    host.appendChild(el("div", "pn-h lv-sub", "riwayat koreksi admin"));
-    if (!PLOG.length) {
+    var pHead = el("div", "pn-h lv-sub", "riwayat koreksi admin");
+    /* 23 Sep — filter jam aktif dari klik sel heat table */
+    var fJam = (typeof HH_FILTER !== "undefined") ? HH_FILTER : null;
+    if (fJam !== null && fJam !== undefined) {
+      var chip = el("button", "hh-fchip",
+        "menampilkan jam " + ("0" + fJam).slice(-2) + ".00 WIB — klik untuk tampilkan semua");
+      chip.type = "button";
+      chip.title = "hapus filter jam";
+      chip.addEventListener("click", function () {
+        window.HH_FILTER = null;
+        var tb = document.querySelector("#hheat tbody");
+        if (tb) tb.querySelectorAll("tr.hh-sel").forEach(function (x) { x.classList.remove("hh-sel"); });
+        plogRender();
+      });
+      pHead.appendChild(chip);
+    }
+    host.appendChild(pHead);
+    /* entri riwayat difilter ke jam terpilih. Jam dibaca tahan-banting:
+       "YYYY-MM-DD HH:MM" tanpa zona = sudah WIB; ISO berzona (hasil
+       toISOString) digeser +7 jam ke WIB. Regex lama menuntut string
+       berakhir HH:MM — selalu gagal pada t ISO dari plogAdd → filter kosong. */
+    var daftar = PLOG;
+    if (fJam !== null && fJam !== undefined) {
+      daftar = PLOG.filter(function (e) {
+        var st = String(e.t || "");
+        var naive = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/.exec(st);
+        if (naive) return parseInt(naive[4], 10) === fJam;
+        var d = new Date(st);
+        if (isNaN(d.getTime())) return false;
+        return new Date(d.getTime() + 7 * 3600e3).getUTCHours() === fJam;
+      });
+    }
+    if (!daftar.length) {
       host.appendChild(el("div", "plog-empty",
-        "belum ada koreksi — setiap ambil, koreksi, atau hapus pick tercatat di sini dengan waktu WIB-nya"));
+        !PLOG.length
+          ? "belum ada koreksi — setiap ambil, koreksi, atau hapus pick tercatat di sini dengan waktu WIB-nya"
+          : "tidak ada koreksi di jam " + ("0" + fJam).slice(-2) + ".00 WIB"));
       return;
     }
     var sc = el("div", "plog-scroll"), tb = el("table", "plog-t");
@@ -2261,7 +2362,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       .forEach(function (x) { trh.appendChild(el("th", null, x)); });
     var thead = el("thead"); thead.appendChild(trh); tb.appendChild(thead);
     var tbody = el("tbody");
-    PLOG.slice(0, 50).forEach(function (e) {
+    daftar.slice(0, 50).forEach(function (e) {
       var tr = el("tr");
       function td(v, cls) { tr.appendChild(el("td", cls || "", v)); }
       td(wibStr(e.t), "mut");
