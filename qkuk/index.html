@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=20260923a">
+<link rel="stylesheet" href="style.css?v=20260923e">
 </head>
 <body>
 
@@ -195,15 +195,17 @@
   <section id="charts">
     <div class="grid2">
       <div class="card">
-        <div class="card-h"><h3>Winrate sinyal scalping kilat, scalping dan swing trade</h3><div class="lg" id="eq-lg"></div></div>
-        <svg class="ch" id="eq" role="img" aria-label="Cumulative R per channel"></svg>
+        <div class="card-h"><h3>Winrate live — scalping kilat, scalping &amp; swing trade</h3><div class="lg" id="eq-lg"></div></div>
+        <svg class="ch" id="eq" role="img" aria-label="Kurva kumulatif hasil live per kanal"></svg>
+        <p class="cap">Kurva kumulatif hasil (%) dari resolusi live pilihan admin — setiap pick yang sudah di-resolve
+        (win/loss lewat tombol ambil) menambah langkah kurva sesuai waktunya. Bukan backtest.</p>
       </div>
       <div class="card">
         <div class="card-h"><h3>Win rate by WIB hour — 00:00 to 23:00</h3><div class="lg" id="hr-lg"></div></div>
-        <svg class="ch" id="hr" role="img" aria-label="Win rate by hour"></svg>
-        <p class="cap">Every WIB hour from 00:00 to 23:00 gets its own bar; green means the win
-        rate is above 50%, red below it, and a dim dot means no signal was recorded that hour
-        (not zero — the 4H channel only closes a bar six times a day).</p>
+        <svg class="ch" id="hr" role="img" aria-label="Winrate per jam WIB, tiga kanal live"></svg>
+        <p class="cap">Tiga garis kanal (Kilat 1h · Scalp 2h · Swing 4h) per jam WIB dari winrate live resolve admin —
+        bukan backtest. Hover di jam mana pun untuk rincian; garis 50% = garis putus, area di bawah kurva hanya
+        penguat visual. Jam tanpa resolve tidak digambar (bukan nol).</p>
       </div>
     </div>
   </section>
@@ -229,6 +231,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20260923a" defer></script>
+<script src="app.js?v=20260923e" defer></script>
 </body>
 </html>

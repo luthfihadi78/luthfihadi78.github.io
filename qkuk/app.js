@@ -882,93 +882,196 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       d.appendChild(i); d.appendChild(document.createTextNode(s.name)); host.appendChild(d);
     });
   }
-  function charts() {
-    var eng = ord().filter(function (t) { return (DATA.engine || {})[t]; });
-    var eq = eng.map(function (tf) {
-      var E = DATA.engine[tf], n = E.kurva.length;
-      return { name: tf.toUpperCase(), color: COLOR[tf], raw: E.kurva,
-               pts: E.kurva.map(function (p, i) { return [n > 1 ? i / (n - 1) : 0, p.eq]; }) };
-    });
-    if (eq.length) {
-      var base = eq.reduce(function (a, b) { return b.raw.length > a.raw.length ? b : a; });
-      var xt = [0, .5, 1].map(function (f) {
-        var j = Math.round(f * (base.raw.length - 1));
-        return { x: f, label: (base.raw[j] && base.raw[j].b) || "" };
+  /* ── charts (23 Sep: SEMUA LIVE dari resolve admin, bukan backtest) ──
+     ① eq : kurva kumulatif hasil live (%) per kanal, urut waktu sinyal
+     ② hr : winrate per jam WIB — 3 garis kanal gaya terminal crypto
+     Sumber sama dengan heat table & kartu live resolve: picks admin. */
+  var HR_NAME = { "1h": "Kilat 1h", "2h": "Scalp 2h", "4h": "Swing 4h" };
+  function liveHourAgg() {
+    var per = {}, h;
+    for (h = 0; h < 24; h++) { per[h] = { "1h": [0, 0, 0], "2h": [0, 0, 0], "4h": [0, 0, 0] }; }
+    ["1h", "2h", "4h"].forEach(function (tf) {
+      ["pantau", "sinyal"].forEach(function (jenis) {
+        ((DATA.live[tf] || {})[jenis] || []).forEach(function (r) {
+          var p = r.apick; if (!p) return;
+          if (p.win !== 0 && p.win !== 1) return;   // terbuka: tidak dinilai
+          var m = /(\d{2}):(\d{2})\s*$/.exec(String(r.ts || ""));
+          if (!m) return;
+          var hh = parseInt(m[1], 10); if (!(hh >= 0 && hh < 24)) return;
+          var dirEfektif = p.side || r.dir;
+          var pct = isFinite(p.pct) ? (dirEfektif === "short" ? -p.pct : p.pct)
+                    : (p.win === 1 ? 1 : -1);        // fallback 1R
+          var c = per[hh][tf]; c[0]++; c[1] += p.win; c[2] += pct;
+        });
       });
-      draw($("#eq"), eq, { xlo: 0, xhi: 1, xt: xt, fy: function (y) { return (y > 0 ? "+" : "") + Math.round(y) + "R"; } });
-      legend($("#eq-lg"), eq);
-    }
-    /* Win rate per jam — BATANG, bukan garis (permintaan user 17 Sep):
-       garis menyembunyikan jam mana yang bagus; batang per jam 00:00-23:00
-       langsung terbaca. Batang cuma untuk jam yang PUNYA sinyal; jam kosong
-       ditandai titik redup di garis dasar (bukan nol — jam tanpa sinyal bukan
-       jam jelek). Baseline 50% = garis putus; di atasnya hijau, di bawah merah,
-       supaya "jam terbaik" tak perlu ditebak dari tinggi batang. */
-    var engHr = eng[0] ? DATA.engine[eng[0]].jam : [];
-    if (engHr.length) {
-      hrBars($("#hr"), engHr, eng.map(function (t) { return COLOR[t]; })[0] || COLOR["2h"]);
-      var jl = $("#hr-lg"); jl.innerHTML = "";
-      var mk = function (c, l) { var s = el("span"); var i = el("i");
-        /* CSP: cssText = inline style yang diblokir — pakai properti individual */
-        i.style.width = "10px"; i.style.height = "10px";
-        i.style.borderRadius = "2px"; i.style.display = "inline-block";
-        i.style.background = c;
-        s.appendChild(i); s.appendChild(document.createTextNode(l)); jl.appendChild(s); };
-      mk("rgba(110,231,183,.75)", "WR di atas 50%");
-      mk("rgba(232,135,124,.75)", "WR di bawah 50%");
-      mk("rgba(157,176,167,.25)", "tanpa sinyal");
-    }
+    });
+    return per;
   }
-  function hrBars(svg, jam, col) {
+  function eqLiveSeries() {
+    return ["1h", "2h", "4h"].map(function (tf) {
+      var rows = [];
+      Object.keys(PICKS).forEach(function (k) {
+        var kp = k.split("|"); if (kp[0] !== tf) return;
+        var p = PICKS[k]; if (!p) return;
+        if (p.win !== 0 && p.win !== 1) return;
+        var pct = isFinite(p.pct) ? (p.side === "short" ? -p.pct : p.pct)
+                  : (p.win === 1 ? 1 : -1);
+        rows.push({ ts: kp[2] || "", pct: pct });
+      });
+      rows.sort(function (a, b) { return a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0; });
+      var pts = [], cum = 0;
+      rows.forEach(function (r, i) {
+        cum += r.pct;
+        pts.push([rows.length > 1 ? i / (rows.length - 1) : 0, cum, r.ts]);
+      });
+      return { name: HR_NAME[tf], color: COLOR[tf], pts: pts };
+    });
+  }
+  function svgEmpty(svg, msg) {
     svg.innerHTML = "";
-    var W = 620, H = 190, P = { t: 10, r: 8, b: 26, l: 34 };
+    svg.setAttribute("viewBox", "0 0 620 190");
+    var t = mk("text", { x: 310, y: 95, "text-anchor": "middle", "class": "hr-none-t" });
+    t.textContent = msg; svg.appendChild(t);
+  }
+  function charts() {
+    var eq = eqLiveSeries().filter(function (s) { return s.pts.length; });
+    if (eq.some(function (s) { return s.pts.length >= 2; })) {
+      var base = eq.reduce(function (a, b) { return b.pts.length > a.pts.length ? b : a; });
+      var xt = [0, .5, 1].map(function (f) {
+        var q = base.pts[Math.round(f * (base.pts.length - 1))];
+        return { x: f, label: (q && q[2] ? q[2].slice(5, 10) : "") };
+      });
+      draw($("#eq"), eq, { xlo: 0, xhi: 1, xt: xt, fy: function (y) { return (y > 0 ? "+" : "") + Math.round(y) + "%"; } });
+      legend($("#eq-lg"), eq);
+    } else svgEmpty($("#eq"), "belum ada resolve live — tandai win/loss lewat tombol ambil, kurva terisi otomatis");
+    hrChart();
+  }
+  /* ② Win rate by WIB hour — tiga garis kanal, gaya terminal crypto:
+     area gradien + glow lembut + marker titik + crosshair & tooltip saat
+     hover. Sumbu jujur 0–100%, garis 50% = batang untung/rugi. */
+  function hrChart() {
+    var svg = $("#hr"); if (!svg) return;
+    var per = liveHourAgg();
+    var ser = ["1h", "2h", "4h"].map(function (tf) {
+      var pts = [];
+      for (var h = 0; h < 24; h++) {
+        var c = per[h][tf];
+        if (c[0] > 0) pts.push([h, c[1] / c[0] * 100, c]);
+      }
+      return { name: HR_NAME[tf], color: COLOR[tf], pts: pts, tf: tf };
+    });
+    legend($("#hr-lg"), ser);
+    if (!ser.some(function (s) { return s.pts.length; })) {
+      svgEmpty(svg, "belum ada resolve live — grafik & heat table terisi otomatis setelah win/loss diisi");
+      return;
+    }
+    drawLiveHr(svg, ser, per);
+  }
+  function tipRow(color, name, wr, w, n) {
+    var row = el("div", "hr-tr");
+    var dot = el("i", "lg-dot");
+    /* CSP: properti individual, bukan cssText */
+    dot.style.background = color; dot.style.width = "8px"; dot.style.height = "8px";
+    dot.style.borderRadius = "2px"; dot.style.display = "inline-block";
+    row.appendChild(dot);
+    row.appendChild(el("span", "hr-tn", name));
+    row.appendChild(el("span", "hr-tv " + (wr >= 50 ? "pos" : "neg"), wr.toFixed(0) + "%"));
+    row.appendChild(el("span", "hr-tm", w + "W/" + (n - w) + "L"));
+    return row;
+  }
+  function drawLiveHr(svg, ser, per) {
+    svg.innerHTML = "";
+    var W = 620, H = 190, P = { t: 14, r: 14, b: 26, l: 36 };
     svg.setAttribute("viewBox", "0 0 " + W + " " + H);
     svg.setAttribute("preserveAspectRatio", "none");
-    var iw = (W - P.l - P.r) / 24;
-    var ylo = 20, yhi = Math.max(70, Math.max.apply(null,
-      jam.filter(function (h) { return h.n > 0; }).map(function (h) { return h.wr; })) + 6);
-    var Y = function (v) { return P.t + (1 - (v - ylo) / (yhi - ylo)) * (H - P.t - P.b); };
-    for (var g = 0; g <= 3; g++) {
-      var vv = ylo + g / 3 * (yhi - ylo), yy = Y(vv);
-      svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: yy, y2: yy, "class": "g" }));
-      var lb = mk("text", { x: P.l - 5, y: yy + 3, "text-anchor": "end" });
-      lb.textContent = Math.round(vv) + "%"; svg.appendChild(lb);
-    }
-    var zy = Y(50);
-    svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: zy, y2: zy, "class": "z" }));
-    jam.forEach(function (h) {
-      var x = P.l + h.k * iw;
-      if (h.n <= 0) {                                   // tanpa sinyal: titik redup
-        svg.appendChild(mk("circle", { cx: x + iw / 2, cy: Y(ylo) - 2, r: 1.6,
-          fill: "rgba(157,176,167,.25)" }));
-      } else {
-        var up = h.wr >= 50;
-        var y1 = Y(Math.max(ylo, Math.min(h.wr, 50)));
-        var y2 = Y(Math.max(50, Math.min(h.wr, yhi)));
-        var colBar = up ? "rgba(110,231,183,.75)" : "rgba(232,135,124,.75)";
-        // batang dua segmen: bagian di bawah 50% abu, di atas 50% berwarna —
-        // tinggi absolut tetap terbaca, arahnya langsung dari warna
-        var bar = mk("g");                          // bar = grup dgn title tooltip
-        var tv = mk("title");
-        tv.textContent = (h.k < 10 ? "0" : "") + h.k + ":00 — WR "
-          + h.wr.toFixed(1) + "% (" + h.m + "W/" + h.l + "L dari " + h.n + ")";
-        bar.appendChild(tv);
-        bar.appendChild(mk("rect", { x: (x + iw * .14).toFixed(1), y: y2.toFixed(1), width: (iw * .72).toFixed(1),
-          height: Math.max(1, y1 - y2).toFixed(1), fill: colBar, rx: 1.5 }));
-        if (h.wr < 50) bar.appendChild(mk("rect", { x: (x + iw * .14).toFixed(1), y: Y(ylo).toFixed(1),
-          width: (iw * .72).toFixed(1), height: Math.max(1, Y(50) - Y(ylo)).toFixed(1),
-          fill: "rgba(157,176,167,.16)", rx: 1.5 }));
-        svg.appendChild(bar);
-      }
-      if (h.k % 3 === 0) {
-        var tx = mk("text", { x: x + iw / 2, y: H - 8, "text-anchor": "middle" });
-        tx.textContent = (h.k < 10 ? "0" : "") + h.k;
-        svg.appendChild(tx);
-      }
+    var X = function (h) { return P.l + h / 23 * (W - P.l - P.r); };
+    var Y = function (v) { return P.t + (1 - v / 100) * (H - P.t - P.b); };
+    var defs = mk("defs");
+    ser.forEach(function (s, i) {
+      var g = mk("linearGradient", { id: "hrg" + i, x1: 0, y1: 0, x2: 0, y2: 1 });
+      g.appendChild(mk("stop", { offset: "0%", "stop-color": s.color, "stop-opacity": .22 }));
+      g.appendChild(mk("stop", { offset: "100%", "stop-color": s.color, "stop-opacity": 0 }));
+      defs.appendChild(g);
     });
-    var ax = mk("text", { x: W - P.r, y: H - 8, "text-anchor": "end" });
+    svg.appendChild(defs);
+    for (var g2 = 0; g2 <= 4; g2++) {
+      var vv = g2 * 25, yy = Y(vv);
+      svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: yy, y2: yy, "class": g2 === 2 ? "z" : "g" }));
+      var lb = mk("text", { x: P.l - 5, y: yy + 3, "text-anchor": "end" });
+      lb.textContent = vv + "%"; svg.appendChild(lb);
+    }
+    for (var h2 = 0; h2 < 24; h2 += 3) {
+      var tx = mk("text", { x: X(h2), y: H - 8, "text-anchor": "middle" });
+      tx.textContent = (h2 < 10 ? "0" : "") + h2; svg.appendChild(tx);
+    }
+    var ax = mk("text", { x: W - P.r, y: H - 8, "text-anchor": "end", "class": "hr-wib" });
     ax.textContent = "WIB"; svg.appendChild(ax);
+    ser.forEach(function (s, i) {
+      if (s.pts.length < 2) return;
+      var lp = s.pts.map(function (q) { return [X(q[0]), Y(q[1])]; });
+      var dLine = path(lp);
+      var dArea = dLine + "L" + lp[lp.length - 1][0] + "," + Y(0) + "L" + lp[0][0] + "," + Y(0) + "Z";
+      svg.appendChild(mk("path", { d: dArea, fill: "url(#hrg" + i + ")", stroke: "none" }));
+      svg.appendChild(mk("path", { d: dLine, fill: "none", stroke: s.color, "stroke-width": 4.5,
+        "stroke-opacity": .16, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+      svg.appendChild(mk("path", { d: dLine, fill: "none", stroke: s.color, "stroke-width": 1.7,
+        "stroke-linecap": "round", "stroke-linejoin": "round" }));
+      s.pts.forEach(function (q) {
+        svg.appendChild(mk("circle", { cx: X(q[0]), cy: Y(q[1]), r: 2.6,
+          fill: "#0C1310", stroke: s.color, "stroke-width": 1.5 }));
+      });
+    });
+    ser.forEach(function (s) {                       // kanal dgn 1 resolve: titik besar
+      if (s.pts.length !== 1) return;
+      svg.appendChild(mk("circle", { cx: X(s.pts[0][0]), cy: Y(s.pts[0][1]), r: 3.5, fill: s.color }));
+    });
+    /* crosshair + tooltip per jam — hover di mana pun menampilkan semua kanal */
+    var card = svg.parentNode;
+    /* redraw (picks berubah): buang tooltip & crosshair lama supaya tak menumpuk */
+    Array.prototype.forEach.call(card.querySelectorAll(":scope > .hr-tip"), function (n) { n.remove(); });
+    var xh = mk("line", { x1: 0, x2: 0, y1: P.t, y2: H - P.b, "class": "hr-x" });
+    xh.style.display = "none"; svg.appendChild(xh);
+    var tip = el("div", "hr-tip"); tip.style.display = "none"; card.appendChild(tip);
+    var iw = (W - P.l - P.r) / 24;
+    var ov = mk("rect", { x: P.l, y: P.t, width: W - P.l - P.r, height: H - P.t - P.b, fill: "transparent" });
+    ov.addEventListener("mousemove", function (ev) {
+      /* jam dari rect overlay sendiri — svg.ch berpadding 16px, jadi rect svg
+         mencakup padding; rect overlay persis area plot (viewBox x=P.l..W-P.r). */
+      var ob = ov.getBoundingClientRect();
+      var hq = Math.round((ev.clientX - ob.left) / (ob.width || 1) * 23);
+      hq = Math.max(0, Math.min(23, hq));
+      xh.setAttribute("x1", X(hq)); xh.setAttribute("x2", X(hq));
+      xh.style.display = "";
+      tip.innerHTML = "";
+      var jt = el("b"); jt.textContent = ("0" + hq).slice(-2) + ".00 WIB"; tip.appendChild(jt);
+      var totN = 0, totW = 0;
+      ["1h", "2h", "4h"].forEach(function (t) { totN += per[hq][t][0]; totW += per[hq][t][1]; });
+      ser.forEach(function (s) {
+        for (var q = 0; q < s.pts.length; q++) {
+          if (s.pts[q][0] !== hq) continue;
+          var c = s.pts[q][2];
+          tip.appendChild(tipRow(s.color, s.name, c[1] / c[0] * 100, c[1], c[0]));
+          break;
+        }
+      });
+      if (totN) tip.appendChild(tipRow("transparent", "Total", totW / totN * 100, totW, totN));
+      tip.style.display = "block";
+      var cr = card.getBoundingClientRect();
+      var lx = ev.clientX - cr.left + 14;
+      if (lx > cr.width * .55) lx = ev.clientX - cr.left - tip.offsetWidth - 14;
+      tip.style.left = Math.max(4, lx) + "px";
+      var ty = ev.clientY - cr.top - 10;
+      if (ty < 4) ty = 4;
+      tip.style.top = ty + "px";
+    });
+    ov.addEventListener("mouseleave", function () {
+      xh.style.display = "none"; tip.style.display = "none";
+    });
+    svg.appendChild(ov);
   }
+
+  /* ekspos state untuk konsol (debug & verifikasi; tidak dipakai logika internal) */
+  window.DBG = { get DATA() { return DATA; }, get PICKS() { return PICKS; }, get PLOG() { return PLOG; } };
   /* ── bubbles: gelembung FISIK koin hasil deteksi engine ──
      BUKAN pasar crypto seluruhnya — hanya koin yang tercatat di engine.
      Fisika ala bubblescrypto: tiap gelembung melayang (gaya acak lembut),
@@ -1813,6 +1916,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     });
     if (wTf) watch(wTf); if (sTf) signals(sTf); liveStats();
     bbPickedSync(); bbPickedMark();   // bintang & garis emas bubble ikut picks terbaru
+    /* 23 Sep — grafik live (kurva kumulatif & winrate per jam) ikut
+       digambar ulang saat picks tiba/berubah. Dulu charts() hanya jalan
+       sekali di render pertama → kedua SVG selalu menampilkan
+       "belum ada resolve" karena picks cloud tiba belakangan. */
+    charts(); hourHeat();
   }
   /* simpan picks — hanya lewat cloud (textdb.dev); wajib login admin.
      Jalur GitHub dihapus (token repot & rawan salah scope). */

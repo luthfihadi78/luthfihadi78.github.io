@@ -171,7 +171,7 @@ td.n{text-align:right}
 /* ── charts ── */
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:900px){.grid2{grid-template-columns:1fr}}
-.card{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.card{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);padding:16px;position:relative}
 .card-h{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;flex-wrap:wrap}
 .card-h h3{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.1em;
   text-transform:uppercase;color:var(--fg-2);margin:0}
@@ -405,10 +405,15 @@ button.apbadge{cursor:pointer}
 .plog-t tr:last-child td{border-bottom:none}
 .plog-empty{padding:12px;color:var(--fg-3);font-size:12px}
 /* ── heat table jam terbaik (22 Sep) ── */
+/* ═══ HEAT TABLE — restyle 23 Sep: tema blockchain/terminal. Sel dibikin
+   like-pixel: sudut memotong (clip-path), teks glow tipis, kolom jam lampu
+   ticker, kanal aktif dgn rail emas, sel terpilih outline hijau + shadow. */
 .hh-t{width:100%;border-collapse:separate;border-spacing:3px;font-size:11px}
-.hh-t th{padding:6px 4px;color:var(--fg-3);font-weight:600;font-size:10px;letter-spacing:.05em;text-transform:uppercase;text-align:center;border-bottom:1px solid var(--line)}
+.hh-t th{padding:7px 4px;color:var(--fg-3);font-weight:600;font-size:10px;letter-spacing:.09em;text-transform:uppercase;text-align:center;border-bottom:1px solid var(--line-2);background:linear-gradient(180deg,rgba(110,231,183,.04),transparent)}
 .hh-t th:first-child{text-align:left;padding-left:8px}
-.hh-t td.hh-jam{padding:4px 8px;color:var(--fg-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.hh-t td.hh-jam{padding:4px 8px;color:var(--fg-2);font-variant-numeric:tabular-nums;white-space:nowrap;
+  border-left:2px solid var(--line);text-shadow:0 0 8px rgba(110,231,183,.12)}
+.hh-t tbody tr:hover td.hh-jam{color:var(--ac)}
 .hh-c{border-radius:8px;padding:5px 4px;text-align:center;min-width:86px;border:1px solid transparent}
 .hh-c.hh-none{background:rgba(255,255,255,.02);color:var(--fg-3)}
 .hh-c.hh-w0,.hh-c.hh-w1{background:var(--up-w);border-color:rgba(110,231,183,.16)}
@@ -424,20 +429,38 @@ button.apbadge{cursor:pointer}
 .hh-c .hh-wr{display:block;font-weight:700;font-size:12.5px;font-variant-numeric:tabular-nums}
 .hh-c .hh-sub{display:block;font-size:9.5px;color:var(--fg-3);margin-top:1px}
 .hh-c .hh-star{position:absolute;margin-left:3px;color:#ffd54f;font-size:11px}
-.hh-c{position:relative}
+.hh-c{position:relative;
+  clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px);
+  border:1px solid var(--line);
+  transition:filter .12s,box-shadow .12s}
+.hh-c:hover{filter:brightness(1.22);
+  box-shadow:0 0 12px rgba(110,231,183,.14)}
 .hh-cap{border-top:1px solid var(--line);margin-top:6px}
 /* 23 Sep — toggle metode pewarnaan + baris aktif + sel terpilih + chip filter */
 .hh-toggle{display:flex;gap:6px;margin:2px 0 8px}
 .hh-tg{background:transparent;border:1px solid var(--line);color:var(--fg-3);border-radius:8px;padding:4px 12px;font:inherit;font-size:11px;cursor:pointer;letter-spacing:.03em}
 .hh-tg:hover{border-color:var(--up);color:var(--fg)}
 .hh-tg.on{background:var(--up-w);border-color:var(--up);color:var(--up);font-weight:600}
-.hh-t tbody tr.hh-active td{background:rgba(255,213,79,.035)}
-.hh-t tbody tr.hh-active td.hh-jam{color:var(--fg-2)}
-.hh-t tbody tr.hh-active td:first-child{box-shadow:inset 3px 0 0 rgba(255,213,79,.45)}
-.hh-t tbody tr.hh-sel td{outline:1px solid var(--up);outline-offset:-1px}
+.hh-t tbody tr.hh-active td{background:linear-gradient(90deg,rgba(255,213,79,.06),rgba(255,213,79,.015))}
+.hh-t tbody tr.hh-active td.hh-jam{color:var(--gold)}
+.hh-t tbody tr.hh-active td:first-child{box-shadow:inset 3px 0 0 rgba(255,213,79,.55)}
+.hh-t tbody tr.hh-sel td{outline:1px solid var(--up);outline-offset:-1px;
+  box-shadow:0 0 12px rgba(110,231,183,.18)}
 .hh-c:hover{filter:brightness(1.18)}
-.hh-fchip{margin-left:10px;background:var(--up-w);border:1px solid var(--up);color:var(--up);border-radius:999px;padding:3px 12px;font:inherit;font-size:11px;cursor:pointer}
+.hh-fchip{margin-left:10px;background:var(--up-w);border:1px solid var(--up);color:var(--up);border-radius:999px;padding:3px 12px;font:inherit;font-size:11px;cursor:pointer;box-shadow:0 0 10px rgba(110,231,183,.14)}
 .hh-fchip:hover{background:rgba(110,231,183,.22)}
+.hr-wib{fill:var(--fg-3);letter-spacing:.14em;font-size:8.5px}
+.hr-x{stroke:var(--fg-2);stroke-width:1;stroke-dasharray:2 3;opacity:.55}
+svg.ch .hr-none-t{fill:var(--fg-3);font-size:10.5px}
+.hr-tip{position:absolute;z-index:30;pointer-events:none;display:none;min-width:168px;
+  background:rgba(12,19,16,.97);border:1px solid var(--line-2);border-radius:10px;
+  padding:9px 12px;font-size:11px;box-shadow:0 12px 34px rgba(0,0,0,.55),0 0 0 1px rgba(110,231,183,.07) inset}
+.hr-tip b{display:block;font-size:10.5px;letter-spacing:.08em;color:var(--fg-2);margin-bottom:5px}
+.hr-tr{display:flex;align-items:center;gap:6px;padding:1.5px 0}
+.hr-tn{flex:1;color:var(--fg-2)}
+.hr-tv{font-weight:700;font-variant-numeric:tabular-nums}
+.hr-tm{color:var(--fg-3);font-size:10px;min-width:52px;text-align:right}
+.card{position:relative}
 
 /* ── v23: badge koreksi admin di kolom koreksi ── */
 .apbadge.corr{border-color:var(--gold);color:var(--gold);background:rgba(255,213,84,.07)}
