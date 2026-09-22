@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-note-20260920d";   /* 20 Sep v25: gerbang login privat (admin+user) + transisi animasi blockchain */
+  var BUILD = "qkuk-note-20260922a";   /* 22 Sep v26: heat table jam terbaik (winrate live resolve, 24 jam WIB) */
   var COLOR = { "1h": "#9CF2CE", "2h": "#6EE7B7", "4h": "#D8C89A" };
   var TVI = { "1h": "60", "2h": "120", "4h": "240" };
 
@@ -2132,6 +2132,109 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       c.appendChild(rows); host.appendChild(c);
     });
     plogRender();
+    hourHeat();
+  }
+  /* ── HEAT TABLE jam terbaik (22 Sep) ──────────────────────────────
+     24 jam WIB × 3 kanal + kolom TOTAL. Sel = winrate dari LIVE resolve
+     admin (picks, watch+sig); intensitas warna = kekuatan jam: hijau makin
+     pekat makin bagus, merah makin pekat makin buruk, abu = belum ada data.
+     Sel terbaik per kolom diberi bintang ✦. Waktu sinyal = r.ts (firing),
+     bukan jam pick. Diarahkan render() agar table header sticky bekerja. */
+  function hourHeat() {
+    var kamu = document.getElementById("kamu");
+    if (!kamu) return;
+    var host = document.getElementById("hheat");
+    if (!host) {
+      host = el("div", "plog-wrap"); host.id = "hheat";
+      var lg = document.getElementById("plog");
+      if (lg && lg.parentNode === kamu) kamu.insertBefore(host, lg.nextSibling);
+      else kamu.appendChild(host);
+    }
+    var TFH = [["1h", "KILAT"], ["2h", "SCALP"], ["4h", "SWING"]];
+    var per = {}, j;                       // per[jam][tf] = [n, w, sum%]
+    for (j = 0; j < 24; j++) { per[j] = {}; TFH.forEach(function (t) { per[j][t[0]] = [0, 0, 0]; }); }
+    ord().forEach(function (tf) {
+      (DATA.live[tf] || {}).pantau || [];
+      ["pantau", "sinyal"].forEach(function (jenis) {
+        ((DATA.live[tf] || {})[jenis] || []).forEach(function (r) {
+          var p = r.apick; if (!p) return;
+          if (p.win !== 0 && p.win !== 1) return;   // terbuka: tidak dinilai
+          var m = /(\d{2}):(\d{2})\s*$/.exec(String(r.ts || ""));   // ts = "YYYY-MM-DD HH:MM"
+          if (!m) return;
+          var h = parseInt(m[1], 10); if (!(h >= 0 && h < 24)) return;
+          var dirEfektif = p.side || r.dir;
+          var pct = isFinite(p.pct) ? ((dirEfektif === "short" ? -p.pct : p.pct))
+                    : (p.win === 1 ? 1 : -1);        // fallback 1R
+          var c = per[h][tf]; c[0]++; c[1] += p.win; c[2] += pct;
+        });
+      });
+    });
+    var TOT = 0; for (j = 0; j < 24; j++) TOT += per[j]["1h"][0] + per[j]["2h"][0] + per[j]["4h"][0];
+    host.innerHTML = "";
+    host.appendChild(el("div", "pn-h lv-sub", "jam terbaik \u2014 heat table (winrate live resolve, 24 jam WIB)"));
+    if (!TOT) {
+      host.appendChild(el("div", "plog-empty", "belum ada resolve — isi win/loss lewat tombol ambil, heat table terisi otomatis"));
+      return;
+    }
+    var wrap = el("div", "plog-scroll");
+    var tab = el("table", "hh-t");
+    var thead = el("thead"), trh = el("tr");
+    trh.appendChild(el("th", "hh-jam", "jam"));
+    ["KILAT 1H", "SCALP 2H", "SWING 4H", "TOTAL"].forEach(function (x) { trh.appendChild(el("th", null, x)); });
+    thead.appendChild(trh); tab.appendChild(thead);
+    var tby = el("tbody");
+    function paint2(wr, has) {
+      if (!has) return "hh-none";
+      var a = Math.min(.75, .1 + Math.abs(wr - 50) / 66).toFixed(2);
+      return (wr >= 50 ? "hh-w" : "hh-l") + a;
+    }
+    function cell(tf, best) {
+      var c = per[j][tf], has = c[0] > 0;
+      var td = el("td", "hh-c");
+      if (has) {
+        var wr = c[1] / c[0] * 100;
+        td.className = "hh-c " + paint2(wr, has) + "";
+        td.style.setProperty("--a", (Math.min(.75, .1 + Math.abs(wr - 50) / 66)).toFixed(2));
+        td.appendChild(el("span", "hh-wr " + (wr >= 50 ? "pos" : "neg"), wr.toFixed(0) + "%"));
+        td.appendChild(el("span", "hh-sub", c[0] + " picks · " + sgn(c[2], 1) + "%"));
+        if (best) td.appendChild(el("span", "hh-star", "\u2726"));
+        td.title = tf.toUpperCase() + " @ " + ("0" + j).slice(-2) + ".00 WIB \u2014 " +
+          c[0] + " pick, menang " + c[1] + " (" + wr.toFixed(1) + "%), total " + sgn(c[2], 1) + "%";
+      } else {
+        td.classList.add("hh-none");
+        td.title = "belum ada resolve di jam ini";
+      }
+      return td;
+    }
+    for (j = 0; j < 24; j++) {
+      var tr = el("tr");
+      tr.appendChild(el("td", "hh-jam", ("0" + j).slice(-2) + ".00"));
+      var tt = [0, 0, 0];
+      ["1h", "2h", "4h"].forEach(function (t) {
+        var c = per[j][t]; tt[0] += c[0]; tt[1] += c[1]; tt[2] += c[2];
+      });
+      var totHas = tt[0] > 0;
+      var best3 = totHas ? Math.max(per[j]["1h"][0] ? per[j]["1h"][1] / per[j]["1h"][0] : -1,
+                                   per[j]["2h"][0] ? per[j]["2h"][1] / per[j]["2h"][0] : -1,
+                                   per[j]["4h"][0] ? per[j]["4h"][1] / per[j]["4h"][0] : -1) : 0;
+      ["1h", "2h", "4h"].forEach(function (t) {
+        var c = per[j][t];
+        tr.appendChild(cell.call(null, t, c[0] > 0 && c[1] / c[0] === best3));
+      });
+      var tdT = el("td", "hh-c");
+      if (totHas) {
+        var wrT = tt[1] / tt[0] * 100;
+        tdT.className = "hh-c " + paint2(wrT, true);
+        tdT.style.setProperty("--a", (Math.min(.75, .1 + Math.abs(wrT - 50) / 66)).toFixed(2));
+        tdT.appendChild(el("span", "hh-wr " + (wrT >= 50 ? "pos" : "neg"), wrT.toFixed(0) + "%"));
+        tdT.appendChild(el("span", "hh-sub", tt[0] + " picks"));
+      } else tdT.classList.add("hh-none");
+      tr.appendChild(tdT);
+      tby.appendChild(tr);
+    }
+    tab.appendChild(tby); wrap.appendChild(tab); host.appendChild(wrap);
+    host.appendChild(el("div", "plog-empty hh-cap",
+      "hijau = di atas 50%, merah = di bawah \u00b7 makin pekat makin kuat \u00b7 \u2726 = jam terbaik baris itu \u00b7 sumber: win/loss yang kamu isi di tabel (bukan backtest)"));
   }
   /* tabel riwayat semua aksi admin — ambil/koreksi/hapus/password, terbaru dulu,
      waktu ditampilkan WIB. Sumbernya log di cloud (PLOG), bukan backtest. */

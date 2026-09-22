@@ -404,6 +404,28 @@ button.apbadge{cursor:pointer}
 .plog-t td{padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.045);white-space:nowrap}
 .plog-t tr:last-child td{border-bottom:none}
 .plog-empty{padding:12px;color:var(--fg-3);font-size:12px}
+/* ── heat table jam terbaik (22 Sep) ── */
+.hh-t{width:100%;border-collapse:separate;border-spacing:3px;font-size:11px}
+.hh-t th{padding:6px 4px;color:var(--fg-3);font-weight:600;font-size:10px;letter-spacing:.05em;text-transform:uppercase;text-align:center;border-bottom:1px solid var(--line)}
+.hh-t th:first-child{text-align:left;padding-left:8px}
+.hh-t td.hh-jam{padding:4px 8px;color:var(--fg-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.hh-c{border-radius:8px;padding:5px 4px;text-align:center;min-width:86px;border:1px solid transparent}
+.hh-c.hh-none{background:rgba(255,255,255,.02);color:var(--fg-3)}
+.hh-c.hh-w0,.hh-c.hh-w1{background:var(--up-w);border-color:rgba(110,231,183,.16)}
+.hh-c.hh-w2{background:rgba(110,231,183,.24);border-color:rgba(110,231,183,.3)}
+.hh-c.hh-w3{background:rgba(110,231,183,.38);border-color:rgba(110,231,183,.5)}
+.hh-c.hh-w4{background:rgba(110,231,183,.55);border-color:rgba(110,231,183,.75)}
+.hh-c.hh-w5,.hh-c.hh-w6,.hh-c.hh-w7{background:rgba(110,231,183,.7);border-color:var(--up);box-shadow:0 0 14px rgba(110,231,183,.25)}
+.hh-c.hh-l0,.hh-c.hh-l1{background:var(--dn-w);border-color:rgba(232,135,124,.16)}
+.hh-c.hh-l2{background:rgba(232,135,124,.24);border-color:rgba(232,135,124,.3)}
+.hh-c.hh-l3{background:rgba(232,135,124,.38);border-color:rgba(232,135,124,.5)}
+.hh-c.hh-l4{background:rgba(232,135,124,.55);border-color:rgba(232,135,124,.75)}
+.hh-c.hh-l5,.hh-c.hh-l6,.hh-c.hh-l7{background:rgba(232,135,124,.7);border-color:var(--dn);box-shadow:0 0 14px rgba(232,135,124,.25)}
+.hh-c .hh-wr{display:block;font-weight:700;font-size:12.5px;font-variant-numeric:tabular-nums}
+.hh-c .hh-sub{display:block;font-size:9.5px;color:var(--fg-3);margin-top:1px}
+.hh-c .hh-star{position:absolute;margin-left:3px;color:#ffd54f;font-size:11px}
+.hh-c{position:relative}
+.hh-cap{border-top:1px solid var(--line);margin-top:6px}
 
 /* ── v23: badge koreksi admin di kolom koreksi ── */
 .apbadge.corr{border-color:var(--gold);color:var(--gold);background:rgba(255,213,84,.07)}
