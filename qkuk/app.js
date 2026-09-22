@@ -11,7 +11,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   var BUILD = "qkuk-note-20260923a";   /* 23 Sep v27: heat table + toggle winrate/total% + baris aktif 09-21 + klik sel = filter riwayat */
-  var COLOR = { "1h": "#9CF2CE", "2h": "#6EE7B7", "4h": "#D8C89A" };
+  /* 23 Sep — warna kanal KONTRAS (permintaan user: 1h & 2h mirip):
+     Kilat 1h = biru cyan · Scalp 2h = hijau · Swing 4h = emas terang */
+  var COLOR = { "1h": "#4DC9F6", "2h": "#6EE7B7", "4h": "#F2C94C" };
   var TVI = { "1h": "60", "2h": "120", "4h": "240" };
 
   function $(s) { return document.querySelector(s); }
@@ -847,7 +849,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   function draw(svg, ser, o) {
     svg.innerHTML = "";
-    var W = 620, H = 190, P = { t: 10, r: 12, b: 22, l: 40 };
+    var W = 620, H = 190, P = { t: 12, r: 34, b: 22, l: 40 };
     svg.setAttribute("viewBox", "0 0 " + W + " " + H);
     svg.setAttribute("preserveAspectRatio", "none");
     var all = []; ser.forEach(function (s) { s.pts.forEach(function (q) { all.push(q[1]); }); });
@@ -857,6 +859,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var rg = (hi - lo) || 1, xr = (o.xhi - o.xlo) || 1;
     var X = function (x) { return P.l + (x - o.xlo) / xr * (W - P.l - P.r); };
     var Y = function (y) { return P.t + (1 - (y - lo) / rg) * (H - P.t - P.b); };
+    var defs = mk("defs"); svg.appendChild(defs);
     for (var g = 0; g <= 3; g++) {
       var yy = P.t + g / 3 * (H - P.t - P.b);
       svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: yy, y2: yy, "class": "g" }));
@@ -868,11 +871,32 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var tx = mk("text", { x: X(t.x), y: H - 7, "text-anchor": "middle" });
       tx.textContent = t.label; svg.appendChild(tx);
     });
-    ser.forEach(function (s) {
+    ser.forEach(function (s, si) {
       if (s.pts.length < 2) return;
-      svg.appendChild(mk("path", { d: path(s.pts.map(function (q) { return [X(q[0]), Y(q[1])]; })),
-        fill: "none", stroke: s.color, "stroke-width": 1.7, "stroke-linecap": "round",
-        "stroke-linejoin": "round" }));
+      var lp = s.pts.map(function (q) { return [X(q[0]), Y(q[1])]; });
+      var dLine = path(lp);
+      var dArea = dLine + "L" + lp[lp.length - 1][0] + "," + Y(Math.max(lo, 0)) + "L" + lp[0][0] + "," + Y(Math.max(lo, 0)) + "Z";
+      /* area gradien lembut di bawah kurva — penguat arah, bukan hiasan */
+      var gid = "eqg" + si;
+      var g = mk("linearGradient", { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 });
+      g.appendChild(mk("stop", { offset: "0%", "stop-color": s.color, "stop-opacity": .16 }));
+      g.appendChild(mk("stop", { offset: "100%", "stop-color": s.color, "stop-opacity": 0 }));
+      defs.appendChild(g);
+      svg.appendChild(mk("path", { d: dArea, fill: "url(#" + gid + ")", stroke: "none" }));
+      svg.appendChild(mk("path", { d: dLine, fill: "none", stroke: s.color, "stroke-width": 5,
+        "stroke-opacity": .14, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+      svg.appendChild(mk("path", { d: dLine, fill: "none", stroke: s.color, "stroke-width": 1.8,
+        "stroke-linecap": "round", "stroke-linejoin": "round" }));
+      /* marker ujung: nilai terakhir dgn glow — posisi akhir tiap kanal */
+      var last = lp[lp.length - 1];
+      var lv = s.pts[s.pts.length - 1][1];
+      svg.appendChild(mk("circle", { cx: last[0], cy: last[1], r: 3.2, fill: s.color }));
+      svg.appendChild(mk("circle", { cx: last[0], cy: last[1], r: 6.5, fill: s.color,
+        "fill-opacity": .22 }));
+      var lb2 = mk("text", { x: last[0] + 8, y: last[1] + 3, "class": "eq-end",
+        "fill": s.color });
+      lb2.textContent = (lv > 0 ? "+" : "") + Math.round(lv) + "%";
+      svg.appendChild(lb2);
     });
   }
   function legend(host, ser) {
@@ -884,7 +908,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   /* ── charts (23 Sep: SEMUA LIVE dari resolve admin, bukan backtest) ──
      ① eq : kurva kumulatif hasil live (%) per kanal, urut waktu sinyal
-     ② hr : winrate per jam WIB — 3 garis kanal gaya terminal crypto
+     ② hr : winrate per jam WIB — lollipop per jam (bukan garis: user
+            makin bingung dgn 3 garis bersilangan)
      Sumber sama dengan heat table & kartu live resolve: picks admin. */
   var HR_NAME = { "1h": "Kilat 1h", "2h": "Scalp 2h", "4h": "Swing 4h" };
   function liveHourAgg() {
@@ -946,9 +971,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     } else svgEmpty($("#eq"), "belum ada resolve live — tandai win/loss lewat tombol ambil, kurva terisi otomatis");
     hrChart();
   }
-  /* ② Win rate by WIB hour — tiga garis kanal, gaya terminal crypto:
-     area gradien + glow lembut + marker titik + crosshair & tooltip saat
-     hover. Sumbu jujur 0–100%, garis 50% = batang untung/rugi. */
+  /* ② Win rate by WIB hour — LOLLIPOP per jam (ganti garis, permintaan
+     user 23 Sep: garis 3 kanal justru membingungkan). Satu kolom per jam,
+     tiga batang kanal berdampingan dari garis 50%: naik = menang,
+     turun = kalah, tinggi = winrate. Sumbu jujur 0–100%. */
   function hrChart() {
     var svg = $("#hr"); if (!svg) return;
     var per = liveHourAgg();
@@ -984,13 +1010,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var W = 620, H = 190, P = { t: 14, r: 14, b: 26, l: 36 };
     svg.setAttribute("viewBox", "0 0 " + W + " " + H);
     svg.setAttribute("preserveAspectRatio", "none");
-    var X = function (h) { return P.l + h / 23 * (W - P.l - P.r); };
+    var iw = (W - P.l - P.r) / 24;
+    var X = function (h) { return P.l + h * iw; };
     var Y = function (v) { return P.t + (1 - v / 100) * (H - P.t - P.b); };
     var defs = mk("defs");
     ser.forEach(function (s, i) {
       var g = mk("linearGradient", { id: "hrg" + i, x1: 0, y1: 0, x2: 0, y2: 1 });
-      g.appendChild(mk("stop", { offset: "0%", "stop-color": s.color, "stop-opacity": .22 }));
-      g.appendChild(mk("stop", { offset: "100%", "stop-color": s.color, "stop-opacity": 0 }));
+      g.appendChild(mk("stop", { offset: "0%", "stop-color": s.color, "stop-opacity": .95 }));
+      g.appendChild(mk("stop", { offset: "100%", "stop-color": s.color, "stop-opacity": .55 }));
       defs.appendChild(g);
     });
     svg.appendChild(defs);
@@ -1001,30 +1028,41 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       lb.textContent = vv + "%"; svg.appendChild(lb);
     }
     for (var h2 = 0; h2 < 24; h2 += 3) {
-      var tx = mk("text", { x: X(h2), y: H - 8, "text-anchor": "middle" });
+      var tx = mk("text", { x: X(h2) + iw / 2, y: H - 8, "text-anchor": "middle" });
       tx.textContent = (h2 < 10 ? "0" : "") + h2; svg.appendChild(tx);
     }
     var ax = mk("text", { x: W - P.r, y: H - 8, "text-anchor": "end", "class": "hr-wib" });
     ax.textContent = "WIB"; svg.appendChild(ax);
-    ser.forEach(function (s, i) {
-      if (s.pts.length < 2) return;
-      var lp = s.pts.map(function (q) { return [X(q[0]), Y(q[1])]; });
-      var dLine = path(lp);
-      var dArea = dLine + "L" + lp[lp.length - 1][0] + "," + Y(0) + "L" + lp[0][0] + "," + Y(0) + "Z";
-      svg.appendChild(mk("path", { d: dArea, fill: "url(#hrg" + i + ")", stroke: "none" }));
-      svg.appendChild(mk("path", { d: dLine, fill: "none", stroke: s.color, "stroke-width": 4.5,
-        "stroke-opacity": .16, "stroke-linecap": "round", "stroke-linejoin": "round" }));
-      svg.appendChild(mk("path", { d: dLine, fill: "none", stroke: s.color, "stroke-width": 1.7,
-        "stroke-linecap": "round", "stroke-linejoin": "round" }));
-      s.pts.forEach(function (q) {
-        svg.appendChild(mk("circle", { cx: X(q[0]), cy: Y(q[1]), r: 2.6,
-          fill: "#0C1310", stroke: s.color, "stroke-width": 1.5 }));
+    /* lollipop: per jam, tiga batang kanal berdampingan dari garis 50%.
+       Naik = menang, turun = kalah; tinggi = |winrate − 50%|. */
+    var y50 = Y(50), bw = iw / 3.4, gap = 1.5;
+    for (var h3 = 0; h3 < 24; h3++) {
+      var x0 = X(h3) + (iw - bw * 3 - gap * 2) / 2;
+      ser.forEach(function (s, i) {
+        for (var q = 0; q < s.pts.length; q++) {
+          if (s.pts[q][0] !== h3) continue;
+          var c = s.pts[q][2], wr = s.pts[q][1];
+          var yv = Y(wr), up = wr >= 50;
+          var by = Math.min(yv, y50), bh = Math.max(2, Math.abs(yv - y50));
+          var bx = x0 + i * (bw + gap);
+          var grp = mk("g");
+          var tv = mk("title");
+          tv.textContent = s.name + " @ " + ("0" + h3).slice(-2) + ".00 — WR "
+            + wr.toFixed(0) + "% (" + c[1] + "W/" + (c[0] - c[1]) + "L)";
+          grp.appendChild(tv);
+          grp.appendChild(mk("rect", { x: bx.toFixed(1), y: by.toFixed(1),
+            width: bw.toFixed(1), height: bh.toFixed(1), rx: 1.5,
+            fill: "url(#hrg" + i + ")",
+            stroke: up ? s.color : "rgba(232,135,124,.9)",
+            "stroke-opacity": up ? .55 : .9, "stroke-width": .8 }));
+          /* kepala lollipop = nilai winrate eksak */
+          grp.appendChild(mk("circle", { cx: (bx + bw / 2).toFixed(1), cy: yv.toFixed(1),
+            r: 2.2, fill: up ? s.color : "#E8877C" }));
+          svg.appendChild(grp);
+          break;
+        }
       });
-    });
-    ser.forEach(function (s) {                       // kanal dgn 1 resolve: titik besar
-      if (s.pts.length !== 1) return;
-      svg.appendChild(mk("circle", { cx: X(s.pts[0][0]), cy: Y(s.pts[0][1]), r: 3.5, fill: s.color }));
-    });
+    }
     /* crosshair + tooltip per jam — hover di mana pun menampilkan semua kanal */
     var card = svg.parentNode;
     /* redraw (picks berubah): buang tooltip & crosshair lama supaya tak menumpuk */
@@ -1032,7 +1070,6 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var xh = mk("line", { x1: 0, x2: 0, y1: P.t, y2: H - P.b, "class": "hr-x" });
     xh.style.display = "none"; svg.appendChild(xh);
     var tip = el("div", "hr-tip"); tip.style.display = "none"; card.appendChild(tip);
-    var iw = (W - P.l - P.r) / 24;
     var ov = mk("rect", { x: P.l, y: P.t, width: W - P.l - P.r, height: H - P.t - P.b, fill: "transparent" });
     ov.addEventListener("mousemove", function (ev) {
       /* jam dari rect overlay sendiri — svg.ch berpadding 16px, jadi rect svg
