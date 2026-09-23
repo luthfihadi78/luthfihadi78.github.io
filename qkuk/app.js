@@ -80,7 +80,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      Peta di bawah mengurutkan 5 rezim itu dari paling bearish ke paling
      bullish menurut label yang dipakai engine. */
   var GPOS = { "1": .85, "3": .55, "2": 0, "4": -.7, "5": -.85 };
-  var GC = { long: "#6EE7B7", short: "#E8877C", netral: "#EEF4F1" };
+  var GC = { long: "#6EE7B7", short: "#E8877C", netral: "#EEF4F1", deg: "#EEB44C" };
   var GA = 140, GB = 142, GR = 104;            // pusat & radius busur
   function pol(r, deg) {
     var t = deg * Math.PI / 180;
@@ -216,11 +216,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var A = DATA.altdir;
     function paint(V) {
       GLIVE = V;
-      var col = GC[V.bias] || GC.netral;
-      var lab = V.bias === "long" ? "LONG" : V.bias === "short" ? "SHORT" : "NETRAL";
-      /* 23 Sep v30 — metode baru: skor = 2×mayoritas + BTC 1h. Gelombang sinyal
-         serentak bisa bikin skor belasan → rentang jarum dinormalkan ke ±9. */
-      var v = Math.max(-1, Math.min(1, V.score / 9)) * .85;
+      /* 23 Sep v32 — FRESHNESS GATE: input basi (BTC >15 mnt / gelombang grup
+         >8 jam) → jarum netral + label DEGRADED, bukan arah palsu. Skor tetap
+         dihitung engine (bot & logika tak berubah) — hanya tampilan yang jujur. */
+      var DEG = !!V.degraded;
+      var col = DEG ? GC.deg : (GC[V.bias] || GC.netral);
+      var lab = DEG ? "DEGRADED"
+        : (V.bias === "long" ? "LONG" : V.bias === "short" ? "SHORT" : "NETRAL");
+      var v = DEG ? 0 : Math.max(-1, Math.min(1, V.score / 9)) * .85;
       var deg = 90 - v * 90;
       var g = $("#ndl-g");
       if (g) {
@@ -232,6 +235,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       $("#g-fl").querySelectorAll(".fl").forEach(function (e) { e.setAttribute("fill", col); });
       $("#glow").style.background = "radial-gradient(circle, " + col + "55 0%, transparent 68%)";
       var bA = $("#gbias"); bA.textContent = lab + " · LIVE"; bA.style.color = col;
+      if (DEG && V.degrade_reason) bA.title = "input basi: " + V.degrade_reason;
       /* 21 Sep — gname = keterangan sumber arah, BUKAN rezim backtest.
          Dulu menampilkan nama rezim tabel stale (mis. "SANGAT BULLISH
          (altseason)" dari log berhari-hari lalu) persis di bawah label LIVE —
@@ -246,6 +250,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         m.appendChild(x);
       }
       var ar = function (d) { return d > 0 ? "↑" : d < 0 ? "↓" : "→"; };
+      if (DEG) {
+        r("status data", "DEGRADED — " + (V.degrade_reason || "input basi"), "warn");
+        r("skor terakhir", sgn(V.score, 0) + " (dari data basi — tidak dipakai)", "mut");
+        var noteD = el("div", "dnote");
+        noteD.textContent = "Gauge tidak menampilkan arah karena inputnya kedaluwarsa — "
+          + "biar tidak salah baca arah dari data lama. Arah kembali otomatis begitu "
+          + "BTC/gelombang grup segar lagi.";
+        m.appendChild(noteD);
+        return;                          // baris detail arah disembunyikan saat degraded
+      }
       var bp = bbTicker("BTCUSDT");
       if (bp === null || !isFinite(bp)) bp = (V.btc24h != null) ? V.btc24h : A.btc_chg;
       /* 23 Sep v31 — baris utama = MAYORITAS grup gelombang terakhir (sumber
@@ -336,7 +350,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
               bias: pub.bias || "netral", dBtcd: pub.dBtcd || 0, dUsdtd: pub.dUsdtd || 0,
               maj: pub.maj || 0, nLong: pub.nLong || 0, nShort: pub.nShort || 0,
               nMaj: pub.nMaj || 0,
-              pubTs: pub.ts, btc24h: pub.btc24h });
+              pubTs: pub.ts, btc24h: pub.btc24h,
+              degraded: !!pub.degraded, degrade_reason: pub.degrade_reason || "",
+              ageBtc: pub.age_btc_s, ageMaj: pub.age_maj_s });
     }
     btc1h(function (rows) {
       /* 23 Sep v31 — penyegaran real-time: mayoritas diambil dari engine
@@ -345,7 +361,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
          pun, layar tetap memakai hasil engine terakhir — bukan pura-pura. */
       var pub2 = DATA.altdir_live || {};
       var V = { dirBtc: 0, score: 0, bias: "netral",
-                maj: pub2.maj || 0, nLong: pub2.nLong || 0, nShort: pub2.nShort || 0, nMaj: pub2.nMaj || 0 };
+                maj: pub2.maj || 0, nLong: pub2.nLong || 0, nShort: pub2.nShort || 0, nMaj: pub2.nMaj || 0,
+                /* v32: status degraded engine selalu dihormati — refresh browser
+                   tak boleh menyembunyikan gate (BTC segar di browser ≠ gelombang
+                   grup segar di engine) */
+                degraded: !!pub2.degraded, degrade_reason: pub2.degrade_reason || "" };
       if (rows && rows.length > 30) {
         V.dirBtc = rclSweep(rows.map(function (r) { return r.h; }),
                              rows.map(function (r) { return r.l; }),
@@ -355,7 +375,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       }
       V.score = 2 * V.maj + V.dirBtc;                      // v31: 2×mayoritas + BTC 1h
       V.bias = V.score > 0 ? "long" : V.score < 0 ? "short" : "netral";
-      if (rows && rows.length > 30) paint(V);
+      if (rows && rows.length > 30 && !V.degraded) paint(V);   // v32: degraded tetap tampil dari engine
     });
   }
   /* ===== PENENTU ARAH LIVE — engine reclaim 1 jam =====
