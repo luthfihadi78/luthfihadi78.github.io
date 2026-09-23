@@ -871,7 +871,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     for (h = 0; h < 24; h++) { per[h] = { "1h": [0, 0, 0], "2h": [0, 0, 0], "4h": [0, 0, 0] }; }
     ["1h", "2h", "4h"].forEach(function (tf) {
       ["pantau", "sinyal"].forEach(function (jenis) {
-        ((DATA.live[tf] || {})[jenis] || []).forEach(function (r) {
+        liveRows(tf, jenis).forEach(function (r) {
           var p = r.apick; if (!p) return;
           if (p.win !== 0 && p.win !== 1) return;   // terbuka: tidak dinilai
           var m = /(\d{2}):(\d{2})\s*$/.exec(String(r.ts || ""));
@@ -2047,9 +2047,30 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       dir0: (r && r.dir) || null, side: p ? (p.side || null) : null,
       pct: p && isFinite(p.pct) ? p.pct : null, win: p ? p.win : null,
       note: p && p.note ? p.note : null });
-    if (PLOG.length > 200) PLOG.length = 200;
+    if (PLOG.length > 2000) PLOG.length = 2000;   // dulu 200 — riwayat harian cepat terpotong
   }
   function pickKey(tf, jenis, r) { return tf + "|" + jenis + "|" + (r.ts || "") + "|" + (r.sym || ""); }
+  /* 23 Sep — SUMBER BARIS LIVE: jendela DATA.live + pick tersimpan.
+     Baris engine tua tergeser rotasi CSV sehingga tak lagi muncul di
+     data.json — dulu agregat winrate hanya menghitung baris jendela,
+     jadi resolve berhari-hari lalu "hilang". Kini setiap pick yang
+     tersimpan di cloud tetap dihitung walau barisnya sudah keluar
+     jendela (metadata minimal direkonstruksi dari kunci pick). */
+  function liveRows(tf, jenis) {
+    var out = ((DATA.live[tf] || {})[jenis] || []).slice();   // salinan — JANGAN ubah DATA
+    /* segmen kunci pick: "pantau"→"watch", "sinyal"→"sig" (pickKey lama) */
+    var seg = jenis === "pantau" ? "watch" : jenis === "sinyal" ? "sig" : jenis;
+    Object.keys(PICKS).forEach(function (k) {
+      var kp = k.split("|");
+      if (kp[0] !== tf || kp[1] !== seg) return;
+      var p = PICKS[k]; if (!p) return;
+      for (var i = 0; i < out.length; i++) {
+        if (out[i].ts === kp[2] && out[i].sym === kp[3]) return;   // sudah ada di jendela
+      }
+      out.push({ ts: kp[2] || "", sym: kp[3] || "", dir: p.side || null, apick: p });
+    });
+    return out;
+  }
   function b64(s) { return btoa(unescape(encodeURIComponent(s))); }
   function loadPicks() {
     /* dua sumber digabung: picks.json di repo + cloud (mode login). Cloud menang. */
@@ -2264,6 +2285,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         .then(function (h) {
           if (u === AUTH.user && h === curHash()) {
             SS.set("qkuk_admin_ok", "1");
+            /* 23 Sep — pegas penyelamat: hasilkan ulang picks.json repo dari
+               cloud (sumber sebenarnya) setiap admin login. Tanpa ini,
+               pengunjung yang jaringannya memblokir textdb.dev jatuh ke
+               picks.json yang basi/kosong dan winrate live tampak hilang.
+               GUARD: hanya bila PICKS tidak kosong — bila jaringan memblokir
+               cloud DAN repo kosong, menulis berarti menghapus data; jangan. */
+            if (Object.keys(PICKS).length) {
+              cloudWrite().then(function () { try { console.info("picks.json disinkronkan dari cloud ✓"); } catch (e) {} })
+                          .catch(function () {});
+            }
             st.textContent = "selamat datang, admin ✓";
             setTimeout(function () { admClose(); reapply(); }, 450);
           } else st.textContent = "username / password salah";
@@ -2391,7 +2422,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     ord().forEach(function (tf) {
       var n = 0, w = 0, l = 0, open = 0, tot = 0;
       ["pantau", "sinyal"].forEach(function (jenis) {
-        (DATA.live[tf][jenis] || []).forEach(function (r) {
+        liveRows(tf, jenis).forEach(function (r) {
           var p = r.apick; if (!p) return;
           n++;
           if (p.win === 1) w++; else if (p.win === 0) l++; else open++;
@@ -2483,7 +2514,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var bestKey = null, bestWr = -1, tot = 0;
     ord().forEach(function (tf) {
       ["pantau", "sinyal"].forEach(function (jenis) {
-        ((DATA.live[tf] || {})[jenis] || []).forEach(function (r) {
+        liveRows(tf, jenis).forEach(function (r) {
           var p = r.apick; if (!p) return;
           if (p.win !== 0 && p.win !== 1) return;
           var d = dowParseTs(r.ts); if (!d) return;
@@ -2596,7 +2627,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     ord().forEach(function (tf) {
       (DATA.live[tf] || {}).pantau || [];
       ["pantau", "sinyal"].forEach(function (jenis) {
-        ((DATA.live[tf] || {})[jenis] || []).forEach(function (r) {
+        liveRows(tf, jenis).forEach(function (r) {
           var p = r.apick; if (!p) return;
           if (p.win !== 0 && p.win !== 1) return;   // terbuka: tidak dinilai
           var m = /(\d{2}):(\d{2})\s*$/.exec(String(r.ts || ""));   // ts = "YYYY-MM-DD HH:MM"
