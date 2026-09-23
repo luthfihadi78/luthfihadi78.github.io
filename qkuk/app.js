@@ -1859,7 +1859,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     xc.setAttribute("aria-label", "Tutup pengaturan suara");
     hd.appendChild(xc);
     bx.appendChild(hd);
-    bx.appendChild(el("p", "snd-sub", "Pilih salah satu dari 20 jenis — contohnya langsung diputar saat dipilih. Pilihan & volume tersimpan di perangkat ini."));
+    bx.appendChild(el("p", "snd-sub", "Pilih salah satu dari 20 jenis — contohnya langsung diputar saat dipilih. Notifikasi desktop muncul saat tab tidak aktif. Pilihan & volume tersimpan di perangkat ini."));
     var grid = el("div", "snd-grid");
     SOUNDS.forEach(function (s, i) {
       var b = el("button", "snd-opt" + (i === SIDX ? " on" : "")); b.type = "button";
@@ -1876,6 +1876,54 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var vv = el("span", "snd-vval", sl.value + "%");
     vr.appendChild(sl); vr.appendChild(vv);
     bx.appendChild(vr);
+    /* baris notifikasi desktop — izin Notification API diminta dari klik user */
+    var dr = el("div", "snd-vrow");
+    dr.appendChild(el("span", "snd-vlab", "Desktop"));
+    var db = el("button", "snd-dbtn"); db.type = "button";
+    function paintDesk() {
+      if (!("Notification" in window)) {
+        db.textContent = "Tidak didukung browser ini"; db.disabled = true;
+        db.classList.remove("on"); return;
+      }
+      var p = Notification.permission;
+      if (p === "denied") {
+        db.textContent = "Diblokir — izinkan lewat ikon gembok di address bar";
+        db.disabled = true; db.classList.remove("on"); return;
+      }
+      db.disabled = false;
+      db.classList.toggle("on", DESK && p === "granted");
+      db.textContent = p === "granted"
+        ? (DESK ? "AKTIF — klik untuk mati" : "MATI — klik untuk nyalakan")
+        : "Izinkan notifikasi desktop";
+    }
+    db.addEventListener("click", function () {
+      if (!("Notification" in window) || Notification.permission === "denied") return;
+      if (Notification.permission !== "granted") {
+        var called = false;
+        var done = function (np) {
+          if (called) return; called = true;
+          if (np === "granted") {
+            DESK = true;
+            try { localStorage.setItem("qkuk_desk", "1"); } catch (e) {}
+            try {   // bukti izin langsung terlihat
+              var t = new Notification("Qkuk Terminal",
+                { body: "Notifikasi desktop aktif — akan muncul saat tab tidak aktif.", icon: QKUK_ICON });
+              setTimeout(function () { try { t.close(); } catch (e) {} }, 4500);
+            } catch (e) {}
+          }
+          paintDesk();
+        };
+        var rp = Notification.requestPermission(done);
+        if (rp && rp.then) rp.then(done);
+        return;
+      }
+      DESK = !DESK;
+      try { localStorage.setItem("qkuk_desk", DESK ? "1" : "0"); } catch (e) {}
+      paintDesk();
+    });
+    paintDesk();
+    dr.appendChild(db);
+    bx.appendChild(dr);
     ov.appendChild(bx);
     document.body.appendChild(ov);
     function close() {
@@ -1905,6 +1953,39 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   var sbtn = $("#sndset");
   if (sbtn) sbtn.addEventListener("click", buildSoundPanel);
+
+  /* ══ NOTIFIKASI DESKTOP (Notification API) — saat tab TIDAK aktif ════
+     Toast cuma terlihat kalau tab terminal sedang dibuka; begitu user
+     pindah tab, notifikasi native OS yang mengambil alih: klik = fokuskan
+     terminal + buka chart TradingView koin itu. Izin diminta lewat panel
+     ⚙ (harus dari klik user — kebijakan browser). Preferensi tersimpan
+     di localStorage perangkat; tanpa izin, perilaku lama tetap jalan. */
+  var QKUK_ICON = "data:image/svg+xml," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+    '<rect width="64" height="64" rx="14" fill="#0D1411"/>' +
+    '<text x="32" y="44" font-family="monospace" font-size="32" font-weight="bold" fill="#D8C89A" text-anchor="middle">Q</text></svg>');
+  var DESK = false;
+  try { DESK = localStorage.getItem("qkuk_desk") === "1"; } catch (e) {}
+  function deskReady() {
+    return ("Notification" in window) && Notification.permission === "granted" && DESK;
+  }
+  function deskNotify(kind, sym, tf, ts, dir) {
+    if (!deskReady() || !document.hidden) return;   // tab aktif = toast cukup
+    try {
+      var n = new Notification(
+        (kind === "sinyal" ? "SINYAL BARU — " : "WATCHLIST BARU — ") + sym,
+        { body: (dir === "long" || dir === "short" ? dir.toUpperCase() + " · " : "")
+              + (tf || "").toUpperCase() + (ts ? " · " + ts : "")
+              + " · klik untuk buka TradingView",
+          tag: "qkuk-" + ts + "|" + sym + "|" + tf,
+          icon: QKUK_ICON, badge: QKUK_ICON, renotify: true });
+      n.onclick = function () {
+        try { window.focus(); window.open(tvUrl(sym, tf), "_blank", "noopener"); } catch (e) {}
+        n.close();
+      };
+      setTimeout(function () { try { n.close(); } catch (e) {} }, 9000);
+    } catch (e) {}
+  }
   /* ═══════════════════════════════════════════════════════════════════
      20 Sep — LIVE PICKS ADMIN: ambil koin + koreksi + resolve manual
      ════════════════════════════════════════════════════════════════════
@@ -2027,7 +2108,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        digambar ulang saat picks tiba/berubah. Dulu charts() hanya jalan
        sekali di render pertama → kedua SVG selalu menampilkan
        "belum ada resolve" karena picks cloud tiba belakangan. */
-    charts(); hourHeat();
+    charts(); hourHeat(); dayWinrate();
   }
   /* simpan picks — hanya lewat cloud (textdb.dev); wajib login admin.
      Jalur GitHub dihapus (token repot & rawan salah scope). */
@@ -2348,6 +2429,149 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     });
     plogRender();
     hourHeat();
+    dayWinrate();
+  }
+  /* ── WINRATE HARIAN Senin–Minggu (23 Sep) ─────────────────────────
+     Winrate per hari dari LIVE resolve admin (pantau+sinyal, 3 kanal).
+     Hari diambil dari tanggal firing sinyal (r.ts, sudah WIB). Filter
+     periode: minggu ini / bulan ini / minggu lalu / bulan lalu / semua.
+     Penanda ✦ = hari terbaik periode terpilih. Minggu pakai konvensi
+     bursa: Senin = awal minggu. */
+  var DOW = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  var DOW_S = ["MIN", "SEN", "SEL", "RAB", "KAM", "JUM", "SAB"];
+  function dowParseTs(ts) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})[ T]/.exec(String(ts || ""));
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+    var d = new Date(String(ts || ""));
+    return isNaN(d.getTime()) ? null : new Date(d.getTime() + 7 * 3600e3);
+  }
+  function weekIndex(d) {          // nomor minggu sejak epoch — Senin awal minggu
+    var t = Math.floor((d - new Date(1970, 0, 5)) / 6048e5);   // 5 Jan 1970 = Senin
+    return t;
+  }
+  function dayKey(d) {
+    return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+  }
+  function kelasWr(wr, has) {      // sama dengan kelas() heat table, tapi top-level
+    if (!has) return "hh-none";
+    var a = Math.min(.75, .1 + Math.abs(wr - 50) / 66).toFixed(2);
+    return (wr >= 50 ? "hh-w" : "hh-l") + a;
+  }
+  function dayWinrate() {
+    var kamu = document.getElementById("kamu");
+    if (!kamu) return;
+    var host = document.getElementById("daywr");
+    if (!host) {
+      host = el("div", "plog-wrap"); host.id = "daywr";
+      var hh = document.getElementById("hheat");
+      if (hh && hh.parentNode === kamu) kamu.insertBefore(host, hh.nextSibling);
+      else kamu.appendChild(host);
+    }
+    var MODE = "week";             // week | lastweek | month | lastmonth | all
+    try { if (localStorage.getItem("qkuk_daywr")) MODE = localStorage.getItem("qkuk_daywr"); } catch (e) {}
+    var now = new Date();
+    function inMode(d) {
+      if (MODE === "all") return true;
+      if (MODE === "week") return weekIndex(d) === weekIndex(now);
+      if (MODE === "lastweek") return weekIndex(d) === weekIndex(now) - 1;
+      var tm = now.getMonth() - (MODE === "lastmonth" ? 1 : 0), ty = now.getFullYear();
+      if (tm < 0) { tm += 12; ty -= 1; }            // rollover Desember → Januari tahun lalu
+      return d.getFullYear() === ty && d.getMonth() === tm;
+    }
+    var per = {}, k;
+    [0,1,2,3,4,5,6].forEach(function (i) { per[i] = [0, 0, 0]; });
+    var bestKey = null, bestWr = -1, tot = 0;
+    ord().forEach(function (tf) {
+      ["pantau", "sinyal"].forEach(function (jenis) {
+        ((DATA.live[tf] || {})[jenis] || []).forEach(function (r) {
+          var p = r.apick; if (!p) return;
+          if (p.win !== 0 && p.win !== 1) return;
+          var d = dowParseTs(r.ts); if (!d) return;
+          if (!inMode(d)) return;
+          var i = d.getDay();
+          var dirEfektif = p.side || r.dir;
+          var pct = isFinite(p.pct) ? ((dirEfektif === "short" ? -p.pct : p.pct))
+                    : (p.win === 1 ? 1 : -1);
+          var c = per[i]; c[0]++; c[1] += p.win; c[2] += pct;
+        });
+      });
+    });
+    for (k = 0; k < 7; k++) {
+      tot += per[k][0];
+      if (per[k][0] >= 2) { var wr = per[k][1] / per[k][0]; if (wr > bestWr) { bestWr = wr; bestKey = k; } }
+    }
+    host.innerHTML = "";
+    host.appendChild(el("div", "pn-h lv-sub", "winrate harian \u2014 hari terbaik Senin–Minggu (live resolve)"));
+    (function () {
+      var tg = el("div", "hh-toggle");
+      function btn(id, lab) {
+        var b = el("button", "hh-tg" + (MODE === id ? " on" : ""), lab);
+        b.type = "button";
+        b.addEventListener("click", function () {
+          try { localStorage.setItem("qkuk_daywr", id); } catch (e) {}
+          dayWinrate();                              // render ulang periode baru
+        });
+        return b;
+      }
+      ["week|minggu ini", "lastweek|minggu lalu", "month|bulan ini", "lastmonth|bulan lalu", "all|semua"].forEach(function (s) {
+        var pp = s.split("|"); tg.appendChild(btn(pp[0], pp[1]));
+        });
+      host.appendChild(tg);
+    })();
+    if (!tot) {
+      host.appendChild(el("div", "plog-empty",
+        MODE === "all" ? "belum ada resolve — isi win/loss lewat tombol ambil, tabel terisi otomatis"
+                       : "belum ada resolve pada periode ini — coba periode lain"));
+      return;
+    }
+    var wrap = el("div", "plog-scroll");
+    var tab = el("table", "hh-t daywr-t");
+    var thead = el("thead"), trh = el("tr");
+    ["hari", "picks", "winrate", "total %", "bar"].forEach(function (x) { trh.appendChild(el("th", null, x)); });
+    thead.appendChild(trh); tab.appendChild(thead);
+    var tby = el("tbody");
+    [1,2,3,4,5,6,0].forEach(function (i) {              // Senin dulu, Minggu terakhir
+      var c = per[i], has = c[0] > 0, tr = el("tr");
+      var isToday = (MODE === "week" || MODE === "month") && now.getDay() === i;
+      if (isToday) tr.className = "hh-active";
+      tr.appendChild(el("td", "hh-jam", DOW[i] + (isToday ? " · hari ini" : "")));
+      tr.appendChild(el("td", null, has ? String(c[0]) : "—"));
+      var tdW = el("td", "hh-c");
+      if (has) {
+        var wr = c[1] / c[0] * 100;
+        tdW.className = "hh-c " + kelasWr(wr, true);
+        tdW.style.setProperty("--a", Math.min(.75, .1 + Math.abs(wr - 50) / 66).toFixed(2));
+        tdW.appendChild(el("span", "hh-wr " + (wr >= 50 ? "pos" : "neg"), wr.toFixed(0) + "%"));
+        tdW.appendChild(el("span", "hh-sub", c[1] + "W/" + (c[0] - c[1]) + "L"));
+        if (bestKey === i) tdW.appendChild(el("span", "hh-star", "\u2726"));
+        tdW.title = DOW[i] + " — " + c[0] + " pick, menang " + c[1] + " (" + wr.toFixed(1) + "%), total " + sgn(c[2], 1) + "%";
+      } else {
+        tdW.className = "hh-c hh-none"; tdW.title = "belum ada resolve di hari ini";
+      }
+      tr.appendChild(tdW);
+      var tdP = el("td", "");
+      if (has) {
+        var sp = el("span", c[2] > 0 ? "pos" : c[2] < 0 ? "neg" : "mut", sgn(c[2], 1) + "%");
+        tdP.appendChild(sp);
+      } else { tdP.textContent = "—"; tdP.className = "mut"; }
+      tr.appendChild(tdP);
+      /* kolom bar mini proporsional winrate — posisi 50% ditandai ticks */
+      var tdB = el("td", "daywr-bar");
+      if (has) {
+        var wr2 = c[1] / c[0];
+        var bx = el("div", "daywr-bx");
+        var f = el("div", "daywr-f " + (wr2 >= .5 ? "up" : "dn"));
+        f.style.width = Math.max(6, Math.round(wr2 * 100)) + "%";
+        bx.appendChild(f);
+        bx.appendChild(el("i", "daywr-mid"));
+        tdB.appendChild(bx);
+        tdB.title = "winrate " + (wr2 * 100).toFixed(0) + "% — garis tengah = 50%";
+      }
+      tr.appendChild(tdB);
+      tby.appendChild(tr);
+    });
+    tab.appendChild(tby); wrap.appendChild(tab); host.appendChild(wrap);
+    host.appendChild(el("div", "pn-h lv-sub" + " daywr-note", "✦ = hari terbaik periode (min. 2 pick) · bar = winrate vs garis 50% · sumber: live resolve admin, bukan backtest"));
   }
   /* ── HEAT TABLE jam terbaik (22 Sep) ──────────────────────────────
      24 jam WIB × 3 kanal + kolom TOTAL. Sel = winrate dari LIVE resolve
@@ -2685,7 +2909,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
     var fresh = items.filter(function (it) { return !NOTE.seen[it.key]; });
     items.forEach(function (it) { NOTE.seen[it.key] = 1; });
-    fresh.forEach(function (it) { toast(it.k, it.sym, it.tf, it.ts, it.dir); NOTE.n++; });
+    fresh.forEach(function (it) {
+      toast(it.k, it.sym, it.tf, it.ts, it.dir);
+      deskNotify(it.k, it.sym, it.tf, it.ts, it.dir);   // native OS saat tab tidak aktif
+      NOTE.n++;
+    });
     if (fresh.length) { ding(); sndIcon(); }
   }
   /* ── 20 Sep: tata letak dipindah ke sini (runtime) ──

@@ -474,6 +474,19 @@ button.apbadge{cursor:pointer}
 .hh-t tbody tr.hh-sel td{outline:1px solid var(--up);outline-offset:-1px;
   box-shadow:0 0 12px rgba(110,231,183,.18)}
 .hh-c:hover{filter:brightness(1.18)}
+
+/* ═══════════ WINRATE HARIAN Senin–Minggu (23 Sep) ═══════════ */
+.daywr-t td{color:var(--fg-2)}
+.daywr-t td.hh-jam{color:var(--fg);font-weight:600;letter-spacing:.04em}
+.daywr-t .daywr-bar{min-width:180px}
+.daywr-bx{position:relative;height:10px;border-radius:6px;background:#0A100D;
+  border:1px solid var(--line);overflow:hidden}
+.daywr-f{position:absolute;left:0;top:0;bottom:0;border-radius:6px 0 0 6px}
+.daywr-f.up{background:linear-gradient(90deg,rgba(110,231,183,.25),rgba(110,231,183,.75))}
+.daywr-f.dn{background:linear-gradient(90deg,rgba(255,82,82,.25),rgba(255,82,82,.75))}
+.daywr-mid{position:absolute;left:50%;top:-1px;bottom:-1px;width:0;
+  border-left:1px dashed rgba(216,200,154,.5)}
+.daywr-note{margin-top:8px;border:0;padding-top:2px;opacity:.8}
 .hh-fchip{margin-left:10px;background:var(--up-w);border:1px solid var(--up);color:var(--up);border-radius:999px;padding:3px 12px;font:inherit;font-size:11px;cursor:pointer;box-shadow:0 0 10px rgba(110,231,183,.14)}
 .hh-fchip:hover{background:rgba(110,231,183,.22)}
 .hr-wib{fill:var(--fg-3);letter-spacing:.14em;font-size:8.5px}
