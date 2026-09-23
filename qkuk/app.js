@@ -248,27 +248,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var ar = function (d) { return d > 0 ? "↑" : d < 0 ? "↓" : "→"; };
       var bp = bbTicker("BTCUSDT");
       if (bp === null || !isFinite(bp)) bp = (V.btc24h != null) ? V.btc24h : A.btc_chg;
-      /* 23 Sep v30 — baris utama = MAYORITAS grup pada jam berjalan (sumber sama
-         dgn pesan yang masuk grup WA), lalu BTC 1h. Dominan turun jadi info:
-         datanya 12 jam — tak lagi menentukan skor. Baris "rezim backtest"
-         dihapus (sudah live). */
+      /* 23 Sep v31 — baris utama = MAYORITAS grup gelombang terakhir (sumber
+         sama dgn pesan yang masuk grup WA), lalu BTC 1h. BTC.D/USDT.D DIHAPUS
+         total (permintaan user): gauge = BTC + mayoritas reclaim, titik. */
       r("mayoritas grup",
         V.nMaj > 0
           ? V.nLong + "L · " + V.nShort + "S → " + sgn(V.maj, 0)
-          : "— belum ada di jam ini",
+          : "— belum ada gelombang tercatat",
         V.maj > 0 ? "pos" : V.maj < 0 ? "neg" : "mut");
       r("BTC 1h", ar(V.dirBtc) + "  " + sgn(bp, 2) + "%" + (V.btc24h != null ? " (24 jam)" : ""), bp < 0 ? "neg" : "pos");
       if (V.pubTs) r("dihitung engine", V.pubTs + " WIB", "mut");
-      if (GD.btcd)
-        r("BTC.D (info)", ar(V.dirBtcd) + "  " + GD.btcdNow.toFixed(2) + "% · " + sgn(V.dBtcd, 2) + "pp",
-          V.dirBtcd > 0 ? "neg" : V.dirBtcd < 0 ? "pos" : "mut");
-      else
-        r("BTC.D (info)", "— dominan offline", "mut");
-      if (GD.usdtd)
-        r("USDT.D (info)", ar(V.dirUsdtd) + "  " + GD.usdtdNow.toFixed(2) + "% · " + sgn(V.dUsdtd, 2) + "pp",
-          V.dirUsdtd > 0 ? "neg" : V.dirUsdtd < 0 ? "pos" : "mut");
-      else
-        r("USDT.D (info)", "— dominan offline", "mut");
       /* sparkline riwayat arah per jam (48 jam terakhir, dari engine) */
       (function () {
         var H = DATA.altdir_hist || [];
@@ -317,7 +306,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         x.appendChild(vs);
         m.appendChild(x);
       })();
-      r("reclaim jam ini",
+      r("reclaim terakhir",
         "2×mayoritas " + sgn(V.maj, 0) + " + BTC " + ar(V.dirBtc)
         + " → skor " + sgn(V.score, 0),
         V.bias === "long" ? "pos" : V.bias === "short" ? "neg" : "mut");
@@ -329,11 +318,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (btcMom != null && isFinite(btcMom))
         r("momentum BTC", sgn(btcMom, 2) + "% (24 jam)", btcMom > 0 ? "pos" : btcMom < 0 ? "neg" : "mut");
       var note = el("div", "dnote");
-      note.textContent = "Arah LIVE = 2× mayoritas watchlist+sinyal reclaim yang terkirim ke grup "
-        + "pada jam berjalan (1h/2h/4h) + BTC 1h live. Gelombang sinyal serentak satu arah "
-        + "langsung membalikkan gauge — tidak menunggu dominan. Dihitung di SERVER bot "
-        + "(sama untuk semua device; candle forming dibuang). Device yang bisa menjangkau "
-        + "Binance/CoinGecko menyegarkan real-time di atasnya.";
+      note.textContent = "Arah LIVE = 2× mayoritas watchlist+sinyal reclaim pada gelombang terakhir "
+        + "yang terkirim ke grup (1h/2h/4h) + BTC 1h live — tanpa dominan. Gelombang sinyal "
+        + "serentak satu arah langsung membalikkan gauge. Dihitung di SERVER bot (sama untuk "
+        + "semua device; candle forming dibuang). Device yang bisa menjangkau Binance/CoinGecko "
+        + "menyegarkan BTC real-time di atasnya.";
       m.appendChild(note);
     }
     /* 20 Sep v28: nilai arah dihitung JUGA di engine (dashboard_data →
@@ -350,33 +339,23 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
               pubTs: pub.ts, btc24h: pub.btc24h });
     }
     btc1h(function (rows) {
-      gdSeries(function (okGd) {
-        /* 23 Sep v30 — penyegaran real-time memakai METODE BARU: mayoritas jam
-           berjalan diambil dari engine (pub.maj — browser tak punya CSV grup),
-           dirBtc dihitung ulang dari klines live; dominan hanya mengisi baris
-           info. Kalau engine belum menerbitkan apa pun, layar tetap memakai
-           hasil engine terakhir (atau kosong) — bukan pura-pura hitung sendiri. */
-        var pub2 = DATA.altdir_live || {};
-        var V = { dirBtc: 0, dirBtcd: 0, dirUsdtd: 0, score: 0, bias: "netral", dBtcd: 0, dUsdtd: 0,
-                  maj: pub2.maj || 0, nLong: pub2.nLong || 0, nShort: pub2.nShort || 0, nMaj: pub2.nMaj || 0 };
-        if (rows && rows.length > 30) {
-          V.dirBtc = rclSweep(rows.map(function (r) { return r.h; }),
-                               rows.map(function (r) { return r.l; }),
-                               rows.map(function (r) { return r.c; }), .01)
-            || rclSlope(rows.map(function (r) { return r.c; }), 24, .3);
-          if (rows.length > 25) V.btc24h = Math.round((rows[rows.length-1].c / rows[rows.length-25].c - 1) * 10000) / 100;
-        }
-        if (okGd && GD.btcd) {
-          V.dirBtcd = rclSweep(GD.btcd, GD.btcd.slice(), GD.btcd, .0015, 12) || rclSlope(GD.btcd, 12, .05);
-          V.dirUsdtd = rclSweep(GD.usdtd, GD.usdtd.slice(), GD.usdtd, .0015, 12) || rclSlope(GD.usdtd, 12, .05);
-          var nn = Math.min(12, GD.btcd.length - 1);
-          V.dBtcd = GD.btcd[GD.btcd.length - 1] - GD.btcd[GD.btcd.length - 1 - nn];
-          V.dUsdtd = GD.usdtd[GD.usdtd.length - 1] - GD.usdtd[GD.usdtd.length - 1 - nn];
-        }
-        V.score = 2 * V.maj + V.dirBtc;                    // v30: 2×mayoritas + BTC 1h
-        V.bias = V.score > 0 ? "long" : V.score < 0 ? "short" : "netral";
-        if (rows && rows.length > 30) paint(V);
-      });
+      /* 23 Sep v31 — penyegaran real-time: mayoritas diambil dari engine
+         (browser tak punya CSV grup), dirBtc dihitung ulang dari klines live;
+         dominan tak dihitung sama sekali. Kalau engine belum menerbitkan apa
+         pun, layar tetap memakai hasil engine terakhir — bukan pura-pura. */
+      var pub2 = DATA.altdir_live || {};
+      var V = { dirBtc: 0, score: 0, bias: "netral",
+                maj: pub2.maj || 0, nLong: pub2.nLong || 0, nShort: pub2.nShort || 0, nMaj: pub2.nMaj || 0 };
+      if (rows && rows.length > 30) {
+        V.dirBtc = rclSweep(rows.map(function (r) { return r.h; }),
+                             rows.map(function (r) { return r.l; }),
+                             rows.map(function (r) { return r.c; }), .01)
+          || rclSlope(rows.map(function (r) { return r.c; }), 24, .3);
+        if (rows.length > 25) V.btc24h = Math.round((rows[rows.length-1].c / rows[rows.length-25].c - 1) * 10000) / 100;
+      }
+      V.score = 2 * V.maj + V.dirBtc;                      // v31: 2×mayoritas + BTC 1h
+      V.bias = V.score > 0 ? "long" : V.score < 0 ? "short" : "netral";
+      if (rows && rows.length > 30) paint(V);
     });
   }
   /* ===== PENENTU ARAH LIVE — engine reclaim 1 jam =====
@@ -447,56 +426,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var d = (c[c.length - 1] - c[c.length - 1 - n]) / c[c.length - 1 - n] * 100;
     return d > thr ? 1 : d < -thr ? -1 : 0;
   }
-  /* seri dominan: share mcap per koin thd basket, di-anchor ke nilai sejati
-     /global saat ini (basket ~80% total, pergeserannya lambat — perubahan
-     poin persen tetap akurat). Cache 15 menit di memori. */
-  function gdSeries(cb) {
-    if (GD.btcd && Date.now() - GD.at < 15 * 60e3) { cb(true); return; }
-    if (GD.failAt && Date.now() - GD.failAt < 5 * 60e3) { cb(false); return; }
-    var ids = ["bitcoin", "ethereum", "tether", "binancecoin", "solana"];
-    var mc = {}, got = 0, fail = false, glob = null, done = false;
-    function fin() { if (!done) { done = true; if (fail) GD.failAt = Date.now(); cb(!fail); } }
-    setTimeout(function () { if (!done) { done = true; GD.failAt = Date.now(); cb(false); } }, 12000);
-    ids.forEach(function (id) {
-      fetch("https://api.coingecko.com/api/v3/coins/" + id + "/market_chart?vs_currency=usd&days=2")
-        .then(function (r) { if (!r.ok) throw 0; return r.json(); })
-        .then(function (j) { mc[id] = (j.market_caps || []).map(function (x) { return x[1]; }); tick(); })
-        .catch(function () { fail = true; tick(); });
-    });
-    fetch("https://api.coingecko.com/api/v3/global")
-      .then(function (r) { if (!r.ok) throw 0; return r.json(); })
-      .then(function (j) { glob = (j.data || {}).market_cap_percentage || null; })
-      .catch(function () {});
-    function tick() {
-      if (done) return;
-      if (++got < ids.length) return;
-      if (fail) { fin(); return; }
-      var n = Math.min.apply(null, ids.map(function (id) { return mc[id] ? mc[id].length : 0; }));
-      if (n < 30) { fail = true; fin(); return; }
-      var off = {}, basket = new Array(n).fill(0), i;
-      ids.forEach(function (id) {
-        var a = mc[id]; off[id] = a.length - n;
-        for (i = 0; i < n; i++) basket[i] += a[off[id] + i];
-      });
-      function series(id, anchor) {
-        var a = mc[id], s = [];
-        for (var i = 0; i < n; i++) s.push(a[off[id] + i] / basket[i] * 100);
-        if (anchor) { var k = anchor / s[s.length - 1]; s = s.map(function (v) { return v * k; }); }
-        return s;
-      }
-      /* anchor: nilai sejati dari /global; kalau rate-limit, pakai nilai
-         terakhir engine (data.json) supaya absolut tetap masuk akal */
-      var aBtc = glob && glob.btc ? glob.btc
-        : (DATA && DATA.altdir && DATA.altdir.btcd_now) || 0;
-      var aUsdt = (DATA && DATA.altdir && DATA.altdir.usdtd_now) || 0;
-      GD.btcd = series("bitcoin", aBtc);
-      GD.usdtd = series("tether", aUsdt);
-      GD.btcdNow = GD.btcd[GD.btcd.length - 1];
-      GD.usdtdNow = GD.usdtd[GD.usdtd.length - 1];
-      GD.at = Date.now();
-      cb(true);
-    }
-  }
+  /* 23 Sep v31 — seri dominan (BTC.D/USDT.D) DIHAPUS: gauge = BTC + mayoritas
+     reclaim, titik. Tidak ada lagi fetch CoinGecko dominan di browser. */
 
   function strip() {
     var host = $("#strip"); host.innerHTML = "";
