@@ -1741,15 +1741,59 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   });
 
   /* ── notifikasi watchlist / sinyal baru ──
-     Toast kanan-atas + bunyi pendek via Web Audio (tanpa file audio — CSP
+     Toast kanan-atas + bunyi via Web Audio (tanpa file audio — CSP
      situs hanya mengizinkan 'self'). Klik badan toast = buka chart
      TradingView koin itu; tombol × = tutup notifikasi saja.
      Pembandingnya KUNCI (timestamp WIB + simbol + timeframe): timestamp
      tidak berubah saat resolver mengisi hasil, jadi baris yang sama tidak
-     dibunyikan dua kali. Muatan pertama = baseline, tidak di-toast. */
+     dibunyikan dua kali. Muatan pertama = baseline, tidak di-toast.
+
+     23 Sep — 20 JENIS SUARA: pengguna bebas memilih karakter notifikasi
+     (ding, bell, chip, pulse, digital, radar, drop, coin, chime, dst.)
+     lewat panel ⚙ di samping tombol 🔔. Semuanya disintesis Web Audio
+     realtime — tanpa file, tetap lolos CSP. Pilihan + volume tersimpan
+     di localStorage per perangkat. Volume default jauh lebih keras dari
+     versi lama (dulu puncak gain implisit ~0.09). */
   var NOTE = { seen: null, n: 0 };
   var MUTE = false;
   try { MUTE = localStorage.getItem("qkuk_mute") === "1"; } catch (e) {}
+
+  /* ══ 20 JENIS SUARA NOTIFIKASI (Web Audio, tanpa file) ══════════════
+     Setiap jenis = { id, label, wave: bentuk gelombang, seq: nada }.
+     Nada: [mulai(detik), frekuensi-Hz, panjang(detik), volume-relatif,
+            efek-opsional] — "glide" = frekuensi meluncur turun ke 55%
+            di akhir nada (efek drop), "rise" = meluncur naik 2×. */
+  var SOUNDS = [
+    { id: "ding",    label: "Ding klasik",      wave: "sine",     seq: [[0, 880, .30, 1], [.09, 1318.5, .30, .8]] },
+    { id: "bell",    label: "Bell lembut",      wave: "sine",     seq: [[0, 1046.5, .55, .9], [.02, 1568, .5, .4], [.02, 2093, .4, .25]] },
+    { id: "chime",   label: "Chime cerah",      wave: "sine",     seq: [[0, 783.99, .22, .9], [.11, 1046.5, .22, .9], [.22, 1318.5, .34, .9]] },
+    { id: "chip",    label: "Chip ceria",       wave: "square",   seq: [[0, 987.77, .09, .45], [.10, 1318.5, .16, .45]] },
+    { id: "pulse",   label: "Pulse ganda",      wave: "triangle", seq: [[0, 587.33, .10, .9], [.13, 587.33, .10, .9]] },
+    { id: "digital", label: "Digital LED",      wave: "square",   seq: [[0, 1174.66, .07, .4], [.09, 1174.66, .07, .4], [.18, 1567.98, .13, .4]] },
+    { id: "swoosh",  label: "Swoosh naik",      wave: "sine",     seq: [[0, 392, .30, 1, "rise"], [.08, 587.33, .26, .7]] },
+    { id: "radar",   label: "Radar ping",       wave: "sine",     seq: [[0, 1244.51, .42, .9]] },
+    { id: "drop",    label: "Drop bas",         wave: "sine",     seq: [[0, 329.63, .38, 1, "glide"]] },
+    { id: "coin",    label: "Koin (game)",      wave: "square",   seq: [[0, 987.77, .08, .5], [.09, 1318.5, .30, .5]] },
+    { id: "harp",    label: "Harp arpeggio",    wave: "triangle", seq: [[0, 523.25, .2, .8], [.08, 659.25, .2, .8], [.16, 783.99, .3, .8], [.24, 1046.5, .36, .7]] },
+    { id: "fanfare", label: "Fanfare naik",     wave: "triangle", seq: [[0, 523.25, .13, .9], [.14, 659.25, .13, .9], [.28, 783.99, .32, 1]] },
+    { id: "alert",   label: "Alert tegas",      wave: "square",   seq: [[0, 880, .12, .5], [.16, 880, .12, .5], [.32, 880, .2, .5]] },
+    { id: "buzz",    label: "Buzz pendek",      wave: "sawtooth", seq: [[0, 220, .20, .35]] },
+    { id: "spark",   label: "Spark kilat",      wave: "sawtooth", seq: [[0, 1567.98, .06, .3], [.07, 2093, .14, .3]] },
+    { id: "marimba", label: "Marimba hangat",   wave: "sine",     seq: [[0, 523.25, .16, 1], [.10, 783.99, .16, .9], [.20, 1046.5, .30, .9]] },
+    { id: "crystal", label: "Crystal berkilau", wave: "sine",     seq: [[0, 1318.51, .3, .55], [.06, 1760, .3, .4], [.12, 2637, .44, .3]] },
+    { id: "beacon",  label: "Beacon kapal",     wave: "triangle", seq: [[0, 622.25, .30, .9], [.34, 622.25, .30, .7]] },
+    { id: "rocket",  label: "Rocket launch",    wave: "sawtooth", seq: [[0, 261.63, .45, .4, "rise"], [.10, 523.25, .4, .3]] },
+    { id: "startup", label: "Startup terminal", wave: "triangle", seq: [[0, 392, .14, .8], [.15, 523.25, .14, .8], [.30, 659.25, .14, .8], [.45, 783.99, .42, .9]] }
+  ];
+  var VOL = 0.8;                       // volume master 0–1
+  try { var _v = parseFloat(localStorage.getItem("qkuk_vol")); if (!isNaN(_v) && _v >= 0 && _v <= 1) VOL = _v; } catch (e) {}
+  var SIDX = 0;                        // indeks jenis suara terpilih
+  try {
+    var _s = localStorage.getItem("qkuk_sound"), _i = -1;
+    for (var _k = 0; _k < SOUNDS.length; _k++) if (SOUNDS[_k].id === _s) { _i = _k; break; }
+    if (_i >= 0) SIDX = _i;
+  } catch (e) {}
+
   function unlockAudio() {
     try {
       var AC = window.AudioContext || window.webkitAudioContext;
@@ -1761,6 +1805,28 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   document.addEventListener("pointerdown", unlockAudio);
   document.addEventListener("keydown", unlockAudio);
+
+  /* mesin sintesis: mainkan rangkaian nada `snd` pada konteks `ctx` */
+  function playSeq(ctx, snd) {
+    var t0 = ctx.currentTime, g = ctx.createGain();
+    var last = snd.seq[snd.seq.length - 1];
+    var tot = last[0] + last[2] + .25;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(Math.max(.0002, .5 * VOL), t0 + .012);  // dulu puncak .09 — kini ±5× lebih keras
+    g.gain.exponentialRampToValueAtTime(.0001, t0 + tot);
+    g.connect(ctx.destination);
+    snd.seq.forEach(function (nd) {
+      var st = t0 + nd[0], f = nd[1], du = nd[2], rv = nd[3] || 1;
+      var o = ctx.createOscillator(), og = ctx.createGain();
+      o.type = snd.wave;
+      o.frequency.setValueAtTime(f, st);
+      if (nd[4] === "glide") o.frequency.exponentialRampToValueAtTime(Math.max(30, f * .55), st + du);
+      if (nd[4] === "rise")  o.frequency.exponentialRampToValueAtTime(f * 2, st + du);
+      og.gain.setValueAtTime(rv, st);
+      o.connect(og); og.connect(g);
+      o.start(st); o.stop(st + du + .02);
+    });
+  }
   function ding() {
     if (MUTE) return;
     try {
@@ -1768,27 +1834,77 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (!AC) return;
       if (!ding.ctx) ding.ctx = new AC();
       if (ding.ctx.state === "suspended") { ding.ctx.resume(); return; }
-      var t0 = ding.ctx.currentTime, g = ding.ctx.createGain();
-      g.gain.setValueAtTime(0, t0);
-      g.gain.linearRampToValueAtTime(.09, t0 + .012);
-      g.gain.exponentialRampToValueAtTime(.0001, t0 + .42);
-      g.connect(ding.ctx.destination);
-      [880, 1318.5].forEach(function (f, i) {   // dua nada: "ting" lembut
-        var o = ding.ctx.createOscillator();
-        o.type = "sine"; o.frequency.value = f;
-        o.connect(g); o.start(t0 + i * .09); o.stop(t0 + i * .09 + .3);
-      });
+      playSeq(ding.ctx, SOUNDS[SIDX]);
     } catch (e) {}
   }
-  function muteIcon() {
+
+  /* ══ PANEL PEMILIH SUARA (⚙ di header, samping 🔔) ══════════════════ */
+  function sndIcon() {
     var m = $("#mute");
     if (!m) return;
     m.textContent = MUTE ? "🔇" : "🔔";
     m.setAttribute("aria-pressed", MUTE ? "true" : "false");
     m.title = (MUTE ? "Suara notifikasi: MATI — klik untuk nyalakan"
       : "Suara notifikasi: NYALA — klik untuk mati")
+      + " · jenis: " + SOUNDS[SIDX].label
       + (NOTE.n ? " · " + NOTE.n + " notifikasi sesi ini" : "");
   }
+  function buildSoundPanel() {
+    if (document.getElementById("snd-ov")) return;
+    var ov = el("div", "snd-ov"); ov.id = "snd-ov";
+    var bx = el("div", "snd-box");
+    var hd = el("div", "snd-hd");
+    hd.appendChild(el("b", "", "Suara notifikasi"));
+    var xc = el("button", "snd-x"); xc.type = "button"; xc.textContent = "×";
+    xc.setAttribute("aria-label", "Tutup pengaturan suara");
+    hd.appendChild(xc);
+    bx.appendChild(hd);
+    bx.appendChild(el("p", "snd-sub", "Pilih salah satu dari 20 jenis — contohnya langsung diputar saat dipilih. Pilihan & volume tersimpan di perangkat ini."));
+    var grid = el("div", "snd-grid");
+    SOUNDS.forEach(function (s, i) {
+      var b = el("button", "snd-opt" + (i === SIDX ? " on" : "")); b.type = "button";
+      b.setAttribute("data-i", i);
+      b.textContent = s.label;
+      grid.appendChild(b);
+    });
+    bx.appendChild(grid);
+    var vr = el("div", "snd-vrow");
+    vr.appendChild(el("span", "snd-vlab", "Volume"));
+    var sl = el("input", "snd-vol"); sl.type = "range"; sl.min = "0"; sl.max = "100";
+    sl.id = "snd-vol"; sl.setAttribute("aria-label", "Volume notifikasi");
+    sl.value = Math.round(VOL * 100);
+    var vv = el("span", "snd-vval", sl.value + "%");
+    vr.appendChild(sl); vr.appendChild(vv);
+    bx.appendChild(vr);
+    ov.appendChild(bx);
+    document.body.appendChild(ov);
+    function close() {
+      ov.classList.add("out");
+      setTimeout(function () { if (ov.parentNode) ov.parentNode.removeChild(ov); }, 200);
+    }
+    xc.addEventListener("click", close);
+    ov.addEventListener("click", function (ev) { if (ev.target === ov) close(); });
+    document.addEventListener("keydown", function esch(ev) {
+      if (ev.key === "Escape" && ov.parentNode) { close(); document.removeEventListener("keydown", esch); }
+    });
+    grid.addEventListener("click", function (ev) {
+      var b = ev.target.closest(".snd-opt"); if (!b) return;
+      SIDX = parseInt(b.getAttribute("data-i"), 10) || 0;
+      try { localStorage.setItem("qkuk_sound", SOUNDS[SIDX].id); } catch (e) {}
+      grid.querySelectorAll(".snd-opt").forEach(function (x) { x.classList.remove("on"); });
+      b.classList.add("on");
+      sndIcon();
+      ding();                                  // dengarkan contohnya langsung
+    });
+    sl.addEventListener("input", function () {
+      VOL = parseInt(sl.value, 10) / 100;
+      vv.textContent = sl.value + "%";
+      try { localStorage.setItem("qkuk_vol", String(sl.value)); } catch (e) {}
+    });
+    sl.addEventListener("change", function () { ding(); });   // contoh volume baru
+  }
+  var sbtn = $("#sndset");
+  if (sbtn) sbtn.addEventListener("click", buildSoundPanel);
   /* ═══════════════════════════════════════════════════════════════════
      20 Sep — LIVE PICKS ADMIN: ambil koin + koreksi + resolve manual
      ════════════════════════════════════════════════════════════════════
@@ -2512,10 +2628,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   if (mbtn) mbtn.addEventListener("click", function () {
     MUTE = !MUTE;
     try { localStorage.setItem("qkuk_mute", MUTE ? "1" : "0"); } catch (e) {}
-    muteIcon();
+    sndIcon();
     if (!MUTE) ding();                          // umpan balik: bunyi contoh
   });
-  muteIcon();
+  sndIcon();
   function toast(kind, sym, tf, ts, dir) {
     var host = $("#toasts"); if (!host) return;
     var t = el("div", "toast " + (kind === "sinyal" ? "t-sig" : "t-wat"));
@@ -2570,7 +2686,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var fresh = items.filter(function (it) { return !NOTE.seen[it.key]; });
     items.forEach(function (it) { NOTE.seen[it.key] = 1; });
     fresh.forEach(function (it) { toast(it.k, it.sym, it.tf, it.ts, it.dir); NOTE.n++; });
-    if (fresh.length) { ding(); muteIcon(); }
+    if (fresh.length) { ding(); sndIcon(); }
   }
   /* ── 20 Sep: tata letak dipindah ke sini (runtime) ──
      Keluhan "masih sama kaya sebelumnya" terbukti dari cache HTML: GitHub Pages
