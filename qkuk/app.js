@@ -218,7 +218,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       GLIVE = V;
       var col = GC[V.bias] || GC.netral;
       var lab = V.bias === "long" ? "LONG" : V.bias === "short" ? "SHORT" : "NETRAL";
-      var v = Math.max(-1, Math.min(1, V.score / 3)) * .85;
+      /* 23 Sep v30 — metode baru: skor = 2×mayoritas + BTC 1h. Gelombang sinyal
+         serentak bisa bikin skor belasan → rentang jarum dinormalkan ke ±9. */
+      var v = Math.max(-1, Math.min(1, V.score / 9)) * .85;
       var deg = 90 - v * 90;
       var g = $("#ndl-g");
       if (g) {
@@ -234,7 +236,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
          Dulu menampilkan nama rezim tabel stale (mis. "SANGAT BULLISH
          (altseason)" dari log berhari-hari lalu) persis di bawah label LIVE —
          terbaca seperti gauge berkata dua hal bertentangan sekaligus. */
-      $("#gname").textContent = "arah live · engine reclaim 1 jam";
+      $("#gname").textContent = "arah live · 2×mayoritas grup + BTC 1h";
       var m = $("#dmeta"); m.innerHTML = "";
       function r(l, v2, c) {
         var x = el("div", "dr");
@@ -246,16 +248,27 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var ar = function (d) { return d > 0 ? "↑" : d < 0 ? "↓" : "→"; };
       var bp = bbTicker("BTCUSDT");
       if (bp === null || !isFinite(bp)) bp = (V.btc24h != null) ? V.btc24h : A.btc_chg;
-      r("BTC", ar(V.dirBtc) + "  " + sgn(bp, 2) + "%" + (V.btc24h != null ? " (24 jam)" : ""), bp < 0 ? "neg" : "pos");
+      /* 23 Sep v30 — baris utama = MAYORITAS grup pada jam berjalan (sumber sama
+         dgn pesan yang masuk grup WA), lalu BTC 1h. Dominan turun jadi info:
+         datanya 12 jam — tak lagi menentukan skor. Baris "rezim backtest"
+         dihapus (sudah live). */
+      r("mayoritas grup",
+        V.nMaj > 0
+          ? V.nLong + "L · " + V.nShort + "S → " + sgn(V.maj, 0)
+          : "— belum ada di jam ini",
+        V.maj > 0 ? "pos" : V.maj < 0 ? "neg" : "mut");
+      r("BTC 1h", ar(V.dirBtc) + "  " + sgn(bp, 2) + "%" + (V.btc24h != null ? " (24 jam)" : ""), bp < 0 ? "neg" : "pos");
       if (V.pubTs) r("dihitung engine", V.pubTs + " WIB", "mut");
-      r("BTC.D", GD.btcd
-        ? ar(V.dirBtcd) + "  " + GD.btcdNow.toFixed(2) + "% · " + sgn(V.dBtcd, 2) + "pp (12 jam)"
-        : "— dominan offline",
-        V.dirBtcd > 0 ? "neg" : V.dirBtcd < 0 ? "pos" : "mut");
-      r("USDT.D", GD.usdtd
-        ? ar(V.dirUsdtd) + "  " + GD.usdtdNow.toFixed(2) + "% · " + sgn(V.dUsdtd, 2) + "pp (12 jam)"
-        : "— dominan offline",
-        V.dirUsdtd > 0 ? "neg" : V.dirUsdtd < 0 ? "pos" : "mut");
+      if (GD.btcd)
+        r("BTC.D (info)", ar(V.dirBtcd) + "  " + GD.btcdNow.toFixed(2) + "% · " + sgn(V.dBtcd, 2) + "pp",
+          V.dirBtcd > 0 ? "neg" : V.dirBtcd < 0 ? "pos" : "mut");
+      else
+        r("BTC.D (info)", "— dominan offline", "mut");
+      if (GD.usdtd)
+        r("USDT.D (info)", ar(V.dirUsdtd) + "  " + GD.usdtdNow.toFixed(2) + "% · " + sgn(V.dUsdtd, 2) + "pp",
+          V.dirUsdtd > 0 ? "neg" : V.dirUsdtd < 0 ? "pos" : "mut");
+      else
+        r("USDT.D (info)", "— dominan offline", "mut");
       /* sparkline riwayat arah per jam (48 jam terakhir, dari engine) */
       (function () {
         var H = DATA.altdir_hist || [];
@@ -304,8 +317,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         x.appendChild(vs);
         m.appendChild(x);
       })();
-      r("reclaim 1h",
-        "BTC " + ar(V.dirBtc) + " · BTC.D " + ar(V.dirBtcd) + " · USDT.D " + ar(V.dirUsdtd)
+      r("reclaim jam ini",
+        "2×mayoritas " + sgn(V.maj, 0) + " + BTC " + ar(V.dirBtc)
         + " → skor " + sgn(V.score, 0),
         V.bias === "long" ? "pos" : V.bias === "short" ? "neg" : "mut");
       /* 21 Sep — momentum BTC 24 jam eksplisit: penyeimbang penalti dominan.
@@ -315,12 +328,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         : (isFinite(bp) ? bp : (A.btc_chg != null ? A.btc_chg : null));
       if (btcMom != null && isFinite(btcMom))
         r("momentum BTC", sgn(btcMom, 2) + "% (24 jam)", btcMom > 0 ? "pos" : btcMom < 0 ? "neg" : "mut");
-      r("rezim backtest (referensi)", (A.nama || "--") + " · " + (A.ts || ""), "mut");
       var note = el("div", "dnote");
-      note.textContent = "Arah LIVE dari engine reclaim 1 jam — dihitung di SERVER bot "
+      note.textContent = "Arah LIVE = 2× mayoritas watchlist+sinyal reclaim yang terkirim ke grup "
+        + "pada jam berjalan (1h/2h/4h) + BTC 1h live. Gelombang sinyal serentak satu arah "
+        + "langsung membalikkan gauge — tidak menunggu dominan. Dihitung di SERVER bot "
         + "(sama untuk semua device; candle forming dibuang). Device yang bisa menjangkau "
-        + "Binance/CoinGecko menyegarkan real-time di atasnya. Antara dua sweep dipakai "
-        + "momentum (BTC 24 jam, dominan 12 jam) biar jarum tetap peka.";
+        + "Binance/CoinGecko menyegarkan real-time di atasnya.";
       m.appendChild(note);
     }
     /* 20 Sep v28: nilai arah dihitung JUGA di engine (dashboard_data →
@@ -328,20 +341,30 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        Semua device sekarang mulai dari nilai yang SAMA; device yang bisa
        mencapai Binance/CoinGecko menyegarkan real-time di atasnya. */
     var pub = DATA.altdir_live;
-    if (pub && (pub.src && (pub.src.btc || pub.src.dom))) {
+    if (pub && (pub.src && (pub.src.btc || pub.src.maj || pub.src.dom))) {
       paint({ dirBtc: pub.dirBtc || 0, dirBtcd: pub.dirBtcd || 0,
               dirUsdtd: pub.dirUsdtd || 0, score: pub.score || 0,
               bias: pub.bias || "netral", dBtcd: pub.dBtcd || 0, dUsdtd: pub.dUsdtd || 0,
+              maj: pub.maj || 0, nLong: pub.nLong || 0, nShort: pub.nShort || 0,
+              nMaj: pub.nMaj || 0,
               pubTs: pub.ts, btc24h: pub.btc24h });
     }
     btc1h(function (rows) {
       gdSeries(function (okGd) {
-        var V = { dirBtc: 0, dirBtcd: 0, dirUsdtd: 0, score: 0, bias: "netral", dBtcd: 0, dUsdtd: 0 };
+        /* 23 Sep v30 — penyegaran real-time memakai METODE BARU: mayoritas jam
+           berjalan diambil dari engine (pub.maj — browser tak punya CSV grup),
+           dirBtc dihitung ulang dari klines live; dominan hanya mengisi baris
+           info. Kalau engine belum menerbitkan apa pun, layar tetap memakai
+           hasil engine terakhir (atau kosong) — bukan pura-pura hitung sendiri. */
+        var pub2 = DATA.altdir_live || {};
+        var V = { dirBtc: 0, dirBtcd: 0, dirUsdtd: 0, score: 0, bias: "netral", dBtcd: 0, dUsdtd: 0,
+                  maj: pub2.maj || 0, nLong: pub2.nLong || 0, nShort: pub2.nShort || 0, nMaj: pub2.nMaj || 0 };
         if (rows && rows.length > 30) {
           V.dirBtc = rclSweep(rows.map(function (r) { return r.h; }),
                                rows.map(function (r) { return r.l; }),
                                rows.map(function (r) { return r.c; }), .01)
             || rclSlope(rows.map(function (r) { return r.c; }), 24, .3);
+          if (rows.length > 25) V.btc24h = Math.round((rows[rows.length-1].c / rows[rows.length-25].c - 1) * 10000) / 100;
         }
         if (okGd && GD.btcd) {
           V.dirBtcd = rclSweep(GD.btcd, GD.btcd.slice(), GD.btcd, .0015, 12) || rclSlope(GD.btcd, 12, .05);
@@ -350,9 +373,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           V.dBtcd = GD.btcd[GD.btcd.length - 1] - GD.btcd[GD.btcd.length - 1 - nn];
           V.dUsdtd = GD.usdtd[GD.usdtd.length - 1] - GD.usdtd[GD.usdtd.length - 1 - nn];
         }
-        V.score = 2 * V.dirBtc - V.dirBtcd - V.dirUsdtd;   // 21 Sep: BTC 2× dominan
+        V.score = 2 * V.maj + V.dirBtc;                    // v30: 2×mayoritas + BTC 1h
         V.bias = V.score > 0 ? "long" : V.score < 0 ? "short" : "netral";
-        if ((rows && rows.length > 30) || (okGd && GD.btcd)) paint(V);
+        if (rows && rows.length > 30) paint(V);
       });
     });
   }
