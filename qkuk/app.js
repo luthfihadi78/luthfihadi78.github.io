@@ -250,6 +250,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         m.appendChild(x);
       }
       var ar = function (d) { return d > 0 ? "↑" : d < 0 ? "↓" : "→"; };
+      /* 24 Sep — format umur data (detik → teks), sama dgn _umur_txt engine */
+      var umur = function (s) {
+        s = Math.max(0, Math.floor(+s || 0));
+        if (s < 90) return s + " detik";
+        if (s < 3600) return Math.round(s / 60) + " mnt";
+        var j = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+        return m < 5 ? j + " jam" : j + " jam " + m + " mnt";
+      };
       if (DEG) {
         r("status data", "DEGRADED — " + (V.degrade_reason || "input basi"), "warn");
         r("skor terakhir", sgn(V.score, 0) + " (dari data basi — tidak dipakai)", "mut");
@@ -272,6 +280,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         V.maj > 0 ? "pos" : V.maj < 0 ? "neg" : "mut");
       r("BTC 1h", ar(V.dirBtc) + "  " + sgn(bp, 2) + "%" + (V.btc24h != null ? " (24 jam)" : ""), bp < 0 ? "neg" : "pos");
       if (V.pubTs) r("dihitung engine", V.pubTs + " WIB", "mut");
+      /* 24 Sep — umur data sumber saat NORMAL: biar terlihat segar/tidaknya
+         input gauge (BTC 1h & gelombang grup) tanpa harus nunggu degrade. */
+      if (V.ageBtc != null && V.ageMaj != null)
+        r("umur data", "BTC " + umur(V.ageBtc) + " lalu · gelombang grup " + umur(V.ageMaj) + " lalu", "mut");
       /* sparkline riwayat arah per jam (48 jam terakhir, dari engine) */
       (function () {
         var H = DATA.altdir_hist || [];
@@ -365,7 +377,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
                 /* v32: status degraded engine selalu dihormati — refresh browser
                    tak boleh menyembunyikan gate (BTC segar di browser ≠ gelombang
                    grup segar di engine) */
-                degraded: !!pub2.degraded, degrade_reason: pub2.degrade_reason || "" };
+                degraded: !!pub2.degraded, degrade_reason: pub2.degrade_reason || "",
+                ageBtc: pub2.age_btc_s, ageMaj: pub2.age_maj_s };
       if (rows && rows.length > 30) {
         V.dirBtc = rclSweep(rows.map(function (r) { return r.h; }),
                              rows.map(function (r) { return r.l; }),
