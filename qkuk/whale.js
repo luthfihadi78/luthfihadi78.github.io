@@ -148,6 +148,72 @@
     setTimeout(function () { t.classList.remove("on"); setTimeout(function () { t.remove(); }, 400); }, 2200);
   }
 
+  /* ── NOTIFIKASI DESKTOP MEGA (24 Sep, permintaan user) ─────────────
+     Saat whale print ≥ $20jt masuk: notifikasi native OS (Notification
+     API) — bukan cuma suara — sehingga tetap terlihat walau tab Whale
+     tidak aktif. Izin: tombol 🖥 di header (harus dari klik user —
+     kebijakan browser); preferensi tersimpan di localStorage. Berbeda
+     dgn terminal: MEGA selalu dinotifikasikan walau tab aktif. */
+  var W_ICON = "data:image/svg+xml," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+    '<rect width="64" height="64" rx="14" fill="#0D1411"/>' +
+    '<text x="32" y="46" font-size="34" text-anchor="middle">🐋</text></svg>');
+  var W_DESK = false;
+  try { W_DESK = localStorage.getItem("qkuk_desk") === "1"; } catch (e) {}
+  function deskBtnPaint() {
+    var b = document.getElementById("desk-btn");
+    if (b) { b.textContent = W_DESK ? "🖥 ON" : "🖥"; b.title = W_DESK
+      ? "Notifikasi desktop: ON — klik untuk mati"
+      : "Notifikasi desktop saat whale MEGA masuk — klik untuk aktifkan"; }
+  }
+  function deskBtnInit() {
+    var b = document.getElementById("desk-btn");
+    if (!b) return;
+    deskBtnPaint();
+    b.addEventListener("click", function () {
+      if (W_DESK) {
+        W_DESK = false;
+        try { localStorage.setItem("qkuk_desk", "0"); } catch (e) {}
+        deskBtnPaint(); toast("notifikasi desktop mati");
+        return;
+      }
+      if (!("Notification" in window)) { toast("browser tak mendukung Notification"); return; }
+      if (Notification.permission === "granted") {
+        W_DESK = true;
+        try { localStorage.setItem("qkuk_desk", "1"); } catch (e) {}
+        deskBtnPaint(); toast("notifikasi desktop nyala");
+      } else if (Notification.permission === "denied") {
+        toast("izin notifikasi diblokir di pengaturan browser");
+      } else {
+        Notification.requestPermission().then(function (p) {
+          if (p === "granted") {
+            W_DESK = true;
+            try { localStorage.setItem("qkuk_desk", "1"); } catch (e) {}
+            deskBtnPaint(); toast("notifikasi desktop nyala");
+          } else { toast("izin notifikasi ditolak"); }
+        });
+      }
+    });
+  }
+  function deskMega(b) {
+    if (!("Notification" in window) || Notification.permission !== "granted" || !W_DESK) return;
+    if (!b) return;
+    try {
+      var sel = (QACTIVE && QACTIVE.sel) || {};
+      var n = new Notification(
+        "🔥 WHALE BESAR — " + fmtUsd(b.usd) + " " + (b.buy ? "BELI" : "JUAL"),
+        { body: b.amt.toFixed(2) + " " + (sel.baseSym || "")
+              + " · " + (sel.name || "")
+              + " · wallet " + (b.wallet ? b.wallet.slice(0, 10) + "…" : "—"),
+          tag: "qkuk-mega-" + b.tx, icon: W_ICON, badge: W_ICON, renotify: true });
+      n.onclick = function () {
+        try { window.focus(); } catch (e) {}
+        n.close();
+      };
+      setTimeout(function () { try { n.close(); } catch (e) {} }, 12000);
+    } catch (e) {}
+  }
+
   /* ── SUARA NOTIFIKASI (24 Sep, permintaan user) ────────────────────────
      Identik dgn terminal: baca qkuk_sound / qkuk_vol / qkuk_mute dari
      localStorage tiap kali main (perubahan setting di terminal langsung
@@ -600,6 +666,43 @@
   }
 
   /* ── render hasil cek ── */
+  /* 24 Sep (permintaan user): verdict = futures + DEX — DEX tak boleh
+     diabaikan. Aturan jujur: futures arah (≥56/≤44) menang; kalau futures
+     seimbang tapi DEX mayoritas (≥55/≤45 — jumlah trade lebih sedikit,
+     ambang longgar), verdict = arah DEX dgn tanda "(DEX)"; bila saling
+     berlawanan, sub menjelaskan divergensi. */
+  function updateVerdict() {
+    var Q = QACTIVE;
+    if (!Q || Q.futPctB == null) return;
+    var pctB = Q.futPctB;
+    var fut = pctB >= 56 ? "beli" : pctB <= 44 ? "jual" : null;
+    var dex = null, dexPctB = null;
+    if (Q.dexPct && Q.dexPct.total > 0) {
+      dexPctB = Q.dexPct.pctB;
+      dex = dexPctB >= 55 ? "beli" : dexPctB <= 45 ? "jual" : null;
+    }
+    var arah, warna, kalimat;
+    var LBL = { beli: "MAYORITAS BELI", jual: "MAYORITAS JUAL" };
+    if (fut && dex && fut === dex) {
+      arah = LBL[fut]; warna = fut === "beli" ? "var(--up)" : "var(--dn)";
+      kalimat = "futures & DEX SEPAKAT — agresif " + fut + " dominan di dua sisi";
+    } else if (fut) {
+      arah = LBL[fut]; warna = fut === "beli" ? "var(--up)" : "var(--dn)";
+      kalimat = "agresif " + fut + " dominan di futures"
+        + (dex ? " — DEX berlawanan (" + dex + " " + dexPctB.toFixed(1) + "% beli), hati-hati" : "");
+    } else if (dex) {
+      arah = LBL[dex] + " (DEX)"; warna = dex === "beli" ? "var(--up)" : "var(--dn)";
+      kalimat = "futures seimbang, tapi DEX mayoritas " + dex
+        + " (" + dexPctB.toFixed(1) + "% beli) — didorong aliran on-chain";
+    } else {
+      arah = "SEIMBANG"; warna = "var(--gold)";
+      kalimat = "futures & DEX hampir seimbang — arah belum dipilih, tunggu konfirmasi";
+    }
+    var big = document.getElementById("q-big"), sub = document.getElementById("q-sub");
+    if (big) { big.textContent = arah; big.style.color = warna; }
+    if (sub) sub.textContent = kalimat;
+  }
+
   function paintChart(sym, f) {
     var host = $("#q-chart"); host.innerHTML = "";
     var keys = Object.keys(f.perMin).sort();
@@ -608,23 +711,19 @@
       totS += f.perMin[k].s; totB += f.perMin[k].b; totPv += f.perMin[k].pv;
     });
     var pctB = totB + totS > 0 ? 100 * totB / (totB + totS) : 50;
-    var arah, warna, kalimat;
-    if (pctB >= 56)      { arah = "MAYORITAS BELI"; warna = "var(--up)";
-      kalimat = "agresif beli dominan di futures — mendukung bias LONG, waspada jebakan bila harga justru turun"; }
-    else if (pctB <= 44) { arah = "MAYORITAS JUAL"; warna = "var(--dn)";
-      kalimat = "agresif jual dominan di futures — bearish, mendukung bias SHORT; kawinkan dgn daftar DEX di bawah"; }
-    else                 { arah = "SEIMBANG"; warna = "var(--gold)";
-      kalimat = "beli & jual agresif hampir seimbang — arah belum dipilih, tunggu konfirmasi"; }
-    /* kepala: simbol + harga + verdict besar */
+    if (QACTIVE && QACTIVE.symF === sym) QACTIVE.futPctB = pctB;
+    /* kepala: simbol + harga + verdict (diisi updateVerdict — futures+DEX) */
     var hd = el("div", "qhead");
     var hL = el("div", "qhl");
     hL.appendChild(el("div", "qsym", sym));
     hL.appendChild(el("div", "qpx", "harga terakhir $" + fmtPx(f.px)));
     var hR = el("div", "qhr");
-    hR.appendChild(el("div", "qbig", arah)); hR.firstChild.style.color = warna;
-    hR.appendChild(el("div", "qsub", kalimat));
+    var big = el("div", "qbig"); big.id = "q-big";
+    var sub = el("div", "qsub"); sub.id = "q-sub";
+    hR.appendChild(big); hR.appendChild(sub);
     hd.appendChild(hL); hd.appendChild(hR);
     host.appendChild(hd);
+    updateVerdict();
     /* statistik 4 kotak */
     var st = el("div", "qstats");
     function stat(l, v, c) {
@@ -726,16 +825,21 @@
     }
     var totB = 0, totS = 0;
     rows.forEach(function (r) { if (r.buy) totB += r.usd; else totS += r.usd; });
+    var pctBd = totB + totS > 0 ? 100 * totB / (totB + totS) : 50;
+    if (QACTIVE) QACTIVE.dexPct = { pctB: pctBd, total: totB + totS };
     var sum = el("div", "qsum");
     sum.appendChild(el("span", "qsu up", "DEX beli " + fmtUsd(totB)));
     var md = el("span", "qsm");
-    var pB = totB + totS > 0 ? 100 * totB / (totB + totS) : 50;
     var bar = el("i", "qsumbar");
-    bar.style.background = "linear-gradient(90deg, var(--up) " + pB.toFixed(0) + "%, var(--dn) " + pB.toFixed(0) + "%)";
+    bar.style.background = "linear-gradient(90deg, var(--up) " + pctBd.toFixed(0) + "%, var(--dn) " + pctBd.toFixed(0) + "%)";
     md.appendChild(bar);
     sum.appendChild(md);
     sum.appendChild(el("span", "qsu dn", "jual " + fmtUsd(totS)));
+    var vtxt = pctBd >= 55 ? "mayoritas BELI" : pctBd <= 45 ? "mayoritas JUAL" : "seimbang";
+    var vcls = pctBd >= 55 ? "up" : pctBd <= 45 ? "dn" : "mid";
+    sum.appendChild(el("b", "qsumv " + vcls, vtxt + " · " + pctBd.toFixed(1) + "% beli"));
     host.appendChild(sum);
+    updateVerdict();
     /* tabel: waktu · wallet · aksi · jumlah · nilai · venue · tx */
     var tab = el("div", "wtable qtab");
     var head = el("div", "whead qgrid");
@@ -750,13 +854,13 @@
     var seed = QSEEN_CTX !== ctx;
     if (seed) { QSEEN = {}; QSEEN_CTX = ctx; }
     var body = el("div", null);
-    var nWhaleBaru = 0, nMegaBaru = 0;
+    var nWhaleBaru = 0, nMegaBaru = 0, megaFirst = null;
     rows.slice(0, 25).forEach(function (r) {
       var row = el("div", "wrow qgrid");
       var kunci = r.tx + ":" + r.wallet + ":" + Math.round(r.amt * 1e6);
       var baru = !QSEEN[kunci] && !seed;
       QSEEN[kunci] = 1;
-      if (baru && r.usd >= 2e7) nMegaBaru++;   // ≥ $20jt → alarm MEGA
+      if (baru && r.usd >= 2e7) { nMegaBaru++; if (!megaFirst) megaFirst = r; }   // ≥ $20jt → alarm MEGA
       else if (baru && r.usd >= 1e6) nWhaleBaru++;   // ≥ $1jt → suara biasa
       if (baru) {
         row.classList.add("qnew", r.buy ? "qn-up" : "qn-dn");
@@ -810,8 +914,10 @@
     });
     tab.appendChild(body);
     host.appendChild(tab);
-    if (nMegaBaru > 0) wDing("mega");        // 🔥 WHALE BESAR — alarm khusus
-    else if (nWhaleBaru > 0) wDing();        // suara terminal utk whale print biasa
+    if (nMegaBaru > 0) {
+      wDing("mega");          // 🔥 alarm suara khusus
+      deskMega([megaFirst]);  // 🖥 notifikasi desktop (walau tab aktif)
+    } else if (nWhaleBaru > 0) wDing();      // suara terminal utk whale print biasa
     var ft = el("div", "qcap", "Semua transaksi on-chain DEX via GeckoTerminal — wallet = tx_from (pengirim sesungguhnya). Link tx mengarah ke explorer jaringan masing-masing (Etherscan utk ETH, Basescan utk Base, BscScan utk BSC, dst). 25 terbaru dari " + rows.length + " trade ≥ " + fmtUsd(QMIN) + ".");
     host.appendChild(ft);
   }
@@ -893,6 +999,7 @@
 
   gateInit();
   clock();
+  deskBtnInit();
   if (isLogged()) { load(true); setInterval(function () { load(false); }, 60000); }
   setInterval(clock, 1000);
   (function () {
