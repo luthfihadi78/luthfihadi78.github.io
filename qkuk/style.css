@@ -652,6 +652,29 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 @keyframes whaleFire{0%{background-position:0% 0}100%{background-position:300% 0}}
 @keyframes whaleGlow{0%,100%{box-shadow:0 0 4px rgba(255,120,0,.5)}50%{box-shadow:0 0 12px rgba(255,150,0,.95)}}
 @media(prefers-reduced-motion:reduce){.wmega2{animation:none;background-position:50% 0;box-shadow:none}}
+/* sorot baris BARU (24 Sep): kedip hijau/merah sekali saat trade masuk antar
+   refresh; tag BARU kecil di kolom waktu. Konteks ganti (search baru/pindah
+   pool/filter) = seed senyap, tidak ada kedip palsu. */
+.qnew{animation:qFlash 3.2s ease-out both}
+.qnew.qn-up{--qc:var(--up)}
+.qnew.qn-dn{--qc:var(--dn)}
+@keyframes qFlash{
+  0%{background:rgba(110,231,183,0);box-shadow:inset 3px 0 0 var(--qc,transparent)}
+  12%{background:rgba(110,231,183,.16);box-shadow:inset 3px 0 0 var(--qc)}
+  45%{background:rgba(110,231,183,.16)}
+  100%{background:transparent;box-shadow:inset 3px 0 0 transparent}
+}
+.qnew.qn-dn{animation-name:qFlashDn}
+@keyframes qFlashDn{
+  0%{background:rgba(232,135,124,0);box-shadow:inset 3px 0 0 var(--qc,transparent)}
+  12%{background:rgba(232,135,124,.16);box-shadow:inset 3px 0 0 var(--qc)}
+  45%{background:rgba(232,135,124,.16)}
+  100%{background:transparent;box-shadow:inset 3px 0 0 transparent}
+}
+.qnewtag{font-size:8.5px;letter-spacing:.09em;color:#04120B;background:var(--ac);
+  border-radius:3px;padding:0 4px;margin-left:5px;vertical-align:middle}
+.qn-dn .qnewtag{background:var(--dn)}
+@media(prefers-reduced-motion:reduce){.qnew{animation:none;background:transparent}}
 .wl{text-align:right}
 .wlink{font-size:11px;color:var(--ac);white-space:nowrap}
 .wlink:hover{color:#9CF2CE}
@@ -707,12 +730,6 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
   font-family:var(--mono);font-size:11px;padding:4px 12px;cursor:pointer;letter-spacing:.04em}
 .qchip:hover{border-color:var(--ac);color:var(--fg)}
 .qchip.on{background:var(--ac-w);border-color:var(--ac);color:var(--ac);font-weight:700}
-/* dropdown jaringan (24 Sep): pilih chain utk daftar transaksi koin */
-.qvenuerow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:3px}
-select.qnet{background:var(--s2);border:1px solid var(--line-2);border-radius:7px;color:var(--ac);
-  font-family:var(--mono);font-size:11px;padding:4px 8px;cursor:pointer;outline:none}
-select.qnet:hover{border-color:var(--ac)}
-select.qnet option{background:var(--s2);color:var(--fg)}
 .qleg{font-size:10.5px;color:var(--fg-3);margin-top:4px}
 /* header + ringkasan tabel transaksi DEX */
 .qthd{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;margin:4px 0 8px}

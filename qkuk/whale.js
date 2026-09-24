@@ -361,11 +361,16 @@
   }
   var QACTIVE = null;      // {symF, poolsP, sel, timer} — sel = pool terpilih
   var QCACHE = {};         // sym → {at, pools:[…]} (10 mnt)
-  /* Filter whale-print (24 Sep, permintaan user): daftar HANYA transaksi
-     besar — default $1jt, chip cepat $100rb/$500rb/$1jt/$5jt (tersimpan
-     localStorage). Sisi API ikut difilter supaya payload efisien. */
-  var QMIN = 1e6;
-  try { QMIN = +(localStorage.getItem("qkuk_wmin")) || 1e6; } catch (e) {}
+  /* 24 Sep (permintaan user): sorot baris BARU sejak refresh terakhir.
+     QSEEN = kunci trade yang sudah tampil; konteks = pool+filter, ganti
+     konteks (search baru / pindah jaringan / ganti chip) → reset tanpa
+     animasi, biar tidak seluruh tabel berkedip palsu. */
+  var QSEEN = {}, QSEEN_CTX = "";
+  /* Filter whale-print (24 Sep): default = chip TERENDAH $100rb (permintaan
+     user — tanpa dropdown jaringan; pool terpilih otomatis = terlikuid).
+     Chip cepat $100rb/$500rb/$1jt/$5jt, tersimpan localStorage. */
+  var QMIN = 1e5;
+  try { QMIN = +(localStorage.getItem("qkuk_wmin")) || 1e5; } catch (e) {}
   function setMin(v) {
     QMIN = v;
     try { localStorage.setItem("qkuk_wmin", String(v)); } catch (e) {}
@@ -589,33 +594,8 @@
     var hd = el("div", "qthd");
     var tL = el("div", "qtl");
     tL.appendChild(el("b", null, "Transaksi " + (pool.baseSym || "") + " di DEX"));
-    var vrow = el("span", "qvenuerow");
-    /* 24 Sep (permintaan user): dropdown jaringan — satu koin sering aktif
-       di banyak chain; pilih pool per jaringan, daftar ikut berganti */
-    if (QACTIVE && QACTIVE.pools && QACTIVE.pools.length > 1) {
-      var sel = el("select", "qnet");
-      QACTIVE.pools.forEach(function (p) {
-        var o = el("option", null, p.net.toUpperCase() + " — " + p.name
-          + (p.reserve ? " (" + fmtUsd(p.reserve) + ")" : ""));
-        o.value = p.net;
-        if (p.net === pool.net) o.selected = true;
-        sel.appendChild(o);
-      });
-      sel.title = "pilih jaringan";
-      sel.addEventListener("change", function () {
-        var p = (QACTIVE.pools.filter(function (x) { return x.net === sel.value; })[0])
-          || QACTIVE.pools[0];
-        QACTIVE.sel = p;
-        $("#q-trades").innerHTML = "";
-        $("#q-trades").appendChild(el("div", "qload", "memuat transaksi " + p.net.toUpperCase() + " …"));
-        gtTrades(p, QMIN).then(function (r2) { paintTrades(p, r2); })
-          .catch(function (e) { paintTrades(p, null, e); });
-      });
-      vrow.appendChild(sel);
-    }
-    vrow.appendChild(el("span", "qvenue", pool.name + " · " + pool.net.toUpperCase()
+    tL.appendChild(el("span", "qvenue", pool.name + " · " + pool.net.toUpperCase()
       + (pool.reserve ? " · likuiditas " + fmtUsd(pool.reserve) : "")));
-    tL.appendChild(vrow);
     var tR = el("div", "qtr");
     var live = el("span", "qlive");
     live.appendChild(el("i", "qdot"));
@@ -663,12 +643,32 @@
       head.appendChild(el("span", null, h));
     });
     tab.appendChild(head);
+    /* kunci konteks: pool + filter — ganti konteks = reset SENYAP (semua
+       baris pertama dicatat tanpa animasi), biar hanya trade yang benar2
+       BARU setelah refresh berikutnya yang berkedip */
+    var ctx = pool.net + "|" + pool.pid + "|" + QMIN;
+    var seed = QSEEN_CTX !== ctx;
+    if (seed) { QSEEN = {}; QSEEN_CTX = ctx; }
     var body = el("div", null);
     rows.slice(0, 25).forEach(function (r) {
       var row = el("div", "wrow qgrid");
+      var kunci = r.tx + ":" + r.wallet + ":" + Math.round(r.amt * 1e6);
+      var baru = !QSEEN[kunci] && !seed;
+      QSEEN[kunci] = 1;
+      if (baru) {
+        row.classList.add("qnew", r.buy ? "qn-up" : "qn-dn");
+      }
       var d = new Date(new Date(r.t).getTime() + 7 * 3600e3);
       var p2 = function (n) { return ("0" + n).slice(-2); };
-      row.appendChild(el("span", "wt", p2(d.getUTCHours()) + ":" + p2(d.getUTCMinutes()) + ":" + p2(d.getUTCSeconds())));
+      var wt = el("span", "wt", p2(d.getUTCHours()) + ":" + p2(d.getUTCMinutes()) + ":" + p2(d.getUTCSeconds()));
+      if (baru) {
+        wt.appendChild(el("b", "qnewtag", "BARU"));
+        setTimeout(function () {   // tag hilang bersamaan dgn selesai animasi
+          var t = wt.querySelector(".qnewtag");
+          if (t) t.remove();
+        }, 4000);
+      }
+      row.appendChild(wt);
       var wa = el("span", "waddr");
       wa.textContent = r.wallet ? (r.wallet.slice(0, 8) + "…" + r.wallet.slice(-6)) : "—";
       wa.title = "klik utk salin alamat";
@@ -724,9 +724,7 @@
     if (!QACTIVE) return;
     var symF = QACTIVE.symF, poolsP = QACTIVE.poolsP;
     poolsP.then(function (pools) {
-      var pool = QACTIVE.sel
-        || (pools.filter(function (p) { return p.net === QACTIVE.selNet; })[0])
-        || pools[0];
+      var pool = QACTIVE.sel || pools[0];
       if (pool) {
         QACTIVE.sel = pool;
         gtTrades(pool, QMIN).then(function (rows) { paintTrades(pool, rows); })
