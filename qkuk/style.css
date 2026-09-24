@@ -603,3 +603,52 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 #gate-eye:hover{color:#DCE8E1;background:rgba(216,200,154,.09)}
 #gate-eye.on{color:var(--ac)}
 #gate-eye svg{width:17px;height:17px}
+
+/* ═══════════ WHALE ON-CHAIN (24 Sep) — tab terpisah whale.html ═══════════
+   Semua kelas diawali w- dan TIDAK menyentuh kelas terminal (index.html
+   memakai style.css yang sama, jadi wajib bebas tabrakan). */
+.wg-arca{display:flex;flex-direction:column;gap:10px;min-height:206px;justify-content:center}
+.wg-big{font-size:34px;font-weight:800;letter-spacing:-.02em;font-family:var(--mono)}
+.wg-sub{font-size:12px;color:var(--fg-3);max-width:34ch}
+.wg-kv{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 22px;margin-top:10px}
+.wg-kv span{display:block;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-3)}
+.wg-kv b{font-size:17px;font-weight:600}
+.wg-kv .up{color:var(--up)}
+.wg-kv .dn{color:var(--dn)}
+.wtable{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-top:12px}
+.whead,.wrow{display:grid;grid-template-columns:110px 92px 128px 1fr 90px 1.4fr 60px;gap:10px;align-items:center;padding:9px 14px}
+.whead{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-3);border-bottom:1px solid var(--line);background:var(--s2)}
+.wrow{border-bottom:1px solid var(--line);font-size:12px}
+.wrow:last-child{border-bottom:0}
+.wrow:hover{background:var(--ac-w)}
+.whead-w{grid-template-columns:92px 1.3fr 1fr 1fr 1.2fr 60px}
+.wrow-w{grid-template-columns:92px 1.3fr 1fr 1fr 1.2fr 60px}
+.wt{color:var(--fg-3);white-space:nowrap}
+.wc{display:flex;align-items:center}
+.wch{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.wch .wdot{width:9px;height:9px;border-radius:999px;flex:none;display:inline-block}
+.wch b{font-weight:600;color:var(--fg-2)}
+.ww{display:flex;align-items:center;gap:6px}
+.wj{display:inline-block;padding:2px 8px;border-radius:5px;font-size:10.5px;font-weight:700;letter-spacing:.06em}
+.wj.jual{background:var(--dn-w);color:var(--dn)}
+.wj.beli{background:var(--up-w);color:var(--up)}
+.wj.tra{background:rgba(139,150,143,.12);color:var(--fg-2)}
+.wmega{font-size:9px;letter-spacing:.1em;color:var(--gold);border:1px solid rgba(216,200,154,.4);border-radius:4px;padding:1px 4px}
+.wn{color:var(--fg);font-weight:600;white-space:nowrap}
+.wv{color:var(--fg-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.wv.mega{color:var(--gold)}
+.wa{color:var(--fg-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.waddr{cursor:pointer;color:var(--fg-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.waddr:hover{color:var(--ac)}
+.wl{text-align:right}
+.wlink{font-size:11px;color:var(--ac);white-space:nowrap}
+.wlink:hover{color:#9CF2CE}
+.w-empty{padding:22px 14px;color:var(--fg-3);font-size:12px;text-align:center}
+.wfoot{margin:14px 2px 26px;font-size:11px;line-height:1.7;color:var(--fg-3)}
+@media(max-width:900px){
+  .whead,.wrow{grid-template-columns:84px 74px 104px 1fr 76px;gap:8px}
+  .wrow > .wa,.whead > :nth-child(6),.wrow > .wl,.whead > :nth-child(7){display:none}
+  .whead-w,.wrow-w{grid-template-columns:74px 1.2fr 1fr 1fr;gap:8px}
+  .wrow-w > .wa,.whead-w > :nth-child(5),.wrow-w > .wl,.whead-w > :nth-child(6){display:none}
+  .wg-big{font-size:27px}
+}

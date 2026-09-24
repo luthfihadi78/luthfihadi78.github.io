@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QKUK Whale — on-chain whale tracker</title>
+<meta name="description" content="Pelacak whale on-chain multichain: deposit/withdrawal besar di BTC, ETH, BNB, ARB, SUI, Hyperliquid — konfirmasi arah sebelum entry.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23070B09'/%3E%3Cg stroke='%236EE7B7' fill='none' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M27.4 16 L21.7 25.9 L10.3 25.9 L4.6 16 L10.3 6.1 L21.7 6.1 Z' stroke-width='2.3'/%3E%3Cpath d='M12 12.2 L15.5 16 L12 19.8' stroke-width='2.3'/%3E%3C/g%3E%3Crect x='17.4' y='15.1' width='4.2' height='1.9' rx='.95' fill='%236EE7B7'/%3E%3C/svg%3E">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-LXAUy0kvUSjxAz/fkXLmBF15ezkgQYHRQhirnM4uq2Y='; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noarchive">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<script>try{if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
+<link rel="stylesheet" href="style.css?v=20260924a">
+</head>
+<body>
+
+<div id="gate">
+  <div class="gparts" aria-hidden="true"></div>
+  <div class="gate-box">
+    <div class="gate-logo">
+      <span class="logo">
+        <svg class="mark" viewBox="0 0 32 32" role="img" aria-label="Qkuk Terminal">
+          <path d="M28 16 L22 26.39 L10 26.39 L4 16 L10 5.61 L22 5.61 Z"
+                fill="none" stroke="currentColor" stroke-width="2.1"
+                stroke-linejoin="round"/>
+          <path d="M11.7 11.9 L15.4 16 L11.7 20.1" fill="none" stroke="currentColor"
+                stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect class="cur" x="17.4" y="15.05" width="4.4" height="1.9" rx=".95"
+                fill="currentColor"/>
+        </svg>
+        <span class="wm"><b>Qkuk</b> Whale</span>
+      </span>
+    </div>
+    <div class="gate-sub"></div>
+    <div class="gate-form">
+      <input id="gate-user" autocomplete="username" spellcheck="false" placeholder="username">
+      <div class="gpw">
+        <input id="gate-pass" type="password" autocomplete="current-password" placeholder="password">
+        <button id="gate-eye" type="button" title="tampilkan password" aria-label="tampilkan password">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+      <button id="gate-btn" type="button">MASUK</button>
+    </div>
+    <div id="gate-err" class="gate-err" role="alert"></div>
+    <div id="gate-chain" class="gate-chain">
+      <div class="glink">
+        <span class="gnode"></span><i></i><span class="gnode"></span><i></i><span class="gnode"></span><i></i><span class="gnode"></span><i></i><span class="gnode"></span>
+      </div>
+      <div class="ghash" id="gate-hash">0x…</div>
+      <div class="ggrant">✓ AKSES DIBERIKAN — MENAUTKAN BLOK</div>
+    </div>
+  </div>
+</div>
+
+<div class="bar">
+  <div class="bar-in">
+    <a class="logo" href="index.html" title="kembali ke terminal">
+      <svg class="mark" viewBox="0 0 32 32" role="img" aria-label="Qkuk Terminal">
+        <path d="M28 16 L22 26.39 L10 26.39 L4 16 L10 5.61 L22 5.61 Z"
+              fill="none" stroke="currentColor" stroke-width="2.1"
+              stroke-linejoin="round"/>
+        <path d="M11.7 11.9 L15.4 16 L11.7 20.1" fill="none" stroke="currentColor"
+              stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect class="cur" x="17.4" y="15.05" width="4.4" height="1.9" rx=".95"
+              fill="currentColor"/>
+      </svg>
+      <span class="wm"><b>Qkuk</b> Whale</span>
+    </a>
+    <span class="pill"><span class="dot" id="dot"></span><span id="state">connecting</span></span>
+    <span class="kv sp">WIB <b id="clock">--:--:--</b></span>
+    <span class="kv">update <b id="stamp">—</b></span>
+    <span class="kv">refresh <b id="cd">—</b></span>
+  </div>
+</div>
+
+<div id="toasts" aria-live="polite"></div>
+
+<div class="wrap">
+
+  <section id="whale-ringkas">
+    <div class="dir">
+      <div class="wg-arca">
+        <div class="wg-big" id="wg-bias">—</div>
+        <div class="wg-sub" id="wg-sub">memuat data on-chain…</div>
+        <div class="wg-kv">
+          <div><span>alert 24 jam</span><b id="wg-24">—</b></div>
+          <div><span>indikasi jual</span><b id="wg-jual" class="dn">—</b></div>
+          <div><span>indikasi beli</span><b id="wg-beli" class="up">—</b></div>
+          <div><span>MEGA (&gt;$100jt)</span><b id="wg-mega">—</b></div>
+        </div>
+      </div>
+      <div class="dmeta" id="wg-meta"></div>
+    </div>
+  </section>
+
+  <section id="whale-feed">
+    <div class="sec-h">
+      <h2><i>&gt;</i> Whale feed</h2>
+      <span class="hint">transaksi besar terlacak on-chain — arah dari alamat exchange / fills perp, bukan tebakan</span>
+      <div class="tabs" id="w-filter" role="tablist"></div>
+    </div>
+    <div class="wtable" id="wtable">
+      <div class="whead">
+        <span>waktu</span><span>chain</span><span>arah</span><span>nominal</span><span>nilai</span><span>alasan</span><span></span>
+      </div>
+      <div id="wrows"></div>
+      <div id="w-empty" class="w-empty" hidden>belum ada transaksi yang melewati ambang whale — data mengalir tiap siklus bot</div>
+    </div>
+  </section>
+
+  <section id="whale-wallets">
+    <div class="sec-h">
+      <h2><i>&gt;</i> Wallet terpantau</h2>
+      <span class="hint">klik untuk profil: saldo, nilai USD, posisi (Hyperliquid) — tautan explorer tersedia</span>
+    </div>
+    <div class="wtable" id="wltable">
+      <div class="whead whead-w">
+        <span>chain</span><span>alamat</span><span>saldo</span><span>nilai USD</span><span>posisi perp</span><span></span>
+      </div>
+      <div id="wlrows"></div>
+    </div>
+  </section>
+
+  <div class="wfoot">
+    Sumber: mempool.space (BTC) · Etherscan V2 (ETH/BSC/ARB) · publicnode (SUI) · Hyperliquid info API.
+    Arah JUAL/BELI = deposit/withdrawal ke-dari alamat exchange terdaftar, atau fills perp Hyperliquid — bukan tebakan model.
+    Threshold: BTC/ETH ≥ $20jt · lainnya ≥ max(1% volume 24j, $2jt) · MEGA ≥ $100jt.
+  </div>
+
+</div>
+
+<script src="whale.js?v=20260924a" defer></script>
+</body>
+</html>
