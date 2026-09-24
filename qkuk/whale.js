@@ -338,7 +338,11 @@
 
   function renderWallets(oc) {
     var host = $("#wlrows"); host.innerHTML = "";
-    var W = oc.wallets || [];
+    /* 24 Sep (permintaan user): urutkan di sisi web — nilai USD terbesar
+       selalu di atas, tak bergantung urutan snapshot dari engine */
+    var W = (oc.wallets || []).slice().sort(function (a, b) {
+      return (b.balance_usd || 0) - (a.balance_usd || 0);
+    });
     if (!W.length) {
       host.appendChild(el("div", "w-empty", "belum ada snapshot wallet"));
       return;
