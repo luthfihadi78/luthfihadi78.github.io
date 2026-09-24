@@ -522,8 +522,10 @@
       });
   }
   function gtTrades(pool, minUsd) {
+    /* ⚠️ tanpa clamp 50rb — dulu sisi API di-clamp ≥$50rb sehingga chip
+       $10rb/$1rb tidak pernah menampilkan trade di bawah $50rb (bug) */
     var url = GT + "/networks/" + pool.net + "/pools/" + encodeURIComponent(pool.pid)
-      + "/trades?trade_volume_in_usd_greater_than=" + Math.max(50000, Math.round(minUsd || 50000));
+      + "/trades?trade_volume_in_usd_greater_than=" + Math.max(1000, Math.round(minUsd || 1000));
     return gtGet(url).then(function (j) {
       return (j.data || []).map(function (t) {
         var a = t.attributes || {};
@@ -686,7 +688,7 @@
     /* chip filter whale-print */
     var chips = el("div", "qchips");
     chips.appendChild(el("span", "qchipsl", "tampilkan hanya ≥"));
-    [[1e4, "$10rb"], [1e5, "$100rb"], [1e6, "$1jt"], [5e6, "$5jt"]].forEach(function (p) {
+    [[1e3, "$1rb"], [1e4, "$10rb"], [1e5, "$100rb"], [1e6, "$1jt"], [5e6, "$5jt"]].forEach(function (p) {
       var c = el("button", "qchip" + (QMIN === p[0] ? " on" : ""), p[1]);
       c.type = "button";
       c.title = "filter transaksi minimal " + p[1];
