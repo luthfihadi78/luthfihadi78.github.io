@@ -147,6 +147,81 @@
     setTimeout(function () { t.classList.add("on"); }, 10);
     setTimeout(function () { t.classList.remove("on"); setTimeout(function () { t.remove(); }, 400); }, 2200);
   }
+
+  /* ── SUARA NOTIFIKASI (24 Sep, permintaan user) ────────────────────────
+     Identik dgn terminal: baca qkuk_sound / qkuk_vol / qkuk_mute dari
+     localStorage tiap kali main (perubahan setting di terminal langsung
+     berlaku). Sintesis Web Audio tanpa file — SOUNDS & playSeq disalin
+     dari app.js. Dibunyikan saat ada baris BARU ≥ $1jt di tabel cek koin
+     (maks sekali per refresh, biar tak jadi deretan bunyi). */
+  var WSOUNDS = [
+    { id: "ding",    wave: "sine",     seq: [[0, 880, .30, 1], [.09, 1318.5, .30, .8]] },
+    { id: "bell",    wave: "sine",     seq: [[0, 1046.5, .55, .9], [.02, 1568, .5, .4], [.02, 2093, .4, .25]] },
+    { id: "chime",   wave: "sine",     seq: [[0, 783.99, .22, .9], [.11, 1046.5, .22, .9], [.22, 1318.5, .34, .9]] },
+    { id: "chip",    wave: "square",   seq: [[0, 987.77, .09, .45], [.10, 1318.5, .16, .45]] },
+    { id: "pulse",   wave: "triangle", seq: [[0, 587.33, .10, .9], [.13, 587.33, .10, .9]] },
+    { id: "digital", wave: "square",   seq: [[0, 1174.66, .07, .4], [.09, 1174.66, .07, .4], [.18, 1567.98, .13, .4]] },
+    { id: "swoosh",  wave: "sine",     seq: [[0, 392, .30, 1, "rise"], [.08, 587.33, .26, .7]] },
+    { id: "radar",   wave: "sine",     seq: [[0, 1244.51, .42, .9]] },
+    { id: "drop",    wave: "sine",     seq: [[0, 329.63, .38, 1, "glide"]] },
+    { id: "coin",    wave: "square",   seq: [[0, 987.77, .08, .5], [.09, 1318.5, .30, .5]] },
+    { id: "harp",    wave: "triangle", seq: [[0, 523.25, .2, .8], [.08, 659.25, .2, .8], [.16, 783.99, .3, .8], [.24, 1046.5, .36, .7]] },
+    { id: "fanfare", wave: "triangle", seq: [[0, 523.25, .13, .9], [.14, 659.25, .13, .9], [.28, 783.99, .32, 1]] },
+    { id: "alert",   wave: "square",   seq: [[0, 880, .12, .5], [.16, 880, .12, .5], [.32, 880, .2, .5]] },
+    { id: "buzz",    wave: "sawtooth", seq: [[0, 220, .20, .35]] },
+    { id: "spark",   wave: "sawtooth", seq: [[0, 1567.98, .06, .3], [.07, 2093, .14, .3]] },
+    { id: "marimba", wave: "sine",     seq: [[0, 523.25, .16, 1], [.10, 783.99, .16, .9], [.20, 1046.5, .30, .9]] },
+    { id: "crystal", wave: "sine",     seq: [[0, 1318.51, .3, .55], [.06, 1760, .3, .4], [.12, 2637, .44, .3]] },
+    { id: "beacon",  wave: "triangle", seq: [[0, 622.25, .30, .9], [.34, 622.25, .30, .7]] },
+    { id: "rocket",  wave: "sawtooth", seq: [[0, 261.63, .45, .4, "rise"], [.10, 523.25, .4, .3]] },
+    { id: "startup", wave: "triangle", seq: [[0, 392, .14, .8], [.15, 523.25, .14, .8], [.30, 659.25, .14, .8], [.45, 783.99, .42, .9]] }
+  ];
+  function wUnlock() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (AC && !wDing.ctx) wDing.ctx = new AC();
+      if (wDing.ctx && wDing.ctx.state === "suspended") wDing.ctx.resume();
+    } catch (e) {}
+    document.removeEventListener("pointerdown", wUnlock);
+    document.removeEventListener("keydown", wUnlock);
+  }
+  document.addEventListener("pointerdown", wUnlock);
+  document.addEventListener("keydown", wUnlock);
+  function wPlaySeq(ctx, snd, vol) {
+    var t0 = ctx.currentTime, g = ctx.createGain();
+    var last = snd.seq[snd.seq.length - 1];
+    var tot = last[0] + last[2] + .25;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(Math.max(.0002, .5 * vol), t0 + .012);
+    g.gain.exponentialRampToValueAtTime(.0001, t0 + tot);
+    g.connect(ctx.destination);
+    snd.seq.forEach(function (nd) {
+      var st = t0 + nd[0], f = nd[1], du = nd[2], rv = nd[3] || 1;
+      var o = ctx.createOscillator(), og = ctx.createGain();
+      o.type = snd.wave;
+      o.frequency.setValueAtTime(f, st);
+      if (nd[4] === "glide") o.frequency.exponentialRampToValueAtTime(Math.max(30, f * .55), st + du);
+      if (nd[4] === "rise")  o.frequency.exponentialRampToValueAtTime(f * 2, st + du);
+      og.gain.setValueAtTime(rv, st);
+      o.connect(og); og.connect(g);
+      o.start(st); o.stop(st + du + .02);
+    });
+  }
+  function wDing() {
+    try {
+      if (localStorage.getItem("qkuk_mute") === "1") return;
+      var vol = 0.8;
+      var _v = parseFloat(localStorage.getItem("qkuk_vol"));
+      if (!isNaN(_v) && _v >= 0 && _v <= 1) vol = _v;
+      var sid = 0, _s = localStorage.getItem("qkuk_sound");
+      for (var i = 0; i < WSOUNDS.length; i++) if (WSOUNDS[i].id === _s) { sid = i; break; }
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!wDing.ctx) wDing.ctx = new AC();
+      if (wDing.ctx.state === "suspended") { wDing.ctx.resume(); return; }
+      wPlaySeq(wDing.ctx, WSOUNDS[sid], vol);
+    } catch (e) {}
+  }
   function fmtPx(p) {
     p = +p;
     if (p >= 1000) return p.toLocaleString("id-ID", { maximumFractionDigits: 2 });
@@ -279,9 +354,14 @@
         catch (e) { toast("gagal menyalin"); }
       });
       row.appendChild(ad);
-      row.appendChild(el("span", "wn", w.balance != null ? w.balance.toFixed(4) : "—"));
+      /* Hyperliquid tak punya saldo token native — tampilkan nilai akun di
+         kolom saldo sbg "(perp)" biar tak ada sel kosong yang membingungkan */
+      row.appendChild(el("span", "wn", w.balance != null ? w.balance.toFixed(4)
+        : (w.balance_usd != null ? "perp · " + fmtUsd(w.balance_usd) : "—")));
       row.appendChild(el("span", "wv", w.balance_usd != null ? fmtUsd(w.balance_usd) : "—"));
-      row.appendChild(el("span", "wa", w.posisi != null ? ("posisi ntl $" + Math.round(w.posisi).toLocaleString("id-ID")) : "spot/cefi"));
+      row.appendChild(el("span", "wa", (w.posisi != null
+        ? ("posisi ntl $" + Math.round(w.posisi).toLocaleString("id-ID"))
+        : "spot/cefi") + (w.sumber ? " · via " + w.sumber : "")));
       var lk = el("span", "wl");
       var url = explorerUrl(oc, w.chain, "addr", w.addr);
       if (url) {
@@ -366,11 +446,11 @@
      konteks (search baru / pindah jaringan / ganti chip) → reset tanpa
      animasi, biar tidak seluruh tabel berkedip palsu. */
   var QSEEN = {}, QSEEN_CTX = "";
-  /* Filter whale-print (24 Sep): default = chip TERENDAH $100rb (permintaan
-     user — tanpa dropdown jaringan; pool terpilih otomatis = terlikuid).
-     Chip cepat $100rb/$500rb/$1jt/$5jt, tersimpan localStorage. */
-  var QMIN = 1e5;
-  try { QMIN = +(localStorage.getItem("qkuk_wmin")) || 1e5; } catch (e) {}
+  /* Filter whale-print (24 Sep): default = chip TERENDAH $10rb (permintaan
+     user — $100rb terlalu tinggi utk pool yang sedang tenang). Chip cepat
+     $10rb/$100rb/$1jt/$5jt, tersimpan localStorage. */
+  var QMIN = 1e4;
+  try { QMIN = +(localStorage.getItem("qkuk_wmin")) || 1e4; } catch (e) {}
   function setMin(v) {
     QMIN = v;
     try { localStorage.setItem("qkuk_wmin", String(v)); } catch (e) {}
@@ -606,7 +686,7 @@
     /* chip filter whale-print */
     var chips = el("div", "qchips");
     chips.appendChild(el("span", "qchipsl", "tampilkan hanya ≥"));
-    [[1e5, "$100rb"], [5e5, "$500rb"], [1e6, "$1jt"], [5e6, "$5jt"]].forEach(function (p) {
+    [[1e4, "$10rb"], [1e5, "$100rb"], [1e6, "$1jt"], [5e6, "$5jt"]].forEach(function (p) {
       var c = el("button", "qchip" + (QMIN === p[0] ? " on" : ""), p[1]);
       c.type = "button";
       c.title = "filter transaksi minimal " + p[1];
@@ -650,11 +730,13 @@
     var seed = QSEEN_CTX !== ctx;
     if (seed) { QSEEN = {}; QSEEN_CTX = ctx; }
     var body = el("div", null);
+    var nWhaleBaru = 0;
     rows.slice(0, 25).forEach(function (r) {
       var row = el("div", "wrow qgrid");
       var kunci = r.tx + ":" + r.wallet + ":" + Math.round(r.amt * 1e6);
       var baru = !QSEEN[kunci] && !seed;
       QSEEN[kunci] = 1;
+      if (baru && r.usd >= 1e6) nWhaleBaru++;   // whale print ≥ $1jt → bunyi
       if (baru) {
         row.classList.add("qnew", r.buy ? "qn-up" : "qn-dn");
       }
@@ -707,7 +789,8 @@
     });
     tab.appendChild(body);
     host.appendChild(tab);
-    var ft = el("div", "qcap", "Semua transaksi on-chain DEX via GeckoTerminal — wallet = tx_from (pengirim sesungguhnya). 25 terbaru dari " + rows.length + " trade ≥ " + fmtUsd(QMIN) + ".");
+    if (nWhaleBaru > 0) wDing();   // suara terminal utk whale print baru
+    var ft = el("div", "qcap", "Semua transaksi on-chain DEX via GeckoTerminal — wallet = tx_from (pengirim sesungguhnya). Link tx mengarah ke explorer jaringan masing-masing (Etherscan utk ETH, Basescan utk Base, BscScan utk BSC, dst). 25 terbaru dari " + rows.length + " trade ≥ " + fmtUsd(QMIN) + ".");
     host.appendChild(ft);
   }
 
@@ -796,4 +879,12 @@
     qb.addEventListener("click", function () { cekKoin(false); });
     qi.addEventListener("keydown", function (ev) { if (ev.key === "Enter") cekKoin(false); });
   })();
+  /* ?soundtest=1 — mainkan suara terpilih sekali (uji volume/jenis tanpa
+     menunggu whale print nyata). Autoplay policy: butuh satu interaksi
+     (klik/keydown) lebih dulu, jadi diuji setelah gate MASUK diklik.
+     Hook __wDingTest() tersedia di console utk uji manual. */
+  if (location.search.indexOf("soundtest=1") > -1) {
+    setTimeout(wDing, 800);
+    window.__wDingTest = wDing;
+  }
 })();
