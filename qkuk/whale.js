@@ -1,7 +1,11 @@
 /* whale.js — tab Whale on-chain (24 Sep).
    Halaman TERPISAH dari terminal: gate login sama (kredensial & sesi sama,
    sessionStorage qkuk_admin_ok/qkuk_user_ok), tema sama, data dari data.json
-   blok "onchain" yang dipoll server bot (browser tak memanggil API on-chain). */
+   blok "onchain" yang dipoll server bot (browser tak memanggil API on-chain
+   untuk FEED). Pengecualian: fitur "Cek arah koin" memanggil API publik
+   langsung dari browser — Binance aggTrades (arus taker per menit) +
+   GeckoTerminal (daftar transaksi DEX per wallet: alamat, BUY/SELL, jumlah,
+   nilai USD) — keduanya gratis & diizinkan CSP whale.html. */
 (function () {
   "use strict";
   var $ = function (s) { return document.querySelector(s); };
@@ -143,140 +147,8 @@
     setTimeout(function () { t.classList.add("on"); }, 10);
     setTimeout(function () { t.classList.remove("on"); setTimeout(function () { t.remove(); }, 400); }, 2200);
   }
-
-  /* ── CEK ARAH KOIN — arus taker per menit (24 Sep, permintaan user) ────
-     Menjawab: "ARB sekarang mayoritas DIJUAL atau DIBELI?"
-     Sumber: Binance Futures aggTrades (data yang SAMA dengan yang dibuat
-     exchange jadi bar 1m taker buy volume). Per menit 30 menit terakhir:
-       beli% = 100 × Σqty taker-buyer-is-maker / Σqty total
-     — "buyer is maker" = taker MENJUAL (agresif masuk dgn sell).
-     Taker agresif = uang nyata yang tak sabar — penekan arah paling jujur. */
-  var QCACHE = {};
-  function qCacheGet(sym) {
-    var c = QCACHE[sym];
-    if (c && Date.now() - c.at < 60000) return c.p;   // segar <60 dtk
-    return null;
-  }
-  function aggUrl(sym, ms) {
-    return "https://fapi.binance.com/fapi/v1/aggTrades?symbol=" + sym
-      + "&startTime=" + ms + "&limit=1000";
-  }
-  function fetchAll(sym, ms, acc, cb) {
-    fetch(aggUrl(sym, ms)).then(function (r) {
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      return r.json();
-    }).then(function (arr) {
-      acc = acc.concat(arr);
-      if (arr.length >= 1000 && acc.length < 9000) {   // lanjut halaman berikut
-        var next = arr[arr.length - 1].T + 1;
-        if (Date.now() - next > 500) return fetchAll(sym, next, acc, cb);
-      }
-      cb(acc);
-    }).catch(function () { cb(acc); });
-  }
-  function cekKoin() {
-    var raw = ($("#q-coin").value || "").trim().toUpperCase();
-    if (!raw) return;
-    var out = $("#q-out");
-    var sym = raw.endsWith("USDT") ? raw : raw + "USDT";
-    out.innerHTML = "";
-    out.appendChild(el("div", "qload", "menghitung arus taker " + sym + " …"));
-    var cached = qCacheGet(sym);
-    if (cached) { paintQ(sym, cached); return; }
-    var sekarang = Date.now();
-    fetchAll(sym, sekarang - 30 * 60e3, [], function (trades) {
-      if (!trades.length) {
-        out.innerHTML = "";
-        var e = el("div", "qerr", sym + ": tidak ada data (kode koin salah / tak ada di Binance Futures)");
-        out.appendChild(e);
-        return;
-      }
-      var perMin = {};
-      trades.forEach(function (t) {
-        var mnt = Math.floor(t.T / 60000) * 60000;
-        var q = +t.q, m = t.m;                        // m=true → taker JUAL
-        var b = perMin[mnt] || (perMin[mnt] = { s: 0, b: 0, pv: 0 });
-        if (m) b.s += q; else b.b += q;
-        b.pv += q * (+t.p);
-      }
-      );
-      var px = trades[trades.length - 1].p;
-      var res = { perMin: perMin, px: px, at: Date.now() };
-      QCACHE[sym] = res;
-      paintQ(sym, res);
-    });
-  }
-  function paintQ(sym, res) {
-    var out = $("#q-out");
-    out.innerHTML = "";
-    var keys = Object.keys(res.perMin).sort();
-    if (!keys.length) {
-      out.appendChild(el("div", "qerr", "tidak ada trade dalam 30 menit terakhir"));
-      return;
-    }
-    var totS = 0, totB = 0, totPv = 0;
-    keys.forEach(function (k) {
-      totS += res.perMin[k].s; totB += res.perMin[k].b; totPv += res.perMin[k].pv;
-    });
-    var pctB = totB + totS > 0 ? 100 * totB / (totB + totS) : 50;
-    var arah, warna, kalimat;
-    if (pctB >= 56)      { arah = "MAYORITAS BELI"; warna = "var(--up)";
-      kalimat = "agresif beli dominan — mendukung bias LONG, waspada jebakan bila harga justru turun"; }
-    else if (pctB <= 44) { arah = "MAYORITAS JUAL"; warna = "var(--dn)";
-      kalimat = "agresif jual dominan — bearish, mendukung bias SHORT; cocok dikawinkan dgn alert whale di bawah"; }
-    else                 { arah = "SEIMBANG"; warna = "var(--gold)";
-      kalimat = "beli & jual agresif hampir seimbang — arah belum dipilih, tunggu konfirmasi"; }
-    /* header hasil */
-    var hd = el("div", "qhead");
-    var hL = el("div", "qhl");
-    hL.appendChild(el("div", "qsym", sym));
-    hL.appendChild(el("div", "qpx", " harga terakhir " + fmtPx(+res.px)));
-    var hR = el("div", "qhr");
-    hR.appendChild(el("div", "qbig", arah)); hR.firstChild.style.color = warna;
-    hR.appendChild(el("div", "qsub", kalimat));
-    hd.appendChild(hL); hd.appendChild(hR);
-    out.appendChild(hd);
-    /* bar beli vs jual */
-    var bar = el("div", "qbar");
-    var bB = el("i", "qb"), bS = el("i", "qs");
-    bB.style.width = pctB.toFixed(1) + "%";
-    bS.style.width = (100 - pctB).toFixed(1) + "%";
-    bar.appendChild(bB); bar.appendChild(bS);
-    out.appendChild(bar);
-    var bl = el("div", "qbarl");
-    bl.appendChild(el("span", null, "beli " + pctB.toFixed(1) + "%"));
-    /* cakupan jujur: koin ramai (BTC) bisa kepotong batas 9rb trade */
-    var cakup = Math.round((+keys[keys.length - 1] - +keys[0]) / 60000) + 1;
-    bl.appendChild(el("span", null, cakup + " mnt terakhir · " + keys.length + " menit aktif"));
-    bl.appendChild(el("span", null, "jual " + (100 - pctB).toFixed(1) + "%"));
-    out.appendChild(bl);
-    /* mini-chart per menit (sparkline div 30 kolom) */
-    var mini = el("div", "qmini");
-    var maks = 1;
-    keys.forEach(function (k) {
-      var d = res.perMin[k];
-      var net = Math.abs(d.b - d.s);
-      if (net > maks) maks = net;
-    });
-    keys.slice(-30).forEach(function (k) {
-      var d = res.perMin[k];
-      var net = d.b - d.s;
-      var col = el("i", "qcol " + (net >= 0 ? "up" : "dn"));
-      var hPct = Math.max(6, Math.round(100 * Math.abs(net) / maks));
-      col.style.height = hPct + "%";
-      var pB = 100 * d.b / (d.b + d.s || 1);
-      var jam = new Date(+k + 7 * 3600e3);
-      var p = function (n) { return ("0" + n).slice(-2); };
-      col.title = p(jam.getUTCHours()) + ":" + p(jam.getUTCMinutes())
-        + " — beli " + pB.toFixed(0) + "% · jual " + (100 - pB).toFixed(0) + "%"
-        + " · " + (d.pv >= 1e6 ? ("$" + (d.pv / 1e6).toFixed(1) + "jt") : ("$" + (d.pv / 1e3).toFixed(0) + "rb"));
-      mini.appendChild(col);
-    });
-    out.appendChild(mini);
-    var cap = el("div", "qcap", "kolom hijau = menit dgn agresif beli lebih besar · merah = agresif jual · hover utk detail");
-    out.appendChild(cap);
-  }
   function fmtPx(p) {
+    p = +p;
     if (p >= 1000) return p.toLocaleString("id-ID", { maximumFractionDigits: 2 });
     if (p >= 1) return p.toFixed(4);
     if (p >= 0.01) return p.toFixed(5);
@@ -287,7 +159,6 @@
   var DATA = null, FILTER = "semua", LEFT = 0;
 
   function jamWib(tsWib) {
-    // "2026-09-24 10:36" → "24 Sep 10:36"
     if (!tsWib) return "—";
     var B = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
     var p = tsWib.split(" ");
@@ -335,7 +206,7 @@
       x.appendChild(el("span", "v " + (c || ""), v));
       m.appendChild(x);
     }
-    r("sumber", "mempool.space · Etherscan V2 · publicnode SUI · Hyperliquid", "mut");
+    r("sumber", "mempool.space · Etherscan V2 · publicnode SUI/BSC · Hyperliquid", "mut");
     r("threshold", "BTC/ETH ≥ $20jt · lainnya ≥ max(1% vol 24j, $2jt) · MEGA ≥ $100jt", "mut");
     r("arah dibaca", "deposit ke exchange = indikasi JUAL · withdrawal = indikasi BELI", "mut");
     r("total tercatat", A.length + " alert (CSV bot)", "mut");
@@ -451,6 +322,341 @@
       });
   }
 
+  /* ══════════════════════════════════════════════════════════════════
+     CEK ARAH KOIN — LIVE (24 Sep v2, permintaan user)
+     ──────────────────────────────────────────────────────────────────
+     Ketik simbol (mis. ZEC) → dua sumber digabung:
+     1. BINANCE FUTURES aggTrades → arus taker per menit (grafik besar).
+        "buyer is maker" = taker agresif MENJUAL. Uang nyata yang sabar
+        tidak — penekan arah paling jujur.
+     2. GECKOTERMINAL → DAFTAR transaksi DEX terakhir: alamat wallet,
+        BUY/SELL, jumlah token, nilai USD, pool/DEX-nya, link tx.
+        INI yang menjawab "siapa saja, dari mana" — tabel live di bawah
+        grafik, disegarkan tiap 30 detik selama simbol aktif.
+     ══════════════════════════════════════════════════════════════════ */
+  var GT = "https://api.geckoterminal.com/api/v2";
+  var GT_NET_TX = {   // explorer tx per network GeckoTerminal
+    "eth": "https://etherscan.io/tx/{h}", "bsc": "https://bscscan.com/tx/{h}",
+    "arbitrum": "https://arbiscan.io/tx/{h}", "base": "https://basescan.org/tx/{h}",
+    "polygon_pos": "https://polygonscan.com/tx/{h}", "solana": "https://solscan.io/tx/{h}",
+    "sui": "https://suiscan.xyz/mainnet/tx/{h}", "avax": "https://snowtrace.io/tx/{h}"
+  };
+  var QACTIVE = null;      // {sym, pool:{net,pid,name,baseAddr,baseSym}, timer}
+  var QCACHE = {};         // sym → {pool, at} (10 mnt)
+
+  function gtGet(url) {
+    return fetch(url, { headers: { "Accept": "application/json" } })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
+  }
+  function gtSearchPool(sym) {
+    var cached = QCACHE[sym];
+    if (cached && Date.now() - cached.at < 600000) {
+      return Promise.resolve(cached.pool);
+    }
+    return gtGet(GT + "/search/pools?query=" + encodeURIComponent(sym) + "&include=base_token&page=1")
+      .then(function (j) {
+        var pools = (j.data || []).filter(function (p) {
+          var a = p.attributes || {};
+          var v = a.volume_usd;
+          var h24 = (v && typeof v === "object") ? (+v.h24 || 0) : (+v || 0);
+          return h24 > 0;
+        });
+        if (!pools.length) throw new Error("pool tidak ditemukan");
+        pools.sort(function (x, y) {   // volume 24j terbesar = pool paling likuid
+          var vx = x.attributes.volume_usd, vy = y.attributes.volume_usd;
+          var nx = (vx && typeof vx === "object") ? (+vx.h24 || 0) : (+vx || 0);
+          var ny = (vy && typeof vy === "object") ? (+vy.h24 || 0) : (+vy || 0);
+          return ny - nx;
+        });
+        var p = pools[0], net = p.id.split("_")[0],
+            pid = p.id.substring(net.length + 1);
+        var baseAddr = null, baseSym = sym;
+        (j.included || []).forEach(function (i) {
+          if (i.type === "token" && i.id === p.relationships.base_token.data.id) {
+            baseAddr = i.id.substring(net.length + 1);
+            baseSym = i.attributes.symbol || sym;
+          }
+        });
+        var pool = { net: net, pid: pid, name: p.attributes.name || sym,
+                     baseAddr: baseAddr, baseSym: baseSym,
+                     reserve: +((p.attributes || {}).reserve_in_usd || 0) };
+        QCACHE[sym] = { at: Date.now(), pool: pool };
+        return pool;
+      });
+  }
+  function gtTrades(pool) {
+    var url = GT + "/networks/" + pool.net + "/pools/" + encodeURIComponent(pool.pid)
+      + "/trades?trade_volume_in_usd_greater_than=200";
+    return gtGet(url).then(function (j) {
+      return (j.data || []).map(function (t) {
+        var a = t.attributes || {};
+        var buy = a.kind === "buy";
+        var amt, usd;
+        if (buy) { amt = +a.to_token_amount; usd = amt * (+a.price_to_in_usd || 0); }
+        else     { amt = +a.from_token_amount; usd = amt * (+a.price_from_in_usd || 0); }
+        // aman: hanya baris yang benar2 melibatkan base token pool
+        var libat = pool.baseAddr &&
+          (a.to_token_address === pool.baseAddr || a.from_token_address === pool.baseAddr);
+        return { t: a.block_timestamp, wallet: a.tx_from_address || "", buy: buy,
+                 amt: amt, usd: usd, tx: a.tx_hash || "", libat: !!libat };
+      }).filter(function (r) { return r.libat && r.amt > 0; });
+    });
+  }
+  function gtTxUrl(net, hash) {
+    var t = GT_NET_TX[net];
+    return t ? t.replace("{h}", hash)
+             : "https://geckoterminal.com/" + net + "/pools";   // fallback halaman network
+  }
+
+  /* ── Binance arus taker per menit (chart) ── */
+  function aggUrl(sym, ms) {
+    return "https://fapi.binance.com/fapi/v1/aggTrades?symbol=" + sym
+      + "&startTime=" + ms + "&limit=1000";
+  }
+  function fetchAll(sym, ms, acc, cb) {
+    fetch(aggUrl(sym, ms)).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function (arr) {
+      acc = acc.concat(arr);
+      if (arr.length >= 1000 && acc.length < 9000) {
+        var next = arr[arr.length - 1].T + 1;
+        if (Date.now() - next > 500) return fetchAll(sym, next, acc, cb);
+      }
+      cb(acc);
+    }).catch(function () { cb(acc); });
+  }
+  function binanceFlow(sym, cb) {
+    var sekarang = Date.now();
+    fetchAll(sym, sekarang - 30 * 60e3, [], function (trades) {
+      if (!trades.length) { cb(null); return; }
+      var perMin = {}, lastPx = trades[trades.length - 1].p;
+      trades.forEach(function (t) {
+        var mnt = Math.floor(t.T / 60000) * 60000;
+        var q = +t.q, m = t.m;
+        var b = perMin[mnt] || (perMin[mnt] = { s: 0, b: 0, pv: 0 });
+        if (m) b.s += q; else b.b += q;
+        b.pv += q * (+t.p);
+      });
+      cb({ perMin: perMin, px: lastPx, n: trades.length });
+    });
+  }
+
+  /* ── render hasil cek ── */
+  function paintChart(sym, f) {
+    var host = $("#q-chart"); host.innerHTML = "";
+    var keys = Object.keys(f.perMin).sort();
+    var totS = 0, totB = 0, totPv = 0;
+    keys.forEach(function (k) {
+      totS += f.perMin[k].s; totB += f.perMin[k].b; totPv += f.perMin[k].pv;
+    });
+    var pctB = totB + totS > 0 ? 100 * totB / (totB + totS) : 50;
+    var arah, warna, kalimat;
+    if (pctB >= 56)      { arah = "MAYORITAS BELI"; warna = "var(--up)";
+      kalimat = "agresif beli dominan di futures — mendukung bias LONG, waspada jebakan bila harga justru turun"; }
+    else if (pctB <= 44) { arah = "MAYORITAS JUAL"; warna = "var(--dn)";
+      kalimat = "agresif jual dominan di futures — bearish, mendukung bias SHORT; kawinkan dgn daftar DEX di bawah"; }
+    else                 { arah = "SEIMBANG"; warna = "var(--gold)";
+      kalimat = "beli & jual agresif hampir seimbang — arah belum dipilih, tunggu konfirmasi"; }
+    /* kepala: simbol + harga + verdict besar */
+    var hd = el("div", "qhead");
+    var hL = el("div", "qhl");
+    hL.appendChild(el("div", "qsym", sym));
+    hL.appendChild(el("div", "qpx", "harga terakhir $" + fmtPx(f.px)));
+    var hR = el("div", "qhr");
+    hR.appendChild(el("div", "qbig", arah)); hR.firstChild.style.color = warna;
+    hR.appendChild(el("div", "qsub", kalimat));
+    hd.appendChild(hL); hd.appendChild(hR);
+    host.appendChild(hd);
+    /* statistik 4 kotak */
+    var st = el("div", "qstats");
+    function stat(l, v, c) {
+      var x = el("div", "qstat");
+      x.appendChild(el("span", null, l));
+      var b = el("b", c || "", v); x.appendChild(b);
+      return x;
+    }
+    var cakup = Math.round((+keys[keys.length - 1] - +keys[0]) / 60000) + 1;
+    st.appendChild(stat("dominasi beli", pctB.toFixed(1) + "%", pctB >= 56 ? "up" : pctB <= 44 ? "dn" : ""));
+    st.appendChild(stat("volume futures", fmtUsd(totPv)));
+    st.appendChild(stat("cakupan", cakup + " mnt"));
+    st.appendChild(stat("harga sekarang", "$" + fmtPx(f.px)));
+    host.appendChild(st);
+    /* bar beli vs jual */
+    var bar = el("div", "qbar");
+    var bB = el("i", "qb"), bS = el("i", "qs");
+    bB.style.width = pctB.toFixed(1) + "%";
+    bS.style.width = (100 - pctB).toFixed(1) + "%";
+    bar.appendChild(bB); bar.appendChild(bS);
+    host.appendChild(bar);
+    var bl = el("div", "qbarl");
+    bl.appendChild(el("span", null, "beli " + pctB.toFixed(1) + "%"));
+    bl.appendChild(el("span", null, "arus taker futures · " + keys.length + " menit aktif"));
+    bl.appendChild(el("span", null, "jual " + (100 - pctB).toFixed(1) + "%"));
+    host.appendChild(bl);
+    /* GRAFIK BESAR: batang divergen dari garis nol — hijau ke atas (beli
+       dominan menit itu), merah ke bawah (jual dominan). 140px, gradient,
+       hover detail. */
+    var maks = 1;
+    keys.forEach(function (k) {
+      var d = f.perMin[k];
+      var net = Math.abs(d.b - d.s);
+      if (net > maks) maks = net;
+    });
+    var wrap = el("div", "qchart-big");
+    var mini = el("div", "qmini2");
+    var p2 = function (n) { return ("0" + n).slice(-2); };
+    keys.slice(-40).forEach(function (k) {
+      var d = f.perMin[k];
+      var net = d.b - d.s;
+      var hPct = Math.max(4, Math.round(100 * Math.abs(net) / maks));
+      var col = el("div", "qcol2");
+      var barIn = el("i", net >= 0 ? "qu" : "qd");
+      barIn.style.height = hPct + "%";
+      col.appendChild(barIn);
+      var jam = new Date(+k + 7 * 3600e3);
+      var pB = 100 * d.b / (d.b + d.s || 1);
+      col.title = p2(jam.getUTCHours()) + ":" + p2(jam.getUTCMinutes())
+        + " — beli " + pB.toFixed(0) + "% · jual " + (100 - pB).toFixed(0) + "%"
+        + " · " + fmtUsd(d.pv);
+      mini.appendChild(col);
+    });
+    var zero = el("div", "qzero");
+    wrap.appendChild(mini); wrap.appendChild(zero);
+    host.appendChild(wrap);
+    var cap = el("div", "qcap",
+      "hijau = menit dgn agresif BELI lebih besar (naik dari garis) · merah = agresif JUAL (turun) · hover utk detail per menit");
+    host.appendChild(cap);
+    var leg = el("div", "qleg");
+    leg.appendChild(el("span", null, "Sumber futures: Binance USDⓈ-M (aggTrades, live dari browser)"));
+    host.appendChild(leg);
+  }
+
+  function paintTrades(pool, rows) {
+    var host = $("#q-trades"); host.innerHTML = "";
+    var hd = el("div", "qthd");
+    var tL = el("div", "qtl");
+    tL.appendChild(el("b", null, "Transaksi " + (pool.baseSym || "") + " di DEX"));
+    tL.appendChild(el("span", "qvenue", pool.name + " · " + pool.net.toUpperCase()
+      + (pool.reserve ? " · likuiditas " + fmtUsd(pool.reserve) : "")));
+    var tR = el("div", "qtr");
+    var live = el("span", "qlive");
+    live.appendChild(el("i", "qdot"));
+    live.appendChild(el("span", "qstamp", "live · segar " + new Date(Date.now() + 7 * 3600e3).toTimeString().slice(0, 8) + " WIB"));
+    tR.appendChild(live);
+    hd.appendChild(tL); hd.appendChild(tR);
+    host.appendChild(hd);
+    if (!rows || !rows.length) {
+      host.appendChild(el("div", "qerr", "belum ada trade DEX yang terbaca untuk pool ini — coba lagi beberapa detik"));
+      return;
+    }
+    var totB = 0, totS = 0;
+    rows.forEach(function (r) { if (r.buy) totB += r.usd; else totS += r.usd; });
+    var sum = el("div", "qsum");
+    sum.appendChild(el("span", "qsu up", "DEX beli " + fmtUsd(totB)));
+    var md = el("span", "qsm");
+    var pB = totB + totS > 0 ? 100 * totB / (totB + totS) : 50;
+    var bar = el("i", "qsumbar");
+    bar.style.background = "linear-gradient(90deg, var(--up) " + pB.toFixed(0) + "%, var(--dn) " + pB.toFixed(0) + "%)";
+    md.appendChild(bar);
+    sum.appendChild(md);
+    sum.appendChild(el("span", "qsu dn", "jual " + fmtUsd(totS)));
+    host.appendChild(sum);
+    /* tabel: waktu · wallet · aksi · jumlah · nilai · venue · tx */
+    var tab = el("div", "wtable qtab");
+    var head = el("div", "whead qgrid");
+    ["waktu", "wallet", "aksi", "jumlah", "nilai", "venue", ""].forEach(function (h) {
+      head.appendChild(el("span", null, h));
+    });
+    tab.appendChild(head);
+    var body = el("div", null);
+    rows.slice(0, 25).forEach(function (r) {
+      var row = el("div", "wrow qgrid");
+      var d = new Date(new Date(r.t).getTime() + 7 * 3600e3);
+      var p2 = function (n) { return ("0" + n).slice(-2); };
+      row.appendChild(el("span", "wt", p2(d.getUTCHours()) + ":" + p2(d.getUTCMinutes()) + ":" + p2(d.getUTCSeconds())));
+      var wa = el("span", "waddr");
+      wa.textContent = r.wallet ? (r.wallet.slice(0, 8) + "…" + r.wallet.slice(-6)) : "—";
+      wa.title = "klik utk salin alamat";
+      wa.addEventListener("click", (function (w) {
+        return function () {
+          try { navigator.clipboard.writeText(w); toast("alamat disalin"); } catch (e) { toast("gagal menyalin"); }
+        };
+      })(r.wallet));
+      row.appendChild(wa);
+      row.appendChild(el("span", "wj " + (r.buy ? "beli" : "jual"), r.buy ? "BELI" : "JUAL"));
+      row.appendChild(el("span", "wn", (r.amt >= 1000 ? r.amt.toLocaleString("id-ID", { maximumFractionDigits: 0 }) : r.amt.toFixed(r.amt >= 1 ? 3 : 6)) + " " + (pool.baseSym || "")));
+      row.appendChild(el("span", "wv" + (r.usd >= 1e5 ? " mega" : ""), fmtUsd(r.usd)));
+      row.appendChild(el("span", "wa", pool.name + " · " + pool.net));
+      var lk = el("span", "wl");
+      var u = gtTxUrl(pool.net, r.tx);
+      if (r.tx && u) {
+        var x = el("a", "wlink", "tx ↗"); x.href = u; x.target = "_blank"; x.rel = "noopener";
+        lk.appendChild(x);
+      }
+      row.appendChild(lk);
+      body.appendChild(row);
+    });
+    tab.appendChild(body);
+    host.appendChild(tab);
+    var ft = el("div", "qcap", "Semua transaksi on-chain DEX via GeckoTerminal — wallet diambil dari tx_from (pengirim sesungguhnya). 25 terbaru dari " + rows.length + " trade terbaca.");
+    host.appendChild(ft);
+  }
+
+  function paintQError(msg) {
+    var host = $("#q-chart"); host.innerHTML = "";
+    host.appendChild(el("div", "qerr", msg));
+    $("#q-trades").innerHTML = "";
+  }
+
+  function stopLive() {
+    if (QACTIVE && QACTIVE.timer) { clearInterval(QACTIVE.timer); QACTIVE.timer = null; }
+  }
+  function refreshLive() {
+    if (!QACTIVE) return;
+    var symF = QACTIVE.symF, poolP = QACTIVE.poolP;
+    poolP.then(function (pool) {
+      gtTrades(pool).then(function (rows) { paintTrades(pool, rows); }).catch(function () {});
+    }).catch(function () {});
+    binanceFlow(symF, function (f) { if (f) paintChart(symF, f); });
+  }
+  function cekKoin(silent) {
+    var raw = ($("#q-coin").value || "").trim().toUpperCase();
+    if (!raw) return;
+    stopLive();
+    var symF = raw.endsWith("USDT") ? raw : raw + "USDT";
+    if (!silent) {
+      $("#q-chart").innerHTML = "";
+      $("#q-trades").innerHTML = "";
+      $("#q-chart").appendChild(el("div", "qload", "menghitung arus taker " + symF + " & mencari pool DEX terlikuid …"));
+    }
+    var poolP;
+    try {
+      poolP = gtSearchPool(raw);
+    } catch (e) { poolP = Promise.reject(e); }
+    QACTIVE = { symF: symF, poolP: poolP, timer: null };
+    poolP.then(function (pool) {
+      if (!QACTIVE || QACTIVE.symF !== symF) return;
+      gtTrades(pool).then(function (rows) { paintTrades(pool, rows); })
+        .catch(function () { paintTrades(pool, []); });
+    }).catch(function (e) {
+      if (!QACTIVE || QACTIVE.symF !== symF) return;
+      $("#q-trades").innerHTML = "";
+      $("#q-trades").appendChild(el("div", "qerr",
+        raw + " di DEX: " + (e && e.message ? e.message : "tidak ditemukan") +
+        " — cek arah futures di panel tetap jalan"));
+    });
+    binanceFlow(symF, function (f) {
+      if (!QACTIVE || QACTIVE.symF !== symF) return;
+      if (!f) {
+        if (!silent) paintQError(symF + ": tidak ada data futures (kode koin salah / tak ada di Binance USDⓈ-M)");
+        return;
+      }
+      paintChart(symF, f);
+    });
+    QACTIVE.timer = setInterval(refreshLive, 30000);   // LIVE: segar tiap 30 dtk
+  }
+
   /* ── jam & countdown ── */
   function clock() {
     var d = new Date(Date.now() + 7 * 3600e3);
@@ -466,11 +672,10 @@
   clock();
   if (isLogged()) { load(true); setInterval(function () { load(false); }, 60000); }
   setInterval(clock, 1000);
-  /* init cek arah koin: enter + tombol (elemen ada di luar gate — aman) */
   (function () {
     var qi = document.getElementById("q-coin"), qb = document.getElementById("q-btn");
     if (!qi || !qb) return;
-    qb.addEventListener("click", cekKoin);
-    qi.addEventListener("keydown", function (ev) { if (ev.key === "Enter") cekKoin(); });
+    qb.addEventListener("click", function () { cekKoin(false); });
+    qi.addEventListener("keydown", function (ev) { if (ev.key === "Enter") cekKoin(false); });
   })();
 })();

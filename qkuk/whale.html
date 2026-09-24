@@ -6,14 +6,14 @@
 <title>QKUK Whale — on-chain whale tracker</title>
 <meta name="description" content="Pelacak whale on-chain multichain: deposit/withdrawal besar di BTC, ETH, BNB, ARB, SUI, Hyperliquid — konfirmasi arah sebelum entry.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23070B09'/%3E%3Cg stroke='%236EE7B7' fill='none' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M27.4 16 L21.7 25.9 L10.3 25.9 L4.6 16 L10.3 6.1 L21.7 6.1 Z' stroke-width='2.3'/%3E%3Cpath d='M12 12.2 L15.5 16 L12 19.8' stroke-width='2.3'/%3E%3C/g%3E%3Crect x='17.4' y='15.1' width='4.2' height='1.9' rx='.95' fill='%236EE7B7'/%3E%3C/svg%3E">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-LXAUy0kvUSjxAz/fkXLmBF15ezkgQYHRQhirnM4uq2Y='; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://fapi.binance.com; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-LXAUy0kvUSjxAz/fkXLmBF15ezkgQYHRQhirnM4uq2Y='; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://fapi.binance.com https://api.geckoterminal.com; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noarchive">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=20260924b">
+<link rel="stylesheet" href="style.css?v=20260924c">
 </head>
 <body>
 
@@ -103,10 +103,11 @@
       <span class="hint">arus taker per menit — agresif BELI vs JUAL, 30 menit terakhir (Binance Futures, live dari browser)</span>
     </div>
     <div class="qbox">
-      <input id="q-coin" placeholder="kode koin — mis. ARB, ETH, SUI, BTC" spellcheck="false" autocomplete="off">
+      <input id="q-coin" placeholder="kode koin — mis. ZEC, ARB, ETH, SUI" spellcheck="false" autocomplete="off">
       <button id="q-btn" type="button">CEK</button>
     </div>
-    <div id="q-out"></div>
+    <div id="q-chart"></div>
+    <div id="q-trades"></div>
   </section>
 
   <section id="whale-feed">
@@ -145,6 +146,6 @@
 
 </div>
 
-<script src="whale.js?v=20260924b" defer></script>
+<script src="whale.js?v=20260924c" defer></script>
 </body>
 </html>

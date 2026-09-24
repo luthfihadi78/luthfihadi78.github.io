@@ -645,35 +645,70 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 .wlink:hover{color:#9CF2CE}
 .w-empty{padding:22px 14px;color:var(--fg-3);font-size:12px;text-align:center}
 
-/* ── cek arah koin (whale.html, 24 Sep): arus taker per menit ── */
+/* ── cek arah koin (whale.html, 24 Sep v2): chart besar + tabel live ── */
 .qbox{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-#q-coin{flex:1;max-width:340px;min-width:200px;background:var(--s2);border:1px solid var(--line-2);
-  border-radius:8px;color:var(--fg);font-family:var(--mono);font-size:13px;padding:11px 14px;
+#q-coin{flex:1;max-width:380px;min-width:200px;background:var(--s2);border:1px solid var(--line-2);
+  border-radius:10px;color:var(--fg);font-family:var(--mono);font-size:14px;padding:13px 16px;
   letter-spacing:.06em;text-transform:uppercase}
 #q-coin:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 3px var(--ac-w)}
-#q-btn{background:var(--ac);color:#04120B;border:0;border-radius:8px;font-weight:800;
-  letter-spacing:.14em;font-size:12px;padding:0 22px;cursor:pointer;font-family:var(--mono)}
+#q-btn{background:linear-gradient(135deg,var(--ac),var(--ac-2));color:#04120B;border:0;border-radius:10px;
+  font-weight:800;letter-spacing:.14em;font-size:12.5px;padding:0 26px;cursor:pointer;font-family:var(--mono);
+  box-shadow:0 4px 18px rgba(110,231,183,.22)}
 #q-btn:hover{filter:brightness(1.08)}
-#q-out{margin-top:12px}
+#q-chart{margin-top:12px}
+#q-trades{margin-top:12px}
 .qload,.qerr{color:var(--fg-3);font-size:12px;padding:14px;background:var(--s1);
   border:1px dashed var(--line-2);border-radius:8px}
 .qerr{color:var(--gold)}
 .qhead{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;
-  background:var(--s1);border:1px solid var(--line);border-radius:8px;padding:14px 16px;flex-wrap:wrap}
-.qsym{font-size:19px;font-weight:700;letter-spacing:.03em}
-.qpx{font-size:11.5px;color:var(--fg-3);margin-top:2px}
-.qbig{font-size:22px;font-weight:800;text-align:right}
-.qsub{font-size:11.5px;color:var(--fg-3);max-width:46ch;text-align:right;margin-top:3px}
-.qbar{display:flex;height:10px;border-radius:6px;overflow:hidden;margin-top:12px;background:var(--s2)}
-.qbar .qb{background:var(--up);display:block;height:100%}
-.qbar .qs{background:var(--dn);display:block;height:100%}
+  background:linear-gradient(180deg,var(--s2),var(--s1));border:1px solid var(--line-2);
+  border-radius:12px;padding:18px 20px;flex-wrap:wrap}
+.qsym{font-size:26px;font-weight:800;letter-spacing:.02em}
+.qpx{font-size:12.5px;color:var(--fg-3);margin-top:3px}
+.qbig{font-size:32px;font-weight:800;text-align:right;letter-spacing:-.01em}
+.qsub{font-size:12px;color:var(--fg-3);max-width:48ch;text-align:right;margin-top:4px}
+.qstats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.qstat{background:var(--s1);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.qstat span{display:block;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-3)}
+.qstat b{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+.qstat b.up{color:var(--up)}
+.qstat b.dn{color:var(--dn)}
+.qbar{display:flex;height:12px;border-radius:7px;overflow:hidden;margin-top:12px;background:var(--s2)}
+.qbar .qb{background:linear-gradient(90deg,var(--ac),var(--up));display:block;height:100%}
+.qbar .qs{background:linear-gradient(90deg,var(--dn),#C4675E);display:block;height:100%}
 .qbarl{display:flex;justify-content:space-between;font-size:11px;color:var(--fg-3);margin-top:6px}
-.qmini{display:flex;align-items:flex-end;gap:3px;height:64px;margin-top:14px;padding:10px 12px;
-  background:var(--s1);border:1px solid var(--line);border-radius:8px}
-.qmini .qcol{flex:1;min-width:4px;border-radius:2px 2px 0 0}
-.qmini .qcol.up{background:var(--up);opacity:.85}
-.qmini .qcol.dn{background:var(--dn);opacity:.85}
-.qcap{font-size:10.5px;color:var(--fg-3);margin-top:6px}
+.qchart-big{position:relative;margin-top:14px;background:var(--s1);border:1px solid var(--line);
+  border-radius:12px;padding:22px 14px 10px}
+.qmini2{display:flex;align-items:center;gap:4px;height:150px}
+.qmini2 .qcol2{flex:1;min-width:5px;height:100%;display:flex;flex-direction:column;justify-content:center}
+.qmini2 .qcol2 i{display:block;width:100%;border-radius:3px}
+.qmini2 .qcol2 .qu{background:linear-gradient(180deg,var(--up),rgba(110,231,183,.25));align-self:flex-end;
+  box-shadow:0 0 10px rgba(110,231,183,.18)}
+.qmini2 .qcol2 .qd{background:linear-gradient(180deg,rgba(232,135,124,.25),var(--dn));align-self:flex-start;
+  box-shadow:0 0 10px rgba(232,135,124,.18)}
+.qzero{position:absolute;left:14px;right:14px;top:50%;height:1px;background:var(--line-2);pointer-events:none}
+.qcap{font-size:10.5px;color:var(--fg-3);margin-top:8px}
+.qleg{font-size:10.5px;color:var(--fg-3);margin-top:4px}
+/* header + ringkasan tabel transaksi DEX */
+.qthd{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;margin:4px 0 8px}
+.qtl b{font-size:15px}
+.qtl .qvenue{display:block;font-size:11px;color:var(--fg-3);margin-top:2px}
+.qlive{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ac)}
+.qlive .qdot{width:7px;height:7px;border-radius:999px;background:var(--ac);animation:p 2.6s cubic-bezier(.4,0,.6,1) infinite}
+.qsum{display:flex;align-items:center;gap:12px;font-size:12.5px;margin-bottom:8px}
+.qsu{font-weight:700}
+.qsu.up{color:var(--up)}
+.qsu.dn{color:var(--dn)}
+.qsm{flex:1;max-width:280px;height:8px;border-radius:5px;overflow:hidden;background:var(--s2)}
+.qsm .qsumbar{display:block;height:100%}
+.qtab .qgrid{display:grid;grid-template-columns:84px 1.3fr 74px 1fr 84px 1.2fr 52px;gap:10px;
+  align-items:center;padding:9px 14px}
+@media(max-width:900px){
+  .qstats{grid-template-columns:repeat(2,1fr)}
+  .qtab .qgrid{grid-template-columns:74px 1.1fr 66px 1fr 76px}
+  .qtab .qgrid > :nth-child(6),.qtab .qgrid > :nth-child(7){display:none}
+  .qbig{font-size:25px}
+}
 .wfoot{margin:14px 2px 26px;font-size:11px;line-height:1.7;color:var(--fg-3)}
 @media(max-width:900px){
   .whead,.wrow{grid-template-columns:84px 74px 104px 1fr 76px;gap:8px}
