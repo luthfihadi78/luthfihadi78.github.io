@@ -640,6 +640,18 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 .wa{color:var(--fg-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .waddr{cursor:pointer;color:var(--fg-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .waddr:hover{color:var(--ac)}
+/* badge whale print ≥ $10jt (24 Sep) — merah, menyegarkan mata di antara baris */
+.wwhale{font-size:9px;letter-spacing:.08em;color:var(--dn);background:rgba(232,135,124,.18);
+  border:1px solid rgba(232,135,124,.55);border-radius:4px;padding:1px 5px;font-weight:700;white-space:nowrap}
+/* badge 🔥 WHALE BESAR ≥ $20jt (24 Sep, permintaan user) — api menyala: gradient
+   oranye-kuning yang bergerak + glow berdenyut, jelas beda dari WHALE merah */
+.wmega2{font-size:9px;letter-spacing:.08em;font-weight:800;border-radius:4px;padding:1px 6px;
+  white-space:nowrap;color:#1a0a00;
+  background:linear-gradient(270deg,#ff4d00,#ff9500,#ffd60a,#ff9500);background-size:300% 100%;
+  animation:whaleFire 1.6s linear infinite, whaleGlow 1.6s ease-in-out infinite}
+@keyframes whaleFire{0%{background-position:0% 0}100%{background-position:300% 0}}
+@keyframes whaleGlow{0%,100%{box-shadow:0 0 4px rgba(255,120,0,.5)}50%{box-shadow:0 0 12px rgba(255,150,0,.95)}}
+@media(prefers-reduced-motion:reduce){.wmega2{animation:none;background-position:50% 0;box-shadow:none}}
 .wl{text-align:right}
 .wlink{font-size:11px;color:var(--ac);white-space:nowrap}
 .wlink:hover{color:#9CF2CE}
@@ -688,6 +700,19 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
   box-shadow:0 0 10px rgba(232,135,124,.18)}
 .qzero{position:absolute;left:14px;right:14px;top:50%;height:1px;background:var(--line-2);pointer-events:none}
 .qcap{font-size:10.5px;color:var(--fg-3);margin-top:8px}
+/* chip filter whale-print (default $1jt, tersimpan localStorage) */
+.qchips{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:2px 0 10px}
+.qchipsl{font-size:11px;color:var(--fg-3)}
+.qchip{background:var(--s2);border:1px solid var(--line-2);border-radius:999px;color:var(--fg-2);
+  font-family:var(--mono);font-size:11px;padding:4px 12px;cursor:pointer;letter-spacing:.04em}
+.qchip:hover{border-color:var(--ac);color:var(--fg)}
+.qchip.on{background:var(--ac-w);border-color:var(--ac);color:var(--ac);font-weight:700}
+/* dropdown jaringan (24 Sep): pilih chain utk daftar transaksi koin */
+.qvenuerow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:3px}
+select.qnet{background:var(--s2);border:1px solid var(--line-2);border-radius:7px;color:var(--ac);
+  font-family:var(--mono);font-size:11px;padding:4px 8px;cursor:pointer;outline:none}
+select.qnet:hover{border-color:var(--ac)}
+select.qnet option{background:var(--s2);color:var(--fg)}
 .qleg{font-size:10.5px;color:var(--fg-3);margin-top:4px}
 /* header + ringkasan tabel transaksi DEX */
 .qthd{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;margin:4px 0 8px}

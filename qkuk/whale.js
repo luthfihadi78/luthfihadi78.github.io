@@ -339,54 +339,106 @@
     "eth": "https://etherscan.io/tx/{h}", "bsc": "https://bscscan.com/tx/{h}",
     "arbitrum": "https://arbiscan.io/tx/{h}", "base": "https://basescan.org/tx/{h}",
     "polygon_pos": "https://polygonscan.com/tx/{h}", "solana": "https://solscan.io/tx/{h}",
-    "sui": "https://suiscan.xyz/mainnet/tx/{h}", "avax": "https://snowtrace.io/tx/{h}"
+    "sui": "https://suiscan.xyz/mainnet/tx/{h}", "avax": "https://snowtrace.io/tx/{h}",
+    "optimism": "https://optimistic.etherscan.io/tx/{h}", "zksync": "https://explorer.zksync.io/tx/{h}",
+    "linea": "https://lineascan.build/tx/{h}", "mantle": "https://mantlescan.xyz/tx/{h}",
+    "blast": "https://blastscan.io/tx/{h}"
   };
-  var QACTIVE = null;      // {sym, pool:{net,pid,name,baseAddr,baseSym}, timer}
-  var QCACHE = {};         // sym → {pool, at} (10 mnt)
+  /* ⚠️ id pool GT = "<net>_<alamat>" — TAPI net bisa mengandung "_"
+     (polygon_pos!). split("_")[0] salah — parse dgn daftar net dikenal,
+     terpanjang dulu. (Bug nyata ditemukan saat bikin dropdown jaringan.) */
+  var GT_NETS = ["polygon_pos", "binance-smart-chain", "arbitrum", "optimism",
+                 "solana", "ethereum", "eth", "bsc", "base", "sui", "avax",
+                 "zksync", "linea", "mantle", "blast", "cronos", "pulse"];
+  function gtParseNet(id) {
+    var order = GT_NETS.slice().sort(function (a, b) { return b.length - a.length; });
+    for (var i = 0; i < order.length; i++) {
+      if (id.indexOf(order[i] + "_") === 0) return { net: order[i], pid: id.substring(order[i].length + 1) };
+    }
+    var u = id.indexOf("_");
+    return u > 0 ? { net: id.substring(0, u), pid: id.substring(u + 1) }
+                 : { net: id, pid: id };
+  }
+  var QACTIVE = null;      // {symF, poolsP, sel, timer} — sel = pool terpilih
+  var QCACHE = {};         // sym → {at, pools:[…]} (10 mnt)
+  /* Filter whale-print (24 Sep, permintaan user): daftar HANYA transaksi
+     besar — default $1jt, chip cepat $100rb/$500rb/$1jt/$5jt (tersimpan
+     localStorage). Sisi API ikut difilter supaya payload efisien. */
+  var QMIN = 1e6;
+  try { QMIN = +(localStorage.getItem("qkuk_wmin")) || 1e6; } catch (e) {}
+  function setMin(v) {
+    QMIN = v;
+    try { localStorage.setItem("qkuk_wmin", String(v)); } catch (e) {}
+    refreshLive();   // ambil ulang daftar dengan ambang baru, segera
+  }
 
-  function gtGet(url) {
-    return fetch(url, { headers: { "Accept": "application/json" } })
-      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
+  function gtGet(url, coba) {
+    /* GeckoTerminal membatasi request agresif (terjadi nyata 24 Sep: tabel
+       kosong diam-diam). Retry sekali utk 429/5xx, lalu error dgn pesan
+       jelas — JANGAN pernah mengosongkan tabel tanpa keterangan. */
+    coba = coba || 0;
+    return fetch(url, { headers: { "Accept": "application/json" } }).then(function (r) {
+      if (!r.ok) {
+        if (coba < 1 && (r.status === 429 || r.status >= 500)) {
+          return new Promise(function (res) { setTimeout(res, 1500); })
+            .then(function () { return gtGet(url, coba + 1); });
+        }
+        throw new Error(r.status === 429
+          ? "kena batas API GeckoTerminal — menunggu beberapa detik lalu segarkan lagi"
+          : "HTTP " + r.status);
+      }
+      return r.json();
+    });
   }
   function gtSearchPool(sym) {
     var cached = QCACHE[sym];
     if (cached && Date.now() - cached.at < 600000) {
-      return Promise.resolve(cached.pool);
+      return Promise.resolve(cached.pools);
     }
     return gtGet(GT + "/search/pools?query=" + encodeURIComponent(sym) + "&include=base_token&page=1")
       .then(function (j) {
-        var pools = (j.data || []).filter(function (p) {
+        var raw = (j.data || []).filter(function (p) {
           var a = p.attributes || {};
           var v = a.volume_usd;
           var h24 = (v && typeof v === "object") ? (+v.h24 || 0) : (+v || 0);
           return h24 > 0;
         });
-        if (!pools.length) throw new Error("pool tidak ditemukan");
-        pools.sort(function (x, y) {   // volume 24j terbesar = pool paling likuid
+        if (!raw.length) throw new Error("pool tidak ditemukan");
+        raw.sort(function (x, y) {   // volume 24j terbesar = paling likuid
           var vx = x.attributes.volume_usd, vy = y.attributes.volume_usd;
           var nx = (vx && typeof vx === "object") ? (+vx.h24 || 0) : (+vx || 0);
           var ny = (vy && typeof vy === "object") ? (+vy.h24 || 0) : (+vy || 0);
           return ny - nx;
         });
-        var p = pools[0], net = p.id.split("_")[0],
-            pid = p.id.substring(net.length + 1);
-        var baseAddr = null, baseSym = sym;
-        (j.included || []).forEach(function (i) {
-          if (i.type === "token" && i.id === p.relationships.base_token.data.id) {
-            baseAddr = i.id.substring(net.length + 1);
-            baseSym = i.attributes.symbol || sym;
-          }
+        /* semua kandidat → daftar pilihan dropdown jaringan (24 Sep);
+           satu simbol sering aktif di banyak chain (ARB: arbitrum+eth+solana) */
+        var pools = [], seen = {};
+        raw.slice(0, 20).forEach(function (p) {
+          var np = gtParseNet(p.id);
+          if (!np.pid || seen[np.net]) return;   // satu pool terbaik per jaringan
+          seen[np.net] = 1;
+          var baseAddr = null, baseSym = sym;
+          try {
+            var rel = p.relationships.base_token.data.id;
+            (j.included || []).forEach(function (i) {
+              if (i.type === "token" && i.id === rel) {
+                baseAddr = i.id.substring(np.net.length + 1);
+                baseSym = i.attributes.symbol || sym;
+              }
+            });
+          } catch (e) {}
+          pools.push({ net: np.net, pid: np.pid, name: p.attributes.name || sym,
+                       baseAddr: baseAddr, baseSym: baseSym,
+                       reserve: +((p.attributes || {}).reserve_in_usd || 0) });
         });
-        var pool = { net: net, pid: pid, name: p.attributes.name || sym,
-                     baseAddr: baseAddr, baseSym: baseSym,
-                     reserve: +((p.attributes || {}).reserve_in_usd || 0) };
-        QCACHE[sym] = { at: Date.now(), pool: pool };
-        return pool;
+        if (!pools.length) throw new Error("pool tidak ditemukan");
+        QCACHE[sym] = { at: Date.now(), pools: pools };
+        return pools;
       });
   }
-  function gtTrades(pool) {
+  function gtTrades(pool, minUsd) {
     var url = GT + "/networks/" + pool.net + "/pools/" + encodeURIComponent(pool.pid)
-      + "/trades?trade_volume_in_usd_greater_than=200";
+      + "/trades?trade_volume_in_usd_greater_than=" + Math.max(50000, Math.round(minUsd || 50000));
     return gtGet(url).then(function (j) {
       return (j.data || []).map(function (t) {
         var a = t.attributes || {};
@@ -532,13 +584,38 @@
     host.appendChild(leg);
   }
 
-  function paintTrades(pool, rows) {
+  function paintTrades(pool, rows, err) {
     var host = $("#q-trades"); host.innerHTML = "";
     var hd = el("div", "qthd");
     var tL = el("div", "qtl");
     tL.appendChild(el("b", null, "Transaksi " + (pool.baseSym || "") + " di DEX"));
-    tL.appendChild(el("span", "qvenue", pool.name + " · " + pool.net.toUpperCase()
+    var vrow = el("span", "qvenuerow");
+    /* 24 Sep (permintaan user): dropdown jaringan — satu koin sering aktif
+       di banyak chain; pilih pool per jaringan, daftar ikut berganti */
+    if (QACTIVE && QACTIVE.pools && QACTIVE.pools.length > 1) {
+      var sel = el("select", "qnet");
+      QACTIVE.pools.forEach(function (p) {
+        var o = el("option", null, p.net.toUpperCase() + " — " + p.name
+          + (p.reserve ? " (" + fmtUsd(p.reserve) + ")" : ""));
+        o.value = p.net;
+        if (p.net === pool.net) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.title = "pilih jaringan";
+      sel.addEventListener("change", function () {
+        var p = (QACTIVE.pools.filter(function (x) { return x.net === sel.value; })[0])
+          || QACTIVE.pools[0];
+        QACTIVE.sel = p;
+        $("#q-trades").innerHTML = "";
+        $("#q-trades").appendChild(el("div", "qload", "memuat transaksi " + p.net.toUpperCase() + " …"));
+        gtTrades(p, QMIN).then(function (r2) { paintTrades(p, r2); })
+          .catch(function (e) { paintTrades(p, null, e); });
+      });
+      vrow.appendChild(sel);
+    }
+    vrow.appendChild(el("span", "qvenue", pool.name + " · " + pool.net.toUpperCase()
       + (pool.reserve ? " · likuiditas " + fmtUsd(pool.reserve) : "")));
+    tL.appendChild(vrow);
     var tR = el("div", "qtr");
     var live = el("span", "qlive");
     live.appendChild(el("i", "qdot"));
@@ -546,8 +623,25 @@
     tR.appendChild(live);
     hd.appendChild(tL); hd.appendChild(tR);
     host.appendChild(hd);
+    /* chip filter whale-print */
+    var chips = el("div", "qchips");
+    chips.appendChild(el("span", "qchipsl", "tampilkan hanya ≥"));
+    [[1e5, "$100rb"], [5e5, "$500rb"], [1e6, "$1jt"], [5e6, "$5jt"]].forEach(function (p) {
+      var c = el("button", "qchip" + (QMIN === p[0] ? " on" : ""), p[1]);
+      c.type = "button";
+      c.title = "filter transaksi minimal " + p[1];
+      c.addEventListener("click", function () { setMin(p[0]); });
+      chips.appendChild(c);
+    });
+    host.appendChild(chips);
+    if (err) {
+      host.appendChild(el("div", "qerr", "gagal memuat: " + (err.message || err)
+        + " — tabel terakhir dipertahankan bila ada"));
+      return;
+    }
     if (!rows || !rows.length) {
-      host.appendChild(el("div", "qerr", "belum ada trade DEX yang terbaca untuk pool ini — coba lagi beberapa detik"));
+      host.appendChild(el("div", "qerr", "tidak ada transaksi ≥ " + fmtUsd(QMIN)
+        + " yang terbaca baru-baru ini di pool ini — turunkan filter di atas bila pool lebih tenang"));
       return;
     }
     var totB = 0, totS = 0;
@@ -584,7 +678,21 @@
         };
       })(r.wallet));
       row.appendChild(wa);
-      row.appendChild(el("span", "wj " + (r.buy ? "beli" : "jual"), r.buy ? "BELI" : "JUAL"));
+      var wcell = el("span", "ww");
+      wcell.appendChild(el("span", "wj " + (r.buy ? "beli" : "jual"), r.buy ? "BELI" : "JUAL"));
+      /* 24 Sep (permintaan user): dua tingkat badge —
+         ≥ $20jt : 🔥 WHALE BESAR (api menyala — whale print ekstrem)
+         ≥ $10jt : 🐋 WHALE (merah) */
+      if (r.usd >= 2e7) {
+        var wb2 = el("b", "wmega2", "🔥 WHALE BESAR");
+        wb2.title = "whale print ekstrem ≥ $20jt — nilai " + fmtUsd(r.usd);
+        wcell.appendChild(wb2);
+      } else if (r.usd >= 1e7) {
+        var wb = el("b", "wwhale", "🐋 WHALE");
+        wb.title = "whale print ≥ $10jt — nilai " + fmtUsd(r.usd);
+        wcell.appendChild(wb);
+      }
+      row.appendChild(wcell);
       row.appendChild(el("span", "wn", (r.amt >= 1000 ? r.amt.toLocaleString("id-ID", { maximumFractionDigits: 0 }) : r.amt.toFixed(r.amt >= 1 ? 3 : 6)) + " " + (pool.baseSym || "")));
       row.appendChild(el("span", "wv" + (r.usd >= 1e5 ? " mega" : ""), fmtUsd(r.usd)));
       row.appendChild(el("span", "wa", pool.name + " · " + pool.net));
@@ -599,7 +707,7 @@
     });
     tab.appendChild(body);
     host.appendChild(tab);
-    var ft = el("div", "qcap", "Semua transaksi on-chain DEX via GeckoTerminal — wallet diambil dari tx_from (pengirim sesungguhnya). 25 terbaru dari " + rows.length + " trade terbaca.");
+    var ft = el("div", "qcap", "Semua transaksi on-chain DEX via GeckoTerminal — wallet = tx_from (pengirim sesungguhnya). 25 terbaru dari " + rows.length + " trade ≥ " + fmtUsd(QMIN) + ".");
     host.appendChild(ft);
   }
 
@@ -614,9 +722,18 @@
   }
   function refreshLive() {
     if (!QACTIVE) return;
-    var symF = QACTIVE.symF, poolP = QACTIVE.poolP;
-    poolP.then(function (pool) {
-      gtTrades(pool).then(function (rows) { paintTrades(pool, rows); }).catch(function () {});
+    var symF = QACTIVE.symF, poolsP = QACTIVE.poolsP;
+    poolsP.then(function (pools) {
+      var pool = QACTIVE.sel
+        || (pools.filter(function (p) { return p.net === QACTIVE.selNet; })[0])
+        || pools[0];
+      if (pool) {
+        QACTIVE.sel = pool;
+        gtTrades(pool, QMIN).then(function (rows) { paintTrades(pool, rows); })
+          .catch(function (e) {   // jaga tabel terakhir; error hanya bila kosong
+            if (!document.querySelector("#q-trades .wrow")) paintTrades(pool, null, e);
+          });
+      }
     }).catch(function () {});
     binanceFlow(symF, function (f) { if (f) paintChart(symF, f); });
   }
@@ -630,15 +747,18 @@
       $("#q-trades").innerHTML = "";
       $("#q-chart").appendChild(el("div", "qload", "menghitung arus taker " + symF + " & mencari pool DEX terlikuid …"));
     }
-    var poolP;
+    var poolsP;
     try {
-      poolP = gtSearchPool(raw);
-    } catch (e) { poolP = Promise.reject(e); }
-    QACTIVE = { symF: symF, poolP: poolP, timer: null };
-    poolP.then(function (pool) {
+      poolsP = gtSearchPool(raw);
+    } catch (e) { poolsP = Promise.reject(e); }
+    QACTIVE = { symF: symF, poolsP: poolsP, sel: null, timer: null };
+    poolsP.then(function (pools) {
       if (!QACTIVE || QACTIVE.symF !== symF) return;
-      gtTrades(pool).then(function (rows) { paintTrades(pool, rows); })
-        .catch(function () { paintTrades(pool, []); });
+      QACTIVE.pools = pools;   // ⚠️ wajib — paintTrades baca ini utk dropdown
+      var pool = pools[0];
+      QACTIVE.sel = pool;
+      gtTrades(pool, QMIN).then(function (rows) { paintTrades(pool, rows); })
+        .catch(function (e) { paintTrades(pool, null, e); });
     }).catch(function (e) {
       if (!QACTIVE || QACTIVE.symF !== symF) return;
       $("#q-trades").innerHTML = "";
