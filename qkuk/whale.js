@@ -207,7 +207,7 @@
       o.start(st); o.stop(st + du + .02);
     });
   }
-  function wDing() {
+  function wDing(level) {
     try {
       if (localStorage.getItem("qkuk_mute") === "1") return;
       var vol = 0.8;
@@ -219,9 +219,19 @@
       if (!AC) return;
       if (!wDing.ctx) wDing.ctx = new AC();
       if (wDing.ctx.state === "suspended") { wDing.ctx.resume(); return; }
-      wPlaySeq(wDing.ctx, WSOUNDS[sid], vol);
+      if (level === "mega") {
+        /* 24 Sep (permintaan user): whale print ≥ $20jt bunyi BEDA — alarm
+           tegas 3 nada naik ×2 (tak mengikuti pilihan suara, biar tak
+           tertukar dgn notifikasi biasa), volume lebih keras. */
+        wPlaySeq(wDing.ctx, WSND_MEGA, Math.min(1, vol + 0.15));
+        setTimeout(function () { if (wDing.ctx) wPlaySeq(wDing.ctx, WSND_MEGA, Math.min(1, vol + 0.15)); }, 1100);
+      } else {
+        wPlaySeq(wDing.ctx, WSOUNDS[sid], vol);
+      }
     } catch (e) {}
   }
+  var WSND_MEGA = { id: "megawhale", wave: "square",
+                    seq: [[0, 440, .16, .8], [.18, 554.37, .16, .8], [.36, 659.25, .34, 1]] };
   function fmtPx(p) {
     p = +p;
     if (p >= 1000) return p.toLocaleString("id-ID", { maximumFractionDigits: 2 });
@@ -740,13 +750,14 @@
     var seed = QSEEN_CTX !== ctx;
     if (seed) { QSEEN = {}; QSEEN_CTX = ctx; }
     var body = el("div", null);
-    var nWhaleBaru = 0;
+    var nWhaleBaru = 0, nMegaBaru = 0;
     rows.slice(0, 25).forEach(function (r) {
       var row = el("div", "wrow qgrid");
       var kunci = r.tx + ":" + r.wallet + ":" + Math.round(r.amt * 1e6);
       var baru = !QSEEN[kunci] && !seed;
       QSEEN[kunci] = 1;
-      if (baru && r.usd >= 1e6) nWhaleBaru++;   // whale print ≥ $1jt → bunyi
+      if (baru && r.usd >= 2e7) nMegaBaru++;   // ≥ $20jt → alarm MEGA
+      else if (baru && r.usd >= 1e6) nWhaleBaru++;   // ≥ $1jt → suara biasa
       if (baru) {
         row.classList.add("qnew", r.buy ? "qn-up" : "qn-dn");
       }
@@ -799,7 +810,8 @@
     });
     tab.appendChild(body);
     host.appendChild(tab);
-    if (nWhaleBaru > 0) wDing();   // suara terminal utk whale print baru
+    if (nMegaBaru > 0) wDing("mega");        // 🔥 WHALE BESAR — alarm khusus
+    else if (nWhaleBaru > 0) wDing();        // suara terminal utk whale print biasa
     var ft = el("div", "qcap", "Semua transaksi on-chain DEX via GeckoTerminal — wallet = tx_from (pengirim sesungguhnya). Link tx mengarah ke explorer jaringan masing-masing (Etherscan utk ETH, Basescan utk Base, BscScan utk BSC, dst). 25 terbaru dari " + rows.length + " trade ≥ " + fmtUsd(QMIN) + ".");
     host.appendChild(ft);
   }
@@ -895,6 +907,9 @@
      Hook __wDingTest() tersedia di console utk uji manual. */
   if (location.search.indexOf("soundtest=1") > -1) {
     setTimeout(wDing, 800);
+    if (location.search.indexOf("mega=1") > -1) {
+      setTimeout(function () { wDing("mega"); }, 2200);   // preview alarm MEGA
+    }
     window.__wDingTest = wDing;
   }
 })();
