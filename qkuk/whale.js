@@ -339,10 +339,14 @@
   function renderWallets(oc) {
     var host = $("#wlrows"); host.innerHTML = "";
     /* 24 Sep (permintaan user): urutkan di sisi web — nilai USD terbesar
-       selalu di atas, tak bergantung urutan snapshot dari engine */
-    var W = (oc.wallets || []).slice().sort(function (a, b) {
-      return (b.balance_usd || 0) - (a.balance_usd || 0);
-    });
+       selalu di atas, tak bergantung urutan snapshot dari engine.
+       Lapisan filter 2: wallet tanpa nilai terukur (gagal API / snapshot
+       engine lama) TIDAK ditampilkan — dulu muncul sebagai saldo 0/$10. */
+    var W = (oc.wallets || [])
+      .filter(function (w) { return w.balance_usd != null && w.balance_usd >= 50000; })
+      .sort(function (a, b) {
+        return (b.balance_usd || 0) - (a.balance_usd || 0);
+      });
     if (!W.length) {
       host.appendChild(el("div", "w-empty", "belum ada snapshot wallet"));
       return;
