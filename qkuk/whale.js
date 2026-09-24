@@ -144,6 +144,145 @@
     setTimeout(function () { t.classList.remove("on"); setTimeout(function () { t.remove(); }, 400); }, 2200);
   }
 
+  /* ── CEK ARAH KOIN — arus taker per menit (24 Sep, permintaan user) ────
+     Menjawab: "ARB sekarang mayoritas DIJUAL atau DIBELI?"
+     Sumber: Binance Futures aggTrades (data yang SAMA dengan yang dibuat
+     exchange jadi bar 1m taker buy volume). Per menit 30 menit terakhir:
+       beli% = 100 × Σqty taker-buyer-is-maker / Σqty total
+     — "buyer is maker" = taker MENJUAL (agresif masuk dgn sell).
+     Taker agresif = uang nyata yang tak sabar — penekan arah paling jujur. */
+  var QCACHE = {};
+  function qCacheGet(sym) {
+    var c = QCACHE[sym];
+    if (c && Date.now() - c.at < 60000) return c.p;   // segar <60 dtk
+    return null;
+  }
+  function aggUrl(sym, ms) {
+    return "https://fapi.binance.com/fapi/v1/aggTrades?symbol=" + sym
+      + "&startTime=" + ms + "&limit=1000";
+  }
+  function fetchAll(sym, ms, acc, cb) {
+    fetch(aggUrl(sym, ms)).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function (arr) {
+      acc = acc.concat(arr);
+      if (arr.length >= 1000 && acc.length < 9000) {   // lanjut halaman berikut
+        var next = arr[arr.length - 1].T + 1;
+        if (Date.now() - next > 500) return fetchAll(sym, next, acc, cb);
+      }
+      cb(acc);
+    }).catch(function () { cb(acc); });
+  }
+  function cekKoin() {
+    var raw = ($("#q-coin").value || "").trim().toUpperCase();
+    if (!raw) return;
+    var out = $("#q-out");
+    var sym = raw.endsWith("USDT") ? raw : raw + "USDT";
+    out.innerHTML = "";
+    out.appendChild(el("div", "qload", "menghitung arus taker " + sym + " …"));
+    var cached = qCacheGet(sym);
+    if (cached) { paintQ(sym, cached); return; }
+    var sekarang = Date.now();
+    fetchAll(sym, sekarang - 30 * 60e3, [], function (trades) {
+      if (!trades.length) {
+        out.innerHTML = "";
+        var e = el("div", "qerr", sym + ": tidak ada data (kode koin salah / tak ada di Binance Futures)");
+        out.appendChild(e);
+        return;
+      }
+      var perMin = {};
+      trades.forEach(function (t) {
+        var mnt = Math.floor(t.T / 60000) * 60000;
+        var q = +t.q, m = t.m;                        // m=true → taker JUAL
+        var b = perMin[mnt] || (perMin[mnt] = { s: 0, b: 0, pv: 0 });
+        if (m) b.s += q; else b.b += q;
+        b.pv += q * (+t.p);
+      }
+      );
+      var px = trades[trades.length - 1].p;
+      var res = { perMin: perMin, px: px, at: Date.now() };
+      QCACHE[sym] = res;
+      paintQ(sym, res);
+    });
+  }
+  function paintQ(sym, res) {
+    var out = $("#q-out");
+    out.innerHTML = "";
+    var keys = Object.keys(res.perMin).sort();
+    if (!keys.length) {
+      out.appendChild(el("div", "qerr", "tidak ada trade dalam 30 menit terakhir"));
+      return;
+    }
+    var totS = 0, totB = 0, totPv = 0;
+    keys.forEach(function (k) {
+      totS += res.perMin[k].s; totB += res.perMin[k].b; totPv += res.perMin[k].pv;
+    });
+    var pctB = totB + totS > 0 ? 100 * totB / (totB + totS) : 50;
+    var arah, warna, kalimat;
+    if (pctB >= 56)      { arah = "MAYORITAS BELI"; warna = "var(--up)";
+      kalimat = "agresif beli dominan — mendukung bias LONG, waspada jebakan bila harga justru turun"; }
+    else if (pctB <= 44) { arah = "MAYORITAS JUAL"; warna = "var(--dn)";
+      kalimat = "agresif jual dominan — bearish, mendukung bias SHORT; cocok dikawinkan dgn alert whale di bawah"; }
+    else                 { arah = "SEIMBANG"; warna = "var(--gold)";
+      kalimat = "beli & jual agresif hampir seimbang — arah belum dipilih, tunggu konfirmasi"; }
+    /* header hasil */
+    var hd = el("div", "qhead");
+    var hL = el("div", "qhl");
+    hL.appendChild(el("div", "qsym", sym));
+    hL.appendChild(el("div", "qpx", " harga terakhir " + fmtPx(+res.px)));
+    var hR = el("div", "qhr");
+    hR.appendChild(el("div", "qbig", arah)); hR.firstChild.style.color = warna;
+    hR.appendChild(el("div", "qsub", kalimat));
+    hd.appendChild(hL); hd.appendChild(hR);
+    out.appendChild(hd);
+    /* bar beli vs jual */
+    var bar = el("div", "qbar");
+    var bB = el("i", "qb"), bS = el("i", "qs");
+    bB.style.width = pctB.toFixed(1) + "%";
+    bS.style.width = (100 - pctB).toFixed(1) + "%";
+    bar.appendChild(bB); bar.appendChild(bS);
+    out.appendChild(bar);
+    var bl = el("div", "qbarl");
+    bl.appendChild(el("span", null, "beli " + pctB.toFixed(1) + "%"));
+    /* cakupan jujur: koin ramai (BTC) bisa kepotong batas 9rb trade */
+    var cakup = Math.round((+keys[keys.length - 1] - +keys[0]) / 60000) + 1;
+    bl.appendChild(el("span", null, cakup + " mnt terakhir · " + keys.length + " menit aktif"));
+    bl.appendChild(el("span", null, "jual " + (100 - pctB).toFixed(1) + "%"));
+    out.appendChild(bl);
+    /* mini-chart per menit (sparkline div 30 kolom) */
+    var mini = el("div", "qmini");
+    var maks = 1;
+    keys.forEach(function (k) {
+      var d = res.perMin[k];
+      var net = Math.abs(d.b - d.s);
+      if (net > maks) maks = net;
+    });
+    keys.slice(-30).forEach(function (k) {
+      var d = res.perMin[k];
+      var net = d.b - d.s;
+      var col = el("i", "qcol " + (net >= 0 ? "up" : "dn"));
+      var hPct = Math.max(6, Math.round(100 * Math.abs(net) / maks));
+      col.style.height = hPct + "%";
+      var pB = 100 * d.b / (d.b + d.s || 1);
+      var jam = new Date(+k + 7 * 3600e3);
+      var p = function (n) { return ("0" + n).slice(-2); };
+      col.title = p(jam.getUTCHours()) + ":" + p(jam.getUTCMinutes())
+        + " — beli " + pB.toFixed(0) + "% · jual " + (100 - pB).toFixed(0) + "%"
+        + " · " + (d.pv >= 1e6 ? ("$" + (d.pv / 1e6).toFixed(1) + "jt") : ("$" + (d.pv / 1e3).toFixed(0) + "rb"));
+      mini.appendChild(col);
+    });
+    out.appendChild(mini);
+    var cap = el("div", "qcap", "kolom hijau = menit dgn agresif beli lebih besar · merah = agresif jual · hover utk detail");
+    out.appendChild(cap);
+  }
+  function fmtPx(p) {
+    if (p >= 1000) return p.toLocaleString("id-ID", { maximumFractionDigits: 2 });
+    if (p >= 1) return p.toFixed(4);
+    if (p >= 0.01) return p.toFixed(5);
+    return p.toFixed(7);
+  }
+
   /* ── state ── */
   var DATA = null, FILTER = "semua", LEFT = 0;
 
@@ -327,4 +466,11 @@
   clock();
   if (isLogged()) { load(true); setInterval(function () { load(false); }, 60000); }
   setInterval(clock, 1000);
+  /* init cek arah koin: enter + tombol (elemen ada di luar gate — aman) */
+  (function () {
+    var qi = document.getElementById("q-coin"), qb = document.getElementById("q-btn");
+    if (!qi || !qb) return;
+    qb.addEventListener("click", cekKoin);
+    qi.addEventListener("keydown", function (ev) { if (ev.key === "Enter") cekKoin(); });
+  })();
 })();
