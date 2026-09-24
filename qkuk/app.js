@@ -281,9 +281,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       r("BTC 1h", ar(V.dirBtc) + "  " + sgn(bp, 2) + "%" + (V.btc24h != null ? " (24 jam)" : ""), bp < 0 ? "neg" : "pos");
       if (V.pubTs) r("dihitung engine", V.pubTs + " WIB", "mut");
       /* 24 Sep — umur data sumber saat NORMAL: biar terlihat segar/tidaknya
-         input gauge (BTC 1h & gelombang grup) tanpa harus nunggu degrade. */
-      if (V.ageBtc != null && V.ageMaj != null)
-        r("umur data", "BTC " + umur(V.ageBtc) + " lalu · gelombang grup " + umur(V.ageMaj) + " lalu", "mut");
+         input gauge (BTC 1h & gelombang grup) tanpa harus nunggu degrade.
+         Warna: hijau = jauh dari batas degrade, kuning = ≥60% menuju batas
+         (BTC 15 mnt, gelombang grup 8 jam — batas sama dgn engine v32). */
+      if (V.ageBtc != null && V.ageMaj != null) {
+        var ub = +V.ageBtc || 0, ug = +V.ageMaj || 0;
+        r("umur data", "BTC " + umur(ub) + " lalu · gelombang grup " + umur(ug) + " lalu",
+          (ub > 540 || ug > 17280) ? "warn" : "pos");
+      }
       /* sparkline riwayat arah per jam (48 jam terakhir, dari engine) */
       (function () {
         var H = DATA.altdir_hist || [];
