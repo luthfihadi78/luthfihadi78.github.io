@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-note-20260925b";   /* 25 Sep v28: panel winrate/jam pakai histogram divergen ala tab Whale (luncur+stagger+denyut ekstrem) */
+  var BUILD = "qkuk-note-20260925c";   /* 25 Sep v29: skala per sisi — kalah terparah setinggi menang terbaik, label MENANG/KALAH ganti sumbu % */
   /* 23 Sep — warna kanal KONTRAS (permintaan user: 1h & 2h mirip):
      Kilat 1h = biru cyan · Scalp 2h = hijau · Swing 4h = emas terang */
   var COLOR = { "1h": "#4DC9F6", "2h": "#6EE7B7", "4h": "#F2C94C" };
@@ -1003,7 +1003,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   function drawLiveHr(svg, ser, per) {
     svg.innerHTML = "";
-    var W = 620, H = 190, P = { t: 14, r: 14, b: 26, l: 36 };
+    /* 25 Sep v2 — SKALA PER SISI (permintaan user: winrate kalah dulu selalu
+       pendek karena mayoritas resolve menang, sehingga histogram tak terlihat
+       divergen). Kini tiap sisi diskalakan SENDIRI: batang kalah terparah
+       setinggi batang menang terbaik — bentuk divergennya jelas. Konsekuensi:
+       sumbu % 0–100 ditarik (tidak lagi sesuai geometri); diganti label
+       MENANG / KALAH + garis putus 50%, angka eksak tetap di hover. */
+    var W = 620, H = 190, P = { t: 14, r: 14, b: 26, l: 14 };
     svg.setAttribute("viewBox", "0 0 " + W + " " + H);
     svg.setAttribute("preserveAspectRatio", "none");
     var iw = (W - P.l - P.r) / 24;
@@ -1017,20 +1023,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       defs.appendChild(g);
     });
     svg.appendChild(defs);
-    for (var g2 = 0; g2 <= 4; g2++) {
-      var vv = g2 * 25, yy = Y(vv);
-      svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: yy, y2: yy, "class": g2 === 2 ? "z" : "g" }));
-      var lb = mk("text", { x: P.l - 5, y: yy + 3, "text-anchor": "end" });
-      lb.textContent = vv + "%"; svg.appendChild(lb);
-    }
+    /* garis nol (50%) — pengganti sumbu % (skala per sisi); label MENANG/KALAH
+       menyusul di lapisan teratas (setelah batang) supaya tak tertutup */
+    var y50 = Y(50);
+    svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: y50, y2: y50, "class": "z" }));
     for (var h2 = 0; h2 < 24; h2 += 3) {
       var tx = mk("text", { x: X(h2) + iw / 2, y: H - 8, "text-anchor": "middle" });
       tx.textContent = (h2 < 10 ? "0" : "") + h2; svg.appendChild(tx);
     }
     var ax = mk("text", { x: W - P.r, y: H - 8, "text-anchor": "end", "class": "hr-wib" });
     ax.textContent = "WIB"; svg.appendChild(ax);
-    /* lollipop: per jam, tiga batang kanal berdampingan dari garis 50%.
-       Naik = menang, turun = kalah; tinggi = |winrate − 50%|. */
     /* HISTOGRAM DIVERGEN (25 Sep, gaya tab Whale v3): batang tumbuh dari
        garis 50% — naik = menang (gradient kanal), turun = kalah (merah);
        tinggi = jarak winrate dari 50% (floor 6px biar 50% eksak tetap
@@ -1039,11 +1041,22 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        tween dari tinggi lama via HR_RAW). Batang ekstrem — dominasi jauh
        dari 50% DAN sampel cukup (≥3) — berdenyut oranye (class hot).
        Hormati prefers-reduced-motion (CSS mematikan transisi/animasi). */
-    var y50 = Y(50), bw = iw / 3.4, gap = 1.5;
+    var bw = iw / 3.4, gap = 1.5;
     var RM = false;
     try { RM = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
     var lama = HR_RAW, tinggiBaru = [];
-    var unit = (H - P.t - P.b) / 100;                 // px per 1% winrate
+    /* SKALA PER SISI: setengah plot utk menang, setengah utk kalah.
+       Terparah tiap sisi = penuh setengah plot; sisanya proporsional —
+       jam kalah 33% kini tampak setinggi jam menang 67%. */
+    var upMax = 1, dnMax = 1;
+    ser.forEach(function (s) {
+      s.pts.forEach(function (p) {
+        var d = Math.abs(p[1] - 50);
+        if (p[1] >= 50) { if (d > upMax) upMax = d; }
+        else if (d > dnMax) dnMax = d;
+      });
+    });
+    var plotHalf = (H - P.t - P.b) / 2;               // px per sisi penuh
     for (var h3 = 0; h3 < 24; h3++) {
       var x0 = X(h3) + (iw - bw * 3 - gap * 2) / 2;
       ser.forEach(function (s, i) {
@@ -1051,7 +1064,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           if (s.pts[q][0] !== h3) continue;
           var c = s.pts[q][2], wr = s.pts[q][1];
           var up = wr >= 50;
-          var bh = Math.max(6, Math.abs(wr - 50) * unit);
+          var bh = Math.max(6, Math.abs(wr - 50) / (up ? upMax : dnMax) * plotHalf);
           var by = up ? y50 - bh : y50;
           var bx = x0 + i * (bw + gap);
           var grp = mk("g", { "class": "hr-bar" + (Math.abs(wr - 50) >= 20 && c[0] >= 3 ? " hot" : "")
@@ -1103,6 +1116,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       });
     }
     HR_RAW = tinggiBaru;
+    /* label MENANG/KALAH paling atas (di atas batang) — halo gelap via CSS paint-order */
+    var lbU = mk("text", { x: P.l + 4, y: P.t + 9, "class": "hr-lab up" });
+    lbU.textContent = "MENANG"; svg.appendChild(lbU);
+    var lbD = mk("text", { x: P.l + 4, y: H - P.b - 5, "class": "hr-lab dn" });
+    lbD.textContent = "KALAH"; svg.appendChild(lbD);
     /* crosshair + tooltip per jam — hover di mana pun menampilkan semua kanal */
     var card = svg.parentNode;
     /* redraw (picks berubah): buang tooltip & crosshair lama supaya tak menumpuk */

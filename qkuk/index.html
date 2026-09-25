@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=20260925a">
+<link rel="stylesheet" href="style.css?v=20260925b">
 </head>
 <body>
 
@@ -208,8 +208,9 @@
         <div class="card-h"><h3>Win rate by WIB hour — 00:00 to 23:00</h3><div class="lg" id="hr-lg"></div></div>
         <svg class="ch" id="hr" role="img" aria-label="Winrate per jam WIB, tiga kanal live"></svg>
         <p class="cap">Histogram divergen per jam WIB — tiga batang kanal (Kilat 1h biru · Scalp 2h hijau · Swing 4h emas) berdampingan,
-        tumbuh dari garis 50%: batang naik = menang, turun = kalah, tinggi = jarak winrate dari 50%. Batang berdenyut oranye
-        = jam ekstrem (≥20% dari 50%, min. 3 resolve). Batang meluncur halus tiap segaran. Hover untuk rincian W/L.
+        tumbuh dari garis 50%: batang naik = menang, turun = kalah. Skala per sisi: kalah terparah setinggi menang terbaik,
+        jadi jam kalah tidak tampak selalu pendek. Batang berdenyut oranye = jam ekstrem (≥20% dari 50%, min. 3 resolve).
+        Batang meluncur halus tiap segaran. Hover untuk rincian W/L (angka eksak).
         Sumber: winrate live resolve admin — bukan backtest. Jam tanpa resolve kosong (bukan nol).</p>
       </div>
     </div>
@@ -236,6 +237,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20260925b" defer></script>
+<script src="app.js?v=20260925c" defer></script>
 </body>
 </html>
