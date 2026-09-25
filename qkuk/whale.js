@@ -812,55 +812,120 @@
     bl.appendChild(el("span", null, "arus taker futures · " + keys.length + " menit aktif"));
     bl.appendChild(el("span", null, "jual " + (100 - pctB).toFixed(1) + "%"));
     host.appendChild(bl);
-    /* GRAFIK GELEMBUNG WHALE (25 Sep, pilihan user — menggantikan histogram):
-       tiap menit = satu gelembung. UKURAN = volume USD menit itu (area ∝ vol),
-       POSISI vertikal = dominasi (di atas garis = agresif BELI lebih besar,
-       di bawah = agresif JUAL), WARNA = arah. Animasi dramatis: bloom masuk
-       stagger kiri→kanan, gelembung ekstrem berdenyut, verdict berkedip saat
-       berganti arah. Hormati prefers-reduced-motion. */
+    /* GRAFIK PITA ARUS (25 Sep v2 — pilihan user, menggantikan bubble):
+       sungai uang yang MENGALIR — ketebalan pita = volume USD menit itu,
+       hijau menggunung di atas garis = agresif BELI menang, merah di bawah
+       = JUAL menang. Kurva bezier halus; antar refresh pita BERGESER
+       (tween rAF 700ms) — terasa hidup/bernapas. Titik berdenyut = menit
+       ekstrem. Hormati prefers-reduced-motion. */
     var p2 = function (n) { return ("0" + n).slice(-2); };
     var RM = false;
     try { RM = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
     var keys40 = keys.slice(-40);
+    var n40 = keys40.length;
     var maksVol = 1;
     keys40.forEach(function (k) { maksVol = Math.max(maksVol, f.perMin[k].pv); });
-    var wrap = el("div", "qchart-big qbub-wrap");
-    var plot = el("div", "qbub-plot");
+    var VW = 1000, VH = 220, CY = VH / 2, PAD = 40;
+    var xs = keys40.map(function (_, i) { return PAD + i * ((VW - PAD * 2) / (n40 - 1 || 1)); });
+    var vals = keys40.map(function (k) { var d = f.perMin[k]; return { b: d.b, s: d.s }; });
+    var wrap = el("div", "qchart-big qstream-wrap");
+    var plot = el("div", "qstream-plot");
+    var NS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + VW + " " + VH);
+    svg.setAttribute("preserveAspectRatio", "none");
+    svg.classList.add("qstream-svg");
+    var defs = document.createElementNS(NS, "defs");
+    defs.innerHTML = '<linearGradient id="qsgBuy" x1="0" y1="0" x2="0" y2="1">'
+      + '<stop offset="0" stop-color="#6EE7B7" stop-opacity=".9"/><stop offset="1" stop-color="#6EE7B7" stop-opacity=".10"/></linearGradient>'
+      + '<linearGradient id="qsgSell" x1="0" y1="1" x2="0" y2="0">'
+      + '<stop offset="0" stop-color="#E8877C" stop-opacity=".9"/><stop offset="1" stop-color="#E8877C" stop-opacity=".10"/></linearGradient>';
+    svg.appendChild(defs);
+    var pBuy = document.createElementNS(NS, "path");
+    var pSell = document.createElementNS(NS, "path");
+    pBuy.classList.add("qs-buy"); pSell.classList.add("qs-sell");
+    svg.appendChild(pSell); svg.appendChild(pBuy);
+    plot.appendChild(svg);
     plot.appendChild(el("div", "qbub-zero"));
     plot.appendChild(el("span", "qbub-lab up", "BELI"));
     plot.appendChild(el("span", "qbub-lab dn", "JUAL"));
-    var n40 = keys40.length;
-    keys40.forEach(function (k, idx) {
-      var d = f.perMin[k];
-      var tot = d.b + d.s;
-      var pctB = tot > 0 ? 100 * d.b / tot : 50;
-      var dom = Math.max(-45, Math.min(45, (pctB - 50) * 1.8));  // ±45% maks, 1,8× biar terlihat
-      var frac = Math.sqrt(Math.max(0, d.pv) / maksVol);          // area ∝ volume
-      var dia = 10 + frac * 44;                                   // 10–54px
-      var b = el("div", "qbub " + (pctB >= 55 ? "up" : pctB <= 45 ? "dn" : "mid"));
-      b.style.setProperty("--d", dia.toFixed(0) + "px");
-      var x = n40 > 1 ? 4 + idx * (92 / (n40 - 1)) : 50;
-      b.style.left = x.toFixed(2) + "%";
-      b.style.top = (50 - dom).toFixed(1) + "%";
-      if (!RM) b.style.animationDelay = (idx * 28) + "ms";
-      if (Math.abs(pctB - 50) >= 20 && frac > 0.55) b.classList.add("hot");
-      var jam = new Date(+k + 7 * 3600e3);
-      b.setAttribute("data-tip", p2(jam.getUTCHours()) + ":" + p2(jam.getUTCMinutes())
+    /* titik ekstrem + kolom hover per menit */
+    var perX = (VW - PAD * 2) / (n40 - 1 || 1);
+    vals.forEach(function (v, i) {
+      var tot = v.b + v.s;
+      var pctB = tot > 0 ? 100 * v.b / tot : 50;
+      var jam = new Date(+keys40[i] + 7 * 3600e3);
+      var tip = p2(jam.getUTCHours()) + ":" + p2(jam.getUTCMinutes())
         + " — beli " + pctB.toFixed(0) + "% · jual " + (100 - pctB).toFixed(0) + "%"
-        + " · volume " + fmtUsd(d.pv));
-      plot.appendChild(b);
+        + " · volume " + fmtUsd(f.perMin[keys40[i]].pv);
+      var hv = el("div", "qhov"); hv.setAttribute("data-tip", tip);
+      hv.style.left = ((xs[i] - perX / 2) / VW * 100).toFixed(2) + "%";
+      hv.style.width = (perX / VW * 100).toFixed(2) + "%";
+      plot.appendChild(hv);
+      if (Math.abs(pctB - 50) >= 20 && (f.perMin[keys40[i]].pv / maksVol) > 0.55) {
+        var dt = el("i", "qdot-hot" + (pctB >= 55 ? " up" : " dn"));
+        dt.style.left = (xs[i] / VW * 100).toFixed(2) + "%";
+        plot.appendChild(dt);
+      }
     });
     wrap.appendChild(plot);
     var j1 = new Date(+keys40[0] + 7 * 3600e3), j2 = new Date(+keys40[n40 - 1] + 7 * 3600e3);
     var ax = el("div", "qbub-ax");
     ax.appendChild(el("span", null, p2(j1.getUTCHours()) + ":" + p2(j1.getUTCMinutes()) + " WIB"));
-    ax.appendChild(el("span", null, "ukuran = volume USD · atas = beli dominan · bawah = jual dominan"));
+    ax.appendChild(el("span", null, "ketebalan pita = volume USD · menggunung atas = beli menang · bawah = jual menang"));
     ax.appendChild(el("span", null, p2(j2.getUTCHours()) + ":" + p2(j2.getUTCMinutes()) + " WIB"));
     wrap.appendChild(ax);
     host.appendChild(wrap);
     var cap = el("div", "qcap",
-      "gelembung per menit — makin BESAR gelembung = makin besar volume agresif menit itu · atas garis = BELI menang · bawah = JUAL menang · gelembung berdenyut = menit ekstrem · hover utk detail");
+      "pita arus = detak jantung market — makin TEBAL = makin besar volume agresif menit itu · pita melengkung ke ATAS = beli menang, ke BAWAH = jual menang · titik berdenyut = menit ekstrem · pita bergeser halus tiap segaran · hover utk detail");
     host.appendChild(cap);
+    /* render + tween: pita BERGESER halus dari data sebelumnya (rAF) */
+    function bangunPath(v) {
+      var top = [], bot = [];
+      v.forEach(function (p, i) {
+        var up = Math.max(3, p.b / maksVol * 78), dn = Math.max(3, p.s / maksVol * 78);
+        top.push({ x: xs[i], y: CY - up }); bot.push({ x: xs[i], y: CY + dn });
+      });
+      function smooth(pts) {
+        var d = "";
+        for (var i = 0; i < pts.length - 1; i++) {
+          var p0 = pts[Math.max(0, i - 1)], p1 = pts[i],
+              p2b = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+          d += "C" + (p1.x + (p2b.x - p0.x) / 6).toFixed(1) + "," + (p1.y + (p2b.y - p0.y) / 6).toFixed(1)
+             + " " + (p2b.x - (p3.x - p1.x) / 6).toFixed(1) + "," + (p2b.y - (p3.y - p1.y) / 6).toFixed(1)
+             + " " + p2b.x.toFixed(1) + "," + p2b.y.toFixed(1);
+        }
+        return d;
+      }
+      function area(pts) {
+        return "M" + pts[0].x.toFixed(1) + "," + CY + " L" + pts[0].x.toFixed(1) + "," + pts[0].y.toFixed(1)
+          + smooth(pts) + " L" + pts[pts.length - 1].x.toFixed(1) + "," + CY + " Z";
+      }
+      pBuy.setAttribute("d", area(top));
+      pSell.setAttribute("d", area(bot));
+    }
+    var lama = QACTIVE ? QACTIVE.streamRaw : null;
+    if (RM) { bangunPath(vals); }
+    else {
+      var awal = vals.map(function () { return { b: 0, s: 0 }; });   // bloom dari garis
+      if (lama && lama.length) {                                    // resample ke n40
+        awal = vals.map(function (_, i) {
+          var o = lama[Math.round(i * (lama.length - 1) / Math.max(1, vals.length - 1))] || lama[lama.length - 1];
+          return { b: o.b, s: o.s };
+        });
+      }
+      var t0 = null;
+      (function tween(ts) {
+        if (!t0) t0 = ts;
+        var u = Math.min(1, (ts - t0) / 700);
+        var e = u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+        bangunPath(awal.map(function (a, i) {
+          return { b: a.b + (vals[i].b - a.b) * e, s: a.s + (vals[i].s - a.s) * e };
+        }));
+        if (u < 1) requestAnimationFrame(tween);
+      })(performance.now());
+    }
+    if (QACTIVE) QACTIVE.streamRaw = vals;
     var leg = el("div", "qleg");
     leg.appendChild(el("span", null, "Sumber futures: Binance USDⓈ-M (aggTrades, live dari browser)"));
     host.appendChild(leg);
