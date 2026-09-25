@@ -751,7 +751,17 @@
       kalimat = "futures & DEX hampir seimbang — arah belum dipilih, tunggu konfirmasi";
     }
     var big = document.getElementById("q-big"), sub = document.getElementById("q-sub");
-    if (big) { big.textContent = arah; big.style.color = warna; }
+    if (big) {
+      /* berkedip HANYA saat arah benar2 berganti (bandingkan dgn verdict
+         siklus sebelumnya — elemen dibuat ulang tiap paint, jadi simpan di
+         QACTIVE, bukan di textContent) */
+      var lama = QACTIVE ? QACTIVE.lastArah : null;
+      big.textContent = arah; big.style.color = warna;
+      if (lama && lama !== arah) {
+        big.classList.remove("qflash"); void big.offsetWidth; big.classList.add("qflash");
+      }
+      if (QACTIVE) QACTIVE.lastArah = arah;
+    }
     if (sub) sub.textContent = kalimat;
   }
 
@@ -802,38 +812,54 @@
     bl.appendChild(el("span", null, "arus taker futures · " + keys.length + " menit aktif"));
     bl.appendChild(el("span", null, "jual " + (100 - pctB).toFixed(1) + "%"));
     host.appendChild(bl);
-    /* GRAFIK BESAR: batang divergen dari garis nol — hijau ke atas (beli
-       dominan menit itu), merah ke bawah (jual dominan). 140px, gradient,
-       hover detail. */
-    var maks = 1;
-    keys.forEach(function (k) {
-      var d = f.perMin[k];
-      var net = Math.abs(d.b - d.s);
-      if (net > maks) maks = net;
-    });
-    var wrap = el("div", "qchart-big");
-    var mini = el("div", "qmini2");
+    /* GRAFIK GELEMBUNG WHALE (25 Sep, pilihan user — menggantikan histogram):
+       tiap menit = satu gelembung. UKURAN = volume USD menit itu (area ∝ vol),
+       POSISI vertikal = dominasi (di atas garis = agresif BELI lebih besar,
+       di bawah = agresif JUAL), WARNA = arah. Animasi dramatis: bloom masuk
+       stagger kiri→kanan, gelembung ekstrem berdenyut, verdict berkedip saat
+       berganti arah. Hormati prefers-reduced-motion. */
     var p2 = function (n) { return ("0" + n).slice(-2); };
-    keys.slice(-40).forEach(function (k) {
+    var RM = false;
+    try { RM = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+    var keys40 = keys.slice(-40);
+    var maksVol = 1;
+    keys40.forEach(function (k) { maksVol = Math.max(maksVol, f.perMin[k].pv); });
+    var wrap = el("div", "qchart-big qbub-wrap");
+    var plot = el("div", "qbub-plot");
+    plot.appendChild(el("div", "qbub-zero"));
+    plot.appendChild(el("span", "qbub-lab up", "BELI"));
+    plot.appendChild(el("span", "qbub-lab dn", "JUAL"));
+    var n40 = keys40.length;
+    keys40.forEach(function (k, idx) {
       var d = f.perMin[k];
-      var net = d.b - d.s;
-      var hPct = Math.max(4, Math.round(100 * Math.abs(net) / maks));
-      var col = el("div", "qcol2");
-      var barIn = el("i", net >= 0 ? "qu" : "qd");
-      barIn.style.height = hPct + "%";
-      col.appendChild(barIn);
+      var tot = d.b + d.s;
+      var pctB = tot > 0 ? 100 * d.b / tot : 50;
+      var dom = Math.max(-45, Math.min(45, (pctB - 50) * 1.8));  // ±45% maks, 1,8× biar terlihat
+      var frac = Math.sqrt(Math.max(0, d.pv) / maksVol);          // area ∝ volume
+      var dia = 10 + frac * 44;                                   // 10–54px
+      var b = el("div", "qbub " + (pctB >= 55 ? "up" : pctB <= 45 ? "dn" : "mid"));
+      b.style.setProperty("--d", dia.toFixed(0) + "px");
+      var x = n40 > 1 ? 4 + idx * (92 / (n40 - 1)) : 50;
+      b.style.left = x.toFixed(2) + "%";
+      b.style.top = (50 - dom).toFixed(1) + "%";
+      if (!RM) b.style.animationDelay = (idx * 28) + "ms";
+      if (Math.abs(pctB - 50) >= 20 && frac > 0.55) b.classList.add("hot");
       var jam = new Date(+k + 7 * 3600e3);
-      var pB = 100 * d.b / (d.b + d.s || 1);
-      col.title = p2(jam.getUTCHours()) + ":" + p2(jam.getUTCMinutes())
-        + " — beli " + pB.toFixed(0) + "% · jual " + (100 - pB).toFixed(0) + "%"
-        + " · " + fmtUsd(d.pv);
-      mini.appendChild(col);
+      b.setAttribute("data-tip", p2(jam.getUTCHours()) + ":" + p2(jam.getUTCMinutes())
+        + " — beli " + pctB.toFixed(0) + "% · jual " + (100 - pctB).toFixed(0) + "%"
+        + " · volume " + fmtUsd(d.pv));
+      plot.appendChild(b);
     });
-    var zero = el("div", "qzero");
-    wrap.appendChild(mini); wrap.appendChild(zero);
+    wrap.appendChild(plot);
+    var j1 = new Date(+keys40[0] + 7 * 3600e3), j2 = new Date(+keys40[n40 - 1] + 7 * 3600e3);
+    var ax = el("div", "qbub-ax");
+    ax.appendChild(el("span", null, p2(j1.getUTCHours()) + ":" + p2(j1.getUTCMinutes()) + " WIB"));
+    ax.appendChild(el("span", null, "ukuran = volume USD · atas = beli dominan · bawah = jual dominan"));
+    ax.appendChild(el("span", null, p2(j2.getUTCHours()) + ":" + p2(j2.getUTCMinutes()) + " WIB"));
+    wrap.appendChild(ax);
     host.appendChild(wrap);
     var cap = el("div", "qcap",
-      "hijau = menit dgn agresif BELI lebih besar (naik dari garis) · merah = agresif JUAL (turun) · hover utk detail per menit");
+      "gelembung per menit — makin BESAR gelembung = makin besar volume agresif menit itu · atas garis = BELI menang · bawah = JUAL menang · gelembung berdenyut = menit ekstrem · hover utk detail");
     host.appendChild(cap);
     var leg = el("div", "qleg");
     leg.appendChild(el("span", null, "Sumber futures: Binance USDⓈ-M (aggTrades, live dari browser)"));

@@ -713,16 +713,52 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 .qbar .qs{background:linear-gradient(90deg,var(--dn),#C4675E);display:block;height:100%}
 .qbarl{display:flex;justify-content:space-between;font-size:11px;color:var(--fg-3);margin-top:6px}
 .qchart-big{position:relative;margin-top:14px;background:var(--s1);border:1px solid var(--line);
-  border-radius:12px;padding:22px 14px 10px}
-.qmini2{display:flex;align-items:center;gap:4px;height:150px}
-.qmini2 .qcol2{flex:1;min-width:5px;height:100%;display:flex;flex-direction:column;justify-content:center}
-.qmini2 .qcol2 i{display:block;width:100%;border-radius:3px}
-.qmini2 .qcol2 .qu{background:linear-gradient(180deg,var(--up),rgba(110,231,183,.25));align-self:flex-end;
-  box-shadow:0 0 10px rgba(110,231,183,.18)}
-.qmini2 .qcol2 .qd{background:linear-gradient(180deg,rgba(232,135,124,.25),var(--dn));align-self:flex-start;
-  box-shadow:0 0 10px rgba(232,135,124,.18)}
-.qzero{position:absolute;left:14px;right:14px;top:50%;height:1px;background:var(--line-2);pointer-events:none}
-.qcap{font-size:10.5px;color:var(--fg-3);margin-top:8px}
+  border-radius:12px;padding:14px}
+/* ══ GELEMBUNG WHALE (25 Sep — pilihan user; menggantikan histogram) ══
+   ukuran = volume USD menit itu · posisi = dominasi (atas=BELI, bawah=JUAL)
+   · bloom masuk stagger · gelembung ekstrem berdenyut · verdict berkedip */
+.qbub-plot{position:relative;height:220px;border-radius:8px;
+  background:linear-gradient(180deg,rgba(110,231,183,.045),transparent 48%,rgba(232,135,124,.05))}
+.qbub-zero{position:absolute;left:0;right:0;top:50%;height:1px;background:var(--line-2);
+  pointer-events:none}
+.qbub-lab{position:absolute;left:10px;font-size:9.5px;letter-spacing:.14em;font-weight:700;
+  pointer-events:none;opacity:.65}
+.qbub-lab.up{top:8px;color:var(--up)}
+.qbub-lab.dn{bottom:8px;color:var(--dn)}
+.qbub{position:absolute;width:var(--d,16px);height:var(--d,16px);border-radius:50%;
+  transform:translate(-50%,-50%);cursor:default}
+.qbub.up{background:radial-gradient(circle at 34% 30%, rgba(110,231,183,.95), rgba(110,231,183,.30) 62%, rgba(110,231,183,.07));
+  border:1px solid rgba(110,231,183,.55);box-shadow:0 0 14px rgba(110,231,183,.25)}
+.qbub.dn{background:radial-gradient(circle at 34% 30%, rgba(232,135,124,.95), rgba(232,135,124,.30) 62%, rgba(232,135,124,.07));
+  border:1px solid rgba(232,135,124,.55);box-shadow:0 0 14px rgba(232,135,124,.25)}
+.qbub.mid{background:radial-gradient(circle at 34% 30%, rgba(238,244,241,.55), rgba(238,244,241,.14) 62%, rgba(238,244,241,.05));
+  border:1px solid rgba(238,244,241,.30)}
+.qbub.hot{animation:qbubPulse 1.6s ease-in-out infinite}
+@keyframes qbubPulse{
+  0%,100%{box-shadow:0 0 12px rgba(238,180,76,.25);filter:brightness(1)}
+  50%{box-shadow:0 0 26px rgba(238,180,76,.65);filter:brightness(1.22)}}
+.qbub-wrap .qbub{animation:qbubBloom .5s cubic-bezier(.18,.9,.24,1.12) both}
+.qbub-wrap .qbub.hot{animation:qbubBloom .5s cubic-bezier(.18,.9,.24,1.12) both,
+                      qbubPulse 1.6s ease-in-out .8s infinite}
+@keyframes qbubBloom{from{opacity:0;transform:translate(-50%,-50%) scale(.2)}
+  to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.qbub:hover{filter:brightness(1.3);z-index:3}
+.qbub::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;
+  transform:translateX(-50%);background:#0D1411;border:1px solid var(--line-2);border-radius:7px;
+  color:var(--fg);font-size:10.5px;font-family:var(--mono);white-space:nowrap;
+  padding:5px 9px;opacity:0;pointer-events:none;transition:opacity .15s;z-index:5;
+  box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.qbub:hover::after{opacity:1}
+.qbub-ax{display:flex;justify-content:space-between;gap:10px;font-size:10px;color:var(--fg-3);margin-top:6px}
+.qbub-ax span:nth-child(2){text-align:center;flex:1}
+/* verdict berkedip saat berganti arah (dramatis) */
+.qbig.qflash{animation:qbigFlash .7s ease}
+@keyframes qbigFlash{0%{opacity:.25;transform:scale(.96)}
+  40%{opacity:1;transform:scale(1.035)}100%{opacity:1;transform:scale(1)}}
+@media (prefers-reduced-motion: reduce){
+  .qbub,.qbub.hot{animation:none}
+  .qbig.qflash{animation:none}}
+.qcap{font-size:10.5px;color:var(--fg-3);margin-top:8px;line-height:1.5}
 /* chip filter whale-print (default $1jt, tersimpan localStorage) */
 .qchips{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:2px 0 10px}
 .qchipsl{font-size:11px;color:var(--fg-3)}
