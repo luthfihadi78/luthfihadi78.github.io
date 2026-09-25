@@ -714,38 +714,39 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 .qbarl{display:flex;justify-content:space-between;font-size:11px;color:var(--fg-3);margin-top:6px}
 .qchart-big{position:relative;margin-top:14px;background:var(--s1);border:1px solid var(--line);
   border-radius:12px;padding:14px}
-/* ══ PITA ARUS (25 Sep v2 — pilihan user; menggantikan bubble) ══
-   sungai uang: ketebalan pita = volume USD menit itu · hijau menggunung
-   atas = beli menang · merah di bawah = jual menang · tween rAF antar
-   refresh (pita BERGESER halus) · titik berdenyut = menit ekstrem */
-.qstream-plot{position:relative;height:220px;border-radius:8px;
+/* ══ HISTOGRAM DIVERGEN (25 Sep v3 — pilihan user; menggantikan stream) ══
+   batang tumbuh dari garis nol: hijau ke atas = agresif BELI menang, merah
+   ke bawah = JUAL menang · tinggi = besarnya dominasi · antar refresh batang
+   MELUNCUR ke tinggi baru (transition + stagger kiri→kanan) · ekstrem
+   berdenyut oranye · gaya order-flow TradingView */
+.qhist-plot{position:relative;height:220px;display:flex;align-items:stretch;gap:3px;
+  border-radius:8px;padding:6px 4px;
   background:linear-gradient(180deg,rgba(110,231,183,.04),transparent 48%,rgba(232,135,124,.045))}
-.qstream-svg{display:block;width:100%;height:100%}
-.qstream-svg .qs-buy{fill:url(#qsgBuy);filter:drop-shadow(0 0 12px rgba(110,231,183,.35));
-  animation:qsBreath 4.5s ease-in-out infinite}
-.qstream-svg .qs-sell{fill:url(#qsgSell);filter:drop-shadow(0 0 12px rgba(232,135,124,.35));
-  animation:qsBreath 4.5s ease-in-out 2.2s infinite}
-@keyframes qsBreath{0%,100%{opacity:.92}50%{opacity:.72}}
-.qbub-zero{position:absolute;left:0;right:0;top:50%;height:1px;background:var(--line-2);
+.qbub-zero{position:absolute;left:4px;right:4px;top:50%;height:1px;background:var(--line-2);
   pointer-events:none}
 .qbub-lab{position:absolute;left:10px;font-size:9.5px;letter-spacing:.14em;font-weight:700;
   pointer-events:none;opacity:.65}
 .qbub-lab.up{top:8px;color:var(--up)}
 .qbub-lab.dn{bottom:8px;color:var(--dn)}
-.qhov{position:absolute;top:0;bottom:0;cursor:crosshair}
-.qhov::after{content:attr(data-tip);position:absolute;bottom:calc(100% - 4px);left:50%;
+.qhcol{flex:1;min-width:4px;position:relative;display:flex;cursor:crosshair}
+.qhcol.up{align-items:flex-end}
+.qhcol.dn{align-items:flex-start}
+.qhcol i{display:block;width:100%;border-radius:3px;transition:height .65s cubic-bezier(.22,.9,.28,1)}
+.qhcol.up i{background:linear-gradient(180deg,var(--up),rgba(110,231,183,.22));
+  box-shadow:0 0 12px rgba(110,231,183,.28)}
+.qhcol.dn i{background:linear-gradient(180deg,rgba(232,135,124,.22),var(--dn));
+  box-shadow:0 0 12px rgba(232,135,124,.28)}
+.qhcol:hover i{filter:brightness(1.35)}
+.qhcol.hot i{animation:qhPulse 1.6s ease-in-out infinite}
+@keyframes qhPulse{0%,100%{filter:brightness(1)}
+  50%{filter:brightness(1.45) saturate(1.25);box-shadow:0 0 20px rgba(238,180,76,.55)}}
+.qhcol::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 2px);left:50%;
   transform:translateX(-50%);background:#0D1411;border:1px solid var(--line-2);border-radius:7px;
   color:var(--fg);font-size:10.5px;font-family:var(--mono);white-space:nowrap;
   padding:5px 9px;opacity:0;pointer-events:none;transition:opacity .15s;z-index:6;
   box-shadow:0 4px 14px rgba(0,0,0,.4)}
-.qhov:hover::after{opacity:1}
-.qhov:hover{background:rgba(238,244,241,.05)}
-.qdot-hot{position:absolute;top:50%;width:10px;height:10px;border-radius:50%;
-  transform:translate(-50%,-50%);pointer-events:none;animation:qdotPulse 1.6s ease-in-out infinite}
-.qdot-hot.up{background:var(--up);box-shadow:0 0 14px rgba(110,231,183,.8)}
-.qdot-hot.dn{background:var(--dn);box-shadow:0 0 14px rgba(232,135,124,.8)}
-@keyframes qdotPulse{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.8)}
-  50%{opacity:1;transform:translate(-50%,-50%) scale(1.25)}}
+.qhcol:hover::after{opacity:1}
+.qhcol.dn::after{bottom:auto;top:calc(100% + 2px)}
 .qbub-ax{display:flex;justify-content:space-between;gap:10px;font-size:10px;color:var(--fg-3);margin-top:6px}
 .qbub-ax span:nth-child(2){text-align:center;flex:1}
 /* verdict berkedip saat berganti arah (dramatis) */
@@ -753,7 +754,8 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 @keyframes qbigFlash{0%{opacity:.25;transform:scale(.96)}
   40%{opacity:1;transform:scale(1.035)}100%{opacity:1;transform:scale(1)}}
 @media (prefers-reduced-motion: reduce){
-  .qstream-svg .qs-buy,.qstream-svg .qs-sell,.qdot-hot{animation:none}
+  .qhcol i{transition:none}
+  .qhcol.hot i{animation:none}
   .qbig.qflash{animation:none}}
 .qcap{font-size:10.5px;color:var(--fg-3);margin-top:8px;line-height:1.5}
 /* chip filter whale-print (default $1jt, tersimpan localStorage) */
