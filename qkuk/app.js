@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-note-20260923a";   /* 23 Sep v27: heat table + toggle winrate/total% + baris aktif 09-21 + klik sel = filter riwayat */
+  var BUILD = "qkuk-note-20260925b";   /* 25 Sep v28: panel winrate/jam pakai histogram divergen ala tab Whale (luncur+stagger+denyut ekstrem) */
   /* 23 Sep — warna kanal KONTRAS (permintaan user: 1h & 2h mirip):
      Kilat 1h = biru cyan · Scalp 2h = hijau · Swing 4h = emas terang */
   var COLOR = { "1h": "#4DC9F6", "2h": "#6EE7B7", "4h": "#F2C94C" };
@@ -904,6 +904,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
             makin bingung dgn 3 garis bersilangan)
      Sumber sama dengan heat table & kartu live resolve: picks admin. */
   var HR_NAME = { "1h": "Kilat 1h", "2h": "Scalp 2h", "4h": "Swing 4h" };
+  /* 25 Sep — tinggi ter-akhir tiap batang histogram (urut h×kanal), buat
+     tween antar segaran: batang MELUNCUR dari tinggi lama ke baru, persis
+     histogram divergen di tab Whale. Bentuk array mengikuti urutan render. */
+  var HR_RAW = null;
   function liveHourAgg() {
     var per = {}, h;
     for (h = 0; h < 24; h++) { per[h] = { "1h": [0, 0, 0], "2h": [0, 0, 0], "4h": [0, 0, 0] }; }
@@ -963,10 +967,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     } else svgEmpty($("#eq"), "belum ada resolve live — tandai win/loss lewat tombol ambil, kurva terisi otomatis");
     hrChart();
   }
-  /* ② Win rate by WIB hour — LOLLIPOP per jam (ganti garis, permintaan
-     user 23 Sep: garis 3 kanal justru membingungkan). Satu kolom per jam,
-     tiga batang kanal berdampingan dari garis 50%: naik = menang,
-     turun = kalah, tinggi = winrate. Sumbu jujur 0–100%. */
+  /* ② Win rate by WIB hour — HISTOGRAM DIVERGEN per jam (25 Sep, gaya tab
+     Whale: menggantikan lollipop 23 Sep). Satu kolom per jam, tiga batang
+     kanal berdampingan TUMBUH dari garis 50%: naik = menang, turun = kalah,
+     tinggi = jarak winrate dari 50%. Sumbu jujur 0–100%. */
   function hrChart() {
     var svg = $("#hr"); if (!svg) return;
     var per = liveHourAgg();
@@ -1027,34 +1031,78 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     ax.textContent = "WIB"; svg.appendChild(ax);
     /* lollipop: per jam, tiga batang kanal berdampingan dari garis 50%.
        Naik = menang, turun = kalah; tinggi = |winrate − 50%|. */
+    /* HISTOGRAM DIVERGEN (25 Sep, gaya tab Whale v3): batang tumbuh dari
+       garis 50% — naik = menang (gradient kanal), turun = kalah (merah);
+       tinggi = jarak winrate dari 50% (floor 6px biar 50% eksak tetap
+       terlihat). Antar redraw batang MELUNCUR halus dgn stagger kiri→kanan
+       (luncur 650ms + delay 18ms per kolom jam, dua rAF utk posisi awal,
+       tween dari tinggi lama via HR_RAW). Batang ekstrem — dominasi jauh
+       dari 50% DAN sampel cukup (≥3) — berdenyut oranye (class hot).
+       Hormati prefers-reduced-motion (CSS mematikan transisi/animasi). */
     var y50 = Y(50), bw = iw / 3.4, gap = 1.5;
+    var RM = false;
+    try { RM = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+    var lama = HR_RAW, tinggiBaru = [];
+    var unit = (H - P.t - P.b) / 100;                 // px per 1% winrate
     for (var h3 = 0; h3 < 24; h3++) {
       var x0 = X(h3) + (iw - bw * 3 - gap * 2) / 2;
       ser.forEach(function (s, i) {
         for (var q = 0; q < s.pts.length; q++) {
           if (s.pts[q][0] !== h3) continue;
           var c = s.pts[q][2], wr = s.pts[q][1];
-          var yv = Y(wr), up = wr >= 50;
-          var by = Math.min(yv, y50), bh = Math.max(2, Math.abs(yv - y50));
+          var up = wr >= 50;
+          var bh = Math.max(6, Math.abs(wr - 50) * unit);
+          var by = up ? y50 - bh : y50;
           var bx = x0 + i * (bw + gap);
-          var grp = mk("g");
+          var grp = mk("g", { "class": "hr-bar" + (Math.abs(wr - 50) >= 20 && c[0] >= 3 ? " hot" : "")
+            + (up ? " w" : " l") });
           var tv = mk("title");
           tv.textContent = s.name + " @ " + ("0" + h3).slice(-2) + ".00 — WR "
             + wr.toFixed(0) + "% (" + c[1] + "W/" + (c[0] - c[1]) + "L)";
           grp.appendChild(tv);
-          grp.appendChild(mk("rect", { x: bx.toFixed(1), y: by.toFixed(1),
+          var rc = mk("rect", { x: bx.toFixed(1), y: by.toFixed(1),
             width: bw.toFixed(1), height: bh.toFixed(1), rx: 1.5,
             fill: "url(#hrg" + i + ")",
             stroke: up ? s.color : "rgba(232,135,124,.9)",
-            "stroke-opacity": up ? .55 : .9, "stroke-width": .8 }));
-          /* kepala lollipop = nilai winrate eksak */
-          grp.appendChild(mk("circle", { cx: (bx + bw / 2).toFixed(1), cy: yv.toFixed(1),
-            r: 2.2, fill: up ? s.color : "#E8877C" }));
+            "stroke-opacity": up ? .55 : .9, "stroke-width": .8 });
+          var idx = tinggiBaru.length;
+          tinggiBaru.push({ k: h3 + "|" + s.tf, bh: bh, by: by });
+          var awal = null;
+          if (!RM && lama && lama.length) {
+            for (var z = 0; z < lama.length; z++) {
+              if (lama[z] && lama[z].k === h3 + "|" + s.tf) { awal = lama[z]; break; }
+            }
+          }
+          /* catatan: walau data sama, mulai dari tinggi lama — transisi ke
+             nilai sama tak terlihat, JANGAN di-nol-kan lagi supaya batang
+             tidak tumbuh ulang tiap poll 60 dtk. */
+          if (!RM) {
+            if (awal) {                                        // mulai dr tinggi lama
+              rc.setAttribute("y", awal.by.toFixed(1));
+              rc.setAttribute("height", awal.bh.toFixed(1));
+            } else {                                           // tumbuh dr garis 50%
+              rc.setAttribute("y", y50.toFixed(1));
+              rc.setAttribute("height", "0");
+            }
+            rc.style.transitionDelay = (h3 * 18) + "ms";       // stagger per JAM
+          }
+          grp.appendChild(rc);
           svg.appendChild(grp);
+          if (!RM) {
+            (function (r, ty, th) {                            // dua rAF: pastikan posisi awal ter-render
+              requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                  r.setAttribute("y", ty.toFixed(1));
+                  r.setAttribute("height", th.toFixed(1));
+                });
+              });
+            })(rc, by, bh);
+          }
           break;
         }
       });
     }
+    HR_RAW = tinggiBaru;
     /* crosshair + tooltip per jam — hover di mana pun menampilkan semua kanal */
     var card = svg.parentNode;
     /* redraw (picks berubah): buang tooltip & crosshair lama supaya tak menumpuk */
