@@ -2065,8 +2065,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function isLogged() { return SS.get("qkuk_admin_ok") === "1"; }
   function isAdmin() { return isLogged(); }
   var PLOG = [];          // riwayat semua aksi admin (ambil/koreksi/hapus)
-  var AUTHCLOUD = null;   // hash password hasil "ganti password" (dari cloud)
+  /* 25 Sep (permintaan user): password USER juga bisa diganti admin — cloud
+     auth kini {admin:{user,hash}, user:{user,hash}}. Bentuk LAMA (hash admin
+     polos di j.auth.hash) tetap terbaca agar tidak ada yang terkunci. */
+  var AUTHCLOUD = null;   // hash password admin hasil "ganti password" (dari cloud)
+  var USERCLOUD = null;   // hash password user hasil "ganti password" (dari cloud)
   function curHash() { return AUTHCLOUD || AUTH.hash; }
+  function curHashUser() { return USERCLOUD || USER_AUTH.hash; }
   function wibStr(iso) {
     if (!iso) return "—";
     var d = new Date(new Date(iso).getTime() + 7 * 3600e3);
@@ -2146,7 +2151,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         var j = null; try { j = JSON.parse(t); } catch (e) {}
         if (j && typeof j.value === "string") { try { j = JSON.parse(j.value); } catch (e) {} }
         cloud = (j && j.picks) || {}; cloudLog = (j && j.log) || [];
-        if (j && j.auth && j.auth.hash) AUTHCLOUD = j.auth.hash;
+        if (j && j.auth) {
+          if (j.auth.hash) AUTHCLOUD = j.auth.hash;                 // bentuk lama
+          if (j.auth.admin && j.auth.admin.hash) AUTHCLOUD = j.auth.admin.hash;
+          if (j.auth.user && j.auth.user.hash) USERCLOUD = j.auth.user.hash;
+        }
         tick();
       })
       .catch(function () { tick(); });
@@ -2176,7 +2185,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       method: "POST", headers: { "Content-Type": "text/plain" },
       body: JSON.stringify({ __id: TXTDB_ID, value: JSON.stringify({
         picks: PICKS, log: PLOG,
-        auth: AUTHCLOUD ? { user: AUTH.user, hash: AUTHCLOUD } : null }) })
+        auth: (AUTHCLOUD || USERCLOUD) ? {
+          admin: AUTHCLOUD ? { user: AUTH.user, hash: AUTHCLOUD } : { user: AUTH.user, hash: AUTH.hash },
+          user:  USERCLOUD ? { user: USER_AUTH.user, hash: USERCLOUD } : { user: USER_AUTH.user, hash: USER_AUTH.hash }
+        } : null }) })
     }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); });
   }
   function savePicks(st, done) {
@@ -2321,7 +2333,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var u = (uIn.value || "").trim(), p = pIn.value || "";
       sha256hex(u + ":" + p)
         .then(function (h) {
-          if (u === AUTH.user && h === curHash()) {
+          if (u === USER_AUTH.user && h === curHashUser()) {
+            SS.set("qkuk_user_ok", "1");
+            st.textContent = "selamat datang ✓";
+            setTimeout(function () { admClose(); reapply(); }, 450);
+          } else if (u === AUTH.user && h === curHash()) {
             SS.set("qkuk_admin_ok", "1");
             /* 23 Sep — pegas penyelamat: hasilkan ulang picks.json repo dari
                cloud (sumber sebenarnya) setiap admin login. Tanpa ini,
@@ -2345,10 +2361,27 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   function openChgPass() {
     var box = el("div");
-    box.appendChild(admHead("Ganti password admin"));
+    box.appendChild(admHead("Ganti password"));
+    /* 25 Sep (permintaan user): admin bisa memilih ganti password ADMIN
+       atau password USER — verifikasi tetap pakai password admin. */
+    var tRow = el("div", "adm-row");
+    var tAdmin = el("button", "adm-cancel on", "password ADMIN"); tAdmin.type = "button";
+    var tUser = el("button", "adm-cancel", "password USER"); tUser.type = "button";
+    tAdmin.style.flex = "1"; tUser.style.flex = "1";
+    var TARGET = { v: "admin" };
+    function pickT(w) {
+      TARGET.v = w;
+      tAdmin.classList.toggle("on", w === "admin");
+      tUser.classList.toggle("on", w === "user");
+      oIn.placeholder = w === "admin" ? "password admin lama"
+                                      : "password admin (verifikasi)";
+    }
+    tAdmin.addEventListener("click", function () { pickT("admin"); });
+    tUser.addEventListener("click", function () { pickT("user"); });
+    tRow.appendChild(tAdmin); tRow.appendChild(tUser); box.appendChild(tRow);
     box.appendChild(el("div", "adm-desc",
-      "Password baru disimpan sebagai hash SHA-256 di cloud — berlaku untuk semua perangkat, tanpa edit kode. Minimal 6 karakter."));
-    var oIn = el("input", "adm-in"); oIn.type = "password"; oIn.placeholder = "password lama";
+      "Password baru disimpan sebagai hash SHA-256 di cloud — berlaku untuk semua perangkat, tanpa edit kode. Minimal 6 karakter. Verifikasi selalu pakai password admin."));
+    var oIn = el("input", "adm-in"); oIn.type = "password"; oIn.placeholder = "password admin lama";
     var nIn = el("input", "adm-in"); nIn.type = "password"; nIn.placeholder = "password baru";
     var rIn = el("input", "adm-in"); rIn.type = "password"; rIn.placeholder = "ulangi password baru";
     var st = el("div", "adm-status");
@@ -2360,20 +2393,22 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     admShow(box);
     ok.addEventListener("click", function () {
       var o = oIn.value || "", n = nIn.value || "", r2 = rIn.value || "";
+      var userTarget = TARGET.v === "user";
       if (n.length < 6) { st.textContent = "password baru minimal 6 karakter"; return; }
       if (n !== r2) { st.textContent = "ulangan password baru tidak sama"; return; }
+      if (userTarget && (n === o)) { st.textContent = "password user baru tidak boleh sama dgn password admin"; return; }
       st.textContent = "memverifikasi…";
       sha256hex(AUTH.user + ":" + o)
         .then(function (h) {
-          if (h !== curHash()) { st.textContent = "password lama salah"; return; }
-          return sha256hex(AUTH.user + ":" + n);
+          if (h !== curHash()) { st.textContent = "password admin salah"; return; }
+          return sha256hex((userTarget ? USER_AUTH.user : AUTH.user) + ":" + n);
         })
         .then(function (h2) {
           if (!h2) return;
-          AUTHCLOUD = h2;
-          plogAdd("password", "", null, null);
+          if (userTarget) USERCLOUD = h2; else AUTHCLOUD = h2;
+          plogAdd("password" + (userTarget ? " (user)" : ""), "", null, null);
           return cloudWrite().then(function () {
-            st.textContent = "password diganti ✓ — aktif untuk semua perangkat";
+            st.textContent = "password " + (userTarget ? "USER" : "ADMIN") + " diganti ✓ — aktif untuk semua perangkat";
             setTimeout(admClose, 1000);
           });
         })
