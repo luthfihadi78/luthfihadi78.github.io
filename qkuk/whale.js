@@ -94,7 +94,7 @@
         gate.classList.add("bye");
         document.documentElement.classList.add("authed");
         setTimeout(function () { if (gate.parentNode) gate.parentNode.removeChild(gate); }, 750);
-        load(true);
+        load(true); feedStart();   // ⚠️ interval poll WAJIB dipasang di sini juga
       }, 2450);
     }
     function tryGate() {
@@ -202,9 +202,9 @@
       var sel = (QACTIVE && QACTIVE.sel) || {};
       var n = new Notification(
         "🔥 WHALE BESAR — " + fmtUsd(b.usd) + " " + (b.buy ? "BELI" : "JUAL"),
-        { body: b.amt.toFixed(2) + " " + (sel.baseSym || "")
+        { body: b.body || (b.amt.toFixed(2) + " " + (sel.baseSym || "")
               + " · " + (sel.name || "")
-              + " · wallet " + (b.wallet ? b.wallet.slice(0, 10) + "…" : "—"),
+              + " · wallet " + (b.wallet ? b.wallet.slice(0, 10) + "…" : "—")),
           tag: "qkuk-mega-" + b.tx, icon: W_ICON, badge: W_ICON, renotify: true });
       n.onclick = function () {
         try { window.focus(); } catch (e) {}
@@ -475,11 +475,43 @@
     renderWallets(oc);
   }
 
+  /* 25 Sep (permintaan user): alarm MEGA juga di FEED UTAMA — alert level
+     MEGA yang baru terbit (belum terlihat sesi ini) memainkan alarm suara
+     yang sama dgn tabel cek koin; saat tab tersembunyi + notifikasi desktop
+     aktif, kirim pula Notification API. Seed senyap di muat pertama. */
+  var WSEEN_FEED = null;
   function load(first) {
     fetch("data.json?t=" + Date.now(), { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function (j) {
-        DATA = j; LEFT = 60; render();
+        DATA = j; LEFT = 60;
+        try {
+          var oc2 = (j || {}).onchain, hari2 = ((oc2 || {}).alerts || [])
+            .filter(function (a) {
+              return a.ts_wib && a.ts_wib.slice(0, 10) ===
+                (new Date(Date.now() + 7 * 3600e3)).toISOString().slice(0, 10);
+            });
+          var mega2 = hari2.filter(function (a) { return a.level === "MEGA"; });
+          if (!WSEEN_FEED) {          // muat pertama = seed senyap (tanpa bunyi)
+            WSEEN_FEED = {};
+            mega2.forEach(function (a) { WSEEN_FEED[a.txid || a.ts_wib] = 1; });
+          } else {
+            var megaBaru = mega2.filter(function (a) { return !WSEEN_FEED[a.txid || a.ts_wib]; });
+            if (megaBaru.length) {
+              mega2.forEach(function (a) { WSEEN_FEED[a.txid || a.ts_wib] = 1; });
+              wDing("mega");          // 🔊 alarm MEGA (3 nada ×2 — sama dgn tabel)
+              if (document.hidden) {  // 🖥 desktop hanya saat tab tidak aktif
+                var a0 = megaBaru[0];
+                deskMega({ usd: a0.usd || 0, buy: a0.arah === "BELI",
+                  body: (a0.nominal || "") + " " + (a0.arah || "") + " · "
+                      + (a0.chain || "").toUpperCase() + " · " + (a0.alasan || "")
+                      + (a0.sumber ? " · " + a0.sumber : ""),
+                  wallet: a0.to || a0.from || "", tx: a0.txid });
+              }
+            }
+          }
+        } catch (e) {}
+        render();
       })
       .catch(function () {
         if (!DATA) { $("#state").textContent = "no data"; $("#dot").classList.add("stale"); }
@@ -1000,7 +1032,19 @@
   gateInit();
   clock();
   deskBtnInit();
-  if (isLogged()) { load(true); setInterval(function () { load(false); }, 60000); }
+  /* poll feed 60 dtk — ?poll=<detik> mempercepat utk uji (min 3 dtk).
+     25 Sep (bug dari uji lokal): dulu interval hanya terpasang bila sesi
+     login SUDAH ada saat halaman dimuat — setelah login segar di gerbang,
+     feed tak pernah dipoll & alarm MEGA feed tak pernah menyala. Kini
+     feedStart() dgn guard ganda, dipanggil dari kedua jalur. */
+  var FEED_MS = 60000, FEED_TIMER = null, _mq = location.search.match(/poll=(\d+)/);
+  if (_mq) FEED_MS = Math.max(3, +_mq[1]) * 1000;
+  function feedStart() {
+    if (FEED_TIMER) return;   // jangan dobel pasang
+    load(true);
+    FEED_TIMER = setInterval(function () { load(false); }, FEED_MS);
+  }
+  if (isLogged()) feedStart();
   setInterval(clock, 1000);
   (function () {
     var qi = document.getElementById("q-coin"), qb = document.getElementById("q-btn");
@@ -1018,5 +1062,17 @@
       setTimeout(function () { wDing("mega"); }, 2200);   // preview alarm MEGA
     }
     window.__wDingTest = wDing;
+  }
+  /* ?deskmega=1 — uji notifikasi desktop MEGA sekali setelah 1,2 dtk:
+     aktifkan 🖥 dulu (izin diminta dari klik), jalankan URL ini, lalu
+     pindah ke tab lain → notifikasi OS harus muncul walau tab Whale tak
+     aktif. Hook __deskMegaTest() juga tersedia di console. */
+  if (location.search.indexOf("deskmega=1") > -1) {
+    window.__deskMegaTest = function () {
+      deskMega({ usd: 2.5e7, buy: false, amt: 3.21,
+                 wallet: "1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb8uX",
+                 tx: "deskmega-test-" + Date.now() });
+    };
+    setTimeout(function () { window.__deskMegaTest(); }, 1200);
   }
 })();
