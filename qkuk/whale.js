@@ -26,9 +26,29 @@
     };
   })();
 
-  /* ── auth: hash identik dgn terminal (app.js) ── */
+  /* ── auth: hash identik dgn terminal (app.js) ──
+     25 Sep: hash hasil "ganti password" admin tersimpan di cloud textdb —
+     diambil saat muat agar password baru langsung berlaku di tab Whale juga
+     (kredensial & sesi identik dgn terminal). Bentuk lama (hash polos) &
+     bentuk baru {admin:{…}, user:{…}} dua-duanya dibaca. */
   var AUTH = { user: "admin", hash: "d78f6114b477459dfaacf645a3d5453b33437cce560a016ffbc2051408d3caa0" };
   var USER_AUTH = { user: "user", hash: "7d1e87fd6803a1d1ae6069ecd635c81960d5af1629a1a0fc85912685f8f25196" };
+  var TXTDB_ID = "qkuk-53bc732eb802f8c087142876";
+  var AUTHCLOUD = null, USERCLOUD = null;
+  function curHash() { return AUTHCLOUD || AUTH.hash; }
+  function curHashUser() { return USERCLOUD || USER_AUTH.hash; }
+  fetch("https://textdb.dev/api/data/" + TXTDB_ID + "?t=" + Date.now(), { cache: "no-store" })
+    .then(function (r) { return r.ok ? r.text() : ""; })
+    .then(function (t) {
+      var j = null; try { j = JSON.parse(t); } catch (e) {}
+      if (j && typeof j.value === "string") { try { j = JSON.parse(j.value); } catch (e) {} }
+      if (j && j.auth) {
+        if (j.auth.hash) AUTHCLOUD = j.auth.hash;
+        if (j.auth.admin && j.auth.admin.hash) AUTHCLOUD = j.auth.admin.hash;
+        if (j.auth.user && j.auth.user.hash) USERCLOUD = j.auth.user.hash;
+      }
+    })
+    .catch(function () {});
   function sha256hex(s) {
     return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s))
       .then(function (buf) {
@@ -101,8 +121,8 @@
       var u = (uIn.value || "").trim(), p = pIn.value || "";
       if (!u || !p) { err.textContent = "isi username dan password"; return; }
       sha256hex(u + ":" + p).then(function (h) {
-        if (u === AUTH.user && h === AUTH.hash) { SS.set("qkuk_admin_ok", "1"); finish(); }
-        else if (u === USER_AUTH.user && h === USER_AUTH.hash) { SS.set("qkuk_user_ok", "1"); finish(); }
+        if (u === AUTH.user && h === curHash()) { SS.set("qkuk_admin_ok", "1"); finish(); }
+        else if (u === USER_AUTH.user && h === curHashUser()) { SS.set("qkuk_user_ok", "1"); finish(); }
         else {
           err.textContent = "username / password salah";
           gate.classList.remove("shake"); void gate.offsetWidth; gate.classList.add("shake");
@@ -357,8 +377,8 @@
       x.appendChild(el("span", "v " + (c || ""), v));
       m.appendChild(x);
     }
-    r("sumber", "mempool.space · Etherscan V2 · publicnode SUI/BSC · Hyperliquid", "mut");
-    r("threshold", "BTC/ETH ≥ $20jt · lainnya ≥ max(1% vol 24j, $2jt) · MEGA ≥ $100jt", "mut");
+    r("sumber", "mempool.space · Etherscan V2 · publicnode SUI/BSC/scan · Hyperliquid", "mut");
+    r("threshold", "BTC/ETH ≥ $20jt · lainnya ≥ max(1% vol 24j, $2jt) · scan market ≥ $10jt · MEGA ≥ $100jt", "mut");
     r("arah dibaca", "deposit ke exchange = indikasi JUAL · withdrawal = indikasi BELI", "mut");
     r("total tercatat", A.length + " alert (CSV bot)", "mut");
   }
