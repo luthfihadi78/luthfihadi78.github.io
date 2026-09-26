@@ -26,29 +26,9 @@
     };
   })();
 
-  /* ── auth: hash identik dgn terminal (app.js) ──
-     25 Sep: hash hasil "ganti password" admin tersimpan di cloud textdb —
-     diambil saat muat agar password baru langsung berlaku di tab Whale juga
-     (kredensial & sesi identik dgn terminal). Bentuk lama (hash polos) &
-     bentuk baru {admin:{…}, user:{…}} dua-duanya dibaca. */
+  /* ── auth: hash identik dgn terminal (app.js) ── */
   var AUTH = { user: "admin", hash: "d78f6114b477459dfaacf645a3d5453b33437cce560a016ffbc2051408d3caa0" };
   var USER_AUTH = { user: "user", hash: "7d1e87fd6803a1d1ae6069ecd635c81960d5af1629a1a0fc85912685f8f25196" };
-  var TXTDB_ID = "qkuk-53bc732eb802f8c087142876";
-  var AUTHCLOUD = null, USERCLOUD = null;
-  function curHash() { return AUTHCLOUD || AUTH.hash; }
-  function curHashUser() { return USERCLOUD || USER_AUTH.hash; }
-  fetch("https://textdb.dev/api/data/" + TXTDB_ID + "?t=" + Date.now(), { cache: "no-store" })
-    .then(function (r) { return r.ok ? r.text() : ""; })
-    .then(function (t) {
-      var j = null; try { j = JSON.parse(t); } catch (e) {}
-      if (j && typeof j.value === "string") { try { j = JSON.parse(j.value); } catch (e) {} }
-      if (j && j.auth) {
-        if (j.auth.hash) AUTHCLOUD = j.auth.hash;
-        if (j.auth.admin && j.auth.admin.hash) AUTHCLOUD = j.auth.admin.hash;
-        if (j.auth.user && j.auth.user.hash) USERCLOUD = j.auth.user.hash;
-      }
-    })
-    .catch(function () {});
   function sha256hex(s) {
     return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s))
       .then(function (buf) {
@@ -114,15 +94,15 @@
         gate.classList.add("bye");
         document.documentElement.classList.add("authed");
         setTimeout(function () { if (gate.parentNode) gate.parentNode.removeChild(gate); }, 750);
-        load(true); feedStart();   // ⚠️ interval poll WAJIB dipasang di sini juga
+        load(true);
       }, 2450);
     }
     function tryGate() {
       var u = (uIn.value || "").trim(), p = pIn.value || "";
       if (!u || !p) { err.textContent = "isi username dan password"; return; }
       sha256hex(u + ":" + p).then(function (h) {
-        if (u === AUTH.user && h === curHash()) { SS.set("qkuk_admin_ok", "1"); finish(); }
-        else if (u === USER_AUTH.user && h === curHashUser()) { SS.set("qkuk_user_ok", "1"); finish(); }
+        if (u === AUTH.user && h === AUTH.hash) { SS.set("qkuk_admin_ok", "1"); finish(); }
+        else if (u === USER_AUTH.user && h === USER_AUTH.hash) { SS.set("qkuk_user_ok", "1"); finish(); }
         else {
           err.textContent = "username / password salah";
           gate.classList.remove("shake"); void gate.offsetWidth; gate.classList.add("shake");
@@ -222,9 +202,9 @@
       var sel = (QACTIVE && QACTIVE.sel) || {};
       var n = new Notification(
         "🔥 WHALE BESAR — " + fmtUsd(b.usd) + " " + (b.buy ? "BELI" : "JUAL"),
-        { body: b.body || (b.amt.toFixed(2) + " " + (sel.baseSym || "")
+        { body: b.amt.toFixed(2) + " " + (sel.baseSym || "")
               + " · " + (sel.name || "")
-              + " · wallet " + (b.wallet ? b.wallet.slice(0, 10) + "…" : "—")),
+              + " · wallet " + (b.wallet ? b.wallet.slice(0, 10) + "…" : "—"),
           tag: "qkuk-mega-" + b.tx, icon: W_ICON, badge: W_ICON, renotify: true });
       n.onclick = function () {
         try { window.focus(); } catch (e) {}
@@ -377,8 +357,8 @@
       x.appendChild(el("span", "v " + (c || ""), v));
       m.appendChild(x);
     }
-    r("sumber", "mempool.space · Etherscan V2 · publicnode SUI/BSC/scan · Hyperliquid", "mut");
-    r("threshold", "BTC/ETH ≥ $20jt · lainnya ≥ max(1% vol 24j, $2jt) · scan market ≥ $10jt · MEGA ≥ $100jt", "mut");
+    r("sumber", "mempool.space · Etherscan V2 · publicnode SUI/BSC · Hyperliquid", "mut");
+    r("threshold", "BTC/ETH ≥ $20jt · lainnya ≥ max(1% vol 24j, $2jt) · MEGA ≥ $100jt", "mut");
     r("arah dibaca", "deposit ke exchange = indikasi JUAL · withdrawal = indikasi BELI", "mut");
     r("total tercatat", A.length + " alert (CSV bot)", "mut");
   }
@@ -495,43 +475,11 @@
     renderWallets(oc);
   }
 
-  /* 25 Sep (permintaan user): alarm MEGA juga di FEED UTAMA — alert level
-     MEGA yang baru terbit (belum terlihat sesi ini) memainkan alarm suara
-     yang sama dgn tabel cek koin; saat tab tersembunyi + notifikasi desktop
-     aktif, kirim pula Notification API. Seed senyap di muat pertama. */
-  var WSEEN_FEED = null;
   function load(first) {
     fetch("data.json?t=" + Date.now(), { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function (j) {
-        DATA = j; LEFT = 60;
-        try {
-          var oc2 = (j || {}).onchain, hari2 = ((oc2 || {}).alerts || [])
-            .filter(function (a) {
-              return a.ts_wib && a.ts_wib.slice(0, 10) ===
-                (new Date(Date.now() + 7 * 3600e3)).toISOString().slice(0, 10);
-            });
-          var mega2 = hari2.filter(function (a) { return a.level === "MEGA"; });
-          if (!WSEEN_FEED) {          // muat pertama = seed senyap (tanpa bunyi)
-            WSEEN_FEED = {};
-            mega2.forEach(function (a) { WSEEN_FEED[a.txid || a.ts_wib] = 1; });
-          } else {
-            var megaBaru = mega2.filter(function (a) { return !WSEEN_FEED[a.txid || a.ts_wib]; });
-            if (megaBaru.length) {
-              mega2.forEach(function (a) { WSEEN_FEED[a.txid || a.ts_wib] = 1; });
-              wDing("mega");          // 🔊 alarm MEGA (3 nada ×2 — sama dgn tabel)
-              if (document.hidden) {  // 🖥 desktop hanya saat tab tidak aktif
-                var a0 = megaBaru[0];
-                deskMega({ usd: a0.usd || 0, buy: a0.arah === "BELI",
-                  body: (a0.nominal || "") + " " + (a0.arah || "") + " · "
-                      + (a0.chain || "").toUpperCase() + " · " + (a0.alasan || "")
-                      + (a0.sumber ? " · " + a0.sumber : ""),
-                  wallet: a0.to || a0.from || "", tx: a0.txid });
-              }
-            }
-          }
-        } catch (e) {}
-        render();
+        DATA = j; LEFT = 60; render();
       })
       .catch(function () {
         if (!DATA) { $("#state").textContent = "no data"; $("#dot").classList.add("stale"); }
@@ -659,9 +607,10 @@
   }
   function gtTrades(pool, minUsd) {
     /* ⚠️ tanpa clamp 50rb — dulu sisi API di-clamp ≥$50rb sehingga chip
-       $10rb/$1rb tidak pernah menampilkan trade di bawah $50rb (bug) */
+       $10rb/$1rb tidak pernah menampilkan trade di bawah $50rb (bug).
+       26 Sep — clamp 1000 → 100: chip $100 kini benar2 mengambil trade ≥$100. */
     var url = GT + "/networks/" + pool.net + "/pools/" + encodeURIComponent(pool.pid)
-      + "/trades?trade_volume_in_usd_greater_than=" + Math.max(1000, Math.round(minUsd || 1000));
+      + "/trades?trade_volume_in_usd_greater_than=" + Math.max(100, Math.round(minUsd || 100));
     return gtGet(url).then(function (j) {
       return (j.data || []).map(function (t) {
         var a = t.attributes || {};
@@ -751,17 +700,7 @@
       kalimat = "futures & DEX hampir seimbang — arah belum dipilih, tunggu konfirmasi";
     }
     var big = document.getElementById("q-big"), sub = document.getElementById("q-sub");
-    if (big) {
-      /* berkedip HANYA saat arah benar2 berganti (bandingkan dgn verdict
-         siklus sebelumnya — elemen dibuat ulang tiap paint, jadi simpan di
-         QACTIVE, bukan di textContent) */
-      var lama = QACTIVE ? QACTIVE.lastArah : null;
-      big.textContent = arah; big.style.color = warna;
-      if (lama && lama !== arah) {
-        big.classList.remove("qflash"); void big.offsetWidth; big.classList.add("qflash");
-      }
-      if (QACTIVE) QACTIVE.lastArah = arah;
-    }
+    if (big) { big.textContent = arah; big.style.color = warna; }
     if (sub) sub.textContent = kalimat;
   }
 
@@ -812,72 +751,39 @@
     bl.appendChild(el("span", null, "arus taker futures · " + keys.length + " menit aktif"));
     bl.appendChild(el("span", null, "jual " + (100 - pctB).toFixed(1) + "%"));
     host.appendChild(bl);
-    /* GRAFIK HISTOGRAM DIVERGEN (25 Sep v3 — pilihan user): batang TUMBUH
-       dari garis nol — hijau ke atas (agresif BELI menang menit itu), merah
-       ke bawah (JUAL menang), tinggi = besarnya dominasi. Antar refresh
-       batang MELUNCUR halus ke tinggi baru (CSS transition + stagger
-       kiri→kanan); batang ekstrem berdenyut oranye. Hormati
-       prefers-reduced-motion. */
-    var p2 = function (n) { return ("0" + n).slice(-2); };
-    var RM = false;
-    try { RM = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
-    var keys40 = keys.slice(-40);
-    var n40 = keys40.length;
-    var maksNet = 1, maksVol = 1;
-    keys40.forEach(function (k) {
+    /* GRAFIK BESAR: batang divergen dari garis nol — hijau ke atas (beli
+       dominan menit itu), merah ke bawah (jual dominan). 140px, gradient,
+       hover detail. */
+    var maks = 1;
+    keys.forEach(function (k) {
       var d = f.perMin[k];
-      maksNet = Math.max(maksNet, Math.abs(d.b - d.s));
-      maksVol = Math.max(maksVol, d.pv);
+      var net = Math.abs(d.b - d.s);
+      if (net > maks) maks = net;
     });
-    var lama = QACTIVE ? QACTIVE.histRaw : null;   // tinggi awal utk tween
-    var wrap = el("div", "qchart-big qhist-wrap");
-    var plot = el("div", "qhist-plot");
-    plot.appendChild(el("div", "qbub-zero"));
-    plot.appendChild(el("span", "qbub-lab up", "BELI"));
-    plot.appendChild(el("span", "qbub-lab dn", "JUAL"));
-    var tinggiBaru = [];
-    keys40.forEach(function (k, idx) {
+    var wrap = el("div", "qchart-big");
+    var mini = el("div", "qmini2");
+    var p2 = function (n) { return ("0" + n).slice(-2); };
+    keys.slice(-40).forEach(function (k) {
       var d = f.perMin[k];
       var net = d.b - d.s;
-      var pctB = 100 * d.b / (d.b + d.s || 1);
-      var hPct = Math.max(3, Math.round(Math.abs(net) / maksNet * 46));  // maks ±46%
-      tinggiBaru.push(hPct);
-      var col = el("div", "qhcol " + (net >= 0 ? "up" : "dn"));
-      if (Math.abs(pctB - 50) >= 20 && (d.pv / maksVol) > 0.55) col.classList.add("hot");
+      var hPct = Math.max(4, Math.round(100 * Math.abs(net) / maks));
+      var col = el("div", "qcol2");
+      var barIn = el("i", net >= 0 ? "qu" : "qd");
+      barIn.style.height = hPct + "%";
+      col.appendChild(barIn);
       var jam = new Date(+k + 7 * 3600e3);
-      col.setAttribute("data-tip", p2(jam.getUTCHours()) + ":" + p2(jam.getUTCMinutes())
-        + " — beli " + pctB.toFixed(0) + "% · jual " + (100 - pctB).toFixed(0) + "%"
-        + " · volume " + fmtUsd(d.pv));
-      var bar = el("i");
-      var awal = 0;
-      if (!RM && lama && lama.length) {
-        var o = lama[Math.round(idx * (lama.length - 1) / Math.max(1, n40 - 1))];
-        if (o) awal = o;
-      }
-      bar.style.height = (RM ? hPct : awal) + "%";
-      if (!RM) bar.style.transitionDelay = (idx * 18) + "ms";
-      col.appendChild(bar);
-      plot.appendChild(col);
-      if (!RM) {
-        (function (b, target) {                      // dua rAF: pastikan posisi awal ter-render
-          requestAnimationFrame(function () {
-            requestAnimationFrame(function () { b.style.height = target + "%"; });
-          });
-        })(bar, hPct);
-      }
+      var pB = 100 * d.b / (d.b + d.s || 1);
+      col.title = p2(jam.getUTCHours()) + ":" + p2(jam.getUTCMinutes())
+        + " — beli " + pB.toFixed(0) + "% · jual " + (100 - pB).toFixed(0) + "%"
+        + " · " + fmtUsd(d.pv);
+      mini.appendChild(col);
     });
-    wrap.appendChild(plot);
-    var j1 = new Date(+keys40[0] + 7 * 3600e3), j2 = new Date(+keys40[n40 - 1] + 7 * 3600e3);
-    var ax = el("div", "qbub-ax");
-    ax.appendChild(el("span", null, p2(j1.getUTCHours()) + ":" + p2(j1.getUTCMinutes()) + " WIB"));
-    ax.appendChild(el("span", null, "tinggi batang = besarnya dominasi · atas garis = beli menang · bawah = jual menang"));
-    ax.appendChild(el("span", null, p2(j2.getUTCHours()) + ":" + p2(j2.getUTCMinutes()) + " WIB"));
-    wrap.appendChild(ax);
+    var zero = el("div", "qzero");
+    wrap.appendChild(mini); wrap.appendChild(zero);
     host.appendChild(wrap);
     var cap = el("div", "qcap",
-      "histogram divergen — batang hijau tumbuh ke ATAS = menit agresif BELI menang · merah ke bawah = JUAL menang · tinggi = besarnya dominasi · batang berdenyut oranye = menit ekstrem · batang meluncur halus tiap segaran · hover utk detail");
+      "hijau = menit dgn agresif BELI lebih besar (naik dari garis) · merah = agresif JUAL (turun) · hover utk detail per menit");
     host.appendChild(cap);
-    if (QACTIVE) QACTIVE.histRaw = tinggiBaru;
     var leg = el("div", "qleg");
     leg.appendChild(el("span", null, "Sumber futures: Binance USDⓈ-M (aggTrades, live dari browser)"));
     host.appendChild(leg);
@@ -900,7 +806,10 @@
     /* chip filter whale-print */
     var chips = el("div", "qchips");
     chips.appendChild(el("span", "qchipsl", "tampilkan hanya ≥"));
-    [[1e3, "$1rb"], [1e4, "$10rb"], [1e5, "$100rb"], [1e6, "$1jt"], [5e6, "$5jt"]].forEach(function (p) {
+    /* 26 Sep — chip $100 ditambahkan (permintaan user): coin sepi sering
+       tak ada trade ≥$1rb. Filter nominal lain tetap ada. Clamp API
+       gtTrades juga diturunkan 1000 → 100 supaya chip ini benar2 efektif. */
+    [[1e2, "$100"], [1e3, "$1rb"], [1e4, "$10rb"], [1e5, "$100rb"], [1e6, "$1jt"], [5e6, "$5jt"]].forEach(function (p) {
       var c = el("button", "qchip" + (QMIN === p[0] ? " on" : ""), p[1]);
       c.type = "button";
       c.title = "filter transaksi minimal " + p[1];
@@ -1095,19 +1004,7 @@
   gateInit();
   clock();
   deskBtnInit();
-  /* poll feed 60 dtk — ?poll=<detik> mempercepat utk uji (min 3 dtk).
-     25 Sep (bug dari uji lokal): dulu interval hanya terpasang bila sesi
-     login SUDAH ada saat halaman dimuat — setelah login segar di gerbang,
-     feed tak pernah dipoll & alarm MEGA feed tak pernah menyala. Kini
-     feedStart() dgn guard ganda, dipanggil dari kedua jalur. */
-  var FEED_MS = 60000, FEED_TIMER = null, _mq = location.search.match(/poll=(\d+)/);
-  if (_mq) FEED_MS = Math.max(3, +_mq[1]) * 1000;
-  function feedStart() {
-    if (FEED_TIMER) return;   // jangan dobel pasang
-    load(true);
-    FEED_TIMER = setInterval(function () { load(false); }, FEED_MS);
-  }
-  if (isLogged()) feedStart();
+  if (isLogged()) { load(true); setInterval(function () { load(false); }, 60000); }
   setInterval(clock, 1000);
   (function () {
     var qi = document.getElementById("q-coin"), qb = document.getElementById("q-btn");
@@ -1125,17 +1022,5 @@
       setTimeout(function () { wDing("mega"); }, 2200);   // preview alarm MEGA
     }
     window.__wDingTest = wDing;
-  }
-  /* ?deskmega=1 — uji notifikasi desktop MEGA sekali setelah 1,2 dtk:
-     aktifkan 🖥 dulu (izin diminta dari klik), jalankan URL ini, lalu
-     pindah ke tab lain → notifikasi OS harus muncul walau tab Whale tak
-     aktif. Hook __deskMegaTest() juga tersedia di console. */
-  if (location.search.indexOf("deskmega=1") > -1) {
-    window.__deskMegaTest = function () {
-      deskMega({ usd: 2.5e7, buy: false, amt: 3.21,
-                 wallet: "1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb8uX",
-                 tx: "deskmega-test-" + Date.now() });
-    };
-    setTimeout(function () { window.__deskMegaTest(); }, 1200);
   }
 })();

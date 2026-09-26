@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=20260925b">
+<link rel="stylesheet" href="style.css?v=20260926a">
 </head>
 <body>
 
@@ -136,6 +136,19 @@
     coins the engine has on record today. Tap a bubble to open its TradingView chart.</p>
   </section>
 
+  <section id="analisa">
+    <div class="sec-h">
+      <h2><i>&gt;</i> Kotak analisis</h2>
+      <span class="hint">kombinasi alasan × timeframe dengan winrate live tertinggi — berubah otomatis</span>
+    </div>
+    <div class="an-box" id="analisa-box"></div>
+    <p class="cap">Pengingat keputusan untuk admin: kotak ini menghitung winrate LIVE dari pick yang
+    sudah di-resolve (win/loss), dikelompokkan per alasan + timeframe yang dicentang saat menekan
+    "ambil" (BOS, EMA20/200, MSS, FVG, MAC, OB, SuperTrend — masing-masing dengan TF-nya).
+    Kombinasi dengan winrate tertinggi tampil di sini dan ikut berubah setiap kali winrate-nya
+    berubah — jadi sebelum ambil posisi, ceklis dulu komposisi yang sedang terbaik.</p>
+  </section>
+
   <section id="watch">
     <div class="sec-h">
       <h2><i>&gt;</i> Watchlist</h2>
@@ -207,10 +220,8 @@
       <div class="card">
         <div class="card-h"><h3>Win rate by WIB hour — 00:00 to 23:00</h3><div class="lg" id="hr-lg"></div></div>
         <svg class="ch" id="hr" role="img" aria-label="Winrate per jam WIB, tiga kanal live"></svg>
-        <p class="cap">Histogram divergen per jam WIB — tiga batang kanal (Kilat 1h biru · Scalp 2h hijau · Swing 4h emas) berdampingan,
-        tumbuh dari garis 50%: batang naik = menang, turun = kalah. Skala per sisi: kalah terparah setinggi menang terbaik,
-        jadi jam kalah tidak tampak selalu pendek. Batang berdenyut oranye = jam ekstrem (≥20% dari 50%, min. 3 resolve).
-        Batang meluncur halus tiap segaran. Hover untuk rincian W/L (angka eksak).
+        <p class="cap">Lollipop per jam WIB — tiga batang kanal (Kilat 1h biru · Scalp 2h hijau · Swing 4h emas) berdampingan
+        dari garis 50%: batang naik = menang, turun = kalah, tinggi = jarak winrate dari 50%. Hover untuk rincian W/L.
         Sumber: winrate live resolve admin — bukan backtest. Jam tanpa resolve kosong (bukan nol).</p>
       </div>
     </div>
@@ -237,6 +248,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20260925c" defer></script>
+<script src="app.js?v=20260926a" defer></script>
 </body>
 </html>
