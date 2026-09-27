@@ -2051,13 +2051,31 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
                        "SuperTrend-Buy": "SuperTrend Buy", "SuperTrend-Sell": "SuperTrend Sell" };
   var TF_OPTS = ["1m", "5m", "15m", "30m", "1h", "4h", "1D"];
   function alasanNama(a) { return ALASAN_NAMA[a] || a; }
-  function alasanList(p) {
+  /* 27 Sep — SATU alasan bisa dipilih di BANYAK timeframe (mis. MSS 1h + MSS 30m
+     + MSS 5m dalam satu pick). Format baru: p.alasan = [{a:"MSS",tf:"1h"}, …].
+     Format lama {label: tf} (26 Sep) tetap terbaca lewat alasanPairs. */
+  function alasanPairs(p) {
     if (!p || !p.alasan) return [];
-    return Object.keys(p.alasan).filter(function (k) { return p.alasan[k]; });
+    var out = [], seen = {};
+    if (Array.isArray(p.alasan)) {
+      p.alasan.forEach(function (x) {
+        if (x && x.a && x.tf && !seen[x.a + "|" + x.tf]) {
+          seen[x.a + "|" + x.tf] = 1; out.push({ a: x.a, tf: x.tf });
+        }
+      });
+    } else {
+      Object.keys(p.alasan).forEach(function (a) {
+        if (p.alasan[a] && !seen[a + "|" + p.alasan[a]]) {
+          seen[a + "|" + p.alasan[a]] = 1; out.push({ a: a, tf: p.alasan[a] });
+        }
+      });
+    }
+    return out;
   }
-  function alasanStr(p) {
-    return alasanList(p).map(function (a) { return alasanNama(a) + " (" + p.alasan[a] + ")"; }).join(", ");
+  function alasanList(p) {   // daftar "ALASAN tf" — pemakai lama tetap jalan
+    return alasanPairs(p).map(function (x) { return x.a + " " + x.tf; });
   }
+  function alasanStr(p) { return alasanList(p).join(", "); }
   /* login admin tunggal — kredensial hanya diketahui pemilik situs */
   /* login admin tunggal — di kode hanya SHA-256 dari "username:password",
      jadi kredensial tidak terbaca mentah di view source. */
@@ -2108,33 +2126,41 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       note: p && p.note ? p.note : null });
     if (PLOG.length > 2000) PLOG.length = 2000;   // dulu 200 — riwayat harian cepat terpotong
   }
-  /* popup DETAIL ALASAN — baca-saja, terlihat admin & pengunjung (26 Sep)
-     (grid alasan×TF: mana yang dicentang, mana tidak) */
+  /* popup DETAIL ALASAN — baca-saja, terlihat admin & pengunjung.
+     27 Sep desain baru: pill arah/hasil + chip alasan×TF (satu alasan bisa
+     punya beberapa chip TF). */
   function openAlasan(tf, jenis, r, p) {
     try {
-    var box = el("div", "alview");
-    box.appendChild(admHead("Detail alasan — " + (r.sym || "").replace(/USDT$/, ""),
-      tf.toUpperCase() + " · " + (jenis === "sig" ? "sinyal" : jenis === "watch" ? "watchlist" : jenis)
-      + " · " + (p.ts || "").slice(0, 10)));
+    var box = el("div", "alview2");
+    box.appendChild(admHead("Detail ambil posisi", (r.sym || "").replace(/USDT$/, "") + " · "
+      + tf.toUpperCase() + " · " + (jenis === "sig" ? "sinyal" : jenis === "watch" ? "watchlist" : jenis)));
     var side = p.side || r.dir || "—";
-    var meta = el("div", "almeta");
-    meta.appendChild(el("span", "aldir " + (side === "long" ? "pos" : "neg"), side.toUpperCase()));
-    if (isFinite(p.pct)) meta.appendChild(el("span", "alpct " + (p.pct > 0 ? "pos" : p.pct < 0 ? "neg" : "mut"), sgn(p.pct, 1) + "%"));
-    meta.appendChild(el("span", "alst " + (p.win === 1 ? "pos" : p.win === 0 ? "neg" : "mut"),
+    var meta = el("div", "almeta2");
+    meta.appendChild(el("span", "alpill " + (side === "long" ? "up" : "dn"),
+      (side === "long" ? "▲ " : "▼ ") + side.toUpperCase()));
+    meta.appendChild(el("span", "alpill " + (p.win === 1 ? "win" : p.win === 0 ? "loss" : "open"),
       p.win === 1 ? "WIN" : p.win === 0 ? "LOSS" : "OPEN"));
+    if (isFinite(p.pct))
+      meta.appendChild(el("span", "alpct2 " + (p.pct > 0 ? "pos" : p.pct < 0 ? "neg" : "mut"),
+        (p.pct > 0 ? "+" : "") + p.pct.toFixed(1) + "%"));
+    meta.appendChild(el("span", "alwhen", wibStr(p.ts)));
     box.appendChild(meta);
-    var grid = el("div", "algrid");
-    ALASAN.forEach(function (a) {
-      var on = !!(p.alasan && p.alasan[a]);
-      var it = el("div", "alit" + (on ? " on" : ""));
-      it.appendChild(el("i", "almark", on ? "✓" : "·"));
-      it.appendChild(el("span", "alname", alasanNama(a)));
-      it.appendChild(el("span", "altf", on ? p.alasan[a] : "—"));
-      grid.appendChild(it);
-    });
-    box.appendChild(grid);
-    if (p.note) box.appendChild(el("div", "alnote", "catatan: " + p.note));
-    box.appendChild(el("div", "alfoot", "dicatat admin · " + wibStr(p.ts)));
+    var pairs = alasanPairs(p);
+    box.appendChild(el("div", "al-sect", "alasan mengambil posisi"));
+    if (!pairs.length) {
+      box.appendChild(el("div", "al-none", "belum ada alasan tercatat — pick lama sebelum fitur checklist"));
+    } else {
+      var chips = el("div", "al-chips");
+      pairs.forEach(function (x) {
+        var c = el("span", "al-chip");
+        c.appendChild(el("b", null, alasanNama(x.a)));
+        c.appendChild(el("i", "al-chip-tf", x.tf));
+        chips.appendChild(c);
+      });
+      box.appendChild(chips);
+    }
+    if (p.note) box.appendChild(el("div", "alnote", p.note));
+    box.appendChild(el("div", "alfoot", "dicatat admin · " + wibDate(p.ts)));
     admShow(box);
     } catch (err) { admFallback(err); }
   }
@@ -2155,7 +2181,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       ["pantau", "sinyal"].forEach(function (jenis) {
         liveRows(tf, jenis).forEach(function (r) {
           var p = r.apick; if (!p || (p.win !== 1 && p.win !== 0)) return;
-          var L = alasanList(p).map(function (a) { return a + " " + p.alasan[a]; });
+          var L = alasanList(p);   // ["MSS 1h", "MSS 30m", …] — dari alasanPairs
           if (!L.length) return;
           L.forEach(function (x) { add(x, p.win); });
           for (var i = 0; i < L.length; i++)
@@ -2376,28 +2402,36 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var noteIn = el("input", "adm-in"); noteIn.type = "text";
     noteIn.placeholder = "catatan (alasan koreksi, dll)";
     if (p && p.note) noteIn.value = p.note;
-    /* 26 Sep — checklist alasan × timeframe: tiap alasan yg dicentang punya
-       dropdown TF sendiri (1m…1D). Terisi ulang dari pick tersimpan saat edit. */
+    /* 27 Sep — checklist v2: SATU alasan bisa dipilih di BANYAK timeframe
+       (mis. MSS 1h + MSS 30m + MSS 5m). TF kini chip multi-pilih per alasan;
+       tersimpan sbg array [{a, tf}, …]. Prefill dari pick lama tetap jalan. */
     var alWrap = el("div", "al-wrap");
-    var alHdr = el("div", "al-hdr", "alasan mengambil posisi — centang & pilih timeframe tiap alasan");
-    alWrap.appendChild(alHdr);
+    alWrap.appendChild(el("div", "al-hdr",
+      "alasan mengambil posisi — centang, lalu klik timeframe (boleh lebih dari satu)"));
     var alState = {};
-    if (p && p.alasan) ALASAN.forEach(function (a) {
-      if (p.alasan[a]) alState[a] = p.alasan[a];
+    alasanPairs(p).forEach(function (x) {
+      (alState[x.a] = alState[x.a] || []).push(x.tf);
     });
     ALASAN.forEach(function (a) {
       var line = el("div", "al-line");
       var cb = el("input", "al-cb"); cb.type = "checkbox"; cb.value = a;
       cb.id = "al-" + a; cb.checked = !!alState[a];
       var lb = el("label", "al-lb", alasanNama(a)); lb.htmlFor = cb.id;
-      var sel = el("select", "al-tf");
+      var tfs = el("div", "al-tfs");
+      var def = a.indexOf("Super") === 0 || a.indexOf("EMA") === 0 ? "1h" : "15m";
       TF_OPTS.forEach(function (t) {
-        var op = el("option", null, t); op.value = t; sel.appendChild(op);
+        var ch = el("button", "al-tfchip" + (t === def ? " on" : ""), t);
+        ch.type = "button"; ch.dataset.tf = t;
+        ch.addEventListener("click", function () { ch.classList.toggle("on"); });
+        tfs.appendChild(ch);
       });
-      sel.value = alState[a] || (a.indexOf("Super") === 0 || a.indexOf("EMA") === 0 ? "1h" : "15m");
-      function sync() { sel.style.display = cb.checked ? "" : "none"; }
+      if (alState[a])   // prefill: hanya TF yang tersimpan yang ON
+        tfs.querySelectorAll(".al-tfchip").forEach(function (ch) {
+          ch.classList.toggle("on", alState[a].indexOf(ch.dataset.tf) >= 0);
+        });
+      function sync() { tfs.style.display = cb.checked ? "" : "none"; }
       cb.addEventListener("change", sync); sync();
-      line.appendChild(cb); line.appendChild(lb); line.appendChild(sel);
+      line.appendChild(cb); line.appendChild(lb); line.appendChild(tfs);
       alWrap.appendChild(line);
     });
     var st = el("div", "adm-status");
@@ -2416,10 +2450,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     box.appendChild(noteIn); box.appendChild(alWrap); box.appendChild(row); box.appendChild(st);
     admShow(box);
     save.addEventListener("click", function () {
-      var al = {};
-      alWrap.querySelectorAll("input.al-cb:checked").forEach(function (cb) {
-        var sel = cb.parentNode.querySelector("select.al-tf");
-        if (sel && sel.value) al[cb.value] = sel.value;
+      var al = [];   // [{a, tf}, …] — satu alasan boleh banyak TF
+      alWrap.querySelectorAll(".al-line").forEach(function (line) {
+        var cb = line.querySelector("input.al-cb");
+        if (!cb || !cb.checked) return;
+        line.querySelectorAll(".al-tfchip.on").forEach(function (ch) {
+          al.push({ a: cb.value, tf: ch.dataset.tf });
+        });
       });
       PICKS[key] = { taken: 1, side: sideSel.value || null,
         pct: pctIn.value === "" ? null : parseFloat(pctIn.value),

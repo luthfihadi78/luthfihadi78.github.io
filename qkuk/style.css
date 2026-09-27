@@ -814,3 +814,34 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
   border-top:1px dashed var(--line-2);padding-top:9px}
 .an-tip b{color:var(--gold)}
 .an-empty{font-size:11.5px;color:var(--fg-3);line-height:1.6}
+
+/* ── v20 (27 Sep): TF multi-pilih per alasan + popup detail baru ── */
+/* chip timeframe: satu alasan bisa dipilih di banyak TF sekaligus */
+.al-tfs{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.al-tfchip{background:var(--s2);border:1px solid var(--line-2);border-radius:999px;
+  color:var(--fg-3);font:inherit;font-size:10px;padding:2px 8px;cursor:pointer;letter-spacing:.03em}
+.al-tfchip:hover{border-color:var(--ac);color:var(--fg)}
+.al-tfchip.on{background:var(--ac-w);border-color:var(--ac);color:var(--ac);font-weight:700}
+
+/* popup detail v2: pill arah/hasil + chip alasan×TF */
+.alview2{width:100%}
+.almeta2{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.alpill{font-size:10.5px;font-weight:700;letter-spacing:.08em;border-radius:999px;
+  padding:4px 11px;border:1px solid var(--line-2);background:var(--s1);color:var(--fg-2)}
+.alpill.up,.alpill.win{color:var(--up);border-color:rgba(110,231,183,.45);background:rgba(110,231,183,.08)}
+.alpill.dn,.alpill.loss{color:var(--dn);border-color:rgba(232,135,124,.45);background:rgba(232,135,124,.08)}
+.alpill.open{color:var(--gold);border-color:rgba(216,200,154,.4);background:rgba(216,200,154,.08)}
+.alpct2{font-family:var(--mono,monospace);font-size:15px;font-weight:700}
+.alpct2.pos{color:var(--up)}
+.alpct2.neg{color:var(--dn)}
+.alpct2.mut{color:var(--fg-2)}
+.alwhen{margin-left:auto;font-size:10.5px;color:var(--fg-3)}
+.al-sect{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-3);
+  margin:4px 0 8px;padding-top:10px;border-top:1px dashed var(--line-2)}
+.al-chips{display:flex;flex-wrap:wrap;gap:6px}
+.al-chip{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(110,231,183,.35);
+  border-radius:8px;background:rgba(110,231,183,.06);padding:6px 10px;font-size:11.5px;color:var(--fg)}
+.al-chip b{font-weight:600}
+.al-chip-tf{font-style:normal;font-family:var(--mono,monospace);font-size:10px;font-weight:700;
+  color:var(--ac);background:rgba(110,231,183,.1);border-radius:5px;padding:1px 6px}
+.al-none{font-size:11.5px;color:var(--fg-3);line-height:1.6}
