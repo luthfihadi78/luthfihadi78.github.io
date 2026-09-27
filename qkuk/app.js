@@ -20,6 +20,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
   function num(v) { var f = parseFloat(v); return isFinite(f) ? f : null; }
   function sgn(v, d) { var f = num(v); return f === null ? "—" : (f > 0 ? "+" : "") + f.toFixed(d == null ? 2 : d); }
+  /* 27 Sep — isFinite(null) === true di JS! pct pick open disimpan null, jadi
+     semua cek "ada tidaknya hasil %" wajib lewat hasPct (cek null dulu),
+     bukan isFinite mentah — sumber bug crash toFixed di popup detail. */
+  function hasPct(v) { return v !== null && v !== undefined && v !== "" && isFinite(v); }
   function ord() { return ORDER.filter(function (t) { return DATA.live && DATA.live[t]; }); }
   /* 21 Sep — pelapor error di layar: error JS apa pun yang tadinya hilang diam
      di konsol (yang tidak dilihat pengunjung) kini tampil sebagai chip merah
@@ -916,8 +920,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           if (!m) return;
           var hh = parseInt(m[1], 10); if (!(hh >= 0 && hh < 24)) return;
           var dirEfektif = p.side || r.dir;
-          var pct = isFinite(p.pct) ? (dirEfektif === "short" ? -p.pct : p.pct)
-                    : (p.win === 1 ? 1 : -1);        // fallback 1R
+          var pct = hasPct(p.pct) ? (dirEfektif === "short" ? -p.pct : p.pct)
+                    : (p.win === 1 ? 1 : -1);        // fallback 1R (juga saat pct null)
           var c = per[hh][tf]; c[0]++; c[1] += p.win; c[2] += pct;
         });
       });
@@ -931,7 +935,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         var kp = k.split("|"); if (kp[0] !== tf) return;
         var p = PICKS[k]; if (!p) return;
         if (p.win !== 0 && p.win !== 1) return;
-        var pct = isFinite(p.pct) ? (p.side === "short" ? -p.pct : p.pct)
+        var pct = hasPct(p.pct) ? (p.side === "short" ? -p.pct : p.pct)
                   : (p.win === 1 ? 1 : -1);
         rows.push({ ts: kp[2] || "", pct: pct });
       });
@@ -2122,7 +2126,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     PLOG.unshift({ t: new Date().toISOString(), act: act,
       sym: (r && r.sym) || kp[3] || "", tf: kp[0] || "", jenis: kp[1] || "",
       dir0: (r && r.dir) || null, side: p ? (p.side || null) : null,
-      pct: p && isFinite(p.pct) ? p.pct : null, win: p ? p.win : null,
+      pct: hasPct(p && p.pct) ? p.pct : null, win: p ? p.win : null,
       note: p && p.note ? p.note : null });
     if (PLOG.length > 2000) PLOG.length = 2000;   // dulu 200 — riwayat harian cepat terpotong
   }
@@ -2140,9 +2144,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       (side === "long" ? "▲ " : "▼ ") + side.toUpperCase()));
     meta.appendChild(el("span", "alpill " + (p.win === 1 ? "win" : p.win === 0 ? "loss" : "open"),
       p.win === 1 ? "WIN" : p.win === 0 ? "LOSS" : "OPEN"));
-    if (isFinite(p.pct))
+    /* fix 27 Sep: pct pick open = null → sebelumnya crash toFixed di sini */
+    if (hasPct(p.pct))
       meta.appendChild(el("span", "alpct2 " + (p.pct > 0 ? "pos" : p.pct < 0 ? "neg" : "mut"),
-        (p.pct > 0 ? "+" : "") + p.pct.toFixed(1) + "%"));
+        sgn(p.pct, 1) + "%"));
     meta.appendChild(el("span", "alwhen", wibStr(p.ts)));
     box.appendChild(meta);
     var pairs = alasanPairs(p);
@@ -2394,7 +2399,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (p && p.side) sideSel.value = p.side;
     var pctIn = el("input", "adm-in"); pctIn.type = "number"; pctIn.step = "0.01";
     pctIn.placeholder = "hasil: naik/turun berapa % (mis. -2.4)";
-    if (p && isFinite(p.pct)) pctIn.value = p.pct;
+    if (p && hasPct(p.pct)) pctIn.value = p.pct;
     var winSel = el("select", "adm-in");
     [["", "hasil: masih open / belum ditentukan"], ["win", "hasil: WIN"], ["loss", "hasil: LOSS"]]
       .forEach(function (o) { var op = el("option", null, o[1]); op.value = o[0]; winSel.appendChild(op); });
@@ -2582,7 +2587,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     b.type = "button";
     b.textContent = "⇄ " + fixed;
     b.title = "KOREKSI ADMIN: sinyal engine " + r.dir + " dikoreksi jadi " + fixed
-      + (isFinite(p.pct) ? " · hasil " + sgn(p.pct, 1) + "%" : "")
+      + (hasPct(p.pct) ? " · hasil " + sgn(p.pct, 1) + "%" : "")
       + (p.win === 1 ? " · WIN" : p.win === 0 ? " · LOSS" : " · open")
       + (p.note ? " — " + p.note : "");
     if (isAdmin()) b.addEventListener("click", function () { openResolve(tf, jenis, r, p); });
@@ -2607,10 +2612,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     b2.textContent = (side === "long" ? "\u25b2" : "\u25bc")
       + (p.side && p.side !== r.dir ? "\u21c4" : "")
       + (p.win === 1 ? " W" : p.win === 0 ? " L" : " \u00b7")
-      + (isFinite(p.pct) ? " " + sgn(p.pct, 1) + "%" : "");
+      + (hasPct(p.pct) ? " " + sgn(p.pct, 1) + "%" : "");
     b2.title = (isAdmin() ? "klik untuk koreksi" : "live pick") + " \u2014 ambil " + side
       + (p.side && p.side !== r.dir ? " (arah dikoreksi dari " + r.dir + ")" : "")
-      + (isFinite(p.pct) ? ", hasil " + sgn(p.pct, 1) + "%" : "")
+      + (hasPct(p.pct) ? ", hasil " + sgn(p.pct, 1) + "%" : "")
       + (p.note ? " \u2014 " + p.note : "");
     if (isAdmin()) b2.addEventListener("click", function () { openResolve(tf, jenis, r, p); });
     /* 26 Sep — tombol "detail": popup alasan ambil posisi, TERLIHAT semua
@@ -2651,7 +2656,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           var p = r.apick; if (!p) return;
           n++;
           if (p.win === 1) w++; else if (p.win === 0) l++; else open++;
-          if (isFinite(p.pct)) tot += ((p.side || r.dir) === "short" ? -p.pct : p.pct);
+          if (hasPct(p.pct)) tot += ((p.side || r.dir) === "short" ? -p.pct : p.pct);
         });
       });
       var c = el("div", "ch"); var hh = el("div", "ch-h");
@@ -2746,7 +2751,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           if (!inMode(d)) return;
           var i = d.getDay();
           var dirEfektif = p.side || r.dir;
-          var pct = isFinite(p.pct) ? ((dirEfektif === "short" ? -p.pct : p.pct))
+          var pct = hasPct(p.pct) ? ((dirEfektif === "short" ? -p.pct : p.pct))
                     : (p.win === 1 ? 1 : -1);
           var c = per[i]; c[0]++; c[1] += p.win; c[2] += pct;
         });
@@ -2859,7 +2864,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           if (!m) return;
           var h = parseInt(m[1], 10); if (!(h >= 0 && h < 24)) return;
           var dirEfektif = p.side || r.dir;
-          var pct = isFinite(p.pct) ? ((dirEfektif === "short" ? -p.pct : p.pct))
+          var pct = hasPct(p.pct) ? ((dirEfektif === "short" ? -p.pct : p.pct))
                     : (p.win === 1 ? 1 : -1);        // fallback 1R
           var c = per[h][tf]; c[0]++; c[1] += p.win; c[2] += pct;
         });
@@ -3069,8 +3074,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       td(e.act === "hapus" ? "—"
         : e.side ? e.side + (e.dir0 && e.side !== e.dir0 ? " ← " + e.dir0 : "")
         : (e.dir0 || "—"));
-      td(isFinite(e.pct) ? sgn(e.pct, 1) + "%" : "—",
-        !isFinite(e.pct) ? "mut" : e.pct > 0 ? "pos" : e.pct < 0 ? "neg" : "mut");
+      td(hasPct(e.pct) ? sgn(e.pct, 1) + "%" : "—",
+        !hasPct(e.pct) ? "mut" : e.pct > 0 ? "pos" : e.pct < 0 ? "neg" : "mut");
       td(e.act === "hapus" || e.act === "password" ? "—"
         : e.win === 1 ? "WIN" : e.win === 0 ? "LOSS" : "open",
         e.win === 1 ? "pos" : e.win === 0 ? "neg" : "mut");
