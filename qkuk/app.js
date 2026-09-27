@@ -1733,6 +1733,26 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     watch(wTf && DATA.live[wTf] ? wTf : ord()[0]);
     signals(sTf && DATA.live[sTf] ? sTf : ord()[0]);
   }
+  /* 27 Sep — baris kembar (sym+ts sama) dalam satu kanal dibuang saat data
+     tiba: pickKey baris kembar identik sehingga satu pick admin "menimpa"
+     baris kembarnya dan pick tampak ganda/hilang. Sumbernya CSV engine yang
+     tertulis ulang; publish_site.py juga mendedup — ini jaring pengaman web. */
+  function dedupRows() {
+    if (!DATA || !DATA.live) return;
+    ord().forEach(function (tf) {
+      ["pantau", "sinyal"].forEach(function (jenis) {
+        var arr = DATA.live[tf] && DATA.live[tf][jenis];
+        if (!arr || !arr.length) return;
+        var seen = {}, out = [];
+        arr.forEach(function (r) {
+          var k = (r.ts || "") + "|" + (r.sym || "");
+          if (seen[k]) return;
+          seen[k] = 1; out.push(r);
+        });
+        if (out.length !== arr.length) DATA.live[tf][jenis] = out;
+      });
+    });
+  }
   function load(first) {
     fetch("data.json?t=" + Date.now(), { cache: "no-store" })
       .then(function (r) {
@@ -1757,7 +1777,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
            poll, baris baru selalu terserap diam-diam dan tidak pernah
            dibunyikan. Basis segar otomatis terbentuk saat halaman reload
            karena versi build berubah. */
-        DATA = j; LEFT = 60; render(first);
+        DATA = j; dedupRows(); LEFT = 60; render(first);
       })
       .catch(function () {
         if (!DATA) { $("#state").textContent = "no data"; $("#dot").classList.add("stale"); }
@@ -2047,11 +2067,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      analisis winrate & popup detail. Pick lama tanpa "alasan" tetap tampil
      normal (semua pembacaan undefined-safe). */
   var ALASAN = ["BOS", "EMA20-atas", "EMA20-bawah", "EMA200-atas", "EMA200-bawah",
-                 "MSS", "FVG", "MAC", "OB", "SuperTrend-Buy", "SuperTrend-Sell"];
+                 "MSS", "FVG", "IFVG", "MAC", "OB", "SuperTrend-Buy", "SuperTrend-Sell"];
   var ALASAN_NAMA = { "EMA20-atas": "EMA20 di atas", "EMA20-bawah": "EMA20 di bawah",
                        "EMA200-atas": "EMA200 di atas", "EMA200-bawah": "EMA200 di bawah",
                        "MAC": "MAC", "OB": "OB (Order Block)", "BOS": "BOS",
-                       "MSS": "MSS", "FVG": "FVG",
+                       "MSS": "MSS", "FVG": "FVG", "IFVG": "IFVG",
                        "SuperTrend-Buy": "SuperTrend Buy", "SuperTrend-Sell": "SuperTrend Sell" };
   var TF_OPTS = ["1m", "5m", "15m", "30m", "1h", "4h", "1D"];
   function alasanNama(a) { return ALASAN_NAMA[a] || a; }
@@ -2332,9 +2352,19 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         if (done) done();
       })
       .catch(function (e) {
-        st.textContent = (e.message && e.message.indexOf("Failed to fetch") >= 0)
-          ? "gagal: jaringan memblokir textdb.dev — coba lagi / ganti jaringan"
-          : "gagal: " + e.message;
+        /* 27 Sep — pesan jelas: kenapa gagal, pick BELUM tersimpan, dan
+           tombol COBA LAGI dgn satu klik (dulu cuma teks, admin harus
+           buka-tutup popup utk mengulang). */
+        var m = (e && e.message) || String(e);
+        var net = m.indexOf("Failed to fetch") >= 0 || m.indexOf("NetworkError") >= 0;
+        st.innerHTML = "";
+        var sp = el("span", "sv-msg " + (net ? "warn" : "neg"),
+          net ? "gagal: jaringan memblokir textdb.dev (VPN/DNS/ISP?) — pick BELUM tersimpan."
+              : "gagal: server textdb.dev bermasalah (" + m + ") — pick BELUM tersimpan.");
+        var b = el("button", "sv-retry", "coba lagi");
+        b.type = "button";
+        b.addEventListener("click", function () { savePicks(st, done); });
+        st.appendChild(sp); st.appendChild(b);
       });
   }
   /* 21 Sep — jaring pengaman modal: kalau ada error apa pun saat membangun
