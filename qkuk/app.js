@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-note-20260928b";   /* 28 Sep v33: gauge 6 status (LONG/ALTSEASON/NETRAL/SHORT/CRASH/DEGRADED) + 5 faktor incl. BTC.D & USDT.D CoinGecko + pemulihan histogram v29 */
+  var BUILD = "qkuk-note-20260928c";   /* 28 Sep v34: gauge 4 faktor bobot setara (maj+BTC−BTC.D−USDT.D) + histeresis ganti rezim (flip butuh skor ≥3 atau dominan setuju) */
   /* 23 Sep — warna kanal KONTRAS (permintaan user: 1h & 2h mirip):
      Kilat 1h = biru cyan · Scalp 2h = hijau · Swing 4h = emas terang */
   var COLOR = { "1h": "#4DC9F6", "2h": "#6EE7B7", "4h": "#F2C94C" };
@@ -234,7 +234,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var NAMA = { long: "LONG", altseason: "ALTSEASON", netral: "NETRAL",
                    short: "SHORT", crash: "CRASH", deg: "DEGRADED" };
       var lab = NAMA[st] || st.toUpperCase();
-      var v = DEG ? 0 : Math.max(-1, Math.min(1, (V.score || 0) / 9)) * .85;
+      var v = DEG ? 0 : Math.max(-1, Math.min(1, (V.scoreRaw || V.score || 0) / 6)) * .85;   // v34: |skor| maks praktis ±6 → skala jarum baru
       var deg = 90 - v * 90;
       var g = $("#ndl-g");
       if (g) {
@@ -298,10 +298,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           : "— belum ada gelombang tercatat",
         V.maj > 0 ? "pos" : V.maj < 0 ? "neg" : "mut");
       r("BTC 1h", ar(V.dirBtc) + "  " + sgn(bp, 2) + "%" + (V.btc24h != null ? " (24 jam)" : ""), bp < 0 ? "neg" : "pos");
-      /* 25 Sep v33 — rincian 5 faktor: mayoritas, BTC, BTC.D, USDT.D, momentum */
-      if (V.btcD != null) r("BTC.D", ar(V.sBtcd || 0) + " " + sgn(V.btcD, 2) + "pp (3 hari) → " + sgn(V.btcDNow, 2) + "%", fc(V.sBtcd || 0));
+      /* 28 Sep v34 — rincian faktor: mayoritas, BTC, BTC.D, USDT.D (Δ3 jam) */
+      if (V.domAda || V.btcD != null) r("BTC.D", ar(V.sBtcd || 0) + " " + sgn(V.sBtcd, 2) + "pp (3 jam)" + (V.btcDNow != null ? " → " + sgn(V.btcDNow, 2) + "%" : ""), fc(V.sBtcd || 0));
       else r("BTC.D", "— tidak tersedia", "mut");
-      if (V.usdtD != null) r("USDT.D", ar(V.sUsdtd || 0) + " " + sgn(V.usdtD, 2) + "pp (3 hari) → " + sgn(V.usdtDNow, 2) + "%", fc(-(V.sUsdtd || 0)));
+      if (V.domAda || V.usdtD != null) r("USDT.D", ar(V.sUsdtd || 0) + " " + sgn(V.sUsdtd, 2) + "pp (3 jam)" + (V.usdtDNow != null ? " → " + sgn(V.usdtDNow, 2) + "%" : ""), fc(-(V.sUsdtd || 0)));
       else r("USDT.D", "— tidak tersedia", "mut");
       if (V.pubTs) r("dihitung engine", V.pubTs + " WIB", "mut");
       /* 24 Sep — umur data sumber saat NORMAL: biar terlihat segar/tidaknya
@@ -362,8 +362,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         m.appendChild(x);
       })();
       r("reclaim terakhir",
-        "2×mayoritas " + sgn(V.maj, 0) + " + BTC " + ar(V.dirBtc)
-        + " → skor " + sgn(V.score, 0),
+        "mayoritas " + sgn(V.maj, 0) + " + BTC " + ar(V.dirBtc)
+        + " − BTC.D " + ar(V.sBtcd || 0) + " − USDT.D " + ar(V.sUsdtd || 0)
+        + " → skor " + sgn(V.scoreRaw != null ? V.scoreRaw : V.score, 1),
         V.bias === "long" ? "pos" : V.bias === "short" ? "neg" : "mut");
       /* 21 Sep — momentum BTC 24 jam eksplisit: penyeimbang penalti dominan.
          Dulu tidak dirinci, jadi BTC naik kencang + dominan bergerak terlihat
@@ -399,6 +400,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         if (D) {
           V0.btcD = D.btcd; V0.sBtcd = D.btcd; V0.btcDNow = D.btcdNow;
           V0.usdtD = D.usdtd; V0.sUsdtd = D.usdtd; V0.usdtDNow = D.usdtdNow;
+          V0.domAda = true;
         }
         hitungStatus(V0);
         paint(V0);
@@ -429,6 +431,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         if (D) {
           V.btcD = D.btcd; V.sBtcd = D.btcd; V.btcDNow = D.btcdNow;
           V.usdtD = D.usdtd; V.sUsdtd = D.usdtd; V.usdtDNow = D.usdtdNow;
+          V.domAda = true;
         }
         hitungStatus(V);
         if (rows && rows.length > 30 && !V.degraded) paint(V);   // v32: degraded tetap tampil dari engine
@@ -571,38 +574,49 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       })
       .catch(gone);
   }
-  /* ═══ 25 Sep v33 — KLASIFIKASI 6 STATUS + SKOR 5 FAKTOR ═══
-     F = { maj, dirBtc, sBtcd, sUsdtd, mom } — mom: momentum BTC 24 jam
-     sbg pembeda CRASH vs SHORT biasa & ALTSEASON vs LONG biasa.
-     Skor = 2×maj + dirBtc + sBtcd − sUsdtd (usdt.d naik = menekan alt).
-     Kekuatan = |skor| (jarak jarum dari tengah, maks ±9).
-     Status: ALTSEASON & CRASH menuntut KONFIRMASI DOMINAN + momentum —
-     bukan sekadar skor ekstrem. why = alasan 1 kalimat utk panel. */
+  /* ═══ 28 Sep v34 — SKOR 4 FAKTOR BOBOT SETARA + HISTERESIS ═══
+     Keluhan user: mayoritas tipis 6L/4S (=+2) dulu bobot DOBEL (2×maj),
+     langsung membalikkan rezim padahal BTC turun & dominan campur. Kini:
+       skor = maj + dirBtc − dBTC.D(3 jam) − dUSDT.D(3 jam)
+     mayoritas = 1 suara. GANTI REZIM (long↔short) butuh KONFIRMASI:
+     skor ≥3 ATAU dominan sepakat dgn arah baru (dicocokkan dari bias
+     engine di data.json — satu sumber kebenaran dgn bot WA). Netral bebas.
+     ALTSEASON/CRASH tetap menuntut konfirmasi dominan + momentum BTC. */
   function hitungStatus(V) {
     var mom = (V.btc24h != null) ? V.btc24h : 0;
-    var skor = 2 * (V.maj || 0) + (V.dirBtc || 0)
-      + (V.sBtcd || 0) - (V.sUsdtd || 0);
-    V.score = skor;
-    V.strength = Math.abs(skor);
-    var domAda = V.sBtcd !== undefined && V.btcD != null;
-    var sR = Math.round(skor * 10) / 10;
-    if (skor >= 5 && domAda && V.sBtcd < 0 && mom > -1) {
+    var dU = V.sUsdtd || 0, dB = V.sBtcd || 0;
+    var skor = (V.maj || 0) + (V.dirBtc || 0) - dB - dU;
+    V.scoreRaw = Math.round(skor * 10) / 10;
+    V.score = Math.round(skor);
+    V.strength = Math.abs(V.scoreRaw);
+    var domAda = V.domAda !== undefined ? V.domAda : (V.btcD != null);
+    var sR = V.scoreRaw;
+    if (sR >= 5 && domAda && dB < 0 && mom > -1) {
       V.status = "altseason"; V.bias = "long";
-      V.why = "skor " + sR + " + BTC.D turun (uang rotasi ke alt) + BTC tidak jatuh";
-    } else if (skor <= -5 && domAda && mom < -3) {
+      V.why = "skor " + sR + " + BTC.D turun (uang rotasi ke alt) + BTC tak jatuh";
+    } else if (sR <= -5 && domAda && mom < -3) {
       V.status = "crash"; V.bias = "short";
       V.why = "skor " + sR + " + BTC " + sgn(mom, 1) + "% (24 jam) — risk-off dalam";
-    } else if (skor >= 2) {
+    } else if (sR >= 2) {
       V.status = "long"; V.bias = "long";
       V.why = domAda ? "skor " + sR + " — dominan tidak melawan"
                      : "skor " + sR + " (tanpa data dominan)";
-    } else if (skor <= -2) {
+    } else if (sR <= -2) {
       V.status = "short"; V.bias = "short";
       V.why = domAda ? "skor " + sR + " — dominan tidak melawan"
                      : "skor " + sR + " (tanpa data dominan)";
     } else {
       V.status = "netral"; V.bias = "netral";
       V.why = "skor " + sR + " di zona tengah (−2..+2)";
+    }
+    /* histeresis: cocokkan dgn bias engine (altdir_live.bias sudah melewati
+       gate yang sama di server) — kalau engine MENAHAN rezim lama, browser
+       ikut menahan; kalau engine flip, browser flip. */
+    var pubBias = (DATA.altdir_live || {}).bias;
+    if (pubBias && pubBias !== V.bias && pubBias !== "netral" && V.bias !== "netral") {
+      V.bias = pubBias;
+      V.status = (pubBias === "long" ? "long" : pubBias === "short" ? "short" : "netral");
+      V.why = "rezim ditahan " + pubBias.toUpperCase() + " — " + V.why;
     }
     return V;
   }
