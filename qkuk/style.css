@@ -764,6 +764,16 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 .qtl .qvenue{display:block;font-size:11px;color:var(--fg-3);margin-top:2px}
 .qlive{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ac)}
 .qlive .qdot{width:7px;height:7px;border-radius:999px;background:var(--ac);animation:p 2.6s cubic-bezier(.4,0,.6,1) infinite}
+/* badge "N BARU" (28 Sep): trade baru yang lolos filter aktif — menyala
+   dgn pulse 6 dtk saat masuk, lalu redup; hilang sendiri setelah >2 mnt.
+   Default tersembunyi; hanya tampil saat kelas hot/dim dipasang. */
+.qnewb{display:none;font-size:9px;font-weight:800;letter-spacing:.1em;border-radius:999px;
+  padding:2px 8px;font-family:var(--mono);white-space:nowrap}
+.qnewb.hot{display:inline-flex;align-items:center;color:#04120B;background:var(--ac);
+  animation:qNewPulse 1.2s ease-in-out infinite}
+.qnewb.dim{display:inline-block;color:var(--ac);background:var(--ac-w);opacity:.75}
+@keyframes qNewPulse{0%,100%{box-shadow:0 0 3px rgba(110,231,183,.5)}50%{box-shadow:0 0 10px rgba(110,231,183,.95)}}
+@media(prefers-reduced-motion:reduce){.qnewb.hot{animation:none}}
 .qsum{display:flex;align-items:center;gap:12px;font-size:12.5px;margin-bottom:8px}
 .qsu{font-weight:700}
 .qsu.up{color:var(--up)}

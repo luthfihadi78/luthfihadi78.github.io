@@ -531,6 +531,12 @@
      konteks (search baru / pindah jaringan / ganti chip) → reset tanpa
      animasi, biar tidak seluruh tabel berkedip palsu. */
   var QSEEN = {}, QSEEN_CTX = "";
+  /* 28 Sep — badge "N BARU" di header tabel DEX: hitung trade baru yang
+     lolos filter aktif antar refresh. QSILENT = repaint senyap (pindah
+     chip) supaya badge & kedip tidak salah trip saat daftar berubah
+     karena filter, bukan karena trade segar. */
+  var QSILENT = false;
+  var QNEW_N = 0, QNEW_AT = 0;   // akumulasi + stempel waktu terakhir
   /* Filter whale-print (28 Sep): default = $100 (permintaan user — coin
      tenang seperti INJ sering tak punya trade ≥$1rb, apalagi ≥$10rb).
      Chip $100/$1rb/$10rb/$100rb/$1jt/$5jt, tersimpan localStorage. Kunci
@@ -548,7 +554,10 @@
        30 dtk tetap menyegarkan data dari API. */
     if (QACTIVE && QACTIVE.sel) {
       var c = QTRADES[QACTIVE.sel.net + "|" + QACTIVE.sel.pid];
-      if (c && c.rows) paintTrades(QACTIVE.sel, c.rows.filter(function (r) { return r.usd >= QMIN; }));
+      if (c && c.rows) {
+        QSILENT = true;   // ganti chip bukan trade baru — tanpa badge/blink
+        paintTrades(QACTIVE.sel, c.rows.filter(function (r) { return r.usd >= QMIN; }));
+      }
     }
   }
 
@@ -825,6 +834,8 @@
     live.appendChild(el("i", "qdot"));
     live.appendChild(el("span", "qstamp", "live · segar " + new Date(Date.now() + 7 * 3600e3).toTimeString().slice(0, 8) + " WIB"));
     tR.appendChild(live);
+    var nb = el("span", "qnewb");   // badge "N BARU" — diisi setelah baris dihitung
+    tR.appendChild(nb);
     hd.appendChild(tL); hd.appendChild(tR);
     host.appendChild(hd);
     /* chip filter whale-print */
@@ -879,15 +890,17 @@
        baris pertama dicatat tanpa animasi), biar hanya trade yang benar2
        BARU setelah refresh berikutnya yang berkedip */
     var ctx = pool.net + "|" + pool.pid + "|" + QMIN;
-    var seed = QSEEN_CTX !== ctx;
-    if (seed) { QSEEN = {}; QSEEN_CTX = ctx; }
+    var seed = QSEEN_CTX !== ctx || QSILENT;
+    QSILENT = false;
+    if (seed) { QSEEN = {}; QSEEN_CTX = ctx; QNEW_N = 0; QNEW_AT = 0; }
     var body = el("div", null);
-    var nWhaleBaru = 0, nMegaBaru = 0, megaFirst = null;
+    var nBaru = 0, nWhaleBaru = 0, nMegaBaru = 0, megaFirst = null;
     rows.slice(0, 25).forEach(function (r) {
       var row = el("div", "wrow qgrid");
       var kunci = r.tx + ":" + r.wallet + ":" + Math.round(r.amt * 1e6);
       var baru = !QSEEN[kunci] && !seed;
       QSEEN[kunci] = 1;
+      if (baru) nBaru++;
       if (baru && r.usd >= 2e7) { nMegaBaru++; if (!megaFirst) megaFirst = r; }   // ≥ $20jt → alarm MEGA
       else if (baru && r.usd >= 1e6) nWhaleBaru++;   // ≥ $1jt → suara biasa
       if (baru) {
@@ -940,6 +953,20 @@
       row.appendChild(lk);
       body.appendChild(row);
     });
+    /* 28 Sep — isi badge header: menyala (hot) 6 dtk saat ada trade baru
+       yang lolos filter aktif, lalu redup; hilang sendiri setelah >2 mnt
+       tanpa trade baru. Seed/senyap → tidak pernah tampil palsu. */
+    if (!seed && nBaru > 0) { QNEW_N += nBaru; QNEW_AT = Date.now(); }
+    if (QNEW_N > 0 && Date.now() - QNEW_AT > 120000) { QNEW_N = 0; QNEW_AT = 0; }
+    if (QNEW_N > 0) {
+      nb.textContent = "+" + QNEW_N + " BARU";
+      nb.title = QNEW_N + " trade baru ≥ " + fmtUsd(QMIN) + " masuk · "
+        + new Date(QNEW_AT + 7 * 3600e3).toTimeString().slice(0, 8) + " WIB";
+      if (Date.now() - QNEW_AT < 6000) {
+        nb.classList.add("hot");
+        setTimeout(function () { nb.classList.remove("hot"); nb.classList.add("dim"); }, 6000);
+      } else nb.classList.add("dim");
+    }
     tab.appendChild(body);
     host.appendChild(tab);
     if (nMegaBaru > 0) {
