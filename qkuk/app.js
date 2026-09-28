@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-note-20260923a";   /* 23 Sep v27: heat table + toggle winrate/total% + baris aktif 09-21 + klik sel = filter riwayat */
+  var BUILD = "qkuk-note-20260928b";   /* 28 Sep v33: gauge 6 status (LONG/ALTSEASON/NETRAL/SHORT/CRASH/DEGRADED) + 5 faktor incl. BTC.D & USDT.D CoinGecko + pemulihan histogram v29 */
   /* 23 Sep — warna kanal KONTRAS (permintaan user: 1h & 2h mirip):
      Kilat 1h = biru cyan · Scalp 2h = hijau · Swing 4h = emas terang */
   var COLOR = { "1h": "#4DC9F6", "2h": "#6EE7B7", "4h": "#F2C94C" };
@@ -84,7 +84,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      Peta di bawah mengurutkan 5 rezim itu dari paling bearish ke paling
      bullish menurut label yang dipakai engine. */
   var GPOS = { "1": .85, "3": .55, "2": 0, "4": -.7, "5": -.85 };
-  var GC = { long: "#6EE7B7", short: "#E8877C", netral: "#EEF4F1", deg: "#EEB44C" };
+  /* 25 Sep v33 — 6 status gauge: long, altseason (long kuat), netral,
+     short, crash (short kuat), deg (degraded). ALTSEASON & CRASH bukan
+     sekadar LONG/SHORT ekstrem: faktor dominannya beda (altseason syarat
+     BTC.D TURUN; crash syarat BTC turun dalam), makanya warnanya sendiri. */
+  var GC = { long: "#6EE7B7", altseason: "#B6F36B", short: "#E8877C", crash: "#FF6D5E",
+             netral: "#EEF4F1", deg: "#EEB44C" };
   var GA = 140, GB = 142, GR = 104;            // pusat & radius busur
   function pol(r, deg) {
     var t = deg * Math.PI / 180;
@@ -223,11 +228,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       /* 23 Sep v32 — FRESHNESS GATE: input basi (BTC >15 mnt / gelombang grup
          >8 jam) → jarum netral + label DEGRADED, bukan arah palsu. Skor tetap
          dihitung engine (bot & logika tak berubah) — hanya tampilan yang jujur. */
-      var DEG = !!V.degraded;
-      var col = DEG ? GC.deg : (GC[V.bias] || GC.netral);
-      var lab = DEG ? "DEGRADED"
-        : (V.bias === "long" ? "LONG" : V.bias === "short" ? "SHORT" : "NETRAL");
-      var v = DEG ? 0 : Math.max(-1, Math.min(1, V.score / 9)) * .85;
+      var DEG = !!V.degraded || V.status === "deg";
+      var st = DEG ? "deg" : (V.status || V.bias || "netral");
+      var col = GC[st] || GC[V.bias] || GC.netral;
+      var NAMA = { long: "LONG", altseason: "ALTSEASON", netral: "NETRAL",
+                   short: "SHORT", crash: "CRASH", deg: "DEGRADED" };
+      var lab = NAMA[st] || st.toUpperCase();
+      var v = DEG ? 0 : Math.max(-1, Math.min(1, (V.score || 0) / 9)) * .85;
       var deg = 90 - v * 90;
       var g = $("#ndl-g");
       if (g) {
@@ -244,7 +251,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
          Dulu menampilkan nama rezim tabel stale (mis. "SANGAT BULLISH
          (altseason)" dari log berhari-hari lalu) persis di bawah label LIVE —
          terbaca seperti gauge berkata dua hal bertentangan sekaligus. */
-      $("#gname").textContent = "arah live · 2×mayoritas grup + BTC 1h";
+      $("#gname").textContent = "arah live · 2×mayoritas grup + BTC 1h + BTC.D + USDT.D";
       var m = $("#dmeta"); m.innerHTML = "";
       function r(l, v2, c) {
         var x = el("div", "dr");
@@ -254,6 +261,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         m.appendChild(x);
       }
       var ar = function (d) { return d > 0 ? "↑" : d < 0 ? "↓" : "→"; };
+      var fc = function (d) { return d > 0 ? "pos" : d < 0 ? "neg" : "mut"; };
       /* 24 Sep — format umur data (detik → teks), sama dgn _umur_txt engine */
       var umur = function (s) {
         s = Math.max(0, Math.floor(+s || 0));
@@ -262,6 +270,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         var j = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
         return m < 5 ? j + " jam" : j + " jam " + m + " mnt";
       };
+      /* 25 Sep v33 — baris status: nama + alasan 1 kalimat dari hitungStatus */
+      if (!DEG && V.status) {
+        r("status", NAMA[V.status] || V.status.toUpperCase(),
+          V.status === "altseason" || V.status === "long" ? "pos"
+          : V.status === "crash" || V.status === "short" ? "neg" : "mut");
+        if (V.why) r("kondisi", V.why, "mut");
+      }
       if (DEG) {
         r("status data", "DEGRADED — " + (V.degrade_reason || "input basi"), "warn");
         r("skor terakhir", sgn(V.score, 0) + " (dari data basi — tidak dipakai)", "mut");
@@ -283,6 +298,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           : "— belum ada gelombang tercatat",
         V.maj > 0 ? "pos" : V.maj < 0 ? "neg" : "mut");
       r("BTC 1h", ar(V.dirBtc) + "  " + sgn(bp, 2) + "%" + (V.btc24h != null ? " (24 jam)" : ""), bp < 0 ? "neg" : "pos");
+      /* 25 Sep v33 — rincian 5 faktor: mayoritas, BTC, BTC.D, USDT.D, momentum */
+      if (V.btcD != null) r("BTC.D", ar(V.sBtcd || 0) + " " + sgn(V.btcD, 2) + "pp (3 hari) → " + sgn(V.btcDNow, 2) + "%", fc(V.sBtcd || 0));
+      else r("BTC.D", "— tidak tersedia", "mut");
+      if (V.usdtD != null) r("USDT.D", ar(V.sUsdtd || 0) + " " + sgn(V.usdtD, 2) + "pp (3 hari) → " + sgn(V.usdtDNow, 2) + "%", fc(-(V.sUsdtd || 0)));
+      else r("USDT.D", "— tidak tersedia", "mut");
       if (V.pubTs) r("dihitung engine", V.pubTs + " WIB", "mut");
       /* 24 Sep — umur data sumber saat NORMAL: biar terlihat segar/tidaknya
          input gauge (BTC 1h & gelombang grup) tanpa harus nunggu degrade.
@@ -353,11 +373,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (btcMom != null && isFinite(btcMom))
         r("momentum BTC", sgn(btcMom, 2) + "% (24 jam)", btcMom > 0 ? "pos" : btcMom < 0 ? "neg" : "mut");
       var note = el("div", "dnote");
-      note.textContent = "Arah LIVE = 2× mayoritas watchlist+sinyal reclaim pada gelombang terakhir "
-        + "yang terkirim ke grup (1h/2h/4h) + BTC 1h live — tanpa dominan. Gelombang sinyal "
-        + "serentak satu arah langsung membalikkan gauge. Dihitung di SERVER bot (sama untuk "
-        + "semua device; candle forming dibuang). Device yang bisa menjangkau Binance/CoinGecko "
-        + "menyegarkan BTC real-time di atasnya.";
+      note.textContent = "Arah LIVE = 2× mayoritas watchlist+sinyal reclaim + BTC 1h + BTC.D + USDT.D "
+        + "(skor = 2×maj + BTC + BTC.D − USDT.D; USDT.D naik menekan alt). Enam status: "
+        + "LONG · ALTSEASON (skor ≥+5 + BTC.D turun + BTC tak jatuh) · NETRAL · SHORT · "
+        + "CRASH (skor ≤−5 + BTC −3% /24j) · DEGRADED (input basi). Momentum BTC 24 jam "
+        + "menjadi pembeda ALTSEASON/CRASH dari LONG/SHORT biasa. CoinGecko basi >24 jam "
+        + "→ dominan tidak dihitung, gauge tetap jalan 3 faktor.";
       m.appendChild(note);
     }
     /* 20 Sep v28: nilai arah dihitung JUGA di engine (dashboard_data →
@@ -366,22 +387,31 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        mencapai Binance/CoinGecko menyegarkan real-time di atasnya. */
     var pub = DATA.altdir_live;
     if (pub && (pub.src && (pub.src.btc || pub.src.maj || pub.src.dom))) {
-      paint({ dirBtc: pub.dirBtc || 0, dirBtcd: pub.dirBtcd || 0,
-              dirUsdtd: pub.dirUsdtd || 0, score: pub.score || 0,
-              bias: pub.bias || "netral", dBtcd: pub.dBtcd || 0, dUsdtd: pub.dUsdtd || 0,
+      var V0 = { dirBtc: pub.dirBtc || 0,
               maj: pub.maj || 0, nLong: pub.nLong || 0, nShort: pub.nShort || 0,
               nMaj: pub.nMaj || 0,
               pubTs: pub.ts, btc24h: pub.btc24h,
               degraded: !!pub.degraded, degrade_reason: pub.degrade_reason || "",
-              ageBtc: pub.age_btc_s, ageMaj: pub.age_maj_s });
+              ageBtc: pub.age_btc_s, ageMaj: pub.age_maj_s };
+      /* v33: dominan diambil browser (CoinGecko, cache 15 mnt) — bila gagal,
+         gauge tetap jalan 3 faktor dgn keterangan "tanpa data dominan". */
+      domGlobal(function (D) {
+        if (D) {
+          V0.btcD = D.btcd; V0.sBtcd = D.btcd; V0.btcDNow = D.btcdNow;
+          V0.usdtD = D.usdtd; V0.sUsdtd = D.usdtd; V0.usdtDNow = D.usdtdNow;
+        }
+        hitungStatus(V0);
+        paint(V0);
+      });
     }
     btc1h(function (rows) {
       /* 23 Sep v31 — penyegaran real-time: mayoritas diambil dari engine
-         (browser tak punya CSV grup), dirBtc dihitung ulang dari klines live;
-         dominan tak dihitung sama sekali. Kalau engine belum menerbitkan apa
-         pun, layar tetap memakai hasil engine terakhir — bukan pura-pura. */
+         (browser tak punya CSV grup), dirBtc dihitung ulang dari klines live.
+         25 Sep v33 — BTC.D & USDT.D ikut di-refresh real-time (domGlobal,
+         cache 15 mnt) dan klasifikasi pakai hitungStatus: 6 status dgn
+         ALTSEASON/CRASH menuntut konfirmasi dominan + momentum BTC. */
       var pub2 = DATA.altdir_live || {};
-      var V = { dirBtc: 0, score: 0, bias: "netral",
+      var V = { dirBtc: 0,
                 maj: pub2.maj || 0, nLong: pub2.nLong || 0, nShort: pub2.nShort || 0, nMaj: pub2.nMaj || 0,
                 /* v32: status degraded engine selalu dihormati — refresh browser
                    tak boleh menyembunyikan gate (BTC segar di browser ≠ gelombang
@@ -395,9 +425,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           || rclSlope(rows.map(function (r) { return r.c; }), 24, .3);
         if (rows.length > 25) V.btc24h = Math.round((rows[rows.length-1].c / rows[rows.length-25].c - 1) * 10000) / 100;
       }
-      V.score = 2 * V.maj + V.dirBtc;                      // v31: 2×mayoritas + BTC 1h
-      V.bias = V.score > 0 ? "long" : V.score < 0 ? "short" : "netral";
-      if (rows && rows.length > 30 && !V.degraded) paint(V);   // v32: degraded tetap tampil dari engine
+      domGlobal(function (D) {
+        if (D) {
+          V.btcD = D.btcd; V.sBtcd = D.btcd; V.btcDNow = D.btcdNow;
+          V.usdtD = D.usdtd; V.sUsdtd = D.usdtd; V.usdtDNow = D.usdtdNow;
+        }
+        hitungStatus(V);
+        if (rows && rows.length > 30 && !V.degraded) paint(V);   // v32: degraded tetap tampil dari engine
+      });
     });
   }
   /* ===== PENENTU ARAH LIVE — engine reclaim 1 jam =====
@@ -468,8 +503,109 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var d = (c[c.length - 1] - c[c.length - 1 - n]) / c[c.length - 1 - n] * 100;
     return d > thr ? 1 : d < -thr ? -1 : 0;
   }
-  /* 23 Sep v31 — seri dominan (BTC.D/USDT.D) DIHAPUS: gauge = BTC + mayoritas
-     reclaim, titik. Tidak ada lagi fetch CoinGecko dominan di browser. */
+  /* ═══ 25 Sep v33 — DOMINAN KEMBALI (permintaan user): BTC.D & USDT.D ═══
+     Dihapus di v31 atas permintaan yang lama; kini diminta lagi sebagai
+     faktor gauge. Sumber sama seperti sebelum dihapus: CoinGecko /global
+     (market_cap_percentage.btc + anchor baseline v6) + market_chart BTC
+     14 hari (varians) — hash keduanya utk delta & arah. Cache 15 mnt.
+     Bila CoinGecko kebanjiran 429: cache terakhir dipakai selama 24 jam,
+     kalau benar-benar kosong gauge otomatis DEGRADED (tidak mengarang). */
+  function domGlobal(cb) {
+    function jadi(dBtc, dUsdt, anchorBtc, usdtdNow) {
+      if (GD.btcd == null && isFinite(dBtc)) {
+        GD.btcd = dBtc; GD.usdtd = dUsdt;
+        GD.btcdNow = anchorBtc; GD.usdtdNow = usdtdNow;
+        GD.at = Date.now();
+      }
+      cb(GD.btcd != null ? GD : null);
+    }
+    if (GD.at && Date.now() - GD.at < 15 * 60e3) { cb(GD); return; }
+    /* gone: CoinGecko gagal (mis. 429). Cadangan CoinPaprika /global — punya
+       BTC.D sekarang saja (tanpa seri delta → delta 0, arah →): gauge tetap
+       punya faktor dominan nilai-nya, klasifikasi ekstrem tetap konservatif.
+       Bila dua-duanya gagal → null (baris dominan: tidak tersedia). */
+    var gone = function () {
+      if (GD.btcd != null) { cb(GD); return; }                     // cache 24 jam
+      fetch("https://api.coinpaprika.com/v1/global")
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .catch(function () { return null; })
+        .then(function (p) {
+          if (p && p.bitcoin_dominance_percentage) {
+            GD.btcd = 0; GD.usdtd = null;                          // delta tak diketahui
+            GD.btcdNow = +p.bitcoin_dominance_percentage;
+            GD.usdtdNow = 0;
+            GD.at = Date.now();
+            cb(GD);
+          } else cb(null);
+        });
+    };
+    fetch("https://api.coingecko.com/api/v3/global")
+      .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+      .then(function (g) {
+        var d = g && g.data; if (!d) throw 0;
+        var usdtdNow = +d.market_cap_percentage.usdt || 0;   /* kunci CoinGecko = "usdt" */
+        var anchorBtc = +d.market_cap_percentage.btc || 0;
+        function caps3hari(slug, done) {
+          fetch("https://api.coingecko.com/api/v3/coins/" + slug
+            + "/market_chart?vs_currency=usd&days=14&interval=daily")
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .catch(function () { return null; })
+            .then(function (mc) {
+              if (!mc || !mc.market_caps || mc.market_caps.length < 5) { done(null); return; }
+              var caps = mc.market_caps.map(function (x) { return x[1]; });
+              var n = caps.length;
+              var ref = caps[n - 4] != null ? caps[n - 4] : caps[0];  // 3 hari lalu
+              done(ref ? (caps[n - 1] / ref - 1) * 100 : null);        // Δ% 3 hari
+            });
+        }
+        caps3hari("bitcoin", function (dBtc) {
+          if (dBtc == null) { gone(); return; }
+          /* USDT.D: tak ada seri gratis — pakai arus relatif 3 hari
+             (kap USDT vs kap BTC) sbg proksi; nilai sekarang tetap asli
+             dari /global. Cukup utk arah ↑/↓ gauge. */
+          caps3hari("tether", function (dUsdtCap) {
+            var dUsdt = dUsdtCap == null ? 0 : (dUsdtCap - dBtc);
+            jadi(dBtc, dUsdt, anchorBtc, usdtdNow);
+          });
+        });
+      })
+      .catch(gone);
+  }
+  /* ═══ 25 Sep v33 — KLASIFIKASI 6 STATUS + SKOR 5 FAKTOR ═══
+     F = { maj, dirBtc, sBtcd, sUsdtd, mom } — mom: momentum BTC 24 jam
+     sbg pembeda CRASH vs SHORT biasa & ALTSEASON vs LONG biasa.
+     Skor = 2×maj + dirBtc + sBtcd − sUsdtd (usdt.d naik = menekan alt).
+     Kekuatan = |skor| (jarak jarum dari tengah, maks ±9).
+     Status: ALTSEASON & CRASH menuntut KONFIRMASI DOMINAN + momentum —
+     bukan sekadar skor ekstrem. why = alasan 1 kalimat utk panel. */
+  function hitungStatus(V) {
+    var mom = (V.btc24h != null) ? V.btc24h : 0;
+    var skor = 2 * (V.maj || 0) + (V.dirBtc || 0)
+      + (V.sBtcd || 0) - (V.sUsdtd || 0);
+    V.score = skor;
+    V.strength = Math.abs(skor);
+    var domAda = V.sBtcd !== undefined && V.btcD != null;
+    var sR = Math.round(skor * 10) / 10;
+    if (skor >= 5 && domAda && V.sBtcd < 0 && mom > -1) {
+      V.status = "altseason"; V.bias = "long";
+      V.why = "skor " + sR + " + BTC.D turun (uang rotasi ke alt) + BTC tidak jatuh";
+    } else if (skor <= -5 && domAda && mom < -3) {
+      V.status = "crash"; V.bias = "short";
+      V.why = "skor " + sR + " + BTC " + sgn(mom, 1) + "% (24 jam) — risk-off dalam";
+    } else if (skor >= 2) {
+      V.status = "long"; V.bias = "long";
+      V.why = domAda ? "skor " + sR + " — dominan tidak melawan"
+                     : "skor " + sR + " (tanpa data dominan)";
+    } else if (skor <= -2) {
+      V.status = "short"; V.bias = "short";
+      V.why = domAda ? "skor " + sR + " — dominan tidak melawan"
+                     : "skor " + sR + " (tanpa data dominan)";
+    } else {
+      V.status = "netral"; V.bias = "netral";
+      V.why = "skor " + sR + " di zona tengah (−2..+2)";
+    }
+    return V;
+  }
 
   function strip() {
     var host = $("#strip"); host.innerHTML = "";
@@ -908,6 +1044,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
             makin bingung dgn 3 garis bersilangan)
      Sumber sama dengan heat table & kartu live resolve: picks admin. */
   var HR_NAME = { "1h": "Kilat 1h", "2h": "Scalp 2h", "4h": "Swing 4h" };
+  /* 25 Sep — tinggi ter-akhir tiap batang histogram (urut h×kanal), buat
+     tween antar segaran: batang MELUNCUR dari tinggi lama ke baru, persis
+     histogram divergen di tab Whale. Bentuk array mengikuti urutan render. */
+  var HR_RAW = null;
   function liveHourAgg() {
     var per = {}, h;
     for (h = 0; h < 24; h++) { per[h] = { "1h": [0, 0, 0], "2h": [0, 0, 0], "4h": [0, 0, 0] }; }
@@ -1003,7 +1143,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   function drawLiveHr(svg, ser, per) {
     svg.innerHTML = "";
-    var W = 620, H = 190, P = { t: 14, r: 14, b: 26, l: 36 };
+    /* 25 Sep v2 — SKALA PER SISI (permintaan user: winrate kalah dulu selalu
+       pendek karena mayoritas resolve menang, sehingga histogram tak terlihat
+       divergen). Kini tiap sisi diskalakan SENDIRI: batang kalah terparah
+       setinggi batang menang terbaik — bentuk divergennya jelas. Konsekuensi:
+       sumbu % 0–100 ditarik (tidak lagi sesuai geometri); diganti label
+       MENANG / KALAH + garis putus 50%, angka eksak tetap di hover. */
+    var W = 620, H = 190, P = { t: 14, r: 14, b: 26, l: 14 };
     svg.setAttribute("viewBox", "0 0 " + W + " " + H);
     svg.setAttribute("preserveAspectRatio", "none");
     var iw = (W - P.l - P.r) / 24;
@@ -1017,48 +1163,103 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       defs.appendChild(g);
     });
     svg.appendChild(defs);
-    for (var g2 = 0; g2 <= 4; g2++) {
-      var vv = g2 * 25, yy = Y(vv);
-      svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: yy, y2: yy, "class": g2 === 2 ? "z" : "g" }));
-      var lb = mk("text", { x: P.l - 5, y: yy + 3, "text-anchor": "end" });
-      lb.textContent = vv + "%"; svg.appendChild(lb);
-    }
+    /* garis nol (50%) — pengganti sumbu % (skala per sisi); label MENANG/KALAH
+       menyusul di lapisan teratas (setelah batang) supaya tak tertutup */
+    var y50 = Y(50);
+    svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: y50, y2: y50, "class": "z" }));
     for (var h2 = 0; h2 < 24; h2 += 3) {
       var tx = mk("text", { x: X(h2) + iw / 2, y: H - 8, "text-anchor": "middle" });
       tx.textContent = (h2 < 10 ? "0" : "") + h2; svg.appendChild(tx);
     }
     var ax = mk("text", { x: W - P.r, y: H - 8, "text-anchor": "end", "class": "hr-wib" });
     ax.textContent = "WIB"; svg.appendChild(ax);
-    /* lollipop: per jam, tiga batang kanal berdampingan dari garis 50%.
-       Naik = menang, turun = kalah; tinggi = |winrate − 50%|. */
-    var y50 = Y(50), bw = iw / 3.4, gap = 1.5;
+    /* HISTOGRAM DIVERGEN (25 Sep, gaya tab Whale v3): batang tumbuh dari
+       garis 50% — naik = menang (gradient kanal), turun = kalah (merah);
+       tinggi = jarak winrate dari 50% (floor 6px biar 50% eksak tetap
+       terlihat). Antar redraw batang MELUNCUR halus dgn stagger kiri→kanan
+       (luncur 650ms + delay 18ms per kolom jam, dua rAF utk posisi awal,
+       tween dari tinggi lama via HR_RAW). Batang ekstrem — dominasi jauh
+       dari 50% DAN sampel cukup (≥3) — berdenyut oranye (class hot).
+       Hormati prefers-reduced-motion (CSS mematikan transisi/animasi). */
+    var bw = iw / 3.4, gap = 1.5;
+    var RM = false;
+    try { RM = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+    var lama = HR_RAW, tinggiBaru = [];
+    /* SKALA PER SISI: setengah plot utk menang, setengah utk kalah.
+       Terparah tiap sisi = penuh setengah plot; sisanya proporsional —
+       jam kalah 33% kini tampak setinggi jam menang 67%. */
+    var upMax = 1, dnMax = 1;
+    ser.forEach(function (s) {
+      s.pts.forEach(function (p) {
+        var d = Math.abs(p[1] - 50);
+        if (p[1] >= 50) { if (d > upMax) upMax = d; }
+        else if (d > dnMax) dnMax = d;
+      });
+    });
+    var plotHalf = (H - P.t - P.b) / 2;               // px per sisi penuh
     for (var h3 = 0; h3 < 24; h3++) {
       var x0 = X(h3) + (iw - bw * 3 - gap * 2) / 2;
       ser.forEach(function (s, i) {
         for (var q = 0; q < s.pts.length; q++) {
           if (s.pts[q][0] !== h3) continue;
           var c = s.pts[q][2], wr = s.pts[q][1];
-          var yv = Y(wr), up = wr >= 50;
-          var by = Math.min(yv, y50), bh = Math.max(2, Math.abs(yv - y50));
+          var up = wr >= 50;
+          var bh = Math.max(6, Math.abs(wr - 50) / (up ? upMax : dnMax) * plotHalf);
+          var by = up ? y50 - bh : y50;
           var bx = x0 + i * (bw + gap);
-          var grp = mk("g");
+          var grp = mk("g", { "class": "hr-bar" + (Math.abs(wr - 50) >= 20 && c[0] >= 3 ? " hot" : "")
+            + (up ? " w" : " l") });
           var tv = mk("title");
           tv.textContent = s.name + " @ " + ("0" + h3).slice(-2) + ".00 — WR "
             + wr.toFixed(0) + "% (" + c[1] + "W/" + (c[0] - c[1]) + "L)";
           grp.appendChild(tv);
-          grp.appendChild(mk("rect", { x: bx.toFixed(1), y: by.toFixed(1),
+          var rc = mk("rect", { x: bx.toFixed(1), y: by.toFixed(1),
             width: bw.toFixed(1), height: bh.toFixed(1), rx: 1.5,
             fill: "url(#hrg" + i + ")",
             stroke: up ? s.color : "rgba(232,135,124,.9)",
-            "stroke-opacity": up ? .55 : .9, "stroke-width": .8 }));
-          /* kepala lollipop = nilai winrate eksak */
-          grp.appendChild(mk("circle", { cx: (bx + bw / 2).toFixed(1), cy: yv.toFixed(1),
-            r: 2.2, fill: up ? s.color : "#E8877C" }));
+            "stroke-opacity": up ? .55 : .9, "stroke-width": .8 });
+          tinggiBaru.push({ k: h3 + "|" + s.tf, bh: bh, by: by });
+          var awal = null;
+          if (!RM && lama && lama.length) {
+            for (var z = 0; z < lama.length; z++) {
+              if (lama[z] && lama[z].k === h3 + "|" + s.tf) { awal = lama[z]; break; }
+            }
+          }
+          /* catatan: walau data sama, mulai dari tinggi lama — transisi ke
+             nilai sama tak terlihat, JANGAN di-nol-kan lagi supaya batang
+             tidak tumbuh ulang tiap poll 60 dtk. */
+          if (!RM) {
+            if (awal) {                                        // mulai dr tinggi lama
+              rc.setAttribute("y", awal.by.toFixed(1));
+              rc.setAttribute("height", awal.bh.toFixed(1));
+            } else {                                           // tumbuh dr garis 50%
+              rc.setAttribute("y", y50.toFixed(1));
+              rc.setAttribute("height", "0");
+            }
+            rc.style.transitionDelay = (h3 * 18) + "ms";       // stagger per JAM
+          }
+          grp.appendChild(rc);
           svg.appendChild(grp);
+          if (!RM) {
+            (function (r, ty, th) {                            // dua rAF: pastikan posisi awal ter-render
+              requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                  r.setAttribute("y", ty.toFixed(1));
+                  r.setAttribute("height", th.toFixed(1));
+                });
+              });
+            })(rc, by, bh);
+          }
           break;
         }
       });
     }
+    HR_RAW = tinggiBaru;
+    /* label MENANG/KALAH paling atas (di atas batang) — halo gelap via CSS paint-order */
+    var lbU = mk("text", { x: P.l + 4, y: P.t + 9, "class": "hr-lab up" });
+    lbU.textContent = "MENANG"; svg.appendChild(lbU);
+    var lbD = mk("text", { x: P.l + 4, y: H - P.b - 5, "class": "hr-lab dn" });
+    lbD.textContent = "KALAH"; svg.appendChild(lbD);
     /* crosshair + tooltip per jam — hover di mana pun menampilkan semua kanal */
     var card = svg.parentNode;
     /* redraw (picks berubah): buang tooltip & crosshair lama supaya tak menumpuk */
@@ -1104,7 +1305,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
 
   /* ekspos state untuk konsol (debug & verifikasi; tidak dipakai logika internal) */
-  window.DBG = { get DATA() { return DATA; }, get PICKS() { return PICKS; }, get PLOG() { return PLOG; } };
+  window.DBG = { get DATA() { return DATA; }, get PICKS() { return PICKS; }, get PLOG() { return PLOG; },
+    get gaugeStatus() { return hitungStatus; } };   // v33: uji klasifikasi 6 status dr konsol
   /* ── bubbles: gelembung FISIK koin hasil deteksi engine ──
      BUKAN pasar crypto seluruhnya — hanya koin yang tercatat di engine.
      Fisika ala bubblescrypto: tiap gelembung melayang (gaya acak lembut),
