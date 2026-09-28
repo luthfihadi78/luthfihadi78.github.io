@@ -308,6 +308,25 @@
 
   /* ── state ── */
   var DATA = null, FILTER = "semua", LEFT = 0;
+  /* 28 Sep — badge "+N BARU" di header feed utama: alert whale yang BARU
+     muncul antar poll data.json (kunci = txid+chain+usd, per filter tab).
+     Seed senyap saat ganti tab — pindah tab bukan alert segar, jadi badge
+     & kedip tidak pernah trip palsu. */
+  var WSEEN = {}, WSEEN_F = "";
+  var WNEW_N = 0, WNEW_AT = 0;
+  function feedKey(a) { return (a.txid || a.ts_wib || "") + ":" + (a.chain || "") + ":" + (a.usd || 0); }
+  function paintFeedBadge() {
+    var nb = $("#wf-new");
+    if (!nb) return;
+    if (WNEW_N <= 0) { nb.className = "qnewb"; nb.textContent = ""; return; }
+    nb.textContent = "+" + WNEW_N + " BARU";
+    nb.title = WNEW_N + " alert whale baru masuk feed";
+    if (Date.now() - WNEW_AT < 6000) {
+      nb.className = "qnewb hot";
+      clearTimeout(paintFeedBadge._t);
+      paintFeedBadge._t = setTimeout(paintFeedBadge, 6000);   // redup sendiri
+    } else nb.className = "qnewb dim";
+  }
 
   function jamWib(tsWib) {
     if (!tsWib) return "—";
@@ -365,6 +384,12 @@
 
   function renderFilter() {
     var host = $("#w-filter"); host.innerHTML = "";
+    /* badge "+N BARU" — dibuat sekali, menempel di sec-h (bukan di dalam
+       #w-filter yang di-clear tiap render), sejajar tab filter */
+    if (!$("#wf-new")) {
+      var nb = el("span", "qnewb"); nb.id = "wf-new";
+      host.parentNode.appendChild(nb);
+    }
     ["semua", "jual", "beli", "transfer", "mega"].forEach(function (f) {
       var b = el("button", "tab" + (FILTER === f ? " on" : ""), f.toUpperCase());
       b.addEventListener("click", function () { FILTER = f; renderFilter(); renderRows(); });
@@ -389,9 +414,35 @@
       return (a.arah || "").toLowerCase() === f;
     });
     $("#w-empty").hidden = show.length > 0;
+    /* deteksi alert BARU (28 Sep): seed senyap saat ganti tab/konteks,
+       selain itu alert yang belum tercatat di WSEEN = baru */
+    var seed = WSEEN_F !== f;
+    if (seed) { WSEEN = {}; WSEEN_F = f; WNEW_N = 0; WNEW_AT = 0; }
+    var nBaru = 0, baruMap = {};
+    if (!seed) show.forEach(function (a) {
+      var k = feedKey(a);
+      if (!WSEEN[k]) { nBaru++; baruMap[k] = 1; }
+    });
+    show.forEach(function (a) { WSEEN[feedKey(a)] = 1; });
+    if (!seed && nBaru > 0) { WNEW_N += nBaru; WNEW_AT = Date.now(); }
+    if (WNEW_N > 0 && Date.now() - WNEW_AT > 120000) { WNEW_N = 0; WNEW_AT = 0; }
+    paintFeedBadge();
     show.slice(0, 80).forEach(function (a) {
+      var k = feedKey(a), baru = !seed && !!baruMap[k];
       var row = el("div", "wrow");
-      row.appendChild(el("span", "wt", jamWib(a.ts_wib)));
+      if (baru) {
+        if (a.arah === "BELI") row.classList.add("qnew", "qn-up");
+        else if (a.arah === "JUAL") row.classList.add("qnew", "qn-dn");
+      }
+      var wt = el("span", "wt", jamWib(a.ts_wib));
+      if (baru) {
+        wt.appendChild(el("b", "qnewtag", "BARU"));
+        setTimeout(function () {   // tag hilang bersamaan dgn selesai animasi
+          var t = wt.querySelector(".qnewtag");
+          if (t) t.remove();
+        }, 4000);
+      }
+      row.appendChild(wt);
       var c = el("span", "wc"); c.appendChild(chainBadge(a.chain)); row.appendChild(c);
       var w = el("span", "ww"); w.appendChild(arahBadge(a.arah));
       if (a.level === "MEGA") w.appendChild(el("b", "wmega", "MEGA"));
