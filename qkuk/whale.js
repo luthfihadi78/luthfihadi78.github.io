@@ -525,20 +525,31 @@
   }
   var QACTIVE = null;      // {symF, poolsP, sel, timer} — sel = pool terpilih
   var QCACHE = {};         // sym → {at, pools:[…]} (10 mnt)
+  var QTRADES = {};        // net|pid → {at, rows} — trade mentah ≥$100, sumber filter lokal instan (28 Sep)
   /* 24 Sep (permintaan user): sorot baris BARU sejak refresh terakhir.
      QSEEN = kunci trade yang sudah tampil; konteks = pool+filter, ganti
      konteks (search baru / pindah jaringan / ganti chip) → reset tanpa
      animasi, biar tidak seluruh tabel berkedip palsu. */
   var QSEEN = {}, QSEEN_CTX = "";
-  /* Filter whale-print (24 Sep): default = chip TERENDAH $10rb (permintaan
-     user — $100rb terlalu tinggi utk pool yang sedang tenang). Chip cepat
-     $10rb/$100rb/$1jt/$5jt, tersimpan localStorage. */
-  var QMIN = 1e4;
-  try { QMIN = +(localStorage.getItem("qkuk_wmin")) || 1e4; } catch (e) {}
+  /* Filter whale-print (28 Sep): default = $100 (permintaan user — coin
+     tenang seperti INJ sering tak punya trade ≥$1rb, apalagi ≥$10rb).
+     Chip $100/$1rb/$10rb/$100rb/$1jt/$5jt, tersimpan localStorage. Kunci
+     v2: browser lama masih menyimpan qkuk_wmin=$10rb — kunci baru
+     menjamin default $100 langsung aktif tanpa hapus manual. */
+  var QMIN = 1e2;
+  try { QMIN = +(localStorage.getItem("qkuk_wmin2")) || 1e2; } catch (e) {}
   function setMin(v) {
     QMIN = v;
-    try { localStorage.setItem("qkuk_wmin", String(v)); } catch (e) {}
-    refreshLive();   // ambil ulang daftar dengan ambang baru, segera
+    try { localStorage.setItem("qkuk_wmin2", String(v)); } catch (e) {}
+    /* 28 Sep — TANPA re-fetch: dulu setMin memicu refreshLive() penuh
+       (GeckoTerminal + Binance aggTrades) → lag jelas tiap pindah chip.
+       Sekarang fetch selalu ambang $100 (qLoad) dan disimpan mentah di
+       QTRADES, jadi ganti chip = filter lokal + repaint instan. Timer
+       30 dtk tetap menyegarkan data dari API. */
+    if (QACTIVE && QACTIVE.sel) {
+      var c = QTRADES[QACTIVE.sel.net + "|" + QACTIVE.sel.pid];
+      if (c && c.rows) paintTrades(QACTIVE.sel, c.rows.filter(function (r) { return r.usd >= QMIN; }));
+    }
   }
 
   function gtGet(url, coba) {
@@ -624,6 +635,19 @@
         return { t: a.block_timestamp, wallet: a.tx_from_address || "", buy: buy,
                  amt: amt, usd: usd, tx: a.tx_hash || "", libat: !!libat };
       }).filter(function (r) { return r.libat && r.amt > 0; });
+    });
+  }
+  function qFilter(rows) {
+    return rows.filter(function (r) { return r.usd >= QMIN; });
+  }
+  function qLoad(pool) {
+    /* 28 Sep: fetch SEKALI dgn ambang terendah $100, simpan mentah di
+       QTRADES, lalu paint hasil filter lokal. Pindah chip tak pernah
+       menyentuh API lagi — hanya repaint dari cache. */
+    var key = pool.net + "|" + pool.pid;
+    return gtTrades(pool, 100).then(function (rows) {
+      QTRADES[key] = { at: Date.now(), rows: rows };
+      return qFilter(rows);
     });
   }
   function gtTxUrl(net, hash) {
@@ -942,7 +966,7 @@
       var pool = QACTIVE.sel || pools[0];
       if (pool) {
         QACTIVE.sel = pool;
-        gtTrades(pool, QMIN).then(function (rows) { paintTrades(pool, rows); })
+        qLoad(pool).then(function (rows) { paintTrades(pool, rows); })
           .catch(function (e) {   // jaga tabel terakhir; error hanya bila kosong
             if (!document.querySelector("#q-trades .wrow")) paintTrades(pool, null, e);
           });
@@ -970,7 +994,7 @@
       QACTIVE.pools = pools;   // ⚠️ wajib — paintTrades baca ini utk dropdown
       var pool = pools[0];
       QACTIVE.sel = pool;
-      gtTrades(pool, QMIN).then(function (rows) { paintTrades(pool, rows); })
+      qLoad(pool).then(function (rows) { paintTrades(pool, rows); })
         .catch(function (e) { paintTrades(pool, null, e); });
     }).catch(function (e) {
       if (!QACTIVE || QACTIVE.symF !== symF) return;
