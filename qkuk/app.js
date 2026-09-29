@@ -3430,16 +3430,20 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      tidak. Solusinya: urutan section TIDAK lagi dipercaya ke HTML. app.js yang
      memindahkan section ke urutan final saat halaman dibuka, jadi walau HTML
      cache-nya lama, tampilan tetap benar:
-     1 gauge arah  2 bubbles  3 watchlist  4 signals  5 picked by you
-     6 cumulative R + winrate by hour  7 winrate watchlist accuracy
-     8 winrate sinyal scalping kilat / scalping / swing trade (kartu ringkasan) */
+     1 gauge arah  2 bubbles  3 KOTAK ANALISIS (pengingat admin — permintaan
+     28 Sep: harus tepat di bawah bubbles, kalau di atas justru tak terlihat)
+     4 watchlist  5 signals  6 picked by you
+     7 cumulative R + winrate by hour  8 winrate watchlist accuracy
+     9 winrate sinyal scalping kilat / scalping / swing trade (kartu ringkasan) */
   (function reOrder() {
-    var ids  = ["dir", "bubbles", "watch", "signals", "kamu", "charts", "akurasi", "strip"];
+    var ids  = ["dir", "bubbles", "analisa", "watch", "signals", "kamu", "charts", "akurasi", "strip"];
     var host = document.querySelector(".wrap") || document.body;
     ids.forEach(function (id) {
       var s = document.getElementById(id);
       if (s) host.appendChild(s);          // appendChild = pindah, bukan duplikat
     });
+    var ft = host.querySelector("footer");   // footer bukan bagian daftar —
+    if (ft) host.appendChild(ft);            // dulu nyangkut di atas; taruh di bawah lagi
     var ak = document.querySelector("#akurasi h2");
     if (ak) ak.innerHTML = "<i>&gt;</i> Winrate watchlist accuracy";
   })();
