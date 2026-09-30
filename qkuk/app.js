@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-note-20260930a";   /* 30 Sep: kanal 30m kini "LONG PLAY" — long-only (riset: short avgR −0,173R membebani), badge khusus, tanpa label jam */
+  var BUILD = "qkuk-30m-20260930b";   /* 30 Sep: kanal 30m ◈ LONG PLAY AKTIF di engine — tab, bubbles, watchlist & sinyal 30m tampil di terminal; long-only; kirim penuh ke grup */
   /* 23 Sep — warna kanal KONTRAS (permintaan user: 1h & 2h mirip):
      Kilat 1h = biru cyan · Scalp 2h = hijau · Swing 4h = emas terang */
   var COLOR = { "1h": "#4DC9F6", "2h": "#6EE7B7", "4h": "#F2C94C", "30m": "#C792EA" };
@@ -3430,11 +3430,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      tidak. Solusinya: urutan section TIDAK lagi dipercaya ke HTML. app.js yang
      memindahkan section ke urutan final saat halaman dibuka, jadi walau HTML
      cache-nya lama, tampilan tetap benar:
-     1 gauge arah  2 bubbles  3 watchlist  4 signals  5 picked by you
-     6 cumulative R + winrate by hour  7 winrate watchlist accuracy
-     8 winrate sinyal scalping kilat / scalping / swing trade (kartu ringkasan) */
+     1 gauge arah  2 bubbles  3 kotak analisis  4 watchlist  5 signals
+     6 picked by you  7 cumulative R + winrate by hour
+     8 winrate watchlist accuracy  9 kartu ringkasan kanal
+     ⚠️ 30 Sep — #analisa WAJIB ada di daftar ini. Kotak analisis ditambahkan
+     di HTML di antara bubbles dan watchlist, tapi karena ia tidak tercantum
+     di sini, appendChild section lain melemparnya ke PALING ATAS wrap —
+     persis keluhan "kotak analisis kembali ke atas, harusnya di bawah
+     bubbles". #footer ikut dicantumkan supaya tidak nyangkut di tengah
+     halaman saat section di atasnya dipindah. */
   (function reOrder() {
-    var ids  = ["dir", "bubbles", "watch", "signals", "kamu", "charts", "akurasi", "strip"];
+    var ids  = ["dir", "bubbles", "analisa", "watch", "signals", "kamu", "charts", "akurasi", "strip", "footer"];
     var host = document.querySelector(".wrap") || document.body;
     ids.forEach(function (id) {
       var s = document.getElementById(id);
