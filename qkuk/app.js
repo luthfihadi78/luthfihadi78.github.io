@@ -3,18 +3,18 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
 
 (function () {
   "use strict";
-  var DATA = null, ORDER = ["1h", "2h", "4h"], LEFT = 60;
+  var DATA = null, ORDER = ["30m", "1h", "2h", "4h"], LEFT = 60;
   /* ⚠️ GitHub Pages menyajikan index.html dgn cache-control 600 dtk, dan tab
      yang dibiarkan terbuka TIDAK PERNAH mengambil ulang HTML-nya sama sekali —
      ia hanya menarik data.json. Akibatnya pembaruan tampilan tak terlihat
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-note-20260928c";   /* 28 Sep v34: gauge 4 faktor bobot setara (maj+BTC−BTC.D−USDT.D) + histeresis ganti rezim (flip butuh skor ≥3 atau dominan setuju) */
+  var BUILD = "qkuk-note-20260929a";   /* 29 Sep: kanal baru SCALPING 30 MENIT (30m) — tab akurasi, histogram & heat table otomatis ikut data.json */
   /* 23 Sep — warna kanal KONTRAS (permintaan user: 1h & 2h mirip):
      Kilat 1h = biru cyan · Scalp 2h = hijau · Swing 4h = emas terang */
-  var COLOR = { "1h": "#4DC9F6", "2h": "#6EE7B7", "4h": "#F2C94C" };
-  var TVI = { "1h": "60", "2h": "120", "4h": "240" };
+  var COLOR = { "1h": "#4DC9F6", "2h": "#6EE7B7", "4h": "#F2C94C", "30m": "#C792EA" };
+  var TVI = { "1h": "60", "2h": "120", "4h": "240", "30m": "30" };
 
   function $(s) { return document.querySelector(s); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
@@ -1057,15 +1057,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      ② hr : winrate per jam WIB — lollipop per jam (bukan garis: user
             makin bingung dgn 3 garis bersilangan)
      Sumber sama dengan heat table & kartu live resolve: picks admin. */
-  var HR_NAME = { "1h": "Kilat 1h", "2h": "Scalp 2h", "4h": "Swing 4h" };
+  var HR_NAME = { "1h": "Kilat 1h", "2h": "Scalp 2h", "4h": "Swing 4h", "30m": "30 Menit" };
   /* 25 Sep — tinggi ter-akhir tiap batang histogram (urut h×kanal), buat
      tween antar segaran: batang MELUNCUR dari tinggi lama ke baru, persis
      histogram divergen di tab Whale. Bentuk array mengikuti urutan render. */
   var HR_RAW = null;
   function liveHourAgg() {
     var per = {}, h;
-    for (h = 0; h < 24; h++) { per[h] = { "1h": [0, 0, 0], "2h": [0, 0, 0], "4h": [0, 0, 0] }; }
-    ["1h", "2h", "4h"].forEach(function (tf) {
+    for (h = 0; h < 24; h++) { per[h] = { "1h": [0, 0, 0], "2h": [0, 0, 0], "4h": [0, 0, 0], "30m": [0, 0, 0] }; }
+    ["1h", "2h", "4h", "30m"].forEach(function (tf) {
       ["pantau", "sinyal"].forEach(function (jenis) {
         liveRows(tf, jenis).forEach(function (r) {
           var p = r.apick; if (!p) return;
@@ -1083,7 +1083,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     return per;
   }
   function eqLiveSeries() {
-    return ["1h", "2h", "4h"].map(function (tf) {
+    return ["1h", "2h", "4h", "30m"].map(function (tf) {
       var rows = [];
       Object.keys(PICKS).forEach(function (k) {
         var kp = k.split("|"); if (kp[0] !== tf) return;
@@ -1128,7 +1128,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function hrChart() {
     var svg = $("#hr"); if (!svg) return;
     var per = liveHourAgg();
-    var ser = ["1h", "2h", "4h"].map(function (tf) {
+    var ser = ["1h", "2h", "4h", "30m"].map(function (tf) {
       var pts = [];
       for (var h = 0; h < 24; h++) {
         var c = per[h][tf];
@@ -1293,7 +1293,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       tip.innerHTML = "";
       var jt = el("b"); jt.textContent = ("0" + hq).slice(-2) + ".00 WIB"; tip.appendChild(jt);
       var totN = 0, totW = 0;
-      ["1h", "2h", "4h"].forEach(function (t) { totN += per[hq][t][0]; totW += per[hq][t][1]; });
+      ser.forEach(function (s) { totN += per[hq][s.tf][0]; totW += per[hq][s.tf][1]; });
       ser.forEach(function (s) {
         for (var q = 0; q < s.pts.length; q++) {
           if (s.pts[q][0] !== hq) continue;
@@ -2411,18 +2411,6 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau belum ada yg lolos ambang, tampilkan "menunggu data" + tips.
      Dipanggil dari applyPicks → ikut segar tiap picks cloud berubah. */
   var MIN_AL_N = 3;
-  /* 29 Sep — ring glow singkat saat komposisi #1 BERUBAH (nama/winrate/jumlah
-     pick): kotak analisis menyala mint 3.2 dtk supaya admin langsung sadar
-     komposisi terbaik sudah lain sebelum ambil posisi (permintaan user).
-     Render pertama & render ulang biasa (data sama) TIDAK menyala. */
-  var AN_LAST_TOP = "";
-  function anGlow(host) {
-    host.classList.remove("an-glow");
-    void host.offsetWidth;   // paksa reflow — animasi bisa diputar ulang
-    host.classList.add("an-glow");
-    clearTimeout(anGlow._t);
-    anGlow._t = setTimeout(function () { host.classList.remove("an-glow"); }, 3200);
-  }
   function comboStats() {
     var c = {};
     function add(nama, win) {
@@ -2457,15 +2445,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         "belum ada kombinasi alasan dgn cukup data (min " + MIN_AL_N
         + " pick resolved per kombinasi) — centang alasan & TF saat menekan \"ambil\", lalu resolve win/loss-nya"));
       host.appendChild(chips);
-      if (AN_LAST_TOP) anGlow(host);   // #1 hilang semua — tetap layak disorot
-      AN_LAST_TOP = "";
       return;
     }
     stats.sort(function (a, b) { return (b.wr - a.wr) || (b.n - a.n); });
     var top = stats.slice(0, 3);
-    var kTop = top[0].nama + "|" + top[0].wr.toFixed(0) + "|" + top[0].n;
-    if (AN_LAST_TOP && AN_LAST_TOP !== kTop) anGlow(host);   // komposisi #1 berubah
-    AN_LAST_TOP = kTop;
     top.forEach(function (s, i) {
       var chip = el("div", "an-chip" + (i === 0 ? " best" : ""));
       chip.appendChild(el("span", "an-rank", i === 0 ? "#1" : "#" + (i + 1)));
@@ -3113,7 +3096,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (lg && lg.parentNode === kamu) kamu.insertBefore(host, lg.nextSibling);
       else kamu.appendChild(host);
     }
-    var TFH = [["1h", "KILAT"], ["2h", "SCALP"], ["4h", "SWING"]];
+    var TFH = [["30m", "30 MENIT"], ["1h", "KILAT"], ["2h", "SCALP"], ["4h", "SWING"]];
     var per = {}, j;                       // per[jam][tf] = [n, w, sum%]
     if (typeof HH_FILTER === "undefined") window.HH_FILTER = null;   // jam terpilih (klik sel)
     for (j = 0; j < 24; j++) { per[j] = {}; TFH.forEach(function (t) { per[j][t[0]] = [0, 0, 0]; }); }
@@ -3133,7 +3116,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         });
       });
     });
-    var TOT = 0; for (j = 0; j < 24; j++) TOT += per[j]["1h"][0] + per[j]["2h"][0] + per[j]["4h"][0];
+    var TOT = 0; for (j = 0; j < 24; j++) TFH.forEach(function (t) { TOT += per[j][t[0]][0]; });
     /* 23 Sep — toggle pewarnaan: "wr" = winrate (default), "pct" = total % hasil.
        Tersimpan di localStorage supaya pilihan pembaca diingat antar kunjungan. */
     var HH_MODE = "wr";
@@ -3166,7 +3149,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var tab = el("table", "hh-t");
     var thead = el("thead"), trh = el("tr");
     trh.appendChild(el("th", "hh-jam", "jam"));
-    ["KILAT 1H", "SCALP 2H", "SWING 4H", "TOTAL"].forEach(function (x) { trh.appendChild(el("th", null, x)); });
+    TFH.map(function (t) { return t[1]; }).concat(["TOTAL"]).forEach(function (x) { trh.appendChild(el("th", null, x)); });
     thead.appendChild(trh); tab.appendChild(thead);
     var tby = el("tbody");
     /* warna sel: mode "wr" → intensitas dari jarak winrate ke 50%;
@@ -3222,16 +3205,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (j >= 9 && j <= 21) tr.classList.add("hh-active");   // 23 Sep: jam trading aktif 09–21
       tr.appendChild(el("td", "hh-jam", ("0" + j).slice(-2) + ".00"));
       var tt = [0, 0, 0];
-      ["1h", "2h", "4h"].forEach(function (t) {
-        var c = per[j][t]; tt[0] += c[0]; tt[1] += c[1]; tt[2] += c[2];
+      TFH.forEach(function (t) {
+        var c = per[j][t[0]]; tt[0] += c[0]; tt[1] += c[1]; tt[2] += c[2];
       });
       var totHas = tt[0] > 0;
-      var best3 = totHas ? Math.max(per[j]["1h"][0] ? per[j]["1h"][1] / per[j]["1h"][0] : -1,
-                                   per[j]["2h"][0] ? per[j]["2h"][1] / per[j]["2h"][0] : -1,
-                                   per[j]["4h"][0] ? per[j]["4h"][1] / per[j]["4h"][0] : -1) : 0;
-      ["1h", "2h", "4h"].forEach(function (t) {
-        var c = per[j][t];
-        tr.appendChild(cell.call(null, t, c[0] > 0 && c[1] / c[0] === best3, j));
+      var best3 = totHas ? Math.max.apply(null, TFH.map(function (t) {
+        var c = per[j][t[0]]; return c[0] ? c[1] / c[0] : -1;
+      })) : 0;
+      TFH.forEach(function (t) {
+        var c = per[j][t[0]];
+        tr.appendChild(cell.call(null, t[0], c[0] > 0 && c[1] / c[0] === best3, j));
       });
       var tdT = el("td", "hh-c");
       tdT.dataset.j = j; tdT.style.cursor = "pointer";
@@ -3447,20 +3430,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      tidak. Solusinya: urutan section TIDAK lagi dipercaya ke HTML. app.js yang
      memindahkan section ke urutan final saat halaman dibuka, jadi walau HTML
      cache-nya lama, tampilan tetap benar:
-     1 gauge arah  2 bubbles  3 KOTAK ANALISIS (pengingat admin — permintaan
-     28 Sep: harus tepat di bawah bubbles, kalau di atas justru tak terlihat)
-     4 watchlist  5 signals  6 picked by you
-     7 cumulative R + winrate by hour  8 winrate watchlist accuracy
-     9 winrate sinyal scalping kilat / scalping / swing trade (kartu ringkasan) */
+     1 gauge arah  2 bubbles  3 watchlist  4 signals  5 picked by you
+     6 cumulative R + winrate by hour  7 winrate watchlist accuracy
+     8 winrate sinyal scalping kilat / scalping / swing trade (kartu ringkasan) */
   (function reOrder() {
-    var ids  = ["dir", "bubbles", "analisa", "watch", "signals", "kamu", "charts", "akurasi", "strip"];
+    var ids  = ["dir", "bubbles", "watch", "signals", "kamu", "charts", "akurasi", "strip"];
     var host = document.querySelector(".wrap") || document.body;
     ids.forEach(function (id) {
       var s = document.getElementById(id);
       if (s) host.appendChild(s);          // appendChild = pindah, bukan duplikat
     });
-    var ft = host.querySelector("footer");   // footer bukan bagian daftar —
-    if (ft) host.appendChild(ft);            // dulu nyangkut di atas; taruh di bawah lagi
     var ak = document.querySelector("#akurasi h2");
     if (ak) ak.innerHTML = "<i>&gt;</i> Winrate watchlist accuracy";
   })();

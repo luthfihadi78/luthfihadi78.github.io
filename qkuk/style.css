@@ -851,15 +851,6 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
   border-top:1px dashed var(--line-2);padding-top:9px}
 .an-tip b{color:var(--gold)}
 .an-empty{font-size:11.5px;color:var(--fg-3);line-height:1.6}
-/* 29 Sep — ring glow singkat saat komposisi #1 berubah: border & glow mint
-   menyala lalu memudar (3.2s, sekali jalan — kelas dipasang-lepas app.js) */
-.an-box.an-glow{animation:anGlowPulse 3.2s ease-out both}
-@keyframes anGlowPulse{
-  0%{box-shadow:0 0 0 1.5px var(--ac),0 0 26px rgba(110,231,183,.65);border-color:var(--ac)}
-  25%{box-shadow:0 0 0 1.5px var(--ac),0 0 26px rgba(110,231,183,.65)}
-  100%{box-shadow:0 0 0 0 rgba(110,231,183,0),0 0 0 rgba(110,231,183,0)}
-}
-@media(prefers-reduced-motion:reduce){.an-box.an-glow{animation:none;box-shadow:none}}
 
 /* ── v20 (27 Sep): TF multi-pilih per alasan + popup detail baru ── */
 /* chip timeframe: satu alasan bisa dipilih di banyak TF sekaligus */
