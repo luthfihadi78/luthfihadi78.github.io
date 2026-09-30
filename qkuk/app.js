@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-30m-20260930b";   /* 30 Sep: kanal 30m ◈ LONG PLAY AKTIF di engine — tab, bubbles, watchlist & sinyal 30m tampil di terminal; long-only; kirim penuh ke grup */
+  var BUILD = "qkuk-30m-20260930c";   /* 30 Sep R1: kanal 30m kini ◈ REVERSAL — long selalu, short hanya saat gauge BTC dirBtc=+1 (riset_rezim_30m.py: tegas WR 58,3% +10,0R) */
   /* 23 Sep — warna kanal KONTRAS (permintaan user: 1h & 2h mirip):
      Kilat 1h = biru cyan · Scalp 2h = hijau · Swing 4h = emas terang */
   var COLOR = { "1h": "#4DC9F6", "2h": "#6EE7B7", "4h": "#F2C94C", "30m": "#C792EA" };
@@ -1057,7 +1057,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      ② hr : winrate per jam WIB — lollipop per jam (bukan garis: user
             makin bingung dgn 3 garis bersilangan)
      Sumber sama dengan heat table & kartu live resolve: picks admin. */
-  var HR_NAME = { "1h": "Kilat 1h", "2h": "Scalp 2h", "4h": "Swing 4h", "30m": "Long Play 30m" };
+  var HR_NAME = { "1h": "Kilat 1h", "2h": "Scalp 2h", "4h": "Swing 4h", "30m": "Reversal 30m" };
   /* 25 Sep — tinggi ter-akhir tiap batang histogram (urut h×kanal), buat
      tween antar segaran: batang MELUNCUR dari tinggi lama ke baru, persis
      histogram divergen di tab Whale. Bentuk array mengikuti urutan render. */
@@ -3096,7 +3096,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (lg && lg.parentNode === kamu) kamu.insertBefore(host, lg.nextSibling);
       else kamu.appendChild(host);
     }
-    var TFH = [["30m", "LONG PLAY"], ["1h", "KILAT"], ["2h", "SCALP"], ["4h", "SWING"]];
+    var TFH = [["30m", "REVERSAL"], ["1h", "KILAT"], ["2h", "SCALP"], ["4h", "SWING"]];
     var per = {}, j;                       // per[jam][tf] = [n, w, sum%]
     if (typeof HH_FILTER === "undefined") window.HH_FILTER = null;   // jam terpilih (klik sel)
     for (j = 0; j < 24; j++) { per[j] = {}; TFH.forEach(function (t) { per[j][t[0]] = [0, 0, 0]; }); }
