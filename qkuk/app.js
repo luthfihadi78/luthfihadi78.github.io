@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-30m-20260930c";   /* 30 Sep R1: kanal 30m kini ◈ REVERSAL — long selalu, short hanya saat gauge BTC dirBtc=+1 (riset_rezim_30m.py: tegas WR 58,3% +10,0R) */
+  var BUILD = "qkuk-2h-20261001a";   /* 1 Okt: daftar TF alasan live pick +2h (permintaan user); kanal 30m tetap ◈ REVERSAL R1 — long selalu, short saat gauge BTC dirBtc=+1 */
   /* 23 Sep — warna kanal KONTRAS (permintaan user: 1h & 2h mirip):
      Kilat 1h = biru cyan · Scalp 2h = hijau · Swing 4h = emas terang */
   var COLOR = { "1h": "#4DC9F6", "2h": "#6EE7B7", "4h": "#F2C94C", "30m": "#C792EA" };
@@ -2289,7 +2289,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
                        "MAC": "MAC", "OB": "OB (Order Block)", "BOS": "BOS",
                        "MSS": "MSS", "FVG": "FVG", "IFVG": "IFVG",
                        "SuperTrend-Buy": "SuperTrend Buy", "SuperTrend-Sell": "SuperTrend Sell" };
-  var TF_OPTS = ["1m", "5m", "15m", "30m", "1h", "4h", "1D"];
+  var TF_OPTS = ["1m", "5m", "15m", "30m", "1h", "2h", "4h", "1D"];   /* 1 Okt: +2h — kanal SCALPING 2h live, harus bisa dicentang sbg alasan */
   function alasanNama(a) { return ALASAN_NAMA[a] || a; }
   /* 27 Sep — SATU alasan bisa dipilih di BANYAK timeframe (mis. MSS 1h + MSS 30m
      + MSS 5m dalam satu pick). Format baru: p.alasan = [{a:"MSS",tf:"1h"}, …].
