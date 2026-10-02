@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-dart-20261002a";   /* 2 Okt (b): kanal baru 🎯 DART 15m (Top-150, dua arah) — ORDER/COLOR/TVI/TFH +3 kanal, statistik live reset tetap berlaku (pick >= 2 Okt). */
+  var BUILD = "qkuk-dart-20261002b";   /* 2 Okt (c): badge riset backtest (data.json.bt) — strip perbandingan WR/totR/EV tiga engine di atas gauge. */
   /* 2 Okt — kanal aktif: DART 15m = hijau · Reversal 30m = ungu · Sniper 1h = biru cyan */
   var COLOR = { "15m": "#7CE38B", "1h": "#4DC9F6", "30m": "#C792EA" };
   var TVI = { "15m": "15", "1h": "60", "30m": "30" };
@@ -1940,8 +1940,47 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     $("#dot").classList.toggle("stale", stale);
     $("#state").textContent = stale ? "stale" : "live";
   }
+  /* 2 Okt — badge riset backtest (bt_bandeng_dart.csv via data.json.bt):
+     perbandingan tiga engine apple-to-apple. Data hilang → strip disembunyi. */
+  function btBadges() {
+    var host = $("#bt-badges");
+    if (!host) return;
+    var bt = DATA && DATA.bt;
+    if (!bt || !bt["15m"] && !bt["30m"] && !bt["1h"]) {
+      var s = document.getElementById("btstrip"); if (s) s.style.display = "none";
+      return;
+    }
+    host.innerHTML = "";
+    var meta = [["15m", "DART"], ["30m", "REVERSAL"], ["1h", "SNIPER"]]
+      .filter(function (p) { return bt[p[0]]; })
+      .sort(function (a, b) { return (bt[b[0]].ev || 0) - (bt[a[0]].ev || 0); });
+    meta.forEach(function (p, i) {
+      var d = bt[p[0]];
+      var b = el("div", "bt-badge" + (i === 0 ? " is-1" : ""));
+      b.appendChild(el("span", "bt-rank", "#" + (i + 1)));
+      var nm = el("div", "bt-nama");
+      nm.appendChild(document.createTextNode("🎯 DART".replace("🎯 DART", p[1] === "DART" ? "🎯 DART" : (p[1] === "SNIPER" ? "⚡ SNIPER" : "◈ REVERSAL"))));
+      nm.appendChild(el("span", "bt-tf t" + p[0], p[0].toUpperCase()));
+      b.appendChild(nm);
+      var an = el("div", "bt-angka");
+      [["winrate", (d.wr != null ? d.wr.toFixed(1) : "—") + "%", d.wr >= 50 ? "pos" : "neg"],
+       ["totR", (d.totr >= 0 ? "+" : "") + d.totr + "R", d.totr >= 0 ? "pos" : "neg"],
+       ["EV/R", (d.ev >= 0 ? "+" : "") + d.ev.toFixed(3), d.ev >= 0 ? "pos" : "neg"],
+       ["n", d.n, ""]].forEach(function (q) {
+        var c = el("div");
+        c.appendChild(el("span", "k", q[0]));
+        var v = el("span", "v " + q[2], String(q[1]));
+        c.appendChild(v); an.appendChild(c);
+      });
+      b.appendChild(an);
+      host.appendChild(b);
+    });
+    var lg = $("#bt-lg");
+    if (lg && bt.jendela) lg.textContent = bt.total_setup + " setup · " + bt.jendela;
+  }
+
   function render(first) {
-    stamp(); gauge(); strip(); akurasi(); kamu(); applyPicks();
+    stamp(); gauge(); strip(); akurasi(); kamu(); applyPicks(); btBadges();
     scanNotif();
     if (first) charts();
     if (first || !bbBodies.length) bubbleDraw();   // jangan bangun ulang saat data 60 dtk segar — fisika jalan terus

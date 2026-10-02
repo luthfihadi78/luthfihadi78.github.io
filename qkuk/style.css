@@ -882,3 +882,22 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 .al-chip-tf{font-style:normal;font-family:var(--mono,monospace);font-size:10px;font-weight:700;
   color:var(--ac);background:rgba(110,231,183,.1);border-radius:5px;padding:1px 6px}
 .al-none{font-size:11.5px;color:var(--fg-3);line-height:1.6}
+/* ── badge riset backtest (2 Okt) — strip perbandingan tiga engine ── */
+#btstrip{margin:18px 0 0}
+#bt-badges{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0 10px}
+.bt-badge{border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--s1);position:relative;overflow:hidden}
+.bt-badge.is-1{border-color:rgba(110,231,183,.45);background:rgba(110,231,183,.05)}
+.bt-badge .bt-rank{position:absolute;top:10px;right:12px;font-family:var(--mono);font-size:10px;
+  font-weight:700;color:var(--fg-3);letter-spacing:.08em}
+.bt-badge.is-1 .bt-rank{color:var(--ac)}
+.bt-badge .bt-nama{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--fg);display:flex;gap:8px;align-items:center}
+.bt-badge .bt-tf{font-size:10px;color:var(--fg-3);border:1px solid var(--line-2);border-radius:4px;padding:0 5px}
+.bt-badge .bt-tf.t15m{color:#7CE38B;border-color:rgba(124,227,139,.4)}
+.bt-badge .bt-tf.t30m{color:#C792EA;border-color:rgba(199,146,234,.4)}
+.bt-badge .bt-tf.t1h{color:#4DC9F6;border-color:rgba(77,201,246,.4)}
+.bt-badge .bt-angka{display:flex;gap:16px;margin-top:9px}
+.bt-badge .bt-angka div{display:flex;flex-direction:column}
+.bt-badge .bt-angka .k{font-size:9.5px;color:var(--fg-3);text-transform:uppercase;letter-spacing:.07em}
+.bt-badge .bt-angka .v{font-size:15px;font-weight:700;font-family:var(--mono)}
+.bt-badge .v.pos{color:var(--up)}
+.bt-badge .v.neg{color:var(--dn)}
