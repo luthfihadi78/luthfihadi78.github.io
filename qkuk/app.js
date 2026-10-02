@@ -3,17 +3,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
 
 (function () {
   "use strict";
-  var DATA = null, ORDER = ["30m", "1h"], LEFT = 60;
+  var DATA = null, ORDER = ["15m", "30m", "1h"], LEFT = 60;
   /* ⚠️ GitHub Pages menyajikan index.html dgn cache-control 600 dtk, dan tab
      yang dibiarkan terbuka TIDAK PERNAH mengambil ulang HTML-nya sama sekali —
      ia hanya menarik data.json. Akibatnya pembaruan tampilan tak terlihat
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-fokus-20261002a";   /* 2 Okt: FOKUS — hanya Reversal 30m + Sniper 1h (2h/4h dimatikan, permintaan user). Nama baru '⚡ SNIPER' pengganti 'Scalping Kilat'. Statistik live di-reset: hanya pick >= 2 Okt yang dihitung. */
-  /* 2 Okt — kanal tinggal dua (2h/4h dimatikan): Reversal 30m = ungu · Sniper 1h = biru cyan */
-  var COLOR = { "1h": "#4DC9F6", "30m": "#C792EA" };
-  var TVI = { "1h": "60", "30m": "30" };
+  var BUILD = "qkuk-dart-20261002a";   /* 2 Okt (b): kanal baru 🎯 DART 15m (Top-150, dua arah) — ORDER/COLOR/TVI/TFH +3 kanal, statistik live reset tetap berlaku (pick >= 2 Okt). */
+  /* 2 Okt — kanal aktif: DART 15m = hijau · Reversal 30m = ungu · Sniper 1h = biru cyan */
+  var COLOR = { "15m": "#7CE38B", "1h": "#4DC9F6", "30m": "#C792EA" };
+  var TVI = { "15m": "15", "1h": "60", "30m": "30" };
 
   function $(s) { return document.querySelector(s); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
@@ -3111,7 +3111,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (lg && lg.parentNode === kamu) kamu.insertBefore(host, lg.nextSibling);
       else kamu.appendChild(host);
     }
-    var TFH = [["30m", "REVERSAL"], ["1h", "SNIPER"]];
+    var TFH = [["15m", "DART"], ["30m", "REVERSAL"], ["1h", "SNIPER"]];
     var per = {}, j;                       // per[jam][tf] = [n, w, sum%]
     if (typeof HH_FILTER === "undefined") window.HH_FILTER = null;   // jam terpilih (klik sel)
     for (j = 0; j < 24; j++) { per[j] = {}; TFH.forEach(function (t) { per[j][t[0]] = [0, 0, 0]; }); }
