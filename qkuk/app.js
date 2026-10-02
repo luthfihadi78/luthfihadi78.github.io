@@ -3,18 +3,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
 
 (function () {
   "use strict";
-  var DATA = null, ORDER = ["30m", "1h", "2h", "4h"], LEFT = 60;
+  var DATA = null, ORDER = ["30m", "1h"], LEFT = 60;
   /* ⚠️ GitHub Pages menyajikan index.html dgn cache-control 600 dtk, dan tab
      yang dibiarkan terbuka TIDAK PERNAH mengambil ulang HTML-nya sama sekali —
      ia hanya menarik data.json. Akibatnya pembaruan tampilan tak terlihat
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-2h-20261001a";   /* 1 Okt: daftar TF alasan live pick +2h (permintaan user); kanal 30m tetap ◈ REVERSAL R1 — long selalu, short saat gauge BTC dirBtc=+1 */
-  /* 23 Sep — warna kanal KONTRAS (permintaan user: 1h & 2h mirip):
-     Kilat 1h = biru cyan · Scalp 2h = hijau · Swing 4h = emas terang */
-  var COLOR = { "1h": "#4DC9F6", "2h": "#6EE7B7", "4h": "#F2C94C", "30m": "#C792EA" };
-  var TVI = { "1h": "60", "2h": "120", "4h": "240", "30m": "30" };
+  var BUILD = "qkuk-fokus-20261002a";   /* 2 Okt: FOKUS — hanya Reversal 30m + Sniper 1h (2h/4h dimatikan, permintaan user). Nama baru '⚡ SNIPER' pengganti 'Scalping Kilat'. Statistik live di-reset: hanya pick >= 2 Okt yang dihitung. */
+  /* 2 Okt — kanal tinggal dua (2h/4h dimatikan): Reversal 30m = ungu · Sniper 1h = biru cyan */
+  var COLOR = { "1h": "#4DC9F6", "30m": "#C792EA" };
+  var TVI = { "1h": "60", "30m": "30" };
 
   function $(s) { return document.querySelector(s); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
@@ -1057,15 +1056,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      ② hr : winrate per jam WIB — lollipop per jam (bukan garis: user
             makin bingung dgn 3 garis bersilangan)
      Sumber sama dengan heat table & kartu live resolve: picks admin. */
-  var HR_NAME = { "1h": "Kilat 1h", "2h": "Scalp 2h", "4h": "Swing 4h", "30m": "Reversal 30m" };
+  var HR_NAME = { "1h": "Sniper 1h", "30m": "Reversal 30m" };
   /* 25 Sep — tinggi ter-akhir tiap batang histogram (urut h×kanal), buat
      tween antar segaran: batang MELUNCUR dari tinggi lama ke baru, persis
      histogram divergen di tab Whale. Bentuk array mengikuti urutan render. */
   var HR_RAW = null;
   function liveHourAgg() {
     var per = {}, h;
-    for (h = 0; h < 24; h++) { per[h] = { "1h": [0, 0, 0], "2h": [0, 0, 0], "4h": [0, 0, 0], "30m": [0, 0, 0] }; }
-    ["1h", "2h", "4h", "30m"].forEach(function (tf) {
+    for (h = 0; h < 24; h++) { per[h] = { "1h": [0, 0, 0], "30m": [0, 0, 0] }; }
+    ["1h", "30m"].forEach(function (tf) {
       ["pantau", "sinyal"].forEach(function (jenis) {
         liveRows(tf, jenis).forEach(function (r) {
           var p = r.apick; if (!p) return;
@@ -1083,7 +1082,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     return per;
   }
   function eqLiveSeries() {
-    return ["1h", "2h", "4h", "30m"].map(function (tf) {
+    return ["1h", "30m"].map(function (tf) {
       var rows = [];
       Object.keys(PICKS).forEach(function (k) {
         var kp = k.split("|"); if (kp[0] !== tf) return;
@@ -1128,7 +1127,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function hrChart() {
     var svg = $("#hr"); if (!svg) return;
     var per = liveHourAgg();
-    var ser = ["1h", "2h", "4h", "30m"].map(function (tf) {
+    var ser = ["1h", "30m"].map(function (tf) {
       var pts = [];
       for (var h = 0; h < 24; h++) {
         var c = per[h][tf];
@@ -2289,7 +2288,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
                        "MAC": "MAC", "OB": "OB (Order Block)", "BOS": "BOS",
                        "MSS": "MSS", "FVG": "FVG", "IFVG": "IFVG",
                        "SuperTrend-Buy": "SuperTrend Buy", "SuperTrend-Sell": "SuperTrend Sell" };
-  var TF_OPTS = ["1m", "5m", "15m", "30m", "1h", "2h", "4h", "1D"];   /* 1 Okt: +2h — kanal SCALPING 2h live, harus bisa dicentang sbg alasan */
+  var TF_OPTS = ["1m", "5m", "15m", "30m", "1h", "1D"];   /* 2 Okt: 2h/4h dibuang — kanalnya dimatikan */
   function alasanNama(a) { return ALASAN_NAMA[a] || a; }
   /* 27 Sep — SATU alasan bisa dipilih di BANYAK timeframe (mis. MSS 1h + MSS 30m
      + MSS 5m dalam satu pick). Format baru: p.alasan = [{a:"MSS",tf:"1h"}, …].
@@ -2497,6 +2496,22 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (++got < 2) return;
       done = true;
       PICKS = Object.assign({}, repo, cloud);
+      /* 2 Okt — RESET ANALISA (permintaan user): hanya pick bertanggal >=
+         2 Okt 2026 WIB yang dipakai. Pick lama tidak dihapus dari sumber —
+         cuma dibuang di sini, jadi SEMUA statistik (kanal, heatmap jam,
+         equity, riwayat) otomatis mulai dari nol tanpa sentuhan lain. */
+      (function () {
+        var RST = "2026-10-02";
+        function _wibd(t) {
+          var d = new Date(t);
+          if (isNaN(d)) return "";
+          return new Date(d.getTime() + 7 * 3600000).toISOString().slice(0, 10);
+        }
+        Object.keys(PICKS).forEach(function (k) {
+          var p = PICKS[k];
+          if (!p || _wibd(p.ts) < RST) delete PICKS[k];
+        });
+      })();
       PLOG = cloudLog.length ? cloudLog : repoLog;
       /* riwayat kosong padahal ada pick? (mis. log tertimpa) — rekonstruksi
          dari pick itu sendiri supaya tabel riwayat tidak pernah blank */
@@ -3096,7 +3111,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (lg && lg.parentNode === kamu) kamu.insertBefore(host, lg.nextSibling);
       else kamu.appendChild(host);
     }
-    var TFH = [["30m", "REVERSAL"], ["1h", "KILAT"], ["2h", "SCALP"], ["4h", "SWING"]];
+    var TFH = [["30m", "REVERSAL"], ["1h", "SNIPER"]];
     var per = {}, j;                       // per[jam][tf] = [n, w, sum%]
     if (typeof HH_FILTER === "undefined") window.HH_FILTER = null;   // jam terpilih (klik sel)
     for (j = 0; j < 24; j++) { per[j] = {}; TFH.forEach(function (t) { per[j][t[0]] = [0, 0, 0]; }); }
