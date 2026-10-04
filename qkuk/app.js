@@ -3,17 +3,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
 
 (function () {
   "use strict";
-  var DATA = null, ORDER = ["15m", "30m", "1h"], LEFT = 60;
+  var DATA = null, ORDER = ["15m", "30m"], LEFT = 60;
   /* ⚠️ GitHub Pages menyajikan index.html dgn cache-control 600 dtk, dan tab
      yang dibiarkan terbuka TIDAK PERNAH mengambil ulang HTML-nya sama sekali —
      ia hanya menarik data.json. Akibatnya pembaruan tampilan tak terlihat
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-dart-20261002b";   /* 2 Okt (c): badge riset backtest (data.json.bt) — strip perbandingan WR/totR/EV tiga engine di atas gauge. */
-  /* 2 Okt — kanal aktif: DART 15m = hijau · Reversal 30m = ungu · Sniper 1h = biru cyan */
-  var COLOR = { "15m": "#7CE38B", "1h": "#4DC9F6", "30m": "#C792EA" };
-  var TVI = { "15m": "15", "1h": "60", "30m": "30" };
+  var BUILD = "qkuk-bigcap-20261003a";   /* 3 Okt (a): Sniper 1h dimatikan (ganti engine big-cap) — hanya DART 15m + Reversal 30m; watchlist keduanya di-shadow (tak masuk grup), sinyal tetap kirim. */
+  /* kanal aktif: DART 15m = hijau · Reversal 30m = ungu · (Sloter big-cap menyusul) */
+  var COLOR = { "15m": "#7CE38B", "30m": "#C792EA" };
+  var TVI = { "15m": "15", "30m": "30" };
 
   function $(s) { return document.querySelector(s); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
@@ -1056,7 +1056,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      ② hr : winrate per jam WIB — lollipop per jam (bukan garis: user
             makin bingung dgn 3 garis bersilangan)
      Sumber sama dengan heat table & kartu live resolve: picks admin. */
-  var HR_NAME = { "1h": "Sniper 1h", "30m": "Reversal 30m" };
+  var HR_NAME = { "15m": "Dart 15m", "30m": "Reversal 30m" };
   /* 25 Sep — tinggi ter-akhir tiap batang histogram (urut h×kanal), buat
      tween antar segaran: batang MELUNCUR dari tinggi lama ke baru, persis
      histogram divergen di tab Whale. Bentuk array mengikuti urutan render. */
@@ -3150,7 +3150,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (lg && lg.parentNode === kamu) kamu.insertBefore(host, lg.nextSibling);
       else kamu.appendChild(host);
     }
-    var TFH = [["15m", "DART"], ["30m", "REVERSAL"], ["1h", "SNIPER"]];
+    var TFH = [["15m", "DART"], ["30m", "REVERSAL"]];
     var per = {}, j;                       // per[jam][tf] = [n, w, sum%]
     if (typeof HH_FILTER === "undefined") window.HH_FILTER = null;   // jam terpilih (klik sel)
     for (j = 0; j < 24; j++) { per[j] = {}; TFH.forEach(function (t) { per[j][t[0]] = [0, 0, 0]; }); }
