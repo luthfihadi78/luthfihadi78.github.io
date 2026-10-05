@@ -1968,12 +1968,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     $("#dot").classList.toggle("stale", stale);
     $("#state").textContent = stale ? "stale" : "live";
   }
-  /* 2 Okt — badge riset backtest (bt_bandeng_dart.csv via data.json.bt):
-     perbandingan engine apple-to-apple. Data hilang → strip disembunyi.
-     5 Okt — ⚡ SNIPER 1h DIHAPUS dari tampilan. Sempat masih dimunculkan
-     dengan cap NONAKTIF, tapi itu setengah jalan: menampilkan-card engine yang
-     sudah tidak pernah jalan hanya menimbulkan pertanyaan. Angkanya tetap
-     ada di data.json (dipakai riset & rekap), hanya tidak dipamerkan. */
+  /* 5 Okt — badge riset backtest (logs/bt_final_kanal.csv via data.json.bt).
+     Data hilang → strip disembunyi.
+     5 Okt — ⚡ SNIPER 1h DIHAPUS dari tampilan (mati permanen 3 Okt).
+     5 Okt — sumber angka DIGANTI total: 18 bulan (Apr 2025–Sep 2026), TP 2R
+     (bukan 1R seperti bt_bandeng_dart.csv lama), dan SETELAH gate arah rezim
+     BTC dipasang. Karena itu tiap kartu kini menampilkan CI bootstrap + label
+     "belum terbukti" bila rentang 95% memotong nol — menampilkan totalR
+     positif tanpa itu akan terbaca seperti edge yang tak terbukti. */
   function btBadges() {
     var host = $("#bt-badges");
     if (!host) return;
@@ -1998,30 +2000,56 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       [["winrate", (d.wr != null ? d.wr.toFixed(1) : "—") + "%", d.wr >= 50 ? "pos" : "neg"],
        ["totR", (d.totr >= 0 ? "+" : "") + d.totr + "R", d.totr >= 0 ? "pos" : "neg"],
        ["EV/R", (d.ev >= 0 ? "+" : "") + d.ev.toFixed(3), d.ev >= 0 ? "pos" : "neg"],
-       ["n", d.n, ""]].forEach(function (q) {
+       ["n", d.n.toLocaleString("id-ID"), ""]].forEach(function (q) {
         var c = el("div");
         c.appendChild(el("span", "k", q[0]));
         var v = el("span", "v " + q[2], String(q[1]));
         c.appendChild(v); an.appendChild(c);
       });
       b.appendChild(an);
+      /* bukti, bukan kosmetik: rentang CI + status per arah. Tanpa ini
+         totalR +125R akan terbaca sama bobotnya dengan +543R padahal yang
+         pertama CI-nya memotong nol. */
+      if (d.ci) {
+        var ci = el("div", "bt-ci");
+        ci.appendChild(el("span", "k", "EV 95% CI"));
+        var sci = d.significant;
+        ci.appendChild(el("span", "v " + (sci ? "pos" : "warn"),
+          (d.ci[0] >= 0 ? "+" : "") + d.ci[0].toFixed(3) + " … " +
+          (d.ci[1] >= 0 ? "+" : "") + d.ci[1].toFixed(3) +
+          (sci ? "" : "  ⚠️ belum terbukti")));
+        b.appendChild(ci);
+      }
+      if (d.per_arah) {
+        var pa = el("div", "bt-arah");
+        ["long", "short"].forEach(function (a) {
+          var x = d.per_arah[a];
+          if (!x) return;
+          var s2 = el("span", "bt-a " + (x.ev >= 0 ? "pos" : "neg") +
+                               (x.significant ? "" : " warn"));
+          s2.textContent = a + " " + x.wr.toFixed(1) + "% · " +
+                           (x.ev >= 0 ? "+" : "") + x.ev.toFixed(3) + "R" +
+                           (x.significant ? "" : " ⚠");
+          s2.title = a + ": n=" + x.n.toLocaleString("id-ID") +
+                     " · EV " + (x.ev >= 0 ? "+" : "") + x.ev.toFixed(3) +
+                     "R · " + (x.significant
+                       ? "bootstrap 95% seluruhnya di atas nol"
+                       : "bootstrap 95% memotong nol — belum terbukti unggul");
+          pa.appendChild(s2);
+        });
+        b.appendChild(pa);
+      }
       host.appendChild(b);
     });
     var lg = $("#bt-lg");
     if (lg && bt.jendela) {
-      /* Jumlah setup dijumlahkan HANYA dari kanal yang tampil. Angka riset
-         lama (10.666) mencakup 1h yang sudah tidak ditampilkan, jadi
-         memakainya membuat legend tidak cocok dengan kartu di layar. */
-      var nSet = 0, ada = true;
-      meta.forEach(function (p) {
-        if (p[1] && bt[p[0]].n_setup != null) nSet += bt[p[0]].n_setup; else ada = false;
-      });
-      lg.textContent = (ada ? nSet.toLocaleString("id-ID") + " setup" : bt.total_setup + " setup") +
-                       " · " + bt.jendela;
+      lg.textContent = (bt.total_setup || 0).toLocaleString("id-ID") +
+                       " setup · " + bt.jendela +
+                       (bt.gate ? " · " + bt.gate : "");
     }
   }
 
-  /* 5 Okt — kartu 🐳 WHALE (bt_whale.csv via data.json.bt_whale).
+  /* 5 Okt — kartu 🐳 WHALE (logs/bt_whale_tp2.csv via data.json.bt_whale).
      SENGAJA KARTU TERPISAH dari strip bandeng, bukan baris baru di ranking:
      jendela & populasi keduanya berbeda (WHALE 20 big-cap Mar–Sep, bandeng
      Top-150 Agu–Sep), jadi WR-nya tak sebanding dan menyandingkan keduanya
