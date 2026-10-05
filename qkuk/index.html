@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=20261002a">
+<link rel="stylesheet" href="style.css?v=20261005a">
 </head>
 <body>
 
@@ -98,7 +98,15 @@
     <div class="card">
       <div class="card-h"><h3>Backtest banding engine — 1 Agu–24 Sep · 1R simetris · hold 168j</h3><span class="lg" id="bt-lg"></span></div>
       <div id="bt-badges"></div>
-      <p class="cap">Hasil <b>riset backtest</b> tiga engine (10.666 setup, deteksi &amp; penilaian metode identik — bukan angka live). DART satu-satunya positif; EV-nya impas setelah fee. Sumber: bt_bandeng_dart.csv.</p>
+      <p class="cap">Hasil <b>riset backtest</b> tiga engine (10.666 setup, deteksi &amp; penilaian metode identik — bukan angka live). DART satu-satunya positif; EV-nya impas setelah fee. <b>⚡ SNIPER 1h sudah dimatikan</b> (3 Okt) — angkanya tetap tampil sebagai hasil riset, bukan sebagai kanal aktif. Sumber: bt_bandeng_dart.csv.</p>
+    </div>
+  </section>
+
+  <section id="whalestrip">
+    <div class="card">
+      <div class="card-h"><h3>🐳 WHALE — hasil riset engine yang menggantikan SNIPER</h3><span class="lg" id="whale-lg"></span></div>
+      <div id="whale-isi"></div>
+      <p class="cap">Angka <b>riset backtest</b>, bukan angka live. <b>Kartu ini sengaja dipisah dari ranking di atas</b>: jendela dan populasinya berbeda (WHALE memakai 20 big-cap teratas, bandeng memakai Top-150), jadi winrate keduanya tidak boleh dibaca berdampingan sebagai satu peringkat. <span id="whale-catatan"></span> Sumber: bt_whale.csv.</p>
     </div>
   </section>
 
@@ -258,6 +266,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20261004a" defer></script>
+<script src="app.js?v=20261005a" defer></script>
 </body>
 </html>

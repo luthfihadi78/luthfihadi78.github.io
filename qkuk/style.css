@@ -901,3 +901,46 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 .bt-badge .bt-angka .v{font-size:15px;font-weight:700;font-family:var(--mono)}
 .bt-badge .v.pos{color:var(--up)}
 .bt-badge .v.neg{color:var(--dn)}
+/* 5 Okt — badge engine yang sudah dimatikan (SNIPER 1h). Angka risetnya tetap
+   jujur ditampilkan, tapi kartu meredup + cap NONAKTIF supaya tak dibaca
+   sebagai kanal yang masih jalan. */
+.bt-badge.is-off{opacity:.55}
+.bt-badge.is-off .bt-nama{color:var(--fg-3)}
+.bt-badge .bt-off{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.07em;
+  color:var(--dn);border:1px solid rgba(255,107,107,.45);border-radius:4px;padding:0 5px}
+/* ── kartu 🐳 WHALE (5 Okt) — sengaja terpisah dari strip bandeng ── */
+#whalestrip{margin:18px 0 0}
+#whalestrip .card{border-color:rgba(255,213,79,.28);background:rgba(255,213,79,.03)}
+#whale-isi{margin:12px 0 10px}
+.wh-angka{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px}
+.wh-angka div{display:flex;flex-direction:column;gap:2px}
+.wh-angka .k{font-size:9.5px;color:var(--fg-3);text-transform:uppercase;letter-spacing:.07em}
+.wh-angka .v{font-size:20px;font-weight:700;font-family:var(--mono)}
+.wh-angka .v.pos{color:var(--up)}
+.wh-angka .v.neg{color:var(--dn)}
+/* split IS → OOS: bukti resep tidak overfit ke periode pemilihan */
+.wh-split{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;margin-top:12px;
+  padding:9px 11px;border:1px solid var(--line);border-radius:var(--r);background:var(--s1)}
+.wh-split .k{font-size:9.5px;color:var(--fg-3);text-transform:uppercase;letter-spacing:.07em}
+.wh-split .v{font-family:var(--mono);font-size:12px;color:var(--fg-2)}
+/* sebaran bulan: panjang bar = |EV/R|, warna = tanda */
+.wh-bulan{display:flex;align-items:flex-end;gap:6px;margin-top:14px;
+  padding:10px 11px 8px;border:1px solid var(--line);border-radius:var(--r);background:var(--s1)}
+.wh-col{flex:1;display:flex;flex-direction:column;align-items:center;min-width:0}
+/* track = tinggi PASTI, tanpa ini height:% pada bar tidak resolve dan
+   seluruh grafik bulan tak terlihat (hanya angka & labelnya). */
+.wh-track{width:100%;height:110px;display:flex;align-items:flex-end;justify-content:center}
+.wh-col .wh-bar{width:100%;max-width:34px;border-radius:3px 3px 0 0;background:var(--fg-3);opacity:.5}
+.wh-col.pos .wh-bar{background:var(--up);opacity:.7}
+.wh-col.neg .wh-bar{background:var(--dn);opacity:.65}
+.wh-col .wh-v{font-family:var(--mono);font-size:10px;margin-top:5px}
+.wh-col.pos .wh-v{color:var(--up)}
+.wh-col.neg .wh-v{color:var(--dn)}
+.wh-col .wh-b{font-family:var(--mono);font-size:10px;color:var(--fg-2);margin-top:1px}
+.wh-col .wh-n{font-size:9px;color:var(--fg-3)}
+.wh-not{font-size:11px;color:var(--fg-3);margin:8px 0 0;line-height:1.6}
+@media (max-width:560px){
+  .wh-angka{grid-template-columns:repeat(2,1fr)}
+  .wh-bulan{gap:3px;padding:8px 6px 6px}
+  .wh-col .wh-v{font-size:9px}
+}

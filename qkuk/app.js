@@ -10,7 +10,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-whale-20261004a";   /* 4 Okt (a): kanal 🐳 WHALE live — big-cap Top-20, killzone+IDM+SuperTrend (WR 69.5% · EV +0.37R · 6/7 bulan positif); pengganti SNIPER. */
+  var BUILD = "qkuk-whale-bt-20261005a";   /* 5 Okt: kartu riset 🐳 WHALE (n=59 WR 69.5% EV +0.372R, IS→OOS + sebaran bulan) di bawah strip bandeng; SNIPER 1h ditandai NONAKTIF. */
   /* kanal aktif: DART 15m = hijau · Reversal 30m = ungu · WHALE 1h = emas */
   var COLOR = { "15m": "#7CE38B", "30m": "#C792EA", "whale": "#FFD54F" };
   var TVI = { "15m": "15", "30m": "30", "whale": "60" };
@@ -1941,7 +1941,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     $("#state").textContent = stale ? "stale" : "live";
   }
   /* 2 Okt — badge riset backtest (bt_bandeng_dart.csv via data.json.bt):
-     perbandingan tiga engine apple-to-apple. Data hilang → strip disembunyi. */
+     perbandingan tiga engine apple-to-apple. Data hilang → strip disembunyi.
+     5 Okt — 1h (⚡ SNIPER) sudah DIMATIKAN 3 Okt, digantikan 🐳 WHALE. Angkanya
+     tetap di sini karena jujur sebagai hasil riset, tapi diberi label NONAKTIF
+     supaya tak dibaca sebagai kanal yang masih jalan. */
   function btBadges() {
     var host = $("#bt-badges");
     if (!host) return;
@@ -1956,11 +1959,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       .sort(function (a, b) { return (bt[b[0]].ev || 0) - (bt[a[0]].ev || 0); });
     meta.forEach(function (p, i) {
       var d = bt[p[0]];
-      var b = el("div", "bt-badge" + (i === 0 ? " is-1" : ""));
+      var b = el("div", "bt-badge" + (i === 0 ? " is-1" : "") + (p[1] === "SNIPER" ? " is-off" : ""));
       b.appendChild(el("span", "bt-rank", "#" + (i + 1)));
       var nm = el("div", "bt-nama");
       nm.appendChild(document.createTextNode("🎯 DART".replace("🎯 DART", p[1] === "DART" ? "🎯 DART" : (p[1] === "SNIPER" ? "⚡ SNIPER" : "◈ REVERSAL"))));
       nm.appendChild(el("span", "bt-tf t" + p[0], p[0].toUpperCase()));
+      if (p[1] === "SNIPER") nm.appendChild(el("span", "bt-off", "NONAKTIF"));
       b.appendChild(nm);
       var an = el("div", "bt-angka");
       [["winrate", (d.wr != null ? d.wr.toFixed(1) : "—") + "%", d.wr >= 50 ? "pos" : "neg"],
@@ -1979,8 +1983,87 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (lg && bt.jendela) lg.textContent = bt.total_setup + " setup · " + bt.jendela;
   }
 
+  /* 5 Okt — kartu 🐳 WHALE (bt_whale.csv via data.json.bt_whale).
+     SENGAJA KARTU TERPISAH dari strip bandeng, bukan baris baru di ranking:
+     jendela & populasi keduanya berbeda (WHALE 20 big-cap Mar–Sep, bandeng
+     Top-150 Agu–Sep), jadi WR-nya tak sebanding dan menyandingkan keduanya
+     akan menyesatkan. Jendela & populasi karena itu ikut dicetak, dan kartuini juga menampilkan split IS/OOS + sebaran bulan supaya keunggulannya
+       bisa dinilai tanpa ikutannya. CSV hilang → kartu disembunyi. */
+  function whaleCard() {
+    var host = $("#whale-isi");
+    if (!host) return;
+    var w = DATA && DATA.bt_whale;
+    if (!w || !w.n) {
+      var s = document.getElementById("whalestrip");
+      if (s) s.style.display = "none";
+      return;
+    }
+    host.innerHTML = "";
+
+    /* angka utama: EV dulu karena itu yang menempatkan kanal ini di depan */
+    var grid = el("div", "wh-angka");
+    [["winrate", w.wr.toFixed(1) + "%", w.wr >= 50 ? "pos" : "neg"],
+     ["EV/R", (w.ev >= 0 ? "+" : "") + w.ev.toFixed(3), w.ev >= 0 ? "pos" : "neg"],
+     ["totR", (w.totr >= 0 ? "+" : "") + w.totr + "R", w.totr >= 0 ? "pos" : "neg"],
+     ["n setup", w.n, ""]].forEach(function (q) {
+      var c = el("div");
+      c.appendChild(el("span", "k", q[0]));
+      c.appendChild(el("span", "v " + q[2], String(q[1])));
+      grid.appendChild(c);
+    });
+    host.appendChild(grid);
+
+    /* split IS → OOS. Bukti paling penting: kanal ini tidak cuma menang di
+       periode yang dipakai untuk menyusun resepnya (IS), tapi juga di OOS
+       yang belum pernah dilihat saat pemilihan itu. */
+    if (w.is && w.oos && w.is.n && w.oos.n) {
+      var sp = el("div", "wh-split");
+      sp.appendChild(el("span", "k", "IS → OOS"));
+      sp.appendChild(el("span", "v",
+        "Mar–Jul " + w.is.wr.toFixed(1) + "% EV " + sgn(w.is.ev, 3) +
+        " (n=" + w.is.n + ")  →  Agu–Sep " + w.oos.wr.toFixed(1) + "% EV " +
+        sgn(w.oos.ev, 3) + " (n=" + w.oos.n + ")"));
+      host.appendChild(sp);
+    }
+
+    /* sebaran bulan — panjang bar = |EV/R|, warna = tanda */
+    if (w.per_bulan && w.per_bulan.length) {
+      var mx = Math.max.apply(null, w.per_bulan.map(function (b) { return Math.abs(b.avgr); })) || 1;
+      var chart = el("div", "wh-bulan");
+      w.per_bulan.forEach(function (b) {
+        var c = el("div", "wh-col" + (b.avgr > 0 ? " pos" : " neg"));
+        /* Bar hidup di dalam .wh-track yang tingginya PASTI. Tanpa track
+           begitu, height:% pada bar resolve terhadap induk setinggi auto
+           → tinggi 0 → seluruh grafik bulan tak terlihat (hanya angkanya). */
+        var track = el("div", "wh-track");
+        var bar = el("div", "wh-bar");
+        bar.style.height = (Math.abs(b.avgr) / mx * 100).toFixed(1) + "%";
+        track.appendChild(bar);
+        c.appendChild(track);
+        c.appendChild(el("span", "wh-v", sgn(b.avgr, 2)));
+        c.appendChild(el("span", "wh-b", b.bulan));
+        c.appendChild(el("span", "wh-n", "n" + b.n));
+        c.title = b.bulan + " · n=" + b.n + " · WR " + b.wr.toFixed(1) +
+                  "% · " + sgn(b.avgr, 3) + "R";
+        chart.appendChild(c);
+      });
+      host.appendChild(chart);
+      host.appendChild(el("p", "wh-not",
+        "Sebaran bulan: " + w.bulan_positif + " dari " + w.n_bulan +
+        " bulan positif. Panjang bar = besar EV/R, warna menentukan tanda " +" (hijau positif, merah negatif) — bar bulan Juli hanya −0,11R sehingga " +
+        "pendek, bukan impas."));
+    }
+
+    /* kicker: jendela + populasi, supaya perbedaan terhadap strip bandeng
+       terlihat tanpa harus membaca kalimat panjang. */
+    var lg = $("#whale-lg");
+    if (lg) lg.textContent = "n=" + w.n + " · " + w.jendela + " · " + w.populasi;
+    var note = $("#whale-catatan");
+    if (note && w.resep) note.textContent = "Resep: " + w.resep + ".";
+  }
+
   function render(first) {
-    stamp(); gauge(); strip(); akurasi(); kamu(); applyPicks(); btBadges();
+    stamp(); gauge(); strip(); akurasi(); kamu(); applyPicks(); btBadges(); whaleCard();
     scanNotif();
     if (first) charts();
     if (first || !bbBodies.length) bubbleDraw();   // jangan bangun ulang saat data 60 dtk segar — fisika jalan terus
@@ -3492,9 +3575,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      di sini, appendChild section lain melemparnya ke PALING ATAS wrap —
      persis keluhan "kotak analisis kembali ke atas, harusnya di bawah
      bubbles". #footer ikut dicantumkan supaya tidak nyangkut di tengah
-     halaman saat section di atasnya dipindah. */
+     halaman saat section di atasnya dipindah.
+     ⚠️ 5 Okt — kartu baru #whalestrip (riset 🐳 WHALE) juga HARUS ada di
+     daftar ini. Section yang tidak tercantum tidak cuma tertinggal di tempat
+     lama: begitu section lain di bawahnya dipindah dengan appendChild, ia
+     tertinggal di ATAS. Dua strip riset ada di paling atas wrap, jadi
+     dicantumkan paling depan agar posisinya pasti. */
   (function reOrder() {
-    var ids  = ["dir", "bubbles", "analisa", "watch", "signals", "kamu", "charts", "akurasi", "strip", "footer"];
+    var ids  = ["btstrip", "whalestrip", "dir", "bubbles", "analisa", "watch", "signals", "kamu", "charts", "akurasi", "strip", "footer"];
     var host = document.querySelector(".wrap") || document.body;
     ids.forEach(function (id) {
       var s = document.getElementById(id);
