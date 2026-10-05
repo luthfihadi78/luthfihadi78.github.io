@@ -3548,9 +3548,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var items = [];
     ord().forEach(function (tf) {
       var L = DATA.live[tf] || {};
-      (L.pantau || []).forEach(function (r) {
-        if (r && r.sym) items.push({ k: "watchlist", key: r.ts + "|" + r.sym + "|" + tf, tf: tf, sym: r.sym, dir: r.dir, ts: r.ts });
-      });
+      /* ⚠️ 5 Okt (keputusan user): yang berbunyi HANYA SINYAL. Watchlist
+         sengaja dibiarkan diam — ia jauh lebih sering (diuji: 5 baris baru
+         per 21 mnt di kanal 30m, jauh lebih banyak dari sinyal) dan berbunyi
+         nonstop kalau ikut. Sinyal-lah yang sudah difilter dan lagi
+         dikerjakannya penuh, jadi bunyinya tidak mengganggu. Watchlist tetap
+         masuk TABEL seperti biasa — yang diam hanya suaranya. */
       (L.sinyal || []).forEach(function (r) {
         if (r && r.sym) items.push({ k: "sinyal", key: r.ts + "|" + r.sym + "|" + tf, tf: tf, sym: r.sym, dir: r.dir, ts: r.ts });
       });
