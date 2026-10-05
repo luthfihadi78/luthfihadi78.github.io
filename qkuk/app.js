@@ -784,6 +784,26 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
 
   var wTf = null, sTf = null, sQ = "", sSort = "ts", wQ = "", wSide = "", sSide = "", bq = "";
 
+  /* ⚠️ 5 Okt — kanal yang memang LANGKA perlu dijelaskan saat kosong.
+     Pesan umum "Nothing on the watchlist for this channel." dibaca sebagai
+     "kanal ini mati/error", padahal 🐳 WHALE memang dirancang jarang: ia
+     hanya berbunyi saat konfluensi penuh (reclaim 1h + killzone + IDM +
+     SuperTrend), sekitar 5 sinyal/bulan — sudah diaudit di RESEARCH_STATE
+     5 Okt dan nol watchlist-nya memang benar, bukan bug. */
+  var KANAL_LANGKA = {
+    whale: {
+      w: "🐳 Watchlist 🐳 WHALE kosong itu wajar — kanal ini hanya berbunyi saat konfluensi penuh (reclaim 1h + killzone + IDM + SuperTrend), sekitar 5 setup sebulan. Bukan kanal mati.",
+      s: "🐳 Belum ada sinyal 🐳 WHALE. Kanal ini memang jarang: sekitar 5 sinyal sebulan, hanya saat konfluensi penuh. Kosong di sini normal."
+    }
+  };
+  function kosong(tf, jenis) {
+    var k = KANAL_LANGKA[tf];
+    if (k) return jenis === "sinyal" ? k.s : k.w;
+    return jenis === "sinyal"
+      ? "No signals recorded on this channel yet."
+      : "Nothing on the watchlist for this channel.";
+  }
+
   function watch(tf) {
     wTf = tf; tabs($("#w-tabs"), tf, watch);
     var rows = (DATA.live[tf].pantau || []).slice()
@@ -813,7 +833,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
               + (r.dir === "long" ? "short" : "long") + ", R dihitung dari arahmu" : "")
             + (r.note ? " — " + r.note : "");
           return td; } }
-    ], rows, "Nothing on the watchlist for this channel.");
+    ], rows, kosong(tf, "watchlist"));
   }
 
   function signals(tf) {
@@ -862,7 +882,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     ], rows, sQ ? "No signal matches \u201C" + sQ + "\u201D on this channel."
       : DATA.live[tf].uji
       ? "Shadow channel — no entry signal recorded yet."
-      : "No signals recorded on this channel yet.");
+      : kosong(tf, "sinyal"));
   }
 
   /* ── watchlist accuracy: skor mekanis 1R:1R atas SEMUA reclaim terdeteksi ── */
@@ -1708,9 +1728,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     });
     tabs($("#b-tabs"), tf, function (t) { bTf = t; bubbleDraw(); });
     if (!rows.length) {
-      plot.appendChild(el("div", "empty", bMode === "sinyal"
-        ? "No signals recorded on this channel yet."
-        : "Nothing on the watchlist for this channel."));
+      plot.appendChild(el("div", "empty", kosong(tf, bMode === "sinyal" ? "sinyal" : "watchlist")));
       return;
     }
     var W = plot.clientWidth || 900, H = plot.clientHeight || 480;
