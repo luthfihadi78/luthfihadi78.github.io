@@ -11,7 +11,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 5 Okt: kartu riset 🐳 WHALE (n=59 WR 69.5% EV +0.372R, IS→OOS + sebaran
-   bulan) di bawah strip bandeng; SNIPER 1h ditandai NONAKTIF.
+   bulan) di bawah strip bandeng; kartu SNIPER 1h dihapus dari tampilan.
    ⚠️ BUILD sengaja TIDAK dinaikkan. Penaga auto-reload di bawah compares
    BUILD vs data.json.build; kalau BUILD beda, tab memuat ulang — dan karena
    kuncinya per-versi, ia akan reload lagi tiap poll SELAMA data.json belum
@@ -1064,6 +1064,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      ② hr : winrate per jam WIB — lollipop per jam (bukan garis: user
             makin bingung dgn 3 garis bersilangan)
      Sumber sama dengan heat table & kartu live resolve: picks admin. */
+  /* whale = "Whale 1h" bukan salah ketik: resep 🐳 WHALE memang reclaim 1h
+     + killzone + IDM + SuperTrend (riset n=59). */
   var HR_NAME = { "15m": "Dart 15m", "30m": "Reversal 30m", "whale": "Whale 1h" };
   /* 25 Sep — tinggi ter-akhir tiap batang histogram (urut h×kanal), buat
      tween antar segaran: batang MELUNCUR dari tinggi lama ke baru, persis
@@ -1949,30 +1951,30 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     $("#state").textContent = stale ? "stale" : "live";
   }
   /* 2 Okt — badge riset backtest (bt_bandeng_dart.csv via data.json.bt):
-     perbandingan tiga engine apple-to-apple. Data hilang → strip disembunyi.
-     5 Okt — 1h (⚡ SNIPER) sudah DIMATIKAN 3 Okt, digantikan 🐳 WHALE. Angkanya
-     tetap di sini karena jujur sebagai hasil riset, tapi diberi label NONAKTIF
-     supaya tak dibaca sebagai kanal yang masih jalan. */
+     perbandingan engine apple-to-apple. Data hilang → strip disembunyi.
+     5 Okt — ⚡ SNIPER 1h DIHAPUS dari tampilan. Sempat masih dimunculkan
+     dengan cap NONAKTIF, tapi itu setengah jalan: menampilkan-card engine yang
+     sudah tidak pernah jalan hanya menimbulkan pertanyaan. Angkanya tetap
+     ada di data.json (dipakai riset & rekap), hanya tidak dipamerkan. */
   function btBadges() {
     var host = $("#bt-badges");
     if (!host) return;
     var bt = DATA && DATA.bt;
-    if (!bt || !bt["15m"] && !bt["30m"] && !bt["1h"]) {
+    if (!bt || !bt["15m"] && !bt["30m"]) {
       var s = document.getElementById("btstrip"); if (s) s.style.display = "none";
       return;
     }
     host.innerHTML = "";
-    var meta = [["15m", "DART"], ["30m", "REVERSAL"], ["1h", "SNIPER"]]
+    var meta = [["15m", "DART"], ["30m", "REVERSAL"]]
       .filter(function (p) { return bt[p[0]]; })
       .sort(function (a, b) { return (bt[b[0]].ev || 0) - (bt[a[0]].ev || 0); });
     meta.forEach(function (p, i) {
       var d = bt[p[0]];
-      var b = el("div", "bt-badge" + (i === 0 ? " is-1" : "") + (p[1] === "SNIPER" ? " is-off" : ""));
+      var b = el("div", "bt-badge" + (i === 0 ? " is-1" : ""));
       b.appendChild(el("span", "bt-rank", "#" + (i + 1)));
       var nm = el("div", "bt-nama");
-      nm.appendChild(document.createTextNode("🎯 DART".replace("🎯 DART", p[1] === "DART" ? "🎯 DART" : (p[1] === "SNIPER" ? "⚡ SNIPER" : "◈ REVERSAL"))));
+      nm.appendChild(document.createTextNode(p[1] === "DART" ? "🎯 DART" : "◈ REVERSAL"));
       nm.appendChild(el("span", "bt-tf t" + p[0], p[0].toUpperCase()));
-      if (p[1] === "SNIPER") nm.appendChild(el("span", "bt-off", "NONAKTIF"));
       b.appendChild(nm);
       var an = el("div", "bt-angka");
       [["winrate", (d.wr != null ? d.wr.toFixed(1) : "—") + "%", d.wr >= 50 ? "pos" : "neg"],
@@ -1988,7 +1990,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       host.appendChild(b);
     });
     var lg = $("#bt-lg");
-    if (lg && bt.jendela) lg.textContent = bt.total_setup + " setup · " + bt.jendela;
+    if (lg && bt.jendela) {
+      /* Jumlah setup dijumlahkan HANYA dari kanal yang tampil. Angka riset
+         lama (10.666) mencakup 1h yang sudah tidak ditampilkan, jadi
+         memakainya membuat legend tidak cocok dengan kartu di layar. */
+      var nSet = 0, ada = true;
+      meta.forEach(function (p) {
+        if (p[1] && bt[p[0]].n_setup != null) nSet += bt[p[0]].n_setup; else ada = false;
+      });
+      lg.textContent = (ada ? nSet.toLocaleString("id-ID") + " setup" : bt.total_setup + " setup") +
+                       " · " + bt.jendela;
+    }
   }
 
   /* 5 Okt — kartu 🐳 WHALE (bt_whale.csv via data.json.bt_whale).

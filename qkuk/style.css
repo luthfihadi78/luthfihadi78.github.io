@@ -901,13 +901,10 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 .bt-badge .bt-angka .v{font-size:15px;font-weight:700;font-family:var(--mono)}
 .bt-badge .v.pos{color:var(--up)}
 .bt-badge .v.neg{color:var(--dn)}
-/* 5 Okt — badge engine yang sudah dimatikan (SNIPER 1h). Angka risetnya tetap
-   jujur ditampilkan, tapi kartu meredup + cap NONAKTIF supaya tak dibaca
-   sebagai kanal yang masih jalan. */
-.bt-badge.is-off{opacity:.55}
-.bt-badge.is-off .bt-nama{color:var(--fg-3)}
-.bt-badge .bt-off{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.07em;
-  color:var(--dn);border:1px solid rgba(255,107,107,.45);border-radius:4px;padding:0 5px}
+/* ⚠️ 5 Okt: aturan .bt-badge.is-off & .bt-off (badge engine nonaktif) sudah
+   DIHAPUS. Dulu dipakai untuk meredupkan kartu ⚡ SNIPER 1h plus cap
+   NONAKTIF; sekarang kartu itu dihapus dari tampilan, jadi tidak ada lagi
+   elemen berkelas tersebut. Jangan dikembalikan tanpa alasan. */
 /* ── kartu 🐳 WHALE (5 Okt) — sengaja terpisah dari strip bandeng ── */
 #whalestrip{margin:18px 0 0}
 #whalestrip .card{border-color:rgba(255,213,79,.28);background:rgba(255,213,79,.03)}
