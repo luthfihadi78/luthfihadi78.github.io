@@ -10,7 +10,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  var BUILD = "qkuk-whale-bt-20261005a";   /* 5 Okt: kartu riset 🐳 WHALE (n=59 WR 69.5% EV +0.372R, IS→OOS + sebaran bulan) di bawah strip bandeng; SNIPER 1h ditandai NONAKTIF. */
+  /* 5 Okt: kartu riset 🐳 WHALE (n=59 WR 69.5% EV +0.372R, IS→OOS + sebaran
+   bulan) di bawah strip bandeng; SNIPER 1h ditandai NONAKTIF.
+   ⚠️ BUILD sengaja TIDAK dinaikkan. Penaga auto-reload di bawah compares
+   BUILD vs data.json.build; kalau BUILD beda, tab memuat ulang — dan karena
+   kuncinya per-versi, ia akan reload lagi tiap poll SELAMA data.json belum
+   juga terbit baru. Menaikkan BUILD tanpa ikut menerbitkan data.json = reload
+   tanpa henti. data.json hanya boleh terbit dari mesin bot, jadi di sini kita
+   samakan. Cache busting tetap lewat ?v=20261005a di index.html. */
+  var BUILD = "qkuk-whale-20261004a";
   /* kanal aktif: DART 15m = hijau · Reversal 30m = ungu · WHALE 1h = emas */
   var COLOR = { "15m": "#7CE38B", "30m": "#C792EA", "whale": "#FFD54F" };
   var TVI = { "15m": "15", "30m": "30", "whale": "60" };
