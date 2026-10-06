@@ -894,6 +894,8 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 .bt-badge .bt-tf{font-size:10px;color:var(--fg-3);border:1px solid var(--line-2);border-radius:4px;padding:0 5px}
 .bt-badge .bt-tf.t15m{color:#7CE38B;border-color:rgba(124,227,139,.4)}
 .bt-badge .bt-tf.t30m{color:#C792EA;border-color:rgba(199,146,234,.4)}
+.bt-badge .bt-tf.t2h{color:#FF6B6B;border-color:rgba(255,107,107,.4)}
+.bt-badge .bt-tf.twhale{color:#4DC9F6;border-color:rgba(77,201,246,.4)}
 .bt-badge .bt-tf.t1h{color:#4DC9F6;border-color:rgba(77,201,246,.4)}
 .bt-badge .bt-angka{display:flex;gap:16px;margin-top:9px}
 .bt-badge .bt-angka div{display:flex;flex-direction:column}

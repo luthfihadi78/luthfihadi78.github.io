@@ -1985,7 +1985,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       return;
     }
     host.innerHTML = "";
-    var meta = [["15m", "DART"], ["30m", "REVERSAL"]]
+    var NAMA_BT = {"15m": "🎯 DART", "2h": "🩸 HARVEST", "30m": "◈ REVERSAL", "whale": "🐳 WHALE"};
+    var meta = [["15m", "DART"], ["2h", "HARVEST"], ["30m", "REVERSAL"], ["whale", "WHALE"]]
       .filter(function (p) { return bt[p[0]]; })
       .sort(function (a, b) { return (bt[b[0]].ev || 0) - (bt[a[0]].ev || 0); });
     meta.forEach(function (p, i) {
@@ -1993,7 +1994,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var b = el("div", "bt-badge" + (i === 0 ? " is-1" : ""));
       b.appendChild(el("span", "bt-rank", "#" + (i + 1)));
       var nm = el("div", "bt-nama");
-      nm.appendChild(document.createTextNode(p[1] === "DART" ? "🎯 DART" : "◈ REVERSAL"));
+      nm.appendChild(document.createTextNode(NAMA_BT[p[0]] || p[1]));
       nm.appendChild(el("span", "bt-tf t" + p[0], p[0].toUpperCase()));
       b.appendChild(nm);
       var an = el("div", "bt-angka");
@@ -3299,7 +3300,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (lg && lg.parentNode === kamu) kamu.insertBefore(host, lg.nextSibling);
       else kamu.appendChild(host);
     }
-    var TFH = [["15m", "DART"], ["30m", "REVERSAL"], ["whale", "WHALE"]];
+    var TFH = [["15m", "DART"], ["2h", "HARVEST"], ["whale", "WHALE"]];
     var per = {}, j;                       // per[jam][tf] = [n, w, sum%]
     if (typeof HH_FILTER === "undefined") window.HH_FILTER = null;   // jam terpilih (klik sel)
     for (j = 0; j < 24; j++) { per[j] = {}; TFH.forEach(function (t) { per[j][t[0]] = [0, 0, 0]; }); }
