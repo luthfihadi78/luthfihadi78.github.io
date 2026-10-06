@@ -98,15 +98,7 @@
     <div class="card">
       <div class="card-h"><h3>Backtest kanal aktif — 18 bulan · TP 2R · hold 168j · setelah gate arah rezim BTC</h3><span class="lg" id="bt-lg"></span></div>
       <div id="bt-badges"></div>
-      <p class="cap">Angka <b>riset backtest</b> (bukan angka live), 1 Apr 2025 – 24 Sep 2026, dinilai identik dengan mesin: <b>TP 2R + fee 0,018R</b>. Hanya setup yang <b>lolos gate arah rezim BTC</b> yang dihitung — itu kondisi engine sekarang (long hanya saat BTC bullish, short hanya saat non-bullish). <b>⚠️ Baca tanda ⚠️ “belum terbukti”</b>: bootstrap 95% yang memotong nol berarti kanal itu belum terbukti unggul, meski totalR-nya positif. <b>🩸 HARVEST 2h</b> (6 Okt, pengganti REVERSAL): short-only saat BTC non-bullish, backtest +0,529R · WR 51,8% · p=0,0000 · 8/9 bulan positif (uji_2h_short_gated.py). <b>◈ REVERSAL 30m dihapus</b> (6 Okt, long-nya impas & short sudah diwakili HARVEST). <b>⚡ SNIPER 1h sudah mati permanen</b> (3 Okt) dan tak ditampilkan. Sumber: logs/bt_final_kanal.csv.</p>
-    </div>
-  </section>
-
-  <section id="whalestrip">
-    <div class="card">
-      <div class="card-h"><h3>🐳 WHALE — hasil riset engine yang menggantikan SNIPER</h3><span class="lg" id="whale-lg"></span></div>
-      <div id="whale-isi"></div>
-      <p class="cap">Angka <b>riset backtest</b>, bukan angka live, dinilai dengan <b>TP 2R</b> — sama seperti mesin. Angka ini mengukur <b>resep yang benar-benar dijalankan</b>: bar 1h tertutup + killzone London/NY + IDM tersapu + SuperTrend searah. Tanpa tiga syarat itu edge hilang total (EV ±0 pada 644 setup), jadi angka polos tak pernah ditampilkan. <span style="color:#E0A458">⚠️ Winrate 54% ini rendah karena targetnya 2× lebih tinggi dari angka riset lama (69%) — lebih sering gagal, targetnya lebih tinggi, tapi tiap menang bernilai 2R. Karena itu EV/R +0,609 jauh lebih tinggi daripada yang WR-nya.</span> <b>Kartu ini sengaja dipisah dari ranking di atas</b>: jendela dan populasinya berbeda (WHALE cuma 20 big-cap teratas dan ±5 sinyal/bulan, sedangkan di atas memakai seluruh universe Top-150), jadi winrate keduanya tidak boleh dibaca berdampingan sebagai satu peringkat. <span id="whale-catatan"></span> Sumber: logs/bt_whale_tp2.csv.</p>
+      <p class="cap">Angka <b>riset backtest</b> (bukan angka live), 1 Apr 2025 – 24 Sep 2026, dinilai identik dengan mesin: <b>TP 2R + fee 0,018R</b>. Hanya setup yang <b>lolos gate arah rezim BTC</b> yang dihitung — itu kondisi engine sekarang (long hanya saat BTC bullish, short hanya saat non-bullish). <b>⚠️ Baca tanda ⚠️ “belum terbukti”</b>: bootstrap 95% yang memotong nol berarti kanal itu belum terbukti unggul, meski totalR-nya positif. <b>🩸 HARVEST 2h</b> (6 Okt, pengganti REVERSAL): short-only saat BTC non-bullish, backtest +0,529R · WR 51,8% · p=0,0000 · 8/9 bulan positif (uji_2h_short_gated.py). <b>🧱 BRICK belum di-backtest di strip ini</b> — muncul otomatis begitu di-rise. REVERSAL 30m &amp; SNIPER 1h sudah mati dan tidak ditampilkan. Sumber: logs/bt_final_kanal.csv.</p>
     </div>
   </section>
 
@@ -266,6 +258,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20261006c" defer></script>
+<script src="app.js?v=20261006d" defer></script>
 </body>
 </html>
