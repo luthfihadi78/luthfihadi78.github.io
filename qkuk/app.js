@@ -2003,8 +2003,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     /* 6 Okt malam (permintaan user): REVERSAL 30m dihapus dari strip (kanal
        mati), dan kartu 🐳 WHALE yang terpisah DILEBUR ke sini — semua kanal
        satu desain badge; detail riset WHALE (jendela, populasi, resep,
-       IS→OOS) pindah ke tooltip badge-nya. BRICK muncul otomatis kalau
-       nanti di-rise. */
+       IS→OOS) pindah ke tooltip badge-nya.
+     6 Okt malam — 🧱 BRICK ikut masuk strip: angka backtest 6 bulan
+       (300 simbol 1h, replika eksak live) dari data.json.bt_brick. EV-nya
+       negatif dan diurutkan apa adanya — kartu menampilkan riset, bukan
+       promosi. */
     if (!bt || !bt["2h"]) {
       var s = document.getElementById("btstrip"); if (s) s.style.display = "none";
       return;
@@ -2014,6 +2017,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (bt["2h"]) list.push({ nama: "🩸 HARVEST", chip: "2H", d: bt["2h"] });
     if (wh && wh.n) list.push({ nama: "🐳 WHALE", chip: "WHALE",
       d: { wr: wh.wr, ev: wh.ev, totr: wh.totr, n: wh.n }, w: wh });
+    var bk = DATA && DATA.bt_brick;
+    if (bk && bk.n) list.push({ nama: "🧱 BRICK", chip: "OB",
+      d: { wr: bk.wr, ev: bk.ev, totr: bk.totr, n: bk.n,
+           ci: bk.ci, significant: bk.significant, per_arah: bk.per_arah },
+      w: bk });
     list.sort(function (a, b) { return (b.d.ev || 0) - (a.d.ev || 0); });
     list.forEach(function (it, i) {
       var d = it.d;
@@ -2025,7 +2033,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       b.appendChild(nm);
       if (it.w) {
         var w = it.w;
-        b.title = "Riset khusus WHALE: " + (w.jendela || "?") + " · " + (w.populasi || "?")
+        b.title = "Riset " + it.nama + ": " + (w.jendela || "?") + " · " + (w.populasi || "?")
           + " · resep " + (w.resep || "?")
           + (w.is && w.oos && w.is.n && w.oos.n
               ? " · IS WR " + w.is.wr.toFixed(1) + "% (EV " + sgn(w.is.ev, 3) + ", n=" + w.is.n + ")"
