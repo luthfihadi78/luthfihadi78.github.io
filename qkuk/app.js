@@ -3,7 +3,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
 
 (function () {
   "use strict";
-  var DATA = null, ORDER = ["15m", "30m", "whale"], LEFT = 60;
+  /* 6 Okt — "2h" (🩸 HARVEST) WAJIB ada di ORDER: tab bubbles/watchlist/signals
+     dan kartu winrate strip() semuanya memakai ord() yang menyaring daftar
+     ini. Tanpa "2h", tab & winrate HARVEST lenyap diam-diam walau data.json
+     sudah membawanya. "30m" dibiarkan (REVERSAL mati) — ord() menyaring
+     otomatis kalau datanya tak ada. */
+  var DATA = null, ORDER = ["15m", "30m", "2h", "whale"], LEFT = 60;
   /* ⚠️ GitHub Pages menyajikan index.html dgn cache-control 600 dtk, dan tab
      yang dibiarkan terbuka TIDAK PERNAH mengambil ulang HTML-nya sama sekali —
      ia hanya menarik data.json. Akibatnya pembaruan tampilan tak terlihat
@@ -19,9 +24,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
    tanpa henti. data.json hanya boleh terbit dari mesin bot, jadi di sini kita
    samakan. Cache busting tetap lewat ?v=20261005a di index.html. */
   var BUILD = "qkuk-whale-20261004a";
-  /* kanal aktif: DART 15m = hijau · Reversal 30m = ungu · WHALE 1h = emas */
-  var COLOR = { "15m": "#7CE38B", "30m": "#C792EA", "whale": "#FFD54F" };
-  var TVI = { "15m": "15", "30m": "30", "whale": "60" };
+  /* kanal aktif: DART 15m = hijau · HARVEST 2h = merah darah (🩸, 6 Okt) ·
+     Reversal 30m = ungu (mati, dibiarkan utk riwayat) · WHALE = emas.
+     TVI = interval TradingView — tanpa entri "2h" link chart HARVEST jatuh
+     ke fallback "240" (4h), interval yang salah. */
+  var COLOR = { "15m": "#7CE38B", "30m": "#C792EA", "2h": "#FF6B6B", "whale": "#FFD54F" };
+  var TVI = { "15m": "15", "30m": "30", "2h": "120", "whale": "60" };
 
   function $(s) { return document.querySelector(s); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
@@ -636,7 +644,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var h = el("div", "ch-h");
       h.appendChild(el("span", "ch-n", L.nama));
       h.appendChild(el("span", "ch-tf", tf.toUpperCase()));
-      h.appendChild(el("span", "tag " + (L.uji ? "test" : "live"), L.uji ? "shadow" : "live"));
+      /* 6 Okt — tag per jalur: DART sinyalnya shadow tapi watchlistnya kirim
+         ke grup, jadi tag-nya "sinyal shadow" — bukan "shadow" penuh yang
+         berarti kedua jalur tak dikirim. */
+      var _tag = L.uji ? (L.pantau_shadow ? "shadow" : "sinyal shadow")
+                       : (L.pantau_shadow ? "watchlist shadow" : "live");
+      h.appendChild(el("span", "tag " + (_tag === "live" ? "live" : "test"), _tag));
       c.appendChild(h);
 
       function blok(judul, baris) {
@@ -1086,7 +1099,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      Sumber sama dengan heat table & kartu live resolve: picks admin. */
   /* whale = "Whale 1h" bukan salah ketik: resep 🐳 WHALE memang reclaim 1h
      + killzone + IDM + SuperTrend (riset n=59). */
-  var HR_NAME = { "15m": "Dart 15m", "30m": "Reversal 30m", "whale": "Whale 1h" };
+  var HR_NAME = { "15m": "Dart 15m", "30m": "Reversal 30m", "2h": "Harvest 2h", "whale": "Whale 1h" };
   /* 25 Sep — tinggi ter-akhir tiap batang histogram (urut h×kanal), buat
      tween antar segaran: batang MELUNCUR dari tinggi lama ke baru, persis
      histogram divergen di tab Whale. Bentuk array mengikuti urutan render. */
@@ -3612,7 +3625,20 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
          per 21 mnt di kanal 30m, jauh lebih banyak dari sinyal) dan berbunyi
          nonstop kalau ikut. Sinyal-lah yang sudah difilter dan lagi
          dikerjakannya penuh, jadi bunyinya tidak mengganggu. Watchlist tetap
-         masuk TABEL seperti biasa — yang diam hanya suaranya. */
+         masuk TABEL seperti biasa — yang diam hanya suaranya.
+
+     6 Okt (keputusan user, revisi aturan 5 Okt): DART 15m DIBALIK —
+     watchlist yang dikirim ke grup, sinyal BREAK di-shadow (WR watchlist
+     36,3% vs BREAK 11,1% live; backtest 5.118 setup: entry BREAK lambat
+     median 9 jam, 15m long BREAK -0,118R). Notifikasi mengikuti jalur
+     kirim: DART hanya berbunyi untuk WATCHLIST. Kanal lain tetap
+     sinyal-saja supaya tidak banjir toast. */
+      if (tf === "15m") {
+        (L.pantau || []).forEach(function (r) {
+          if (r && r.sym) items.push({ k: "pantau", key: r.ts + "|" + r.sym + "|" + tf, tf: tf, sym: r.sym, dir: r.dir, ts: r.ts });
+        });
+        return;
+      }
       (L.sinyal || []).forEach(function (r) {
         if (r && r.sym) items.push({ k: "sinyal", key: r.ts + "|" + r.sym + "|" + tf, tf: tf, sym: r.sym, dir: r.dir, ts: r.ts });
       });
