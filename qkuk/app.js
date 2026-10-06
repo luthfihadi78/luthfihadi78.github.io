@@ -2061,7 +2061,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         ci.appendChild(el("span", "v " + (sci ? "pos" : "warn"),
           (d.ci[0] >= 0 ? "+" : "") + d.ci[0].toFixed(3) + " … " +
           (d.ci[1] >= 0 ? "+" : "") + d.ci[1].toFixed(3) +
-          (sci ? "" : "  ⚠️ belum terbukti")));
+          (sci ? "" : d.ci[1] < 0 ? "  ❌ terbukti negatif" : "  ⚠️ belum terbukti")));
         b.appendChild(ci);
       }
       if (d.per_arah) {
