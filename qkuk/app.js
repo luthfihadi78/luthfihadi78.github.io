@@ -1104,10 +1104,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      tween antar segaran: batang MELUNCUR dari tinggi lama ke baru, persis
      histogram divergen di tab Whale. Bentuk array mengikuti urutan render. */
   var HR_RAW = null;
+  /* 6 Okt — kanal chart by-hour/kurva live = ord() (kanal aktif di
+     DATA.live), bukan ["1h","30m"] hardcoded: sejak swap DART→shadow &
+     HARVEST naik, key DATA.live hanya 15m/2h/whale, jadi chart lama
+     selalu kosong. Init per[h] dinamis ikut daftar kanal itu. */
   function liveHourAgg() {
-    var per = {}, h;
-    for (h = 0; h < 24; h++) { per[h] = { "1h": [0, 0, 0], "30m": [0, 0, 0] }; }
-    ["1h", "30m"].forEach(function (tf) {
+    var tfs = ord(), per = {}, h;
+    for (h = 0; h < 24; h++) { per[h] = {}; tfs.forEach(function (t) { per[h][t] = [0, 0, 0]; }); }
+    tfs.forEach(function (tf) {
       ["pantau", "sinyal"].forEach(function (jenis) {
         liveRows(tf, jenis).forEach(function (r) {
           var p = r.apick; if (!p) return;
@@ -1125,7 +1129,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     return per;
   }
   function eqLiveSeries() {
-    return ["1h", "30m"].map(function (tf) {
+    return ord().map(function (tf) {
       var rows = [];
       Object.keys(PICKS).forEach(function (k) {
         var kp = k.split("|"); if (kp[0] !== tf) return;
@@ -1170,7 +1174,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function hrChart() {
     var svg = $("#hr"); if (!svg) return;
     var per = liveHourAgg();
-    var ser = ["1h", "30m"].map(function (tf) {
+    var ser = ord().map(function (tf) {
       var pts = [];
       for (var h = 0; h < 24; h++) {
         var c = per[h][tf];
