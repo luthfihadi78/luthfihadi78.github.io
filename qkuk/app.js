@@ -8,7 +8,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      ini. Tanpa "2h", tab & winrate HARVEST lenyap diam-diam walau data.json
      sudah membawanya. "30m" dibiarkan (REVERSAL mati) — ord() menyaring
      otomatis kalau datanya tak ada. */
-  var DATA = null, ORDER = ["30m", "2h", "ob", "whale"], LEFT = 60;
+  var DATA = null, ORDER = ["30m", "2h", "ob", "4h", "whale"], LEFT = 60;
   /* ⚠️ GitHub Pages menyajikan index.html dgn cache-control 600 dtk, dan tab
      yang dibiarkan terbuka TIDAK PERNAH mengambil ulang HTML-nya sama sekali —
      ia hanya menarik data.json. Akibatnya pembaruan tampilan tak terlihat
@@ -23,14 +23,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
    juga terbit baru. Menaikkan BUILD tanpa ikut menerbitkan data.json = reload
    tanpa henti. data.json hanya boleh terbit dari mesin bot, jadi di sini kita
    samakan. Cache busting tetap lewat ?v=20261005a di index.html. */
-  var BUILD = "qkuk-brick-20261006a";
-  /* kanal aktif (6 Okt malam): 🧱 BRICK = oranye bata (kanal "ob", bukan TF —
-     engine ob_premium_watch.py, setup bar 1h → TVI 60) · HARVEST 2h = merah
-     darah (🩸) · Reversal 30m = ungu (mati, dibiarkan utk riwayat) ·
-     WHALE = emas. TVI = interval TradingView — tanpa entri "2h" link chart
-     HARVEST jatuh ke fallback "240" (4h), interval yang salah. */
-  var COLOR = { "30m": "#C792EA", "2h": "#FF6B6B", "ob": "#E8965A", "whale": "#FFD54F" };
-  var TVI = { "30m": "30", "2h": "120", "ob": "60", "whale": "60" };
+  var BUILD = "qkuk-4engine-20261007a";
+  /* 4 engine aktif (7 Okt): 🩸 HARVEST 2h = merah darah · 🧷 ENGINE OB
+     (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
+     riset backtestnya MSS→IDM→zona OB 30m+mantul dgn gerbang searah BTC 24 jam,
+     oranye bata) · 🧵 SWING 4h = hijau (Sweep+Reclaim 4h, TVI 240) ·
+     🐳 WHALE = emas. Reversal 30m = ungu (mati, dibiarkan utk riwayat).
+     TVI = interval TradingView — tanpa entri tf-nya link chart jatuh ke
+     fallback "240", interval salah. */
+  var COLOR = { "30m": "#C792EA", "2h": "#FF6B6B", "ob": "#E8965A", "4h": "#7CE38B", "whale": "#FFD54F" };
+  var TVI = { "30m": "30", "2h": "120", "ob": "60", "4h": "240", "whale": "60" };
 
   function $(s) { return document.querySelector(s); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
@@ -1101,7 +1103,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      Sumber sama dengan heat table & kartu live resolve: picks admin. */
   /* whale = "Whale 1h" bukan salah ketik: resep 🐳 WHALE memang reclaim 1h
      + killzone + IDM + SuperTrend (riset n=59). */
-  var HR_NAME = { "ob": "Brick OB", "30m": "Reversal 30m", "2h": "Harvest 2h", "whale": "Whale 1h" };
+  var HR_NAME = { "ob": "Engine OB", "30m": "Reversal 30m", "2h": "Harvest 2h", "4h": "Swing 4h", "whale": "Whale 1h" };
   /* 25 Sep — tinggi ter-akhir tiap batang histogram (urut h×kanal), buat
      tween antar segaran: batang MELUNCUR dari tinggi lama ke baru, persis
      histogram divergen di tab Whale. Bentuk array mengikuti urutan render. */
@@ -2003,11 +2005,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     /* 6 Okt malam (permintaan user): REVERSAL 30m dihapus dari strip (kanal
        mati), dan kartu 🐳 WHALE yang terpisah DILEBUR ke sini — semua kanal
        satu desain badge; detail riset WHALE (jendela, populasi, resep,
-       IS→OOS) pindah ke tooltip badge-nya.
-     6 Okt malam — 🧱 BRICK ikut masuk strip: angka backtest 6 bulan
-       (300 simbol 1h, replika eksak live) dari data.json.bt_brick. EV-nya
-       negatif dan diurutkan apa adanya — kartu menampilkan riset, bukan
-       promosi. */
+       IS→OOS)       pindah ke tooltip badge-nya.
+     7 Okt — kartu lain dimatikan & DIHAPUS dari strip (EV-nya negatif) dan
+       penggantinya 🧷 ENGINE OB masuk: kanal 30m MSS→IDM→zona OB+mantul,
+       gerbang searah BTC 24 jam, TP 3R (data.json.bt_engine_ob).
+     7 Okt (kemudian) — 🧵 SWING (Sweep+Reclaim 4h) masuk strip lagi; strip
+       kini 4 engine = HARVEST · ENGINE OB · SWING · WHALE (data.json.bt_swing,
+       JSON statis dari duel RCL: n=112 · WR 59,8% · EV +0,333R · 10/12 bln). */
     if (!bt || !bt["2h"]) {
       var s = document.getElementById("btstrip"); if (s) s.style.display = "none";
       return;
@@ -2017,11 +2021,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (bt["2h"]) list.push({ nama: "🩸 HARVEST", chip: "2H", d: bt["2h"] });
     if (wh && wh.n) list.push({ nama: "🐳 WHALE", chip: "WHALE",
       d: { wr: wh.wr, ev: wh.ev, totr: wh.totr, n: wh.n }, w: wh });
-    var bk = DATA && DATA.bt_brick;
-    if (bk && bk.n) list.push({ nama: "🧱 BRICK", chip: "OB",
-      d: { wr: bk.wr, ev: bk.ev, totr: bk.totr, n: bk.n,
-           ci: bk.ci, significant: bk.significant, per_arah: bk.per_arah },
-      w: bk });
+    var ek = DATA && DATA.bt_engine_ob;
+    if (ek && ek.n) list.push({ nama: "🧷 ENGINE OB", chip: "OB",
+      d: { wr: ek.wr, ev: ek.ev, totr: ek.totr, n: ek.n,
+           ci: ek.ci, significant: ek.significant, per_arah: ek.per_arah },
+      w: ek });
+    var sw = DATA && DATA.bt_swing;
+    if (sw && sw.n) list.push({ nama: "🧵 SWING", chip: "4h",
+      d: { wr: sw.wr, ev: sw.ev, totr: sw.totr, n: sw.n,
+           ci: sw.ci, significant: sw.significant, per_arah: sw.per_arah },
+      w: sw });
     list.sort(function (a, b) { return (b.d.ev || 0) - (a.d.ev || 0); });
     list.forEach(function (it, i) {
       var d = it.d;
@@ -3267,7 +3276,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (lg && lg.parentNode === kamu) kamu.insertBefore(host, lg.nextSibling);
       else kamu.appendChild(host);
     }
-    var TFH = [["ob", "BRICK"], ["2h", "HARVEST"], ["whale", "WHALE"]];
+    var TFH = [["ob", "ENGINE OB"], ["2h", "HARVEST"], ["4h", "SWING"], ["whale", "WHALE"]];
     var per = {}, j;                       // per[jam][tf] = [n, w, sum%]
     if (typeof HH_FILTER === "undefined") window.HH_FILTER = null;   // jam terpilih (klik sel)
     for (j = 0; j < 24; j++) { per[j] = {}; TFH.forEach(function (t) { per[j][t[0]] = [0, 0, 0]; }); }
@@ -3579,7 +3588,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        tetap masuk TABEL seperti biasa — yang diam hanya suaranya.
 
      6 Okt sore: DART 15m sempat dibalik (watchlist bunyi, sinyal diam) —
-     6 Okt malam DART dimatikan total, digantikan 🧱 BRICK (kanal "ob").
+     6 Okt malam DART dimatikan total, digantikan kanal "ob" —
+     sejak 7 Okt bernama 🧷 ENGINE OB.
      Aturan 5 Okt berlaku lagi ke SEMUA kanal: sinyal-saja. */
       (L.sinyal || []).forEach(function (r) {
         if (r && r.sym) items.push({ k: "sinyal", key: r.ts + "|" + r.sym + "|" + tf, tf: tf, sym: r.sym, dir: r.dir, ts: r.ts });

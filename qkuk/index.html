@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>QKUK Terminal — live signal feed</title>
-<meta name="description" content="Live crypto signal terminal. Watchlist, signals and accuracy — Brick OB, Harvest 2h and Whale — written straight from the engine.">
+<meta name="description" content="Live crypto signal terminal. Watchlist, signals and accuracy — Harvest, Engine OB, Swing and Whale — written straight from the engine.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23070B09'/%3E%3Cg stroke='%236EE7B7' fill='none' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M27.4 16 L21.7 25.9 L10.3 25.9 L4.6 16 L10.3 6.1 L21.7 6.1 Z' stroke-width='2.3'/%3E%3Cpath d='M12 12.2 L15.5 16 L12 19.8' stroke-width='2.3'/%3E%3C/g%3E%3Crect x='17.4' y='15.1' width='4.2' height='1.9' rx='.95' fill='%236EE7B7'/%3E%3C/svg%3E">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-LXAUy0kvUSjxAz/fkXLmBF15ezkgQYHRQhirnM4uq2Y='; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://fapi.binance.com https://api.binance.com https://textdb.dev https://api.coingecko.com https://api.coinpaprika.com; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=20261005c">
+<link rel="stylesheet" href="style.css?v=20261007a">
 </head>
 <body>
 
@@ -98,7 +98,7 @@
     <div class="card">
       <div class="card-h"><h3>Backtest kanal aktif — 18 bulan · TP 2R · hold 168j · setelah gate arah rezim BTC</h3><span class="lg" id="bt-lg"></span></div>
       <div id="bt-badges"></div>
-      <p class="cap">Angka <b>riset backtest</b> (bukan angka live), 1 Apr 2025 – 24 Sep 2026, dinilai identik dengan mesin: <b>TP 2R + fee 0,018R</b>. Hanya setup yang <b>lolos gate arah rezim BTC</b> yang dihitung — itu kondisi engine sekarang (long hanya saat BTC bullish, short hanya saat non-bullish). <b>⚠️ Baca tanda ⚠️ “belum terbukti”</b>: bootstrap 95% yang memotong nol berarti kanal itu belum terbukti unggul, meski totalR-nya positif. <b>🩸 HARVEST 2h</b> (6 Okt, pengganti REVERSAL): short-only saat BTC non-bullish, backtest +0,529R · WR 51,8% · p=0,0000 · 8/9 bulan positif (uji_2h_short_gated.py). <b>🧱 BRICK belum di-backtest di strip ini</b> — muncul otomatis begitu di-rise. REVERSAL 30m &amp; SNIPER 1h sudah mati dan tidak ditampilkan. Sumber: logs/bt_final_kanal.csv.</p>
+      <p class="cap">Angka <b>riset backtest</b> (bukan angka live), 1 Apr 2025 – 24 Sep 2026, dinilai identik dengan mesin: <b>TP 2R + fee 0,018R</b>. Hanya setup yang <b>lolos gate arah rezim BTC</b> yang dihitung — itu kondisi engine sekarang (long hanya saat BTC bullish, short hanya saat non-bullish). <b>⚠️ Baca tanda ⚠️ “belum terbukti”</b>: bootstrap 95% yang memotong nol berarti kanal itu belum terbukti unggul, meski totalR-nya positif. <b>🩸 HARVEST 2h</b> (6 Okt, pengganti REVERSAL): short-only saat BTC non-bullish, backtest +0,529R · WR 51,8% · p=0,0000 · 8/9 bulan positif (uji_2h_short_gated.py). <b>🧷 ENGINE OB</b> (7 Okt): kanal 30m MSS→IDM→zona OB+mantul dgn <b>gerbang searah BTC 24 jam</b>, backtest 12 bulan × 40 simbol top volume, TP 3R: EV +0,116R · WR 31,2% · CI95 [+0,07…+0,16] penuh positif · 10/13 bulan positif · +745R net · IS +0,106 / OOS +0,126. <b>🧵 SWING</b> (7 Okt): Sweep+Reclaim 4h kembali — n=112 · WR 59,8% · EV +0,333R · CI95 [+0,14…+0,53] tegas · +37R · 10/12 bulan positif (riset_duel_rcl.py, jendela identik dgn ENGINE OB). Strip kini 4 engine aktif: HARVEST · ENGINE OB · SWING · WHALE. REVERSAL 30m &amp; SNIPER 1h sudah mati dan tidak ditampilkan. Sumber: logs/bt_final_kanal.csv + riset_panyengket.py.</p>
     </div>
   </section>
 
@@ -220,15 +220,15 @@
   <section id="charts">
     <div class="grid2">
       <div class="card">
-        <div class="card-h"><h3>Winrate live — Brick OB, Harvest 2h &amp; Whale</h3><div class="lg" id="eq-lg"></div></div>
+        <div class="card-h"><h3>Winrate live — Engine OB, Harvest 2h, Swing 4h &amp; Whale</h3><div class="lg" id="eq-lg"></div></div>
         <svg class="ch" id="eq" role="img" aria-label="Kurva kumulatif hasil live per kanal"></svg>
         <p class="cap">Kurva kumulatif hasil (%) dari resolusi live pilihan admin — setiap pick yang sudah di-resolve
         (win/loss lewat tombol ambil) menambah langkah kurva sesuai waktunya. Bukan backtest.</p>
       </div>
       <div class="card">
         <div class="card-h"><h3>Win rate by WIB hour — 00:00 to 23:00</h3><div class="lg" id="hr-lg"></div></div>
-        <svg class="ch" id="hr" role="img" aria-label="Winrate per jam WIB, tiga kanal live"></svg>
-        <p class="cap">Histogram divergen per jam WIB — tiga batang kanal (Brick oranye bata · Harvest merah · Whale emas) berdampingan,
+        <svg class="ch" id="hr" role="img" aria-label="Winrate per jam WIB, empat kanal live"></svg>
+        <p class="cap">Histogram divergen per jam WIB — empat batang kanal (Engine OB oranye bata · Harvest merah · Swing hijau · Whale emas) berdampingan,
         tumbuh dari garis 50%: batang naik = menang, turun = kalah. Skala per sisi: kalah terparah setinggi menang terbaik,
         jadi jam kalah tidak tampak selalu pendek. Batang berdenyut oranye = jam ekstrem (≥20% dari 50%, min. 3 resolve).
         Batang meluncur halus tiap segaran. Hover untuk rincian W/L (angka eksak).
@@ -258,6 +258,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20261006f" defer></script>
+<script src="app.js?v=20261007a" defer></script>
 </body>
 </html>

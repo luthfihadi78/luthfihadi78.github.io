@@ -95,8 +95,11 @@ a:hover{color:#9CF2CE}
 @media(prefers-reduced-motion:reduce){.fl{animation:none;opacity:.4}.ndl{transition:none}}
 
 /* ── watchlist accuracy + tools sinyal (17 Sep) ── */
-.ak-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0 6px}
-@media(max-width:900px){.ak-grid{grid-template-columns:1fr}}
+/* 7 Okt: 4 engine → 4 kel sejajar satu baris (sebelumnya 3 dan yang ke-4
+   jatuh sendirian ke baris bawah_sendiri). Semput → 2×2 dulu, baru 1 kolom. */
+.ak-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0 6px}
+@media(max-width:1100px){.ak-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.ak-grid{grid-template-columns:1fr}}
 .s-tools{display:flex;gap:8px;margin:0 0 10px;flex-wrap:wrap}
 .s-tools input,.s-tools select{background:var(--s1);border:1px solid var(--line-2);color:var(--fg);
   border-radius:6px;padding:6px 10px;font-family:var(--mono);font-size:12px}
@@ -897,6 +900,7 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 .bt-badge .bt-tf.t2h{color:#FF6B6B;border-color:rgba(255,107,107,.4)}  .bt-badge .bt-tf.twhale{color:#4DC9F6;border-color:rgba(77,201,246,.4)}
   .bt-badge .bt-tf.tob{color:#F2A65A;border-color:rgba(242,166,90,.4)}
 .bt-badge .bt-tf.t1h{color:#4DC9F6;border-color:rgba(77,201,246,.4)}
+.bt-badge .bt-tf.t4h{color:#7CE38B;border-color:rgba(124,227,139,.4)}
 .bt-badge .bt-angka{display:flex;gap:16px;margin-top:9px}
 .bt-badge .bt-angka div{display:flex;flex-direction:column}
 .bt-badge .bt-angka .k{font-size:9.5px;color:var(--fg-3);text-transform:uppercase;letter-spacing:.07em}
