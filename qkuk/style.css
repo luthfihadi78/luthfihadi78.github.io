@@ -108,7 +108,7 @@ a:hover{color:#9CF2CE}
 @media(max-width:600px){.kv.btc{display:none}}
 
 /* ── channel strip ── */
-/* 7 Okt — 3→4 kolom: strip kini 4 kanal (HARVEST · ENGINE OB · SWING · WHALE);
+/* 7 Okt — 3→4 kolom: strip kini 4 kanal (HARVEST · BRICK · SWING · WHALE);
    dengan repeat(3,1fr) kartu ke-4 (WHALE) jatuh sendirian ke baris kedua dan
    baris winrate-nya tak sejajar dgn kartu lain. Breakpoint ikut pola .ak-grid. */
 .strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0 26px}

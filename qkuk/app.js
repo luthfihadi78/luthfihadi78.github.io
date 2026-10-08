@@ -23,8 +23,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
    juga terbit baru. Menaikkan BUILD tanpa ikut menerbitkan data.json = reload
    tanpa henti. data.json hanya boleh terbit dari mesin bot, jadi di sini kita
    samakan. Cache busting tetap lewat ?v=20261005a di index.html. */
-  var BUILD = "qkuk-4engine-20261007a";
-  /* 4 engine aktif (7 Okt): 🩸 HARVEST 2h = merah darah · 🧷 ENGINE OB
+  var BUILD = "qkuk-brick-20261008a";
+  /* 4 engine aktif (8 Okt): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      riset backtestnya MSS→IDM→zona OB 30m+mantul dgn gerbang searah BTC 24 jam,
      oranye bata) · 🧵 SWING 4h = hijau (Sweep+Reclaim 4h, TVI 240) ·
@@ -799,7 +799,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     return td;
   }
 
-  var wTf = null, sTf = null, sQ = "", sSort = "ts", wQ = "", wSide = "", sSide = "", bq = "";
+  /* 8 Okt — section Watchlist & Winrate-accuracy DIHAPUS (permintaan user:
+     satukan watchlist + sinyal dalam SATU section Signals, tanpa pindah-pindah).
+     sMode memilih isi tabel #s-table: "sig" = sinyal entry, "watch" = baris
+     watchlist (pantauan) — keduanya dirender ke tabel yang sama. */
+  var sMode = "sig";
+  var wTf = null, sTf = null, sQ = "", sSort = "ts", sSide = "", bq = "";
 
   /* ⚠️ 5 Okt — kanal yang memang LANGKA perlu dijelaskan saat kosong.
      Pesan umum "Nothing on the watchlist for this channel." dibaca sebagai
@@ -821,16 +826,19 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       : "Nothing on the watchlist for this channel.";
   }
 
+  /* 8 Okt — watchlist dirender ke tabel section SIGNALS (satu tempat dengan
+     sinyal). Tab TF & filter memakai kontrol #signals; pemilih jenis ada di
+     #s-jenis. Kolom khas watchlist (reclaimed level, outcome 1R:1R) tetap. */
   function watch(tf) {
-    wTf = tf; tabs($("#w-tabs"), tf, watch);
+    wTf = tf; tabs($("#s-tabs"), tf, watch);
     var rows = (DATA.live[tf].pantau || []).slice()
       .sort(function (a, b) { return (b.ts || "").localeCompare(a.ts || ""); });
-    if (wQ) rows = rows.filter(function (r) { return (r.sym || "").toUpperCase().indexOf(wQ) !== -1; });
-    if (wSide) rows = rows.filter(function (r) { return r.dir === wSide; });
-    table($("#w-table"), [
+    if (sQ) rows = rows.filter(function (r) { return (r.sym || "").toUpperCase().indexOf(sQ) !== -1; });
+    if (sSide) rows = rows.filter(function (r) { return r.dir === sSide; });
+    table($("#s-table"), [
       { h: "", c: function (r) { return tvCell(r.sym, tf); } },
       { h: "time WIB", c: function (r) { return txt(r.ts); } },
-      { h: "pair", c: function (r) { return pairCell(r.sym, wQ); } },
+      { h: "pair", c: function (r) { return pairCell(r.sym, sQ); } },
       { h: "side", c: function (r) { return side(r.dir); } },
       { h: "koreksi admin", c: function (r) { return corrCell(r, tf, "watch"); } },
       { h: "reclaimed level", n: true, c: function (r) { return txt(fp(r.lv), "n"); } },
@@ -1733,6 +1741,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   function bubbleDraw() {
     var plot = $("#bb-plot"), tip = $("#bb-tip");
+    if (!plot) return;   // 8 Okt: section Bubbles dihapus dari index.html — biarkan mati
     bbStop(); bbBodies = [];
     plot.innerHTML = ""; tip.classList.remove("on");
     var tf = bTf && DATA.live[bTf] ? bTf : ord()[0];
@@ -2007,11 +2016,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        satu desain badge; detail riset WHALE (jendela, populasi, resep,
        IS→OOS)       pindah ke tooltip badge-nya.
      7 Okt — kartu lain dimatikan & DIHAPUS dari strip (EV-nya negatif) dan
-       penggantinya 🧷 ENGINE OB masuk: kanal 30m MSS→IDM→zona OB+mantul,
+       penggantinya 🧱 BRICK masuk: kanal 30m MSS→IDM→zona OB+mantul,
        gerbang searah BTC 24 jam, TP 3R (data.json.bt_engine_ob).
      7 Okt (kemudian) — 🧵 SWING (Sweep+Reclaim 4h) masuk strip lagi; strip
-       kini 4 engine = HARVEST · ENGINE OB · SWING · WHALE (data.json.bt_swing,
-       JSON statis dari duel RCL: n=112 · WR 59,8% · EV +0,333R · 10/12 bln). */
+       kini 4 engine = HARVEST · BRICK · SWING · WHALE (data.json.bt_swing,
+       JSON statis dari duel RCL: n=112 · WR 59,8% · EV +0,333R · 10/12 bln).
+     8 Okt — rebrand "🧷 ENGINE OB" DIBATALKAN (hasil live buruk, keputusan
+       user) → label kembali 🧱 BRICK. */
     if (!bt || !bt["2h"]) {
       var s = document.getElementById("btstrip"); if (s) s.style.display = "none";
       return;
@@ -2022,7 +2033,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (wh && wh.n) list.push({ nama: "🐳 WHALE", chip: "WHALE",
       d: { wr: wh.wr, ev: wh.ev, totr: wh.totr, n: wh.n }, w: wh });
     var ek = DATA && DATA.bt_engine_ob;
-    if (ek && ek.n) list.push({ nama: "🧷 ENGINE OB", chip: "OB",
+    if (ek && ek.n) list.push({ nama: "🧱 BRICK", chip: "BRICK",
       d: { wr: ek.wr, ev: ek.ev, totr: ek.totr, n: ek.n,
            ci: ek.ci, significant: ek.significant, per_arah: ek.per_arah },
       w: ek });
@@ -2106,12 +2117,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      beda sendiri"): angkanya kini badge di strip backtest atas, detail
      risetnya di tooltip. Fungsi lama whaleCard() dibuang. */
   function render(first) {
-    stamp(); gauge(); strip(); akurasi(); kamu(); applyPicks(); btBadges();
+    stamp(); gauge(); strip(); kamu(); applyPicks(); btBadges();
     scanNotif();
     if (first) charts();
     if (first || !bbBodies.length) bubbleDraw();   // jangan bangun ulang saat data 60 dtk segar — fisika jalan terus
-    watch(wTf && DATA.live[wTf] ? wTf : ord()[0]);
-    signals(sTf && DATA.live[sTf] ? sTf : ord()[0]);
+    rerenderTables();
+  }
+  /* 8 Okt — render ulang tabel #s-table sesuai mode (sinyal / watchlist).
+     Pemanggil lama "if (wTf) watch(wTf); if (sTf) signals(sTf);" memakai ini. */
+  function rerenderTables() {
+    var tf = sTf && DATA.live[sTf] ? sTf : ord()[0];
+    if (sMode === "watch") watch(tf); else signals(tf);
   }
   /* 27 Sep — baris kembar (sym+ts sama) dalam satu kanal dibuang saat data
      tiba: pickKey baris kembar identik sehingga satu pick admin "menimpa"
@@ -2164,22 +2180,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       });
   }
   $("#s-q").addEventListener("input", function () {
-    sQ = this.value.trim().toUpperCase(); signals(sTf || ord()[0]);
+    sQ = this.value.trim().toUpperCase(); rerenderTables();
   });
-  $("#w-q").addEventListener("input", function () {
-    wQ = this.value.trim().toUpperCase(); watch(wTf || ord()[0]);
-  });
-  $("#w-side").addEventListener("change", function () {
-    wSide = this.value; watch(wTf || ord()[0]);
+  $("#s-jenis").addEventListener("change", function () {
+    sMode = this.value; rerenderTables();   // 8 Okt: sinyal ⇄ watchlist, satu section
   });
   $("#s-side").addEventListener("change", function () {
-    sSide = this.value; signals(sTf || ord()[0]);
-  });
-  $("#b-q").addEventListener("input", function () {
-    bq = this.value.trim().toUpperCase(); bbSorot();
+    sSide = this.value; rerenderTables();
   });
   $("#s-sort").addEventListener("change", function () {
-    sSort = this.value; signals(sTf || ord()[0]);
+    sSort = this.value; rerenderTables();
   });
 
   /* ── notifikasi watchlist / sinyal baru ──
@@ -2720,7 +2730,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         r.apick = PICKS[pickKey(tf, "sig", r)] || null;
       });
     });
-    if (wTf) watch(wTf); if (sTf) signals(sTf); liveStats();
+    rerenderTables(); liveStats();
     kotakAnalisis();   // 26 Sep — kotak analisis winrate ikut segar tiap picks berubah
     bbPickedSync(); bbPickedMark();   // bintang & garis emas bubble ikut picks terbaru
     /* 23 Sep — grafik live (kurva kumulatif & winrate per jam) ikut
@@ -2902,7 +2912,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function openAdmin() {
     var box = el("div");
     box.appendChild(admHead("Login admin"));
-    function reapply() { if (wTf) watch(wTf); if (sTf) signals(sTf); liveStats(); }
+    function reapply() { rerenderTables(); liveStats(); }
     if (isLogged()) {
       box.appendChild(el("div", "adm-desc", "Login sebagai admin ✓ — tombol \"ambil\" aktif di semua tabel dan kamu bisa mengoreksi pick kapan pun."));
       var row0 = el("div", "adm-row");
@@ -3276,7 +3286,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (lg && lg.parentNode === kamu) kamu.insertBefore(host, lg.nextSibling);
       else kamu.appendChild(host);
     }
-    var TFH = [["ob", "ENGINE OB"], ["2h", "HARVEST"], ["4h", "SWING"], ["whale", "WHALE"]];
+    var TFH = [["ob", "BRICK"], ["2h", "HARVEST"], ["4h", "SWING"], ["whale", "WHALE"]];
     var per = {}, j;                       // per[jam][tf] = [n, w, sum%]
     if (typeof HH_FILTER === "undefined") window.HH_FILTER = null;   // jam terpilih (klik sel)
     for (j = 0; j < 24; j++) { per[j] = {}; TFH.forEach(function (t) { per[j][t[0]] = [0, 0, 0]; }); }
@@ -3589,7 +3599,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
 
      6 Okt sore: DART 15m sempat dibalik (watchlist bunyi, sinyal diam) —
      6 Okt malam DART dimatikan total, digantikan kanal "ob" —
-     sejak 7 Okt bernama 🧷 ENGINE OB.
+     sejak 8 Okt kembali bernama 🧱 BRICK (rebrand ENGINE OB dibatalkan).
      Aturan 5 Okt berlaku lagi ke SEMUA kanal: sinyal-saja. */
       (L.sinyal || []).forEach(function (r) {
         if (r && r.sym) items.push({ k: "sinyal", key: r.ts + "|" + r.sym + "|" + tf, tf: tf, sym: r.sym, dir: r.dir, ts: r.ts });

@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=20261007b">
+<link rel="stylesheet" href="style.css?v=20261008a">
 </head>
 <body>
 
@@ -98,7 +98,7 @@
     <div class="card">
       <div class="card-h"><h3>Backtest kanal aktif — 18 bulan · TP 2R · hold 168j · setelah gate arah rezim BTC</h3><span class="lg" id="bt-lg"></span></div>
       <div id="bt-badges"></div>
-      <p class="cap">Angka <b>riset backtest</b> (bukan angka live), 1 Apr 2025 – 24 Sep 2026, dinilai identik dengan mesin: <b>TP 2R + fee 0,018R</b>. Hanya setup yang <b>lolos gate arah rezim BTC</b> yang dihitung — itu kondisi engine sekarang (long hanya saat BTC bullish, short hanya saat non-bullish). <b>⚠️ Baca tanda ⚠️ “belum terbukti”</b>: bootstrap 95% yang memotong nol berarti kanal itu belum terbukti unggul, meski totalR-nya positif. <b>🩸 HARVEST 2h</b> (6 Okt, pengganti REVERSAL): short-only saat BTC non-bullish, backtest +0,529R · WR 51,8% · p=0,0000 · 8/9 bulan positif (uji_2h_short_gated.py). <b>🧷 ENGINE OB</b> (7 Okt): kanal 30m MSS→IDM→zona OB+mantul dgn <b>gerbang searah BTC 24 jam</b>, backtest 12 bulan × 40 simbol top volume, TP 3R: EV +0,116R · WR 31,2% · CI95 [+0,07…+0,16] penuh positif · 10/13 bulan positif · +745R net · IS +0,106 / OOS +0,126. <b>🧵 SWING</b> (7 Okt): Sweep+Reclaim 4h kembali — n=112 · WR 59,8% · EV +0,333R · CI95 [+0,14…+0,53] tegas · +37R · 10/12 bulan positif (riset_duel_rcl.py, jendela identik dgn ENGINE OB). Strip kini 4 engine aktif: HARVEST · ENGINE OB · SWING · WHALE. REVERSAL 30m &amp; SNIPER 1h sudah mati dan tidak ditampilkan. Sumber: logs/bt_final_kanal.csv + riset_panyengket.py.</p>
+      <p class="cap">Angka <b>riset backtest</b> (bukan angka live), 1 Apr 2025 – 24 Sep 2026, dinilai identik dengan mesin: <b>TP 2R + fee 0,018R</b>. Hanya setup yang <b>lolos gate arah rezim BTC</b> yang dihitung — itu kondisi engine sekarang (long hanya saat BTC bullish, short hanya saat non-bullish). <b>⚠️ Baca tanda ⚠️ “belum terbukti”</b>: bootstrap 95% yang memotong nol berarti kanal itu belum terbukti unggul, meski totalR-nya positif. <b>🩸 HARVEST 2h</b> (6 Okt, pengganti REVERSAL): short-only saat BTC non-bullish, backtest +0,529R · WR 51,8% · p=0,0000 · 8/9 bulan positif (uji_2h_short_gated.py). <b>🧱 BRICK</b> (8 Okt, kembali dari rebrand ENGINE OB): kanal 30m MSS→IDM→zona OB+mantul dgn <b>gerbang searah BTC 24 jam</b>, backtest 12 bulan × 40 simbol top volume, TP 3R: EV +0,116R · WR 31,2% · CI95 [+0,07…+0,16] penuh positif · 10/13 bulan positif · +745R net · IS +0,106 / OOS +0,126. <b>🧵 SWING</b> (7 Okt): Sweep+Reclaim 4h kembali — n=112 · WR 59,8% · EV +0,333R · CI95 [+0,14…+0,53] tegas · +37R · 10/12 bulan positif (riset_duel_rcl.py, jendela identik dgn BRICK). Strip kini 4 engine aktif: HARVEST · BRICK · SWING · WHALE. REVERSAL 30m &amp; SNIPER 1h sudah mati dan tidak ditampilkan. Sumber: logs/bt_final_kanal.csv + riset_panyengket.py.</p>
     </div>
   </section>
 
@@ -117,33 +117,6 @@
     </div>
   </section>
 
-  <section id="bubbles">
-    <div class="sec-h">
-      <h2><i>&gt;</i> Bubbles</h2>
-      <span class="hint">coins detected by this engine only — % change is live 24h from Binance</span>
-      <div class="tabs" id="b-mode" role="tablist"></div>
-      <div class="tabs" id="b-tabs" role="tablist"></div>
-    </div>
-    <div class="bb-stage">
-      <div class="bb-bar">
-        <div class="bb-legend">
-          <span><i class="lg-up"></i>up 24h</span>
-          <span><i class="lg-dn"></i>down 24h</span>
-          <span><i class="lg-id"></i>no 24h data</span>
-        </div>
-        <input id="b-q" type="search" placeholder="sorot koin… (e.g. AVAX)" aria-label="Highlight bubbles by coin">
-      </div>
-      <div class="b-chips" id="b-chips"></div>
-      <div class="bb-plot" id="bb-plot"></div>
-      <div class="bb-tip" id="bb-tip"></div>
-    </div>
-
-    <p class="cap">Press and hold a bubble to drag it around — let go and it floats again.
-    Bubbles bounce off each other and drift like real ones. The number inside is the
-    live 24-hour price change from Binance, green up and red down. The fiery aura marks
-    coins the engine has on record today. Tap a bubble to open its TradingView chart.</p>
-  </section>
-
   <section id="analisa">
     <div class="sec-h">
       <h2><i>&gt;</i> Kotak analisis</h2>
@@ -157,30 +130,17 @@
     berubah — jadi sebelum ambil posisi, ceklis dulu komposisi yang sedang terbaik.</p>
   </section>
 
-  <section id="watch">
-    <div class="sec-h">
-      <h2><i>&gt;</i> Watchlist</h2>
-      <span class="hint">reclaim detected, entry not confirmed</span>
-      <div class="tabs" id="w-tabs" role="tablist"></div>
-    </div>
-    <div class="s-tools">
-      <input id="w-q" type="search" placeholder="search pair… (e.g. BTC)" aria-label="Search watchlist by pair">
-      <select id="w-side" aria-label="Filter watchlist by side">
-        <option value="">all sides</option>
-        <option value="long">long only</option>
-        <option value="short">short only</option>
-      </select>
-    </div>
-    <div class="tw" id="w-table"></div>
-  </section>
-
   <section id="signals">
     <div class="sec-h">
       <h2><i>&gt;</i> Signals</h2>
-      <span class="hint">entries issued to the group</span>
+      <span class="hint">entries &amp; watchlist issued to the group — satu tempat, tanpa pindah-pindah</span>
       <div class="tabs" id="s-tabs" role="tablist"></div>
     </div>
     <div class="s-tools">
+      <select id="s-jenis" aria-label="Pilih jenis: sinyal atau watchlist">
+        <option value="sig">sinyal (entry dikirim)</option>
+        <option value="watch">watchlist (pantauan)</option>
+      </select>
       <input id="s-q" type="search" placeholder="search pair… (e.g. BTC)" aria-label="Search signals by pair">
       <select id="s-sort" aria-label="Sort signals">
         <option value="ts">newest first</option>
@@ -220,7 +180,7 @@
   <section id="charts">
     <div class="grid2">
       <div class="card">
-        <div class="card-h"><h3>Winrate live — Engine OB, Harvest 2h, Swing 4h &amp; Whale</h3><div class="lg" id="eq-lg"></div></div>
+        <div class="card-h"><h3>Winrate live — Brick, Harvest 2h, Swing 4h &amp; Whale</h3><div class="lg" id="eq-lg"></div></div>
         <svg class="ch" id="eq" role="img" aria-label="Kurva kumulatif hasil live per kanal"></svg>
         <p class="cap">Kurva kumulatif hasil (%) dari resolusi live pilihan admin — setiap pick yang sudah di-resolve
         (win/loss lewat tombol ambil) menambah langkah kurva sesuai waktunya. Bukan backtest.</p>
@@ -228,26 +188,13 @@
       <div class="card">
         <div class="card-h"><h3>Win rate by WIB hour — 00:00 to 23:00</h3><div class="lg" id="hr-lg"></div></div>
         <svg class="ch" id="hr" role="img" aria-label="Winrate per jam WIB, empat kanal live"></svg>
-        <p class="cap">Histogram divergen per jam WIB — empat batang kanal (Engine OB oranye bata · Harvest merah · Swing hijau · Whale emas) berdampingan,
+        <p class="cap">Histogram divergen per jam WIB — empat batang kanal (Brick oranye bata · Harvest merah · Swing hijau · Whale emas) berdampingan,
         tumbuh dari garis 50%: batang naik = menang, turun = kalah. Skala per sisi: kalah terparah setinggi menang terbaik,
         jadi jam kalah tidak tampak selalu pendek. Batang berdenyut oranye = jam ekstrem (≥20% dari 50%, min. 3 resolve).
         Batang meluncur halus tiap segaran. Hover untuk rincian W/L (angka eksak).
         Sumber: winrate live resolve admin — bukan backtest. Jam tanpa resolve kosong (bukan nol).</p>
       </div>
     </div>
-  </section>
-
-  <section id="akurasi">
-    <div class="sec-h">
-      <h2><i>&gt;</i> Winrate watchlist accuracy</h2>
-      <span class="hint">every reclaim scored mechanically — entries you never took</span>
-    </div>
-    <div class="ak-grid" id="ak-grid"></div>
-    <p class="cap">Every watchlist row is scored by a fixed rule: entry at the reclaim close,
-    stop at the sweep extreme, symmetric 1R target, whichever is hit first within 7 days.
-    If one bar touches both, it counts as a loss; timeouts are scored from the last close,
-    never discarded. This measures raw entry quality across every detection — your own
-    filtering on top is exactly what the raw number cannot see.</p>
   </section>
 
   <div class="strip" id="strip"></div>
@@ -258,6 +205,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20261007a" defer></script>
+<script src="app.js?v=20261008a" defer></script>
 </body>
 </html>
