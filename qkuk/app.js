@@ -805,9 +805,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
 
   /* 8 Okt — section Watchlist & Winrate-accuracy DIHAPUS (permintaan user:
      satukan watchlist + sinyal dalam SATU section Signals, tanpa pindah-pindah).
-     sMode memilih isi tabel #s-table: "sig" = sinyal entry, "watch" = baris
-     watchlist (pantauan) — keduanya dirender ke tabel yang sama. */
-  var sMode = "sig";
+     8 Okt (lanjutan, permintaan user): watchlist MASUK KE DAFTAR SIGNAL — satu
+     tabel berisi sinyal entry DAN baris watchlist (kolom "jenis" membedakan).
+     sMode = filter: "semua" (default, gabungan) / "sig" / "watch". */
+  var sMode = "semua";
   var wTf = null, sTf = null, sQ = "", sSort = "ts", sSide = "", bq = "";
 
   /* ⚠️ 5 Okt — kanal yang memang LANGKA perlu dijelaskan saat kosong.
@@ -830,44 +831,21 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       : "Nothing on the watchlist for this channel.";
   }
 
-  /* 8 Okt — watchlist dirender ke tabel section SIGNALS (satu tempat dengan
-     sinyal). Tab TF & filter memakai kontrol #signals; pemilih jenis ada di
-     #s-jenis. Kolom khas watchlist (reclaimed level, outcome 1R:1R) tetap. */
-  function watch(tf) {
-    wTf = tf; tabs($("#s-tabs"), tf, watch);
-    var rows = (DATA.live[tf].pantau || []).slice()
-      .sort(function (a, b) { return (b.ts || "").localeCompare(a.ts || ""); });
-    if (sQ) rows = rows.filter(function (r) { return (r.sym || "").toUpperCase().indexOf(sQ) !== -1; });
-    if (sSide) rows = rows.filter(function (r) { return r.dir === sSide; });
-    table($("#s-table"), [
-      { h: "", c: function (r) { return tvCell(r.sym, tf); } },
-      { h: "time WIB", c: function (r) { return txt(r.ts); } },
-      { h: "pair", c: function (r) { return pairCell(r.sym, sQ); } },
-      { h: "side", c: function (r) { return side(r.dir); } },
-      { h: "koreksi admin", c: function (r) { return corrCell(r, tf, "watch"); } },
-      { h: "reclaimed level", n: true, c: function (r) { return txt(fp(r.lv), "n"); } },
-      { h: "outcome", c: function (r) {
-          var td = el("td", "st");
-          td.textContent = r.h ? (r.h === "menang" ? "win" : r.h === "kalah" ? "loss" : "timeout") : "pending";
-          if (r.h === "menang") td.style.color = "var(--up)";
-          else if (r.h === "kalah") td.style.color = "var(--dn)";
-          return td; } },
-      { h: "R (1:1)", n: true, c: function (r) { return rcell(r.r, false); } },
-      { h: "live", c: function (r) { return pickCell(r, tf, "watch"); } },
-      { h: "★", c: function (r) {                 // dipilih user di CSV (kolom picked)
-          var td = el("td", "st" + (r.pick ? " pickb" : " dim"));
-          td.textContent = r.pick ? (r.flip ? "★⇄" : "★") : "—";
-          if (r.pick) td.title = "picked by you"
-            + (r.flip ? " — ARAH DIPERBAIKI: kamu ambil "
-              + (r.dir === "long" ? "short" : "long") + ", R dihitung dari arahmu" : "")
-            + (r.note ? " — " + r.note : "");
-          return td; } }
-    ], rows, kosong(tf, "watchlist"));
-  }
-
+  /* 8 Okt — SATU TABEL: sinyal entry + watchlist dalam daftar yang sama
+     (permintaan user: "watchlist masuk ke daftar signal biar gampang
+     maintenance"). Kolom "jenis" membedakan; sMode memfilter bila perlu. */
   function signals(tf) {
     sTf = tf; tabs($("#s-tabs"), tf, signals);
-    var rows = (DATA.live[tf].sinyal || []).slice();
+    var gabung = sMode === "semua";
+    var rows = [];
+    if (sMode !== "watch")
+      (DATA.live[tf].sinyal || []).forEach(function (r) {
+        rows.push(Object.assign({}, r, { _jenis: "sig" }));
+      });
+    if (sMode !== "sig")
+      (DATA.live[tf].pantau || []).forEach(function (r) {
+        rows.push(Object.assign({}, r, { _jenis: "watch" }));
+      });
     if (sQ) rows = rows.filter(function (r) { return (r.sym || "").toUpperCase().indexOf(sQ) !== -1; });
     if (sSide) rows = rows.filter(function (r) { return r.dir === sSide; });
     if (sSort === "pick") {
@@ -877,7 +855,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     } else if (sSort === "sym") {
       rows.sort(function (a, b) { return (a.sym || "").localeCompare(b.sym || ""); });
     } else if (sSort !== "ts") {
-      rows.sort(function (a, b) {            /* sinyal open (pnl null) selalu di bawah */
+      rows.sort(function (a, b) {            /* open (pnl null) selalu di bawah */
         var av = num(a.pnl), bv = num(b.pnl);
         if (av === null) av = sSort === "pnl" ? -Infinity : Infinity;
         if (bv === null) bv = sSort === "pnl" ? -Infinity : Infinity;
@@ -886,29 +864,46 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     } else {
       rows.sort(function (a, b) { return (b.ts || "").localeCompare(a.ts || ""); });
     }
-    table($("#s-table"), [
+    var kolom = [
       { h: "", c: function (r) { return tvCell(r.sym, tf); } },
       { h: "time WIB", c: function (r) { return txt(r.ts); } },
       { h: "pair", c: function (r) { return pairCell(r.sym, sQ); } },
       { h: "side", c: function (r) { return side(r.dir); } },
-      { h: "koreksi admin", c: function (r) { return corrCell(r, tf, "sig"); } },
-      { h: "entry", n: true, c: function (r) { return txt(fp(r.e), "n"); } },
-      { h: "stop", n: true, c: function (r) { return txt(fp(r.s), "n"); } },
-      { h: "target", n: true, c: function (r) { return txt(fp(r.t), "n"); } },
+      { h: "koreksi admin", c: function (r) { return corrCell(r, tf, r._jenis); } }];
+    if (gabung) kolom.push({ h: "jenis", c: function (r) {
+      var td = el("td", "st", r._jenis === "sig" ? "⚡ sinyal" : "👁 watchlist");
+      if (r._jenis !== "sig") td.style.color = "var(--fg-2)";
+      return td; } });
+    kolom.push(
+      { h: "entry", n: true, c: function (r) {
+          return txt(fp(r._jenis === "watch" ? r.lv : r.e), "n"); } },
+      { h: "stop", n: true, c: function (r) {
+          return r._jenis === "watch" ? txt("—", "n") : txt(fp(r.s), "n"); } },
+      { h: "target", n: true, c: function (r) {
+          return r._jenis === "watch" ? txt("—", "n") : txt(fp(r.t), "n"); } },
       { h: "status", c: function (r) {
-          var td = el("td", "st" + (r.st === "fired" ? " open" : ""));
-          td.textContent = r.st === "fired" ? "open" : r.st; return td; } },
-      { h: "result R", n: true, c: function (r) { return rcell(r.pnl, r.st === "fired"); } },
-      { h: "live", c: function (r) { return pickCell(r, tf, "sig"); } },
-      { h: "★", c: function (r) {                 // dipilih user di CSV (kolom picked)
+          var td = el("td", "st");
+          if (r._jenis === "watch") {
+            td.textContent = r.h ? (r.h === "menang" ? "win" : r.h === "kalah" ? "loss" : "timeout") : "watchlist";
+            if (r.h === "menang") td.style.color = "var(--up)";
+            else if (r.h === "kalah") td.style.color = "var(--dn)";
+          } else {
+            td.className = "st" + (r.st === "fired" ? " open" : "");
+            td.textContent = r.st === "fired" ? "open" : r.st;
+          }
+          return td; } },
+      { h: "result R", n: true, c: function (r) {
+          return r._jenis === "watch" ? rcell(r.r, false) : rcell(r.pnl, r.st === "fired"); } },
+      { h: "live", c: function (r) { return pickCell(r, tf, r._jenis); } });
+    kolom.push({ h: "★", c: function (r) {                 // dipilih user di CSV (kolom picked)
           var td = el("td", "st" + (r.pick ? " pickb" : " dim"));
           td.textContent = r.pick ? (r.flip ? "★⇄" : "★") : "—";
           if (r.pick) td.title = "picked by you"
             + (r.flip ? " — ARAH DIPERBAIKI: kamu ambil "
               + (r.dir === "long" ? "short" : "long") + ", R dihitung dari arahmu" : "")
             + (r.note ? " — " + r.note : "");
-          return td; } }
-    ], rows, sQ ? "No signal matches \u201C" + sQ + "\u201D on this channel."
+          return td; } });
+    table($("#s-table"), kolom, rows, sQ ? "No signal matches \u201C" + sQ + "\u201D on this channel."
       : DATA.live[tf].uji
       ? "Shadow channel — no entry signal recorded yet."
       : kosong(tf, "sinyal"));
@@ -1391,7 +1386,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      perubahan harga 24 jam LIVE dari Binance fapi (CORS terbuka), bukan
      angka R. Warna: hijau naik, merah turun, kuning = tak ada data 24 jam.
      Aura api: koin yang memang ada di catatan engine hari ini. */
-  var bMode = "pantau", bTf = null;
+  /* 8 Okt (permintaan user): bubbles kembali — tapi isi = daftar SINYAL saja
+     (watchlist sekarang juga tampil di daftar signal, jadi bubbles mengikuti).
+     Tab mode dihapus; bMode dipatok "sinyal". */
+  var bMode = "sinyal", bTf = null;
   var BB = { up: { glow: "rgba(110,231,183,.32)", edge: "rgba(110,231,183,.85)",
                    fill: "rgba(110,231,183,.10)", txt: "#8DF0C6" },
              dn: { glow: "rgba(232,135,124,.30)", edge: "rgba(232,135,124,.85)",
@@ -1454,7 +1452,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   var bb24Src = -1, bbSrcName = ["Binance futures", "Binance spot", "CoinGecko", "CoinPaprika"];
   function bubbleData(mode, tf) {
     var L = (DATA.live || {})[tf];
-    var src = mode === "sinyal" ? (L && L.sinyal) : (L && L.pantau);
+    var src = L && L.sinyal;                    // 8 Okt: sinyal saja (watchlist ikut sinyal di tabel)
     if (!src) return [];
     var seen = {};
     return src.map(function (r) {
@@ -1751,18 +1749,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var tf = bTf && DATA.live[bTf] ? bTf : ord()[0];
     bTf = tf;
     var rows = bubbleData(bMode, tf);
-    var modeTabs = $("#b-mode");
-    modeTabs.innerHTML = "";
-    [["pantau", "Watchlist"], ["sinyal", "Signals"]].forEach(function (m) {
-      var b = el("button", "tab", m[1]);
-      b.setAttribute("role", "tab");
-      b.setAttribute("aria-selected", bMode === m[0] ? "true" : "false");
-      b.addEventListener("click", function () { bMode = m[0]; bb24Ts = 0; bubbleDraw(); });
-      modeTabs.appendChild(b);
-    });
     tabs($("#b-tabs"), tf, function (t) { bTf = t; bubbleDraw(); });
     if (!rows.length) {
-      plot.appendChild(el("div", "empty", kosong(tf, bMode === "sinyal" ? "sinyal" : "watchlist")));
+      plot.appendChild(el("div", "empty", kosong(tf, "sinyal")));
       return;
     }
     var W = plot.clientWidth || 900, H = plot.clientHeight || 480;
@@ -1921,16 +1910,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         rw("24h", c24 === null ? "no data" : (c24 > 0 ? "+" : "") + c24.toFixed(2) + "%",
            c24 === null ? "" : c24 > 0 ? "pos" : c24 < 0 ? "neg" : "");
         rw("time", d.ts || "—");
-        if (bMode === "sinyal") {
+        {
           rw("entry", fp(d.e)); rw("stop", fp(d.s)); rw("target", fp(d.t));
           rw("stop width", num(d.slp) === null ? "—" : num(d.slp).toFixed(2) + "%");
           var rr = (d.st === "fired") ? null : num(d.r);
           rw("result", rr === null ? "open" : sgn(rr, 2) + "R",
              rr === null ? "" : rr > 0 ? "pos" : "neg");
-        } else {
-          rw("level", fp(d.lv));
-          rw("outcome", d.h ? (d.h === "menang" ? "win" : d.h === "kalah" ? "loss" : "timeout")
-            : "pending", d.h === "menang" ? "pos" : d.h === "kalah" ? "neg" : "");
         }
         rw("seen", String(d.n || 1) + "x on " + tf.toUpperCase());
         tip.appendChild(t);
@@ -2185,9 +2170,6 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   $("#s-q").addEventListener("input", function () {
     sQ = this.value.trim().toUpperCase(); rerenderTables();
-  });
-  $("#s-jenis").addEventListener("change", function () {
-    sMode = this.value; rerenderTables();   // 8 Okt: sinyal ⇄ watchlist, satu section
   });
   $("#s-side").addEventListener("change", function () {
     sSide = this.value; rerenderTables();

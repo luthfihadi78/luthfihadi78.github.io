@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=20261008a">
+<link rel="stylesheet" href="style.css?v=20261008c">
 </head>
 <body>
 
@@ -117,6 +117,32 @@
     </div>
   </section>
 
+  <section id="bubbles">
+    <div class="sec-h">
+      <h2><i>&gt;</i> Bubbles</h2>
+      <span class="hint">daftar sinyal — % change is live 24h from Binance</span>
+      <div class="tabs" id="b-tabs" role="tablist"></div>
+    </div>
+    <div class="bb-stage">
+      <div class="bb-bar">
+        <div class="bb-legend">
+          <span><i class="lg-up"></i>up 24h</span>
+          <span><i class="lg-dn"></i>down 24h</span>
+          <span><i class="lg-id"></i>no 24h data</span>
+        </div>
+        <input id="b-q" type="search" placeholder="sorot koin… (e.g. AVAX)" aria-label="Highlight bubbles by coin">
+      </div>
+      <div class="b-chips" id="b-chips"></div>
+      <div class="bb-plot" id="bb-plot"></div>
+      <div class="bb-tip" id="bb-tip"></div>
+    </div>
+
+    <p class="cap">Isinya = daftar SINYAL (entry terkirim ke grup) per engine — sama dgn tabel Signals di bawah.
+    Press and hold a bubble to drag it around — let go and it floats again.
+    The number inside is the live 24-hour price change from Binance, green up and red down.
+    Tap a bubble to open its TradingView chart.</p>
+  </section>
+
   <section id="analisa">
     <div class="sec-h">
       <h2><i>&gt;</i> Kotak analisis</h2>
@@ -137,10 +163,6 @@
       <div class="tabs" id="s-tabs" role="tablist"></div>
     </div>
     <div class="s-tools">
-      <select id="s-jenis" aria-label="Pilih jenis: sinyal atau watchlist">
-        <option value="sig">sinyal (entry dikirim)</option>
-        <option value="watch">watchlist (pantauan)</option>
-      </select>
       <input id="s-q" type="search" placeholder="search pair… (e.g. BTC)" aria-label="Search signals by pair">
       <select id="s-sort" aria-label="Sort signals">
         <option value="ts">newest first</option>
@@ -205,6 +227,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20261008b" defer></script>
+<script src="app.js?v=20261008c" defer></script>
 </body>
 </html>
