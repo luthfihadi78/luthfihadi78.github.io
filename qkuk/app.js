@@ -8,7 +8,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      ini. Tanpa "2h", tab & winrate HARVEST lenyap diam-diam walau data.json
      sudah membawanya. "30m" dibiarkan (REVERSAL mati) — ord() menyaring
      otomatis kalau datanya tak ada. */
-  var DATA = null, ORDER = ["30m", "2h", "ob", "4h", "whale"], LEFT = 60;
+  var DATA = null, ORDER = ["ob", "2h", "4h", "whale"], LEFT = 60;   // 8 Okt: 4 engine aktif — REA 30m keluar
   /* ⚠️ GitHub Pages menyajikan index.html dgn cache-control 600 dtk, dan tab
      yang dibiarkan terbuka TIDAK PERNAH mengambil ulang HTML-nya sama sekali —
      ia hanya menarik data.json. Akibatnya pembaruan tampilan tak terlihat
@@ -743,10 +743,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
 
   /* ── tables ── */
+  /* 8 Okt (permintaan user): label tab pakai NAMA ENGINE — BRICK/HARVEST/SWING
+     bukan kode TF "OB"/"2H"/"4H", biar konsisten dgn grup WA & strip riset. */
+  var TAB_NAME = { "30m": "REA", "2h": "HARVEST", "4h": "SWING",
+                   "ob": "BRICK", "whale": "WHALE", "1h": "SNIPER", "15m": "DART" };
   function tabs(host, active, pick) {
     host.innerHTML = "";
     ord().forEach(function (tf) {
-      var b = el("button", "tab", tf.toUpperCase());
+      var b = el("button", "tab", TAB_NAME[tf] || tf.toUpperCase());
       b.setAttribute("role", "tab");
       b.setAttribute("aria-selected", tf === active ? "true" : "false");
       b.addEventListener("click", function () { pick(tf); });
