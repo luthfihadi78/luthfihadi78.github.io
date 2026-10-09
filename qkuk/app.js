@@ -730,13 +730,23 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         if (bPikPt) c.appendChild(bPikPt);
       }
 
-      if (E) {
-        c.appendChild(blok("backtest reference", [
-          ["entries", E.n.toLocaleString("en"), ""],
-          ["win rate", E.wr.toFixed(1) + "%", ""],
-          ["EV / trade", sgn(E.ev, 3) + "R", E.ev > 0 ? "pos" : "neg"],
-          ["per month", String(E.per_bln), ""]
-        ]));
+      /* 9 Okt — kartu "backtest reference" kini utk SEMUA engine. Sumber:
+         HARVEST/SWING dari DATA.engine[tf] (schema per_bln), BRICK dari
+         DATA.bt_brick & WHALE dari DATA.bt_whale (schema sendiri, tak punya
+         per_bln → dihitung n / n_bulan; tooltip jendela + populasi). */
+      var BT = (tf === "ob" && DATA.bt_brick) || (tf === "whale" && DATA.bt_whale) || E;
+      if (BT && BT.n) {
+        var _pr = BT.per_bln;
+        if (_pr == null && BT.n_bulan) _pr = Math.round(BT.n / BT.n_bulan * 10) / 10;
+        var _tip = BT.jendela ? (BT.jendela + (BT.populasi ? " · " + BT.populasi : "")) : null;
+        var _rows = [
+          ["entries", Number(BT.n).toLocaleString("en"), ""],
+          ["win rate", BT.wr == null ? "—" : BT.wr.toFixed(1) + "%", ""],
+          ["EV / trade", BT.ev == null ? "—" : sgn(BT.ev, 3) + "R", BT.ev > 0 ? "pos" : "neg"]];
+        if (_pr != null) _rows.push(["per month", String(_pr), ""]);
+        var bb = blok("backtest reference", _rows);
+        if (_tip) bb.title = _tip;
+        c.appendChild(bb);
       }
       host.appendChild(c);
     });
