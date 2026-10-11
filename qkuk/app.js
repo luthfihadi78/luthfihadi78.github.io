@@ -1156,6 +1156,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         var kp = k.split("|"); if (kp[0] !== tf) return;
         var p = PICKS[k]; if (!p) return;
         if (p.win !== 0 && p.win !== 1) return;
+        if (!eqPickFilter(p)) return;       // 11 Okt — filter admin/periode
         var pct = hasPct(p.pct) ? (p.side === "short" ? -p.pct : p.pct)
                   : (p.win === 1 ? 1 : -1);
         rows.push({ ts: kp[2] || "", pct: pct });
@@ -1175,7 +1176,53 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var t = mk("text", { x: 310, y: 95, "text-anchor": "middle", "class": "hr-none-t" });
     t.textContent = msg; svg.appendChild(t);
   }
+  /* 11 Okt — filter admin & periode untuk kurva live (#eq) — permintaan
+     user: "winrate berdasarkan admin agar kita tahu performa setiap orang,
+     ada filter mingguan atau bulanan". Pilihan disimpan di localStorage.
+     "all" = gabungan dua admin (perilaku lama). Jam-harian/heatmap TIDAK
+     kena filter ini — koin menang dari admin siapa pun tetap masuk jam
+     yang sama (syarat eksplisit user). */
+  var EQ_FILTER = { who: "all", per: "all" };        // who: all|Qkuk|Gerry · per: all|week|month
+  try {
+    var _eqf = JSON.parse(localStorage.getItem("qkuk_eq_filter") || "null");
+    if (_eqf && typeof _eqf === "object") {
+      if (["all", "Qkuk", "Gerry"].indexOf(_eqf.who) >= 0) EQ_FILTER.who = _eqf.who;
+      if (["all", "week", "month"].indexOf(_eqf.per) >= 0) EQ_FILTER.per = _eqf.per;
+    }
+  } catch (e) {}
+  function eqPickFilter(p) {
+    if (EQ_FILTER.who !== "all" && p.by !== EQ_FILTER.who) return false;
+    if (EQ_FILTER.per === "all") return true;
+    var d = dowParseTs(p.ts || "");
+    if (!d) return false;
+    if (EQ_FILTER.per === "week") return weekIndex(d) === weekIndex(new Date());
+    return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) === wibDate(new Date().toISOString()).slice(0, 7);
+  }
+  /* tombol filter admin/periode di header kartu #eq — 11 Okt */
+  function eqFilterBar() {
+    var lg = document.getElementById("eq-lg"); if (!lg) return;
+    lg.innerHTML = "";
+    function btn(def, lab) {
+      var b = el("button", "hh-tg" + (EQ_FILTER.who === def[0] || EQ_FILTER.per === def[0] ? " on" : ""), lab);
+      b.type = "button";
+      b.addEventListener("click", function () {
+        EQ_FILTER[def[2]] = def[0];
+        try { localStorage.setItem("qkuk_eq_filter", JSON.stringify(EQ_FILTER)); } catch (e) {}
+        charts();
+      });
+      return b;
+    }
+    var wrap = el("span", "eq-filt");
+    [["all|semua admin|who"], ["Qkuk|Qkuk|who"], ["Gerry|Gerry|who"],
+     ["all|semua waktu|per"], ["week|minggu ini|per"], ["month|bulan ini|per"]]
+      .forEach(function (s) {
+        var pp = s[0].split("|");
+        wrap.appendChild(btn([pp[0], pp[1], pp[2]], pp[1]));
+      });
+    lg.appendChild(wrap);
+  }
   function charts() {
+    eqFilterBar();
     var eq = eqLiveSeries().filter(function (s) { return s.pts.length; });
     if (eq.some(function (s) { return s.pts.length >= 2; })) {
       var base = eq.reduce(function (a, b) { return b.pts.length > a.pts.length ? b : a; });
@@ -1414,32 +1461,44 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        sebelumnya tidak lagi ditandai di kanvas. Nilai = arah pilihan admin
        (p.side) supaya bubble menampilkan label koreksi long/short. */
     bbPicked = {};
-    var hari = wibDate(new Date().toISOString());
+    /* 11 Okt — reset MINGGUAN (permintaan user): tanda bubble hidup satu
+       minggu, bukan hari ini saja — ada sinyal yang betul-betul perlu
+       ditunggu sampai minggu berikutnya. Minggu pakai konvensi Senin-awal
+       (fungsinya sudah ada). */
+    var wk = weekIndex(new Date());
     Object.keys(PICKS).forEach(function (k) {
       var p = PICKS[k];
       if (!p || !p.taken) return;
-      /* tanggal SINYAL di kunci (bukan waktu ambil) — pick untuk sinyal
-         hari-hari sebelumnya tidak menandai bubble walau diedit hari ini */
       var tglSig = (k.split("|")[2] || "").slice(0, 10);
-      if (!tglSig || tglSig !== hari) return;
+      if (!tglSig) return;
+      var d = new Date(tglSig + "T00:00:00");
+      if (isNaN(d.getTime()) || weekIndex(d) !== wk) return;   // minggu lain → tak ditandai
       var sym = (k.split("|")[3] || "").toUpperCase();
       if (!sym) return;
-      if (p.side === "long" || p.side === "short") bbPicked[sym] = p.side;
-      else if (!bbPicked[sym]) bbPicked[sym] = true;
+      /* nilai = {side, by, status} — label koreksi + nama admin yang
+         mengambil + status (Menunggu / Ambil Posisi / Take Profit). */
+      var side = (p.side === "long" || p.side === "short") ? p.side : false;
+      var val = { side: side, by: (p.by === "Gerry" ? "Gerry" : "Qkuk"),
+                  status: p.status || "menunggu" };
+      if (!bbPicked[sym] || (bbPicked[sym].by === "Qkuk" && val.by === "Gerry"))
+        bbPicked[sym] = val;    // satu simbol dua admin → admin terakhir yang dipilih menang
     });
   }
   function bbPickedMark() {
     var plot = $("#bb-plot"); if (!plot) return;
     Array.prototype.forEach.call(plot.children, function (b) {
       var sym = b.dataset && b.dataset.sym; if (!sym) return;
-      var on = !!bbPicked[sym];
+      var pk = bbPicked[sym], on = !!pk;
+      b.classList.toggle("gerry-side", on && pk.by === "Gerry");   // tone CSS utk pick Gerry
       b.classList.toggle("picked", on);
       var st = b.querySelector(".bbstar");
       if (on && !st) b.appendChild(el("span", "bbstar", "\u2605"));
       else if (!on && st && st.parentNode) st.parentNode.removeChild(st);
-      /* label koreksi admin di dalam bubble (terlihat semua pengunjung):
-         "short" merah / "long" hijau — arah yang admin ambil */
-      var side = on && bbPicked[sym] !== true ? bbPicked[sym] : null;
+      /* 11 Okt — dua label DI DALAM bubble (terlihat semua pengunjung):
+         .bbfix = arah pilihan admin (long hijau / short merah; lama),
+         .bbadmin = SIAPA yang ambil (Qkuk / Gerry) + status pick
+         (Menunggu / Ambil Posisi / Take Profit). */
+      var side = on && pk && pk.side ? pk.side : null;
       var fx = b.querySelector(".bbfix");
       if (side) {
         if (!fx) { fx = el("u", "bbfix " + side, side); fx.dataset.side = side; b.appendChild(fx); }
@@ -1447,6 +1506,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           fx.className = "bbfix " + side; fx.textContent = side; fx.dataset.side = side;
         }
       } else if (fx && fx.parentNode) fx.parentNode.removeChild(fx);
+      var adminEl = b.querySelector(".bbadmin");
+      if (on && pk) {
+        var STT = { menunggu: "Menunggu", entry: "Ambil Posisi", tp: "Take Profit" };
+        var txt = (pk.by || "Qkuk") + (pk.side ? " · " + pk.side : "") + " · " + (STT[pk.status] || "Menunggu");
+        if (!adminEl) { adminEl = el("b", "bbadmin", txt); b.appendChild(adminEl); }
+        else if (adminEl.textContent !== txt) adminEl.textContent = txt;
+      } else if (adminEl && adminEl.parentNode) adminEl.parentNode.removeChild(adminEl);
       if (on) {
         if (!b.dataset.ob) { b.dataset.ob = b.style.border || ""; b.dataset.os = b.style.boxShadow || ""; }
         var dia = b.offsetWidth || 40;
@@ -2116,6 +2182,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      beda sendiri"): angkanya kini badge di strip backtest atas, detail
      risetnya di tooltip. Fungsi lama whaleCard() dibuang. */
   function render(first) {
+    liveScoreMount();       // 11 Okt: live score klasemen — PALING ATAS halaman
     stamp(); gauge(); strip(); kamu(); applyPicks(); btBadges();
     scanNotif();
     if (first) charts();
@@ -2447,16 +2514,28 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      — bukan backtest. */
   var TXTDB_ID = "qkuk-53bc732eb802f8c087142876"; // penyimpanan cloud live picks (textdb.dev)
   var PICKS = {};
+  /* 11 Okt — DUA ADMIN (permintaan user): Qkuk + Admin2 (Gerry). Username
+     disimpan DENGAN BESAR-KECIL persis apa adanya, tapi pencocokan login
+     TIDAK PEDULI besar-kecil (jaga-jaga ketik "admin2"). Di kode hanya
+     SHA-256 dari "username:password" — tidak ada kredensial mentah. Nama
+     panggung ("Qkuk"/"Gerry") dipakai sbg penanda di pick, bubbles,
+     live score & kotak analisis — KONSTAN, tidak boleh diganti. */
+  var ADMINS = {
+    "admin":  { who: "Qkuk",  hash: "d78f6114b477459dfaacf645a3d5453b33437cce560a016ffbc2051408d3caa0" },
+    "Admin2": { who: "Gerry", hash: "b12039778e31e421be674d6b5f02b126b95f5fcd7fd506b142a56062bbf3e313" }
+  };
   /* 26 Sep — CHECKLIST ALASAN AMBIL POSISI: setiap pick bisa dicatat alasannya
      (struktur/setup yang bikin admin ambil posisi) beserta TIMEFRAME masing2
      alasan. Label KONSTAN — jangan diubah, dipakai sbg kunci agregasi kotak
      analisis winrate & popup detail. Pick lama tanpa "alasan" tetap tampil
      normal (semua pembacaan undefined-safe). */
+  /* limit upload gambar per pick (kvota user) — di-crop di sisi server cloud */
+  var IMG_MAX = 4;
   var ALASAN = ["BOS", "EMA20-atas", "EMA20-bawah", "EMA200-atas", "EMA200-bawah",
-                 "MSS", "FVG", "IFVG", "MAC", "OB", "SuperTrend-Buy", "SuperTrend-Sell"];
+                 "MSS", "FVG", "IFVG", "INDUCEMENT", "MACD", "OB", "SuperTrend-Buy", "SuperTrend-Sell"];
   var ALASAN_NAMA = { "EMA20-atas": "EMA20 di atas", "EMA20-bawah": "EMA20 di bawah",
                        "EMA200-atas": "EMA200 di atas", "EMA200-bawah": "EMA200 di bawah",
-                       "MAC": "MAC", "OB": "OB (Order Block)", "BOS": "BOS",
+                       "INDUCEMENT": "Inducement", "MACD": "MACD", "OB": "OB (Order Block)", "BOS": "BOS",
                        "MSS": "MSS", "FVG": "FVG", "IFVG": "IFVG",
                        "SuperTrend-Buy": "SuperTrend Buy", "SuperTrend-Sell": "SuperTrend Sell" };
   var TF_OPTS = ["1m", "5m", "15m", "30m", "1h", "1D"];   /* 2 Okt: 2h/4h dibuang — kanalnya dimatikan */
@@ -2486,10 +2565,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     return alasanPairs(p).map(function (x) { return x.a + " " + x.tf; });
   }
   function alasanStr(p) { return alasanList(p).join(", "); }
-  /* login admin tunggal — kredensial hanya diketahui pemilik situs */
-  /* login admin tunggal — di kode hanya SHA-256 dari "username:password",
-     jadi kredensial tidak terbaca mentah di view source. */
-  var AUTH = { user: "admin", hash: "d78f6114b477459dfaacf645a3d5453b33437cce560a016ffbc2051408d3caa0" };
+  var AUTH = { user: "admin", hash: ADMINS["admin"].hash };
   function sha256hex(s) {
     return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s))
       .then(function (buf) {
@@ -2513,8 +2589,22 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   })();
   function isLogged() { return SS.get("qkuk_admin_ok") === "1"; }
   function isAdmin() { return isLogged(); }
+  /* 11 Okt — identitas admin aktif ("Qkuk" / "Gerry"). Disimpan di
+     sessionStorage saat login; gagal ? fallback Qkuk (sesi lama sebelum
+     fitur ini). Pick menyimpan nama ini sbg `by`, jadi live score,
+     bubbles & riwayat tahu TANGAN SIAPA. */
+  function meAdmin() {
+    var a = SS.get("qkuk_admin_who");
+    return a === "Qkuk" || a === "Gerry" ? a : "Qkuk";
+  }
+  function restoreWho() { if (!SS.get("qkuk_admin_who")) SS.set("qkuk_admin_who", "Qkuk"); }
+  restoreWho();
   var PLOG = [];          // riwayat semua aksi admin (ambil/koreksi/hapus)
-  var AUTHCLOUD = null;   // hash password hasil "ganti password" (dari cloud)
+  var AUTHCLOUD = null;   // hash password Qkuk hasil "ganti password" (dari cloud)
+  var AUTH_HASHES = {};   // 11 Okt — hash per-akun dari cloud {"admin":…, "Admin2":…} (hasil ganti password)
+  /* hash efektif akun k: hasil "ganti password" di cloud (jika ada),
+     kalau tidak pakai bawaan di kode. */
+  function $hashOke(k) { return AUTH_HASHES[k] || ADMINS[k].hash; }
   function curHash() { return AUTHCLOUD || AUTH.hash; }
   function wibStr(iso) {
     if (!iso) return "—";
@@ -2533,6 +2623,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       sym: (r && r.sym) || kp[3] || "", tf: kp[0] || "", jenis: kp[1] || "",
       dir0: (r && r.dir) || null, side: p ? (p.side || null) : null,
       pct: hasPct(p && p.pct) ? p.pct : null, win: p ? p.win : null,
+      who: act && p && p.by ? p.by : meAdmin(),
+      pickKey: key || null,
+      imgN: p && Array.isArray(p.imgs) ? p.imgs.length : 0,
       note: p && p.note ? p.note : null });
     if (PLOG.length > 2000) PLOG.length = 2000;   // dulu 200 — riwayat harian cepat terpotong
   }
@@ -2550,6 +2643,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       (side === "long" ? "▲ " : "▼ ") + side.toUpperCase()));
     meta.appendChild(el("span", "alpill " + (p.win === 1 ? "win" : p.win === 0 ? "loss" : "open"),
       p.win === 1 ? "WIN" : p.win === 0 ? "LOSS" : "OPEN"));
+    /* 11 Okt — status pick dgn nama admin di popup dua-duanya */
+    var STT = { menunggu: "MENUNGGU", entry: "AMBIL POSISI", tp: "TAKE PROFIT" };
+    meta.appendChild(el("span", "alpill stat",
+      (STT[p.status] || "MENUNGGU") + " · oleh " + (p.by || "admin")));
     /* fix 27 Sep: pct pick open = null → sebelumnya crash toFixed di sini */
     if (hasPct(p.pct))
       meta.appendChild(el("span", "alpct2 " + (p.pct > 0 ? "pos" : p.pct < 0 ? "neg" : "mut"),
@@ -2571,7 +2668,25 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       box.appendChild(chips);
     }
     if (p.note) box.appendChild(el("div", "alnote", p.note));
-    box.appendChild(el("div", "alfoot", "dicatat admin · " + wibDate(p.ts)));
+    /* 11 Okt — inducement + gambar: alasan lengkap kenapa posisi diambil */
+    if (p.inducement) {
+      box.appendChild(el("div", "al-sect", "inducement"));
+      box.appendChild(el("div", "alnote", p.inducement));
+    }
+    var IMGList = (p.imgs || []).filter(function (d) { return typeof d === "string" && d.indexOf("data:image") === 0; });
+    if (IMGList.length) {
+      box.appendChild(el("div", "al-sect", "gambar chart saat ambil posisi"));
+      var g = el("div", "pimg-grid view");
+      IMGList.forEach(function (d) {
+        var it = el("div", "pimg-it");
+        var im = document.createElement("img"); im.src = d; im.alt = "gambar chart";
+        im.addEventListener("click", function () { window.open(d, "_blank"); });
+        im.title = "klik untuk perbesar";
+        it.appendChild(im); g.appendChild(it);
+      });
+      box.appendChild(g);
+    }
+    box.appendChild(el("div", "alfoot", "dicatat " + (p.by || "admin") + " · " + wibDate(p.ts)));
     admShow(box);
     } catch (err) { admFallback(err); }
   }
@@ -2628,6 +2743,58 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       chips.appendChild(chip);
     });
     host.appendChild(chips);
+    /* 11 Okt — TEKNIK-vs-TEKNIK Qkuk vs Gerry (permintaan user): winrate
+       per alasan/teknik DIPECAH per admin; teknik dgn sampel cukup kedua
+       sisi dinyatakan TEGAS siapa yang lebih akurat. Menang siapa-siapa
+       yang pick sesuai teknik itu — kotak akurasi kolektif tidak berubah. */
+    var teknik = {}, order = [];
+    ord().forEach(function (tf) {
+      ["pantau", "sinyal"].forEach(function (jenis) {
+        liveRows(tf, jenis).forEach(function (r) {
+          var p = r.apick; if (!p || (p.win !== 1 && p.win !== 0)) return;
+          alasanList(p).forEach(function (x) {
+            var e = teknik[x] || (teknik[x] = { Qkuk: [0, 0], Gerry: [0, 0] });
+            var who = p.by === "Gerry" ? "Gerry" : "Qkuk";   // pick lama tanpa "by" = Qkuk
+            e[who][0]++; if (p.win === 1) e[who][1]++;
+            if (order.indexOf(x) < 0) order.push(x);
+          });
+        });
+      });
+    });
+    var duo = order.filter(function (t) { return teknik[t].Qkuk[0] >= 2 && teknik[t].Gerry[0] >= 2; });
+    if (duo.length) {
+      var w2 = el("div", "an-duel");
+      w2.appendChild(el("div", "an-duel-h", "teknik-vs-teknik \u2014 Qkuk vs Gerry (live resolve, min 2 pick per sisi)"));
+      var tb = el("table", "an-t");
+      var th = el("tr");
+      ["teknik", "Qkuk wr", "Gerry wr", "lebih akurat"].forEach(function (x) { th.appendChild(el("th", null, x)); });
+      var thead = el("thead"); thead.appendChild(th); tb.appendChild(thead);
+      var tby = el("tbody");
+      duo.sort(function (a, b) {
+        var qa = teknik[a].Qkuk[1] / teknik[a].Qkuk[0], ga = teknik[a].Gerry[1] / teknik[a].Gerry[0];
+        var qb = teknik[b].Qkuk[1] / teknik[b].Qkuk[0], gb = teknik[b].Gerry[1] / teknik[b].Gerry[0];
+        return (qb - gb) - (qa - ga);
+      }).forEach(function (t) {
+        var e = teknik[t], tr = el("tr");
+        tr.appendChild(el("td", null, alasanNama(t)));
+        [[e.Qkuk, "qkuk"], [e.Gerry, "gerry"]].forEach(function (c) {
+          var wr = c[0][1] / c[0][0] * 100;
+          var tdW = el("td", "an-c " + (wr >= 50 ? "pos" : "neg"),
+            wr.toFixed(0) + "% (" + c[0][1] + "W/" + (c[0][0] - c[0][1]) + "L)");
+          tr.appendChild(tdW);
+        });
+        var qwr = e.Qkuk[1] / e.Qkuk[0] * 100, gwr = e.Gerry[1] / e.Gerry[0] * 100;
+        var verdict = qwr === gwr ? "IMBANG"
+          : qwr > gwr ? "QKUK ✓" : "GERRY ✓";
+        tr.appendChild(el("td", "an-v " + (qwr === gwr ? "mut" : qwr > gwr ? "qq" : "gg"), verdict));
+        tby.appendChild(tr);
+      });
+      tb.appendChild(tby); w2.appendChild(tb);
+      w2.appendChild(el("div", "an-tip",
+        "angka = winrate live masing-masing admin pada pick yang memakai teknik itu. "
+        + "Kolom kanan menyatakan tegas siapa yang lebih akurat saat ini — berubah otomatis tiap resolve baru."));
+      host.appendChild(w2);
+    }
     var tip = el("div", "an-tip");
     tip.appendChild(el("b", null, "sebelum ambil posisi, ceklis: "));
     tip.appendChild(el("span", null,
@@ -2637,6 +2804,94 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     host.appendChild(tip);
   }
   function pickKey(tf, jenis, r) { return tf + "|" + jenis + "|" + (r.ts || "") + "|" + (r.sym || ""); }
+  /* ── 11 Okt — LIVE SCORE / KLASMEN ADMIN (permintaan user, paling atas) ──
+     Winrate per admin (Qkuk vs Gerry) dari resolve live, PERIODE BULAN
+     BERJALAN — otomatis reset tiap akhir bulan karena agregasi difilter
+     ke bulan ini, bukan dihapus dari sumber. Kolom: jumlah trade (tertutup),
+     win, lose, winrate, net R (hasil % + fallback ±1R saat pct kosong).
+     Barisan atas = total dua admin. */
+  function liveScoreRows() {
+    var bulan = wibDate(new Date().toISOString()).slice(0, 7);   // "YYYY-MM"
+    var out = { Qkuk: [0, 0, 0], Gerry: [0, 0, 0] };             // [n, win, sumR]
+    Object.keys(PICKS).forEach(function (k) {
+      var p = PICKS[k];
+      if (!p || (p.win !== 1 && p.win !== 0)) return;            // open: tidak dinilai
+      var kp = k.split("|"), ts = kp[2] || "";
+      if (ts.slice(0, 7) !== bulan) return;                      // pick bulan sebelumnya tdk dihitung
+      var who = p.by === "Gerry" ? "Gerry" : "Qkuk";
+      var pct = hasPct(p.pct) ? (p.side === "short" ? -p.pct : p.pct)
+                : (p.win === 1 ? 1 : -1);                        // fallback ±1R
+      var e = out[who];
+      e[0]++; if (p.win === 1) e[1]++; e[2] += pct;
+    });
+    return out;
+  }
+  function liveScore() {
+    var host = document.getElementById("livescore");
+    if (!host) {
+      host = el("div", "card ls-card"); host.id = "livescore";
+    }
+    host.innerHTML = "";
+    var h = el("div", "card-h");
+    h.appendChild(el("h3", null, "Live score admin \u2014 klasemen bulan ini (reset otomatis tiap akhir bulan)"));
+    var namaBulan = wibDate(new Date().toISOString()).slice(0, 7);
+    h.appendChild(el("span", "lg", namaBulan));
+    host.appendChild(h);
+    var d = liveScoreRows();
+    var tot = [0, 0, 0];
+    ["Qkuk", "Gerry"].forEach(function (w) { tot[0] += d[w][0]; tot[1] += d[w][1]; tot[2] += d[w][2]; });
+    var rows = el("div", "rows");
+    function baris(l, v, cls, sub) {
+      var x = el("div", "row");
+      x.appendChild(el("span", "l", l)); x.appendChild(el("span", "d"));
+      var vs = el("span", "v " + (cls || ""), v);
+      if (sub) vs.title = sub;
+      x.appendChild(vs); rows.appendChild(x);
+    }
+    if (!tot[0]) {
+      baris("total", "belum ada trade resolved bulan ini", "mut");
+      baris("Qkuk · Gerry", "0 · 0", "mut");
+    } else {
+      var wr = tot[1] / tot[0] * 100;
+      baris("total trade", tot[0] + " · win " + tot[1] + " · lose " + (tot[0] - tot[1]), "");
+      baris("total winrate", wr.toFixed(1) + "%", wr >= 50 ? "pos" : "neg");
+      baris("total net R", sgn(tot[2], 2) + "R", tot[2] > 0 ? "pos" : tot[2] < 0 ? "neg" : "mut");
+    }
+    host.appendChild(rows);
+    var grid = el("div", "ls-grid");
+    ["Qkuk", "Gerry"].forEach(function (w) {
+      var e = d[w], c = el("div", "ch ls-kartu " + (w === "Gerry" ? "gerry" : "qkuk"));
+      var hh = el("div", "ch-h");
+      hh.appendChild(el("span", "ch-n", w));
+      hh.appendChild(el("span", "ch-tf", w === "Gerry" ? "Admin2" : "Admin"));
+      c.appendChild(hh);
+      var rw = el("div", "rows");
+      function rr(a, b, cls) { var x2 = el("div", "row"); x2.appendChild(el("span", "l", a));
+        x2.appendChild(el("span", "d")); x2.appendChild(el("span", "v " + (cls || ""), b)); rw.appendChild(x2); }
+      if (!e[0]) {
+        rr("trade bulan ini", "belum ada", "mut");
+      } else {
+        var wrw = e[1] / e[0] * 100;
+        rr("jumlah trade", String(e[0]));
+        rr("win · lose", e[1] + " · " + (e[0] - e[1]), "mut");
+        rr("winrate", wrw.toFixed(1) + "%", wrw >= 50 ? "pos" : "neg");
+        rr("net R", sgn(e[2], 2) + "R", e[2] > 0 ? "pos" : e[2] < 0 ? "neg" : "mut");
+      }
+      c.appendChild(rw); grid.appendChild(c);
+    });
+    host.appendChild(grid);
+    host.appendChild(el("div", "cap",
+      "Sumber: winrate live resolve admin (dgn penanda Qkuk/Gerry) — bukan backtest. "
+      + "Pick open belum dinilai. Net R: hasil % pick (short dibalik tanda); bila % kosong dinilai \u00b11R dari win/loss. "
+      + "Aggregasi difilter bulan berjalan WIB — otomatis kosong lagi di awal bulan berikutnya (reset bulanan tanpa menghapus data)."));
+    return host;
+  }
+  function liveScoreMount() {
+    var card = liveScore();
+    var wrap = document.querySelector(".wrap");
+    if (!wrap) return;
+    if (card.parentNode !== wrap) wrap.insertBefore(card, wrap.firstChild);   // PALING ATAS
+  }
   /* 23 Sep — SUMBER BARIS LIVE: jendela DATA.live + pick tersimpan.
      Baris engine tua tergeser rotasi CSV sehingga tak lagi muncul di
      data.json — dulu agregat winrate hanya menghitung baris jendela,
@@ -2712,6 +2967,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         if (j && typeof j.value === "string") { try { j = JSON.parse(j.value); } catch (e) {} }
         cloud = (j && j.picks) || {}; cloudLog = (j && j.log) || [];
         if (j && j.auth && j.auth.hash) AUTHCLOUD = j.auth.hash;
+        if (j && j.hashes && typeof j.hashes === "object") AUTH_HASHES = j.hashes;  // 11 Okt — hash per-akun
         tick();
       })
       .catch(function () { tick(); });
@@ -2742,7 +2998,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       method: "POST", headers: { "Content-Type": "text/plain" },
       body: JSON.stringify({ __id: TXTDB_ID, value: JSON.stringify({
         picks: PICKS, log: PLOG,
-        auth: AUTHCLOUD ? { user: AUTH.user, hash: AUTHCLOUD } : null }) })
+        auth: (AUTHCLOUD || AUTH_HASHES[AUTH.user]) ? { user: AUTH.user, hash: AUTHCLOUD || AUTH_HASHES[AUTH.user] } : null,
+        hashes: Object.keys(AUTH_HASHES).length ? AUTH_HASHES : null }) })
     }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); });
   }
   function savePicks(st, done) {
@@ -2839,6 +3096,56 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var noteIn = el("input", "adm-in"); noteIn.type = "text";
     noteIn.placeholder = "catatan (alasan koreksi, dll)";
     if (p && p.note) noteIn.value = p.note;
+    /* 11 Okt — STATUS PICK (permintaan user): menunggu / ambil posisi /
+       take profit. Pick lama tanpa status = "menunggu" default tampilan,
+       tak apa: pembacaan undefined-safe. */
+    var stSel = el("select", "adm-in");
+    [["menunggu", "status: MENUNGGU (menunggu konfirmasi / belum entry)"],
+     ["entry", "status: AMBIL POSISI (posisi sudah dibuka)"],
+     ["tp", "status: TAKE PROFIT (target tercapai / posisi ditutup)"]]
+      .forEach(function (o) { var op = el("option", null, o[1]); op.value = o[0]; stSel.appendChild(op); });
+    stSel.value = p && p.status ? p.status : "menunggu";
+    /* 11 Okt — INDUCEMENT: teks setup inducement terpisah dari checklist
+       alasan (user minta field khusus di Live Pick). */
+    var inducIn = el("input", "adm-in"); inducIn.type = "text";
+    inducIn.placeholder = "inducement (z yang tersapu / level likuiditas…, kosong bila tidak ada)";
+    if (p && p.inducement) inducIn.value = p.inducement;
+    /* 11 Okt — UPLOAD GAMBAR maks 4 (kvota user). Gambar kini "difor-entity"
+       ke data URL — sekaligus gambar berpindah bersama pick ke cloud, dan
+       riwayat koreksi tetap bisa membukanya berbulan-bulan kemudian. */
+    var imgWrap = el("div", "al-wrap");
+    imgWrap.appendChild(el("div", "al-hdr", "gambar chart (maks " + IMG_MAX + ") — lihat riwayat koreksi: kenapa posisi diambil"));
+    var imgs = [];
+    ((p && p.imgs) || []).forEach(function (d) { if (typeof d === "string" && imgs.length < IMG_MAX) imgs.push(d); });
+    var imgGrid = el("div", "pimg-grid");
+    function renderImgs() {
+      imgGrid.innerHTML = "";
+      imgs.forEach(function (d, i) {
+        var it = el("div", "pimg-it");
+        var im = document.createElement("img"); im.src = d; im.alt = "pick " + (i + 1);
+        it.appendChild(im);
+        var x = el("button", "pimg-x", "\u00d7"); x.type = "button";
+        x.title = "buang gambar ini";
+        x.addEventListener("click", function () { imgs.splice(i, 1); renderImgs(); });
+        it.appendChild(x);
+        imgGrid.appendChild(it);
+      });
+      up.style.display = imgs.length >= IMG_MAX ? "none" : "";
+    }
+    var up = el("input", "adm-in pimg-in"); up.type = "file";
+    up.accept = "image/*"; up.multiple = false;
+    up.addEventListener("change", function () {
+      var f = up.files && up.files[0]; up.value = "";
+      if (!f) return;
+      if (imgs.length >= IMG_MAX) { alert("maksimal " + IMG_MAX + " gambar per pick."); return; }
+      if (f.size > 2.5 * 1024 * 1024) { alert("gambar terlalu besar (" + (f.size / 1048576).toFixed(1) + " MB) — kompres dulu di bawah 2,5 MB."); return; }
+      var rd = new FileReader();
+      rd.onload = function () {
+        imgs.push(String(rd.result || "")); renderImgs();
+      };
+      rd.readAsDataURL(f);
+    });
+    renderImgs(); imgWrap.appendChild(up); imgWrap.appendChild(imgGrid);
     /* 27 Sep — checklist v2: SATU alasan bisa dipilih di BANYAK timeframe
        (mis. MSS 1h + MSS 30m + MSS 5m). TF kini chip multi-pilih per alasan;
        tersimpan sbg array [{a, tf}, …]. Prefill dari pick lama tetap jalan. */
@@ -2884,7 +3191,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       });
     }
     box.appendChild(sideSel); box.appendChild(pctIn); box.appendChild(winSel);
-    box.appendChild(noteIn); box.appendChild(alWrap); box.appendChild(row); box.appendChild(st);
+    box.appendChild(stSel); box.appendChild(inducIn);
+    box.appendChild(noteIn); box.appendChild(alWrap); box.appendChild(imgWrap);
+    box.appendChild(row); box.appendChild(st);
     admShow(box);
     save.addEventListener("click", function () {
       var al = [];   // [{a, tf}, …] — satu alasan boleh banyak TF
@@ -2898,7 +3207,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       PICKS[key] = { taken: 1, side: sideSel.value || null,
         pct: pctIn.value === "" ? null : parseFloat(pctIn.value),
         win: winSel.value === "win" ? 1 : winSel.value === "loss" ? 0 : null,
-        note: noteIn.value || null, alasan: al, ts: new Date().toISOString(), by: "admin" };
+        status: stSel.value || "menunggu",
+        inducement: inducIn.value || null,
+        note: noteIn.value || null, alasan: al, imgs: imgs.slice(0, IMG_MAX),
+        ts: new Date().toISOString(), by: meAdmin() };
       plogAdd(p ? "koreksi" : "ambil", key, PICKS[key], r);
       savePicks(st, function () { applyPicks(); admClose(); });
     });
@@ -2910,7 +3222,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     box.appendChild(admHead("Login admin"));
     function reapply() { rerenderTables(); liveStats(); }
     if (isLogged()) {
-      box.appendChild(el("div", "adm-desc", "Login sebagai admin ✓ — tombol \"ambil\" aktif di semua tabel dan kamu bisa mengoreksi pick kapan pun."));
+      box.appendChild(el("div", "adm-desc", "Login sebagai " + meAdmin() + " ✓ — tombol \"ambil\" aktif di semua tabel dan kamu bisa mengoreksi pick kapan pun. Pick yang kamu buat tertanda " + meAdmin() + "."));
       var row0 = el("div", "adm-row");
       var ganti = el("button", "adm-save", "ganti password"); ganti.type = "button";
       var out = el("button", "adm-del", "keluar"); out.type = "button";
@@ -2937,8 +3249,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var u = (uIn.value || "").trim(), p = pIn.value || "";
       sha256hex(u + ":" + p)
         .then(function (h) {
-          if (u === AUTH.user && h === curHash()) {
+          /* 11 Okt — dua admin. Pencocokan username tak peduli besar-kecil;
+             identitas (Qkuk/Gerry) dikunci di sessionStorage untuk penandaan. */
+          var hit = null;
+          Object.keys(ADMINS).forEach(function (k) {
+            if (!hit && k.toLowerCase() === u.toLowerCase() && h === $hashOke(k)) hit = ADMINS[k].who;
+          });
+          if (hit) {
             SS.set("qkuk_admin_ok", "1");
+            SS.set("qkuk_admin_who", hit);
             /* 23 Sep — pegas penyelamat: hasilkan ulang picks.json repo dari
                cloud (sumber sebenarnya) setiap admin login. Tanpa ini,
                pengunjung yang jaringannya memblokir textdb.dev jatuh ke
@@ -2949,7 +3268,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
               cloudWrite().then(function () { try { console.info("picks.json disinkronkan dari cloud ✓"); } catch (e) {} })
                           .catch(function () {});
             }
-            st.textContent = "selamat datang, admin ✓";
+            st.textContent = "selamat datang, " + hit + " ✓";
             setTimeout(function () { admClose(); reapply(); }, 450);
           } else st.textContent = "username / password salah";
         })
@@ -2961,9 +3280,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   function openChgPass() {
     var box = el("div");
-    box.appendChild(admHead("Ganti password admin"));
+    box.appendChild(admHead("Ganti password admin (" + meAdmin() + ")"));
     box.appendChild(el("div", "adm-desc",
-      "Password baru disimpan sebagai hash SHA-256 di cloud — berlaku untuk semua perangkat, tanpa edit kode. Minimal 6 karakter."));
+      "Password baru disimpan sebagai hash SHA-256 di cloud — berlaku untuk semua perangkat, tanpa edit kode. Minimal 6 karakter. Yang diganti = password " + meAdmin() + " saja; akun admin lain tidak terpengaruh."));
     var oIn = el("input", "adm-in"); oIn.type = "password"; oIn.placeholder = "password lama";
     var nIn = el("input", "adm-in"); nIn.type = "password"; nIn.placeholder = "password baru";
     var rIn = el("input", "adm-in"); rIn.type = "password"; rIn.placeholder = "ulangi password baru";
@@ -2975,21 +3294,32 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     box.appendChild(oIn); box.appendChild(nIn); box.appendChild(rIn); box.appendChild(row); box.appendChild(st);
     admShow(box);
     ok.addEventListener("click", function () {
+      /* 11 Okt — ganti password kini PER ADMIN: hash lama dicek terhadap
+         akun yang sedang login (meAdmin), bukan selalu "admin". Gerry
+         (Admin2) mengganti password Admin2 — Qkuk tidak terpengaruh. */
+      var acct = null, baseHash = null;
+      Object.keys(ADMINS).forEach(function (k) {
+        if (ADMINS[k].who === meAdmin()) { acct = k; baseHash = $hashOke(k); }
+      });
+      if (!acct) { st.textContent = "akun tidak dikenali"; return; }
       var o = oIn.value || "", n = nIn.value || "", r2 = rIn.value || "";
       if (n.length < 6) { st.textContent = "password baru minimal 6 karakter"; return; }
       if (n !== r2) { st.textContent = "ulangan password baru tidak sama"; return; }
       st.textContent = "memverifikasi…";
-      sha256hex(AUTH.user + ":" + o)
+      sha256hex(acct + ":" + o)
         .then(function (h) {
-          if (h !== curHash()) { st.textContent = "password lama salah"; return; }
-          return sha256hex(AUTH.user + ":" + n);
+          if (h !== baseHash) { st.textContent = "password lama salah"; return; }
+          return sha256hex(acct + ":" + n);
         })
         .then(function (h2) {
           if (!h2) return;
-          AUTHCLOUD = h2;
+          /* 11 Okt — hash per-akun di cloud: {"admin": …, "Admin2": …}.
+             AUTHCLOUD (hash Qkuk) dipertahankan agar kompatibel dgn kode lama. */
+          AUTH_HASHES[acct] = h2;
+          if (acct === AUTH.user) AUTHCLOUD = h2;
           plogAdd("password", "", null, null);
           return cloudWrite().then(function () {
-            st.textContent = "password diganti ✓ — aktif untuk semua perangkat";
+            st.textContent = "password " + meAdmin() + " diganti ✓ — aktif utk semua perangkat";
             setTimeout(admClose, 1000);
           });
         })
@@ -3439,17 +3769,26 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* tabel riwayat semua aksi admin — ambil/koreksi/hapus/password, terbaru dulu,
      waktu ditampilkan WIB. Sumbernya log di cloud (PLOG), bukan backtest. */
   function plogRender() {
-    var kamu = document.getElementById("kamu");
-    if (!kamu) return;
-    var host = document.getElementById("plog");
-    if (!host) {
-      host = el("div", "plog-wrap"); host.id = "plog";
-      var lg = document.getElementById("live-grid");
-      if (lg && lg.parentNode === kamu) kamu.insertBefore(host, lg.nextSibling);
-      else kamu.appendChild(host);
+    /* 11 Okt — DIPINDAH ke bawah section Signals (permintaan user).
+       Ada kolom BARU "admin" (Qkuk/Gerry) & baris bisa diklik → popup
+       alasan detail (checklist teknik + inducement + gambar yang diambil). */
+    var hostBox = document.getElementById("kor-bx");
+    if (!hostBox) {
+      hostBox = el("section", ""); hostBox.id = "kor-bx";
+      var sh = el("div", "sec-h");
+      var h2 = el("h2"); h2.innerHTML = "<i>&gt;</i> Riwayat koreksi admin";
+      sh.appendChild(h2);
+      sh.appendChild(el("span", "hint", "di bawah Signals — klik baris untuk detail alasan + gambar"));
+      hostBox.appendChild(sh);
+      var sig = document.getElementById("signals");
+      if (sig && sig.parentNode) sig.parentNode.insertBefore(hostBox, sig.nextSibling);
+      else (document.querySelector(".wrap") || document.body).appendChild(hostBox);
     }
+    var host = document.getElementById("plog");
+    if (!host) { host = el("div", "plog-wrap"); host.id = "plog"; hostBox.appendChild(host); }
+    hostBox.style.display = "";   // selalu terlihat walau kosong
     host.innerHTML = "";
-    var pHead = el("div", "pn-h lv-sub", "riwayat koreksi admin");
+    var pHead = el("div", "pn-h lv-sub", "riwayat koreksi admin — ambil / koreksi / hapus, waktu WIB");
     /* 23 Sep — filter jam aktif dari klik sel heat table */
     var fJam = (typeof HH_FILTER !== "undefined") ? HH_FILTER : null;
     if (fJam !== null && fJam !== undefined) {
@@ -3490,17 +3829,21 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
     var sc = el("div", "plog-scroll"), tb = el("table", "plog-t");
     var trh = el("tr");
-    ["waktu", "koin", "engine", "jenis", "aksi", "arah", "hasil", "status", "catatan"]
+    ["waktu", "koin", "engine", "jenis", "admin", "aksi", "arah", "hasil", "status", "catatan"]
       .forEach(function (x) { trh.appendChild(el("th", null, x)); });
     var thead = el("thead"); thead.appendChild(trh); tb.appendChild(thead);
     var tbody = el("tbody");
     daftar.slice(0, 50).forEach(function (e) {
       var tr = el("tr");
+      var klik = e && (e.pickKey || null);   // rincian popup dgn gambar — hanya bila kunci pick ketahuan
       function td(v, cls) { tr.appendChild(el("td", cls || "", v)); }
       td(wibStr(e.t), "mut");
       td((e.sym || "").replace(/USDT$/, "") || "—");
       td((e.tf || "").toUpperCase() || "—", "mut");
       td(e.jenis === "sig" ? "sinyal" : e.jenis === "watch" ? "watchlist" : (e.jenis || "—"), "mut");
+      /* kolom admin — Qkuk/Gerry dgn warna masing-masing; entri lama tanpa
+         penanda ditampilkan netral (Qkuk) supaya riwayat tak terlihat kosong */
+      td(e.who || "Qkuk", e.who === "Gerry" ? "who-g" : "who-q");
       td(e.act === "hapus" ? "hapus" : e.act === "koreksi" ? "koreksi" : e.act === "password" ? "password" : "ambil",
         e.act === "hapus" ? "neg" : e.act === "koreksi" ? "warn" : "mut");
       td(e.act === "hapus" ? "—"
@@ -3512,9 +3855,28 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         : e.win === 1 ? "WIN" : e.win === 0 ? "LOSS" : "open",
         e.win === 1 ? "pos" : e.win === 0 ? "neg" : "mut");
       td(e.note || "—", "mut");
+      if (klik) {
+        tr.style.cursor = "pointer";
+        tr.title = "klik — lihat alasan lengkap: teknik, inducement & gambar chart"
+          + (e.imgN > 0 ? " (" + e.imgN + " gambar)" : "");
+        tr.addEventListener("click", function () { plogDetail(e); });
+      }
       tbody.appendChild(tr);
     });
     tb.appendChild(tbody); sc.appendChild(tb); host.appendChild(sc);
+    if (!PLOG.some(function (x) { return x.pickKey; }))
+      host.appendChild(el("div", "plog-empty",
+        "setiap pick BARU (setelah pembaruan ini) menyimpan kunci pick — barisnya bisa diklik untuk membuka alasan lengkap: komposisi teknik × TF, inducement, dan gambar yang di-upload. Pick lama hanya catatan singkat."));
+  }
+  /* popup detail dari CLICK riwayat: pakai pick tersimpan (PICKS) supaya
+     gambar & alasan selalu segar dari data paling terkini, bukan snapshot
+     log yang basi. */
+  function plogDetail(e) {
+    if (!e || !e.pickKey) return;
+    var kp = e.pickKey.split("|"), p = PICKS[e.pickKey];
+    var r = { ts: kp[2] || "", sym: kp[3] || "", dir: (p && p.side) || e.side || null };
+    try { openAlasan(kp[0], kp[1], r, p || {}); }
+    catch (err) { admFallback(err); }
   }
   function adminInit() {
     try { localStorage.removeItem("qkuk_admin_token"); localStorage.removeItem("qkuk_admin_pass"); } catch (e) {} // bersihkan sisa mode lama
@@ -3636,7 +3998,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      tertinggal di ATAS. Dua strip riset ada di paling atas wrap, jadi
      dicantumkan paling depan agar posisinya pasti. */
   (function reOrder() {
-    var ids  = ["btstrip", "dir", "bubbles", "analisa", "watch", "signals", "kamu", "charts", "akurasi", "strip", "footer"];
+    /* 11 Okt — #kor-bx (riwayat koreksi) dipindah ke bawah #signals */
+    var ids  = ["btstrip", "dir", "bubbles", "analisa", "watch", "signals", "kor-bx", "kamu", "charts", "akurasi", "strip", "footer"];
     var host = document.querySelector(".wrap") || document.body;
     ids.forEach(function (id) {
       var s = document.getElementById(id);
@@ -3654,7 +4017,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function gateInit() {
     var gate = document.getElementById("gate");
     if (!gate) return;
-    var ok = false;
+    var ok = SS.get("qkuk_admin_ok") === "1" || SS.get("qkuk_user_ok") === "1";
+    var gate = document.getElementById("gate");
+    if (!gate) return;
     var ok = SS.get("qkuk_admin_ok") === "1" || SS.get("qkuk_user_ok") === "1";
     if (ok) {                                   // pengunjung balik — langsung masuk, tanpa gerbang
       document.documentElement.classList.add("authed");
@@ -3719,8 +4084,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var u = (uIn.value || "").trim(), p = pIn.value || "";
       if (!u || !p) { err.textContent = "isi username dan password"; return; }
       sha256hex(u + ":" + p).then(function (h) {
-        if (u === AUTH.user && h === curHash()) {           // admin
+        /* 11 Okt — dua admin: Qkuk (admin) & Gerry (Admin2). Identitas
+           dikunci saat login supaya pick, bubbles & live score tahu
+           TANGAN SIAPA. */
+        var hit = null;
+        Object.keys(ADMINS).forEach(function (k) {
+          if (!hit && k.toLowerCase() === u.toLowerCase() && h === $hashOke(k)) hit = ADMINS[k].who;
+        });
+        if (hit) {                                       // admin
           SS.set("qkuk_admin_ok", "1");
+          SS.set("qkuk_admin_who", hit);
           finish();
         } else if (u === USER_AUTH.user && h === USER_AUTH.hash) {   // user biasa
           SS.set("qkuk_user_ok", "1");

@@ -101,7 +101,11 @@
       var u = (uIn.value || "").trim(), p = pIn.value || "";
       if (!u || !p) { err.textContent = "isi username dan password"; return; }
       sha256hex(u + ":" + p).then(function (h) {
-        if (u === AUTH.user && h === AUTH.hash) { SS.set("qkuk_admin_ok", "1"); finish(); }
+        /* 11 Okt — dua admin juga di tab Whale: Qkuk & Admin2 (Gerry) */
+        var hit = null;
+        if (u.toLowerCase() === AUTH.user.toLowerCase() && h === ((window.AUTHCLOUD_WHALE || null) || AUTH.hash)) hit = "Qkuk";
+        else if (u.toLowerCase() === "admin2" && h === "b12039778e31e421be674d6b5f02b126b95f5fcd7fd506b142a56062bbf3e313") hit = "Gerry";
+        if (hit) { SS.set("qkuk_admin_ok", "1"); if (typeof SS.set === "function") SS.set("qkuk_admin_who", hit); finish(); }
         else if (u === USER_AUTH.user && h === USER_AUTH.hash) { SS.set("qkuk_user_ok", "1"); finish(); }
         else {
           err.textContent = "username / password salah";

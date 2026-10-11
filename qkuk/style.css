@@ -415,6 +415,17 @@ button.apbadge{cursor:pointer}
 .adm-del:hover{background:rgba(232,135,124,.12)}
 .adm-cancel:hover{border-color:var(--fg-2)}
 .adm-status{margin-top:10px;font-size:11.5px;color:var(--fg-3);min-height:15px}
+
+/* 11 Okt — form live pick: status, inducement, upload gambar (maks 4) */
+.pimg-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.pimg-grid .pimg-it{position:relative;width:118px;height:78px}
+.pimg-grid .pimg-it img{width:100%;height:100%;object-fit:cover;border-radius:8px;
+  border:1px solid var(--line-2,#2a3532);cursor:zoom-in;background:#0b100e}
+.pimg-grid .pimg-it .pimg-x{position:absolute;top:-7px;right:-7px;width:20px;height:20px;
+  border-radius:50%;background:#301418;border:1px solid rgba(232,135,124,.5);
+  color:#ff8a80;font-size:12px;line-height:1;cursor:pointer}
+.pimg-grid.view .pimg-it{cursor:zoom-in}
+.pimg-in{padding:6px 8px;font-size:11px}
 .lv-sub{margin:14px 0 2px;text-transform:uppercase;letter-spacing:.1em;font-size:10.5px}
 
 /* ── v20: koin pilihan admin di bubbles — bintang + garis tepi emas ── */
@@ -434,6 +445,15 @@ button.apbadge{cursor:pointer}
   box-shadow:inset 0 0 0 1px rgba(255,122,112,.45)}
 @media(max-width:700px){.bb .bbfix{padding:1px 5px;letter-spacing:.08em}}
 
+/* 11 Okt — label admin + status DI DALAM bubble (Qkuk/Gerry · Menunggu/
+   Ambil Posisi/Take Profit); pick oleh Gerry dgn tone cyan, Qkuk netral */
+.bb .bbadmin{position:absolute;left:50%;bottom:14%;transform:translateX(-50%);
+  font:600 .62em/1.25 var(--mono,monospace);letter-spacing:.04em;white-space:nowrap;
+  color:#ffe9a8;background:rgba(10,14,12,.55);border:1px solid rgba(255,213,84,.35);
+  border-radius:6px;padding:1px 6px;pointer-events:none;max-width:92%;overflow:hidden;
+  text-overflow:ellipsis}
+.bb.picked.gerry-side .bbadmin{color:#a8ecff;border-color:rgba(120,220,255,.4)}
+
 /* ── v21: riwayat koreksi admin + pembanding backtest ── */
 .row.bt-h{margin-top:7px;padding-top:6px;border-top:1px dashed var(--line)}
 .row.bt-h .l{color:var(--fg-3);font-size:10px;letter-spacing:.08em}
@@ -445,6 +465,40 @@ button.apbadge{cursor:pointer}
 .plog-t td{padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.045);white-space:nowrap}
 .plog-t tr:last-child td{border-bottom:none}
 .plog-empty{padding:12px;color:var(--fg-3);font-size:12px}
+
+/* 11 Okt — live score klasemen (PALING ATAS) + kartu admin */
+.ls-card{margin:0 0 16px}
+.ls-grid{display:flex;gap:12px;flex-wrap:wrap;padding:0 2px 6px}
+.ls-grid .ls-kartu{flex:1 1 240px;min-width:220px}
+.ls-grid .ls-kartu .ch-n{font-size:13px;letter-spacing:.08em}
+.ls-kartu.gerry{border-color:rgba(120,220,255,.22)}
+.ls-kartu.gerry .ch-n{color:#a8ecff}
+.ls-kartu.qkuk .ch-n{color:#D8C89A}
+
+/* 11 Okt — section Riwayat koreksi admin di bawah Signals */
+#kor-bx{margin-top:26px}
+#kor-bx .sec-h{margin-bottom:8px}
+.plog-t td.who-q{color:#D8C89A;font-weight:700}
+.plog-t td.who-g{color:#a8ecff;font-weight:700}
+.plog-t tbody tr{cursor:default}
+.plog-t tbody tr[data-klik="1"]{cursor:pointer}
+.plog-t tbody tr[data-klik="1"]:hover td{background:rgba(110,231,183,.05)}
+
+/* 11 Okt — kotak analisis: tabel teknik-vs-teknik Qkuk vs Gerry */
+.an-duel{margin-top:14px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:rgba(255,255,255,.015)}
+.an-duel-h{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-3);margin-bottom:8px}
+.an-t{width:100%;border-collapse:collapse;font-size:12px}
+.an-t th{text-align:left;padding:5px 8px;color:var(--fg-3);font-weight:600;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--line)}
+.an-t td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.045);white-space:nowrap}
+.an-c.pos{color:var(--up)}
+.an-c.neg{color:#ff8a80}
+.an-v{font-weight:800;letter-spacing:.05em}
+.an-v.qq{color:#D8C89A}
+.an-v.gg{color:#a8ecff}
+.an-v.mut{color:var(--fg-3);font-weight:400}
+
+/* 11 Okt — filter admin/periode di kartu kurva live */
+.eq-filt{display:inline-flex;gap:5px;flex-wrap:wrap}
 /* ── heat table jam terbaik (22 Sep) ── */
 /* ═══ HEAT TABLE — restyle 23 Sep: tema blockchain/terminal. Sel dibikin
    like-pixel: sudut memotong (clip-path), teks glow tipis, kolom jam lampu
