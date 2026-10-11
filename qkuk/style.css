@@ -499,6 +499,25 @@ button.apbadge{cursor:pointer}
 
 /* 11 Okt — filter admin/periode di kartu kurva live */
 .eq-filt{display:inline-flex;gap:5px;flex-wrap:wrap}
+
+/* 12 Okt — tombol cepat status di kolom live (signals/watchlist) */
+.qst-row{display:inline-flex;gap:3px;margin-left:6px;vertical-align:middle}
+.qst-chip{border:1px solid var(--line-2,#2a3532);background:transparent;color:var(--fg-2);
+  font:600 10px/1 var(--mono,monospace);letter-spacing:.04em;border-radius:5px;
+  padding:2px 6px;cursor:pointer;white-space:nowrap}
+.qst-chip:hover{border-color:var(--ac,#6EE7B7);color:var(--ac,#6EE7B7)}
+.qst-chip.qst-entry:hover{border-color:#7CE38B;color:#7CE38B}
+.qst-chip.qst-tp:hover{border-color:#FFD54F;color:#FFD54F}
+.qst-chip.qst-fix:hover{border-color:#FF8A80;color:#FF8A80}
+
+/* 12 Okt — bubble konflik dua admin */
+.bb .bbadmin.duel,.bb.duel .bbadmin{border-color:rgba(255,138,128,.5);color:#ffb4ab}
+
+/* 12 Okt — baris arsip bulan lalu (live score) */
+.ls-lama{display:flex;flex-wrap:wrap;gap:4px 14px;padding:6px 12px 0;color:var(--fg-2);
+  font-size:11.5px;border-top:1px dashed var(--line);margin-top:8px}
+.ls-lama .ls-lama-judul{color:var(--fg-3);letter-spacing:.06em;text-transform:uppercase;font-size:10px}
+.ls-lama b{color:var(--fg);font-weight:600}
 /* ── heat table jam terbaik (22 Sep) ── */
 /* ═══ HEAT TABLE — restyle 23 Sep: tema blockchain/terminal. Sel dibikin
    like-pixel: sudut memotong (clip-path), teks glow tipis, kolom jam lampu

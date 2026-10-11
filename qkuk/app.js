@@ -1480,8 +1480,20 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var side = (p.side === "long" || p.side === "short") ? p.side : false;
       var val = { side: side, by: (p.by === "Gerry" ? "Gerry" : "Qkuk"),
                   status: p.status || "menunggu" };
-      if (!bbPicked[sym] || (bbPicked[sym].by === "Qkuk" && val.by === "Gerry"))
-        bbPicked[sym] = val;    // satu simbol dua admin → admin terakhir yang dipilih menang
+      /* 12 Okt — prioritas-6: dua admin bisa memilih SIMBOL YANG SAMA.
+         Masih ditandai — tapi konflik disimpan juga, bubble menampilkan
+         KEDUANYA dgn badge ⚔ (bukan diam-diam menimpa). */
+      var lama = bbPicked[sym];
+      if (!lama) { bbPicked[sym] = val; bbPicked[sym].satu = [val]; }
+      else {
+        var dup = (lama.satu || []).some(function (x) { return x.by === val.by && x.side === val.side; });
+        if (!dup) {
+          (lama.satu = lama.satu || []).push(val);
+          lama.konflik = lama.satu.some(function (x) { return x.side !== lama.satu[0].side; });
+          if (!lama.side && val.side) lama.side = val.side;
+          if (val.by === "Gerry") lama.by = "Gerry";
+        }
+      }
     });
   }
   function bbPickedMark() {
@@ -1510,6 +1522,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (on && pk) {
         var STT = { menunggu: "Menunggu", entry: "Ambil Posisi", tp: "Take Profit" };
         var txt = (pk.by || "Qkuk") + (pk.side ? " · " + pk.side : "") + " · " + (STT[pk.status] || "Menunggu");
+        /* 12 Okt — prioritas-6: dua admin pilih simbol sama → tampilkan keduanya dgn ⚔ */
+        if ((pk.satu || []).length > 1) {
+          txt = "\u2694 " + (pk.satu || []).map(function (x) {
+            return (x.by || "?") + (x.side ? " " + x.side : "");
+          }).join(" \u2694 ") + " \u00b7 " + (STT[pk.status] || "Menunggu");
+          b.classList.add("duel");
+        } else b.classList.remove("duel");
         if (!adminEl) { adminEl = el("b", "bbadmin", txt); b.appendChild(adminEl); }
         else if (adminEl.textContent !== txt) adminEl.textContent = txt;
       } else if (adminEl && adminEl.parentNode) adminEl.parentNode.removeChild(adminEl);
@@ -2826,6 +2845,24 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     });
     return out;
   }
+  /* 12 Okt — prioritas-4: ARSIP BULAN LALU. Reset bulanan tidak boleh
+     menghapus konteks performa — baris kecil "bulan lalu" tampil di bawah
+     total kalau ada data, per admin juga. Hitung dgn filter bulan-1. */
+  function lamaScoreRows() {
+    var d = new Date(); d.setMonth(d.getMonth() - 1);
+    var bln = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2);
+    var out = { Qkuk: [0, 0, 0], Gerry: [0, 0, 0] };
+    Object.keys(PICKS).forEach(function (k) {
+      var p = PICKS[k];
+      if (!p || (p.win !== 1 && p.win !== 0)) return;
+      if ((k.split("|")[2] || "").slice(0, 7) !== bln) return;
+      var who = p.by === "Gerry" ? "Gerry" : "Qkuk";
+      var pct = hasPct(p.pct) ? (p.side === "short" ? -p.pct : p.pct) : (p.win === 1 ? 1 : -1);
+      var e = out[who];
+      e[0]++; if (p.win === 1) e[1]++; e[2] += pct;
+    });
+    return out;
+  }
   function liveScore() {
     var host = document.getElementById("livescore");
     if (!host) {
@@ -2880,6 +2917,22 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       c.appendChild(rw); grid.appendChild(c);
     });
     host.appendChild(grid);
+    /* 12 Okt — prioritas-4: baris arsip bulan lalu (per admin + total) */
+    var lam = lamaScoreRows();
+    var totL = [0, 0, 0];
+    ["Qkuk", "Gerry"].forEach(function (w) { totL[0] += lam[w][0]; totL[1] += lam[w][1]; totL[2] += lam[w][2]; });
+    if (totL[0]) {
+      var barL = el("div", "ls-lama");
+      function selL(w, e) {
+        var wr = e[0] ? (e[1] / e[0] * 100).toFixed(0) : "—";
+        return "<b>" + w + "</b> " + e[0] + " trade · " + e[1] + "W/" + (e[0] - e[1]) + "L · WR " + wr + "% · " + sgn(e[2], 2) + "R";
+      }
+      barL.appendChild(el("span", "ls-lama-judul", "bulan lalu:"));
+      barL.appendChild(el("span", null, selL("total", totL)));
+      barL.appendChild(el("span", null, selL("Qkuk", lam.Qkuk)));
+      barL.appendChild(el("span", null, selL("Gerry", lam.Gerry)));
+      host.appendChild(barL);
+    }
     host.appendChild(el("div", "cap",
       "Sumber: winrate live resolve admin (dgn penanda Qkuk/Gerry) — bukan backtest. "
       + "Pick open belum dinilai. Net R: hasil % pick (short dibalik tanda); bila % kosong dinilai \u00b11R dari win/loss. "
@@ -2939,6 +2992,30 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         });
       })();
       PLOG = cloudLog.length ? cloudLog : repoLog;
+      /* 12 Okt — prioritas-3: SNAPSHOT LOKAL PICKS. Cloud textdb.dev satu
+         payload; kalau salah hapus/timpa, tidak ada undo. Setiap muatan
+         cloud yang berbeda dri sebelumnya disimpan ke localStorage (versi
+         terakhir + versi harian) — recovery bencana, bukan sinkronisasi:
+         admin bisa mengekspor kembali dari konsol. ≤ ~200 KB supaya tenang. */
+      (function () {
+        try {
+          var blob = JSON.stringify({ picks: PICKS, log: PLOG });
+          if (blob.length > 600000) return;   // jangan tumbuh tak terkendali
+          var lama = localStorage.getItem("qkuk_snap_last") || "";
+          if (blob !== lama) {
+            localStorage.setItem("qkuk_snap_last", blob);
+            localStorage.setItem("qkuk_snap_" + wibDate(new Date().toISOString()), blob);
+          }
+          var KUNCI = [];
+          for (var i = 0; i < 14; i++) {
+            var d = new Date(Date.now() - i * 864e5);
+            KUNCI.push("qkuk_snap_" + d.getFullYear() + "-" + ("0" + (d.getMonth()+1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2));
+          }
+          Object.keys(localStorage).forEach(function (k) {
+            if (k.indexOf("qkuk_snap_") === 0 && KUNCI.indexOf(k) < 0 && k !== "qkuk_snap_last") localStorage.removeItem(k);
+          });
+        } catch (e) {}
+      })();
       /* riwayat kosong padahal ada pick? (mis. log tertimpa) — rekonstruksi
          dari pick itu sendiri supaya tabel riwayat tidak pernah blank */
       if (!PLOG.length && Object.keys(PICKS).length) {
@@ -2968,6 +3045,22 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         cloud = (j && j.picks) || {}; cloudLog = (j && j.log) || [];
         if (j && j.auth && j.auth.hash) AUTHCLOUD = j.auth.hash;
         if (j && j.hashes && typeof j.hashes === "object") AUTH_HASHES = j.hashes;  // 11 Okt — hash per-akun
+        /* 12 Okt — verifikasi tanda tangan pembaca (prioritas-2): payload
+           dgn sig yang tidak cocok = kemungkinan ditulis pihak luar →
+           tampilkan warnan chip sekali, jangan blok: kadang kunci pick
+           terakhir berubah sah lewat edit admin lain. */
+        if (j && j.sig) {
+          var keys2 = Object.keys(j.picks || {}).sort();
+          var akhir2 = keys2.length ? keys2[keys2.length - 1] : "-";
+          var hari2 = wibDate(new Date().toISOString());
+          var mat2 = "qkuk-tulisan|" + akhir2 + "|" + keys2.length + "|" + hari2 + "|" + (j.sigBy || "Qkuk");
+          sha256hex(mat2).then(function (h2) {
+            if (h2 !== j.sig) {
+              var ada = document.getElementById("qk-err");
+              if (ada) { ada.textContent = "\u26a0 picks cloud ditulis tanpa tanda tangan admin yang sah (" + (j.sigBy || "?") + ") — isi bisa jadi dari pihak luar."; ada.style.display = "block"; }
+            }
+          });
+        }
         tick();
       })
       .catch(function () { tick(); });
@@ -2993,14 +3086,46 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   /* simpan picks — hanya lewat cloud (textdb.dev); wajib login admin.
      Jalur GitHub dihapus (token repot & rawan salah scope). */
+  /* 12 Okt — prioritas-1b: SATU BERSIH-BERSIH gambar pick lama. Pick yang
+     sudah resolved (win/loss) DAN lebih tua dari 21 hari tidak butuh
+     gambarnya lagi di cloud — popup detail tetap menarik catatannya.
+     Dipanggil saat setiap SAVE, cuma aktif setelah login admin. */
+  function cairicitGambar() {
+    if (!isLogged()) return 0;
+    var batas = Date.now() - 21 * 864e5, pgalak = 0;
+    Object.keys(PICKS).forEach(function (k) {
+      var p = PICKS[k];
+      if (!p || !Array.isArray(p.imgs) || !p.imgs.length) return;
+      if ((p.win !== 0 && p.win !== 1) || !p.ts || (new Date(p.ts).getTime() || 0) > batas) return;
+      p.imgs = []; pgalak++;
+    });
+    return pgalak;
+  }
+  /* 12 Okt — prioritas-2: TAMBAHAN tanda tangan ringan. textdb.dev tidak
+     bisa di-autentikasi, tapi payload kini membawa sig = SHA-256 dari
+     "qkuk-tulisan|<pick key terakhir>|<jumlah pick>|<timestamp hari WIB>"
+     plus identitas admin pembuatnya. Kode tidak bisa mencegah penulisan
+     asing (limit textdb), TAPI browser pembaca bisa MENGALERT isi yang
+     tanda tangannya tak cocok (dipaksa ditulis dari luar) — tamu tak
+     teralert bila sudah terbiasa. Ini pengaman ringan, bukan gembok. */
+  function sigAdmin() {
+    var keys = Object.keys(PICKS).sort(), akhir = keys.length ? keys[keys.length-1] : "-";
+    var hari = wibDate(new Date().toISOString());
+    var mat = "qkuk-tulisan|" + akhir + "|" + keys.length + "|" + hari + "|" + meAdmin();
+    return sha256hex(mat);
+  }
   function cloudWrite() {
-    return fetch("https://textdb.dev/api/data/" + TXTDB_ID, {
-      method: "POST", headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ __id: TXTDB_ID, value: JSON.stringify({
-        picks: PICKS, log: PLOG,
-        auth: (AUTHCLOUD || AUTH_HASHES[AUTH.user]) ? { user: AUTH.user, hash: AUTHCLOUD || AUTH_HASHES[AUTH.user] } : null,
-        hashes: Object.keys(AUTH_HASHES).length ? AUTH_HASHES : null }) })
-    }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); });
+    cairicitGambar();
+    return sigAdmin().then(function (sig) {
+      return fetch("https://textdb.dev/api/data/" + TXTDB_ID, {
+        method: "POST", headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ __id: TXTDB_ID, value: JSON.stringify({
+          picks: PICKS, log: PLOG,
+          auth: (AUTHCLOUD || AUTH_HASHES[AUTH.user]) ? { user: AUTH.user, hash: AUTHCLOUD || AUTH_HASHES[AUTH.user] } : null,
+          hashes: Object.keys(AUTH_HASHES).length ? AUTH_HASHES : null,
+          sig: sig, sigBy: meAdmin() }) })
+      }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); });
+    });
   }
   function savePicks(st, done) {
     if (!isLogged()) { openAdmin(); return; }
@@ -3134,16 +3259,49 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
     var up = el("input", "adm-in pimg-in"); up.type = "file";
     up.accept = "image/*"; up.multiple = false;
+    /* 12 Okt — KOMPRES OTOMATIS (prioritas-1): screenshot chart mentah bisa
+       2-4 MB; 4 gambar = ~13 MB per pick, dan SEMUA pengunjung mengunduh
+       picks cloud tiap 60 detik. Kini setiap gambar dilewatkan canvas:
+       sisi terpanjang dipangkas ke 800px, hasil diekspor JPEG q0.62 →
+       umumnya 100-250 KB per gambar — ~10× lebih kecil tanpa
+       kehilangan keterbacaan chart). PNG dgn transparansi tetap jadi JPEG
+       (latar hitam) — chart TradingView tidak punya transparansi, aman. */
+    function kompresGambar(file, cb) {
+      var rd = new FileReader();
+      rd.onload = function () {
+        var im = new Image();
+        im.onload = function () {
+          try {
+            var MAXS = 800, w = im.naturalWidth, h = im.naturalHeight;
+            var sk = Math.min(1, MAXS / Math.max(w, h));
+            var cv = document.createElement("canvas");
+            cv.width = Math.max(1, Math.round(w * sk));
+            cv.height = Math.max(1, Math.round(h * sk));
+            var cx = cv.getContext("2d");
+            cx.fillStyle = "#000"; cx.fillRect(0, 0, cv.width, cv.height);
+            cx.drawImage(im, 0, 0, cv.width, cv.height);
+            cb(cv.toDataURL("image/jpeg", 0.62));
+          } catch (err) { cb(null, "gambar gagal diproses: " + (err.message || err)); }
+        };
+        im.onerror = function () { cb(null, "bukan gambar yang bisa dibaca browser."); };
+        im.src = String(rd.result || "");
+      };
+      rd.onerror = function () { cb(null, "file gagal dibaca."); };
+      rd.readAsDataURL(file);
+    }
     up.addEventListener("change", function () {
       var f = up.files && up.files[0]; up.value = "";
       if (!f) return;
       if (imgs.length >= IMG_MAX) { alert("maksimal " + IMG_MAX + " gambar per pick."); return; }
-      if (f.size > 2.5 * 1024 * 1024) { alert("gambar terlalu besar (" + (f.size / 1048576).toFixed(1) + " MB) — kompres dulu di bawah 2,5 MB."); return; }
-      var rd = new FileReader();
-      rd.onload = function () {
-        imgs.push(String(rd.result || "")); renderImgs();
-      };
-      rd.readAsDataURL(f);
+      if (f.size > 25 * 1024 * 1024) { alert("file terlalu besar (" + (f.size / 1048576).toFixed(1) + " MB) — bukan screenshot chart."); return; }
+      var st0 = el("span", "sv-msg warn", "mengompres…");
+      imgWrap.appendChild(st0);
+      kompresGambar(f, function (d, err) {
+        if (st0.parentNode) st0.parentNode.removeChild(st0);
+        if (err) { alert(err); return; }
+        if (!d) return;
+        imgs.push(d); renderImgs();
+      });
     });
     renderImgs(); imgWrap.appendChild(up); imgWrap.appendChild(imgGrid);
     /* 27 Sep — checklist v2: SATU alasan bisa dipilih di BANYAK timeframe
@@ -3360,6 +3518,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function pickCell(r, tf, jenis) {
     var td = el("td", "st apick");
     var p = r.apick;
+    if (p) {
+      var ku = pickKey(tf, jenis, r);
+      td.dataset.tf = tf; td.dataset.jenis = jenis; td.dataset.key = ku;
+    }
     if (!p) {
       if (isAdmin()) {
         var b = el("button", "apbtn", "ambil"); b.type = "button";
@@ -3389,8 +3551,52 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       openAlasan(tf, jenis, r, p);
     });
     td.appendChild(b2); td.appendChild(d);
+    /* 12 Okt — TOMBOL CEPAT STATUS (prioritas-5): ⏳ menunggu · ▶ ambil
+       posisi · TP take profit — klik LANGSUNG mengubah p.status & memperbarui
+       bubbles/live score tanpa membuka popup. Pick yang sudah TP juga
+       mengingatkan mengisi win/loss bila belum (klik kanan = popup). */
+    if (isAdmin()) {
+      var qst = p.status || "menunggu";
+      var qw = el("span", "qst-row");
+      if (qst === "menunggu")
+        qw.appendChild(chipStatus("\u25b6", "entry", "klik ubah status: AMBIL POSISI"));
+      if (qst === "entry")
+        qw.appendChild(chipStatus("TP", "tp", "klik ubah status: TAKE PROFIT"));
+      if (qst === "tp" && p.win !== 1 && p.win !== 0)
+        qw.appendChild(chipStatus("win/loss?", "fix", "pick TP tapi win/loss belum diisi — klik untuk buka popup resolve"));
+      td.appendChild(qw);
+    }
     return td;
   }
+  /* chip quick-status dibuat helper — dipakai pickCell di semua tabel */
+  function chipStatus(teks, mode, judul) {
+    var b = el("button", "qst-chip qst-" + mode, teks);
+    b.type = "button"; b.title = judul;
+    b.dataset.mode = mode;
+    return b;
+  }
+  /* 12 Okt — aksi chip quick-status: pasang sekali di root, delegasi klik.
+     data-tf/-jenis/-ts/-sym dibawa elemen td (lihat pickCell). */
+  document.addEventListener("click", function (ev) {
+    var t = ev.target instanceof Element && ev.target.closest(".qst-chip");
+    if (!t) return;
+    var td = t.closest("td");
+    if (!td || !td.dataset.tf) return;
+    var data = { tf: td.dataset.tf, jenis: td.dataset.jenis, key: td.dataset.key };
+    var p = PICKS[data.key];
+    if (!p) return;
+    var mode = t.dataset.mode;
+    if (mode === "fix") { openResolve(data.tf, data.jenis, { ts: (data.key.split("|")[2] || ""), sym: (data.key.split("|")[3] || ""), dir: p.side }, p); return; }
+    var baru = mode === "entry" ? "entry" : "tp";
+    p.status = baru;
+    plogAdd(baru === "tp" ? "takeprofit" : "ambilposisi", data.key, p, null);
+    var st = el("div", "adm-status");
+    savePicks(st, function () {
+      applyPicks();
+      if (st.parentNode) st.parentNode.removeChild(st);
+    });
+    document.body.appendChild(st);
+  });
   /* kartu winrate LIVE dari resolve admin — per engine, di section Picked by you */
   function liveStats() {
     var kamu = document.getElementById("kamu");
@@ -3805,6 +4011,38 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       pHead.appendChild(chip);
     }
     host.appendChild(pHead);
+    /* 12 Okt — prioritas-7: TOMBOL UNDUH CSV. Semua PLOG (bukan hanya 50
+       yang tampil) jadi CSV: waktu WIB/ISO, koin, tf, jenis, admin, aksi,
+       arah, hasil, status pick, catatan. Berguna utk riset silang dgn
+       CSV engine di mesin (reclaim_swing_*.csv). */
+    (function () {
+      var bEx = el("button", "hh-fchip", "\u2b07 unduh CSV");
+      bEx.type = "button";
+      bEx.title = "unduh seluruh riwayat admin sebagai CSV";
+      bEx.addEventListener("click", function () {
+        var baris = [["waktu_iso", "waktu_wib", "koin", "tf", "jenis", "admin", "aksi", "arah", "arah_engine", "hasil_pct", "win", "status_pick", "img", "pick_key", "catatan"]];
+        PLOG.forEach(function (e) {
+          baris.push([
+            e.t || "", wibStr(e.t),
+            (e.sym || "").replace(/USDT$/, ""), (e.tf || "").toUpperCase(),
+            e.jenis || "", e.who || "Qkuk", e.act || "",
+            e.side || "", e.dir0 || "",
+            hasPct(e.pct) ? String(e.pct) : "",
+            e.win === 1 ? "win" : e.win === 0 ? "loss" : e.act === "hapus" || e.act === "password" ? "" : "open",
+            e.pickKey && PICKS[e.pickKey] ? (PICKS[e.pickKey].status || "menunggu") : "",
+            e.imgN != null ? String(e.imgN) : "",
+            e.pickKey || "", e.note || ""
+          ]);
+        });
+        function csv(v) { v = String(v == null ? "" : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+        var isi = baris.map(function (r) { return r.map(csv).join(","); }).join("\n");
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob(["\ufeff" + isi], { type: "text/csv;charset=utf-8" }));
+        a.download = "plog_qkuk_" + wibDate(new Date().toISOString()).replace(/-/g, "") + ".csv";
+        document.body.appendChild(a); a.click(); a.remove();
+      });
+      pHead.appendChild(bEx);
+    })();
     /* entri riwayat difilter ke jam terpilih. Jam dibaca tahan-banting:
        "YYYY-MM-DD HH:MM" tanpa zona = sudah WIB; ISO berzona (hasil
        toISOString) digeser +7 jam ke WIB. Regex lama menuntut string
