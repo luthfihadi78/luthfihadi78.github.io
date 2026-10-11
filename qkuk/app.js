@@ -392,12 +392,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (btcMom != null && isFinite(btcMom))
         r("momentum BTC", sgn(btcMom, 2) + "% (24 jam)", btcMom > 0 ? "pos" : btcMom < 0 ? "neg" : "mut");
       var note = el("div", "dnote");
-      note.textContent = "Arah LIVE = 2× mayoritas watchlist+sinyal reclaim + BTC 1h + BTC.D + USDT.D "
-        + "(skor = 2×maj + BTC + BTC.D − USDT.D; USDT.D naik menekan alt). Enam status: "
-        + "LONG · ALTSEASON (skor ≥+5 + BTC.D turun + BTC tak jatuh) · NETRAL · SHORT · "
-        + "CRASH (skor ≤−5 + BTC −3% /24j) · DEGRADED (input basi). Momentum BTC 24 jam "
-        + "menjadi pembeda ALTSEASON/CRASH dari LONG/SHORT biasa. CoinGecko basi >24 jam "
-        + "→ dominan tidak dihitung, gauge tetap jalan 3 faktor.";
+      note.textContent = "Arah LIVE = mayoritas watchlist+sinyal reclaim + BTC 1h + BTC.D + USDT.D "
+        + "(v35: skor = maj + BTC − BTC.D − 0,5×USDT.D; USDT.D naik menekan alt). Enam status: "
+        + "LONG (skor ≥+3) · ALTSEASON (≥+6 + BTC.D turun + BTC tak jatuh) · NETRAL · SHORT (≤−3) · "
+        + "CRASH (≤−6 + BTC −3% /24j) · DEGRADED (input basi). Balik arah butuh skor ≥4 atau "
+        + "dominan sepakat; keluar NETRAL butuh skor ≥3 selama 2 jam beruntun — gauge tidak "
+        + "lagi medsor dua-dua kali sejam. CoinGecko basi >24 jam → dominan tidak dihitung.";
       m.appendChild(note);
     }
     /* 20 Sep v28: nilai arah dihitung JUGA di engine (dashboard_data →
@@ -592,40 +592,41 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       })
       .catch(gone);
   }
-  /* ═══ 28 Sep v34 — SKOR 4 FAKTOR BOBOT SETARA + HISTERESIS ═══
-     Keluhan user: mayoritas tipis 6L/4S (=+2) dulu bobot DOBEL (2×maj),
-     langsung membalikkan rezim padahal BTC turun & dominan campur. Kini:
-       skor = maj + dirBtc − dBTC.D(3 jam) − dUSDT.D(3 jam)
-     mayoritas = 1 suara. GANTI REZIM (long↔short) butuh KONFIRMASI:
-     skor ≥3 ATAU dominan sepakat dgn arah baru (dicocokkan dari bias
-     engine di data.json — satu sumber kebenaran dgn bot WA). Netral bebas.
-     ALTSEASON/CRASH tetap menuntut konfirmasi dominan + momentum BTC. */
+  /* ═══ 11 Okt v35 — NILAI TETAP GAUGE (keluhan user: "terlalu sensitif") ══
+     Rumus skor tetap 4 faktor, tapi:
+       • USDT.D dikompresi ×0.5 (proksi 3 hari tak setara data per jam)
+       • ambang: LONG ≥±3 (dulu ±2) · ALTSEASON/CRASH ≥±6 (dulu ±5)
+       • konfirmasi keluar netral & balik arah ditangani engine (data.json
+         altdir_live.bias sudah melewati gate v35 — browser cuma mengikuti;
+         bila tanpa data engine, browser memakai baris "tahan" di bawah).
+     Sinkron dengan gauge_live.py v35 — satu sumber kebenaran. */
+  var G35 = { thLong: 3, thShort: -3, thExtreme: 6, usdtW: 0.5 };
   function hitungStatus(V) {
     var mom = (V.btc24h != null) ? V.btc24h : 0;
-    var dU = V.sUsdtd || 0, dB = V.sBtcd || 0;
+    var dU = (V.sUsdtd || 0) * G35.usdtW, dB = V.sBtcd || 0;
     var skor = (V.maj || 0) + (V.dirBtc || 0) - dB - dU;
     V.scoreRaw = Math.round(skor * 10) / 10;
     V.score = Math.round(skor);
     V.strength = Math.abs(V.scoreRaw);
     var domAda = V.domAda !== undefined ? V.domAda : (V.btcD != null);
     var sR = V.scoreRaw;
-    if (sR >= 5 && domAda && dB < 0 && mom > -1) {
+    if (sR >= G35.thExtreme && domAda && dB < 0 && mom > -1) {
       V.status = "altseason"; V.bias = "long";
       V.why = "skor " + sR + " + BTC.D turun (uang rotasi ke alt) + BTC tak jatuh";
-    } else if (sR <= -5 && domAda && mom < -3) {
+    } else if (sR <= -G35.thExtreme && domAda && mom < -3) {
       V.status = "crash"; V.bias = "short";
       V.why = "skor " + sR + " + BTC " + sgn(mom, 1) + "% (24 jam) — risk-off dalam";
-    } else if (sR >= 2) {
+    } else if (sR >= G35.thLong) {
       V.status = "long"; V.bias = "long";
       V.why = domAda ? "skor " + sR + " — dominan tidak melawan"
                      : "skor " + sR + " (tanpa data dominan)";
-    } else if (sR <= -2) {
+    } else if (sR <= G35.thShort) {
       V.status = "short"; V.bias = "short";
       V.why = domAda ? "skor " + sR + " — dominan tidak melawan"
                      : "skor " + sR + " (tanpa data dominan)";
     } else {
       V.status = "netral"; V.bias = "netral";
-      V.why = "skor " + sR + " di zona tengah (−2..+2)";
+      V.why = "skor " + sR + " di zona tengah (−3..+3)";
     }
     /* histeresis: cocokkan dgn bias engine (altdir_live.bias sudah melewati
        gate yang sama di server) — kalau engine MENAHAN rezim lama, browser
