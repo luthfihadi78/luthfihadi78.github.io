@@ -23,7 +23,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
    juga terbit baru. Menaikkan BUILD tanpa ikut menerbitkan data.json = reload
    tanpa henti. data.json hanya boleh terbit dari mesin bot, jadi di sini kita
    samakan. Cache busting tetap lewat ?v=20261005a di index.html. */
-  var BUILD = "qkuk-brick-20261008a";
+  var BUILD = "qkuk-brick-20261012b";
   /* 4 engine aktif (8 Okt): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      riset backtestnya MSS→IDM→zona OB 30m+mantul dgn gerbang searah BTC 24 jam,
@@ -747,6 +747,31 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         if (_pr != null) _rows.push(["per month", String(_pr), ""]);
         var bb = blok("backtest reference", _rows);
         if (_tip) bb.title = _tip;
+        /* 11 Okt — mini-histogram distribusi R (dari L.hist engine, semua sinyal
+           closed, bukan cuma 50 terakhir). 8 bucket tetap:
+           ≤−3 | −3..−2 | −2..−1 | −1..0 | 0..1 | 1..2 | 2..3 | ≥3.
+           Warna: merah utk rugi, hijau utk menang — bentuk hasil terlihat
+           sekilas (long tail? dua puncak? mayoritas −1R TP-miss?). */
+        var HG = L.hist;
+        if (HG && HG.n > 0 && HG.b && HG.b.length === 8) {
+          var mx = Math.max.apply(null, HG.b) || 1;
+          var bh = el("div", "rhist");
+          var LB = ["≤-3", "-3", "-2", "-1", "0", "1", "2", "3+"];
+          HG.b.forEach(function (cnt, i) {
+            var col = el("div", "rhist-col");
+            var bar = el("div", "rhist-bar " + (i < 4 ? "neg" : "pos"));
+            var hpx = Math.round(cnt / mx * 34);
+            bar.style.height = (cnt ? Math.max(3, hpx) : 1) + "px";
+            bar.title = LB[i] + "R: " + cnt + " trade" + (cnt === 1 ? "" : "s");
+            col.appendChild(bar);
+            col.appendChild(el("div", "rhist-lb", cnt ? String(cnt) : ""));
+            bh.appendChild(col);
+          });
+          var lab = el("div", "rhist-cap");
+          lab.textContent = "distribusi R · " + HG.n + " closed · −R merah / +R hijau";
+          bb.appendChild(bh);
+          bb.appendChild(lab);
+        }
         c.appendChild(bb);
       }
       host.appendChild(c);
@@ -2082,6 +2107,21 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var stale = age > 180;
     $("#dot").classList.toggle("stale", stale);
     $("#state").textContent = stale ? "stale" : "live";
+    /* 11 Okt — banner stale data di atas halaman: data >3 jam = pita kuning
+       jelas. Dulu hanya titik kecil "stale" di header yang mudah terlewat —
+       pengunjung membaca sinyal basi tanpa sadar. Umur diambil dari age
+       (header HTTP jam server Homepage — akurat lintas-zona). */
+    var SB = $("#stalebar");
+    if (SB) {
+      SB.classList.toggle("on", stale);
+      if (stale) {
+        var t = age < 3600 ? Math.round(age) + " mnt" : (Math.round(age / 60 * 10) / 10) + " jam";
+        var tx = $("#stalebar-txt");
+        if (tx) tx.textContent = "Engine belum terbit " + t + " terakhir — sinyal mungkin tidak terkini. Pantau status daemon.";
+        var tg = $("#stalebar-age");
+        if (tg) tg.textContent = "umur data: " + t;
+      }
+    }
   }
   /* 5 Okt — badge riset backtest (logs/bt_final_kanal.csv via data.json.bt).
      Data hilang → strip disembunyi.
@@ -2693,16 +2733,27 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       box.appendChild(el("div", "al-sect", "inducement"));
       box.appendChild(el("div", "alnote", p.inducement));
     }
-    var IMGList = (p.imgs || []).filter(function (d) { return typeof d === "string" && d.indexOf("data:image") === 0; });
+    /* 12 Okt — gambar BLANK (permintaan user): dulu hanya data:image yang
+       tampil; HEIC/format lain (atau URL) → grid kosong. Sekarang SEMUA
+       string gambar tampil: data URL → <img> langsung, selainnya → kotak
+       unduhan (klik untuk buka/unduh file aslinya). */
+    var IMGList = (p.imgs || []).filter(function (d) { return typeof d === "string" && d.length > 8; });
     if (IMGList.length) {
       box.appendChild(el("div", "al-sect", "gambar chart saat ambil posisi"));
       var g = el("div", "pimg-grid view");
-      IMGList.forEach(function (d) {
+      IMGList.forEach(function (d, idx) {
         var it = el("div", "pimg-it");
-        var im = document.createElement("img"); im.src = d; im.alt = "gambar chart";
-        im.addEventListener("click", function () { window.open(d, "_blank"); });
-        im.title = "klik untuk perbesar";
-        it.appendChild(im); g.appendChild(it);
+        if (d.indexOf("data:image") === 0 || /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(d)) {
+          var im = document.createElement("img"); im.src = d; im.alt = "gambar chart";
+          im.addEventListener("click", function () { window.open(d, "_blank"); });
+          im.title = "klik untuk perbesar";
+          it.appendChild(im);
+        } else {
+          var a = el("a", "pimg-file", "📎 dokumen " + (idx + 1) + " — buka/unduh");
+          a.href = d; a.target = "_blank"; a.download = "";
+          it.appendChild(a);
+        }
+        g.appendChild(it);
       });
       box.appendChild(g);
     }
@@ -2823,7 +2874,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       + "Pastikan alasan & timeframe-nya tercentang di popup ambil; winrate ini berubah otomatis saat resolve admin diperbarui."));
     host.appendChild(tip);
   }
-  function pickKey(tf, jenis, r) { return tf + "|" + jenis + "|" + (r.ts || "") + "|" + (r.sym || ""); }
+  /* 12 Okt — pickKey PER-ADMIN (bentrok pick Qkuk vs Gerry dgn coin+jam
+     sama). Format lama (Qkuk) tetap sama supaya SEMUA pick lama & data cloud
+     masih terbaca; pick Gerry dapat prefiks "Gerry|" — riwayat & live score
+     tak lagi saling menimpa meski coin-nya identik. */
+  function pickKey(tf, jenis, r, admin) {
+    var k = tf + "|" + jenis + "|" + (r.ts || "") + "|" + (r.sym || "");
+    return admin === "Gerry" ? "Gerry|" + k : k;
+  }
   /* ── 11 Okt — LIVE SCORE / KLASMEN ADMIN (permintaan user, paling atas) ──
      Winrate per admin (Qkuk vs Gerry) dari resolve live, PERIODE BULAN
      BERJALAN — otomatis reset tiap akhir bulan karena agregasi difilter
@@ -3070,10 +3128,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (!DATA || !DATA.live) return;
     ord().forEach(function (tf) {
       (DATA.live[tf].pantau || []).forEach(function (r) {
-        r.apick = PICKS[pickKey(tf, "watch", r)] || null;
+        r.apick = PICKS[pickKey(tf, "watch", r, "Qkuk")] || null;
+        r.apickG = PICKS[pickKey(tf, "watch", r, "Gerry")] || null;
       });
       (DATA.live[tf].sinyal || []).forEach(function (r) {
-        r.apick = PICKS[pickKey(tf, "sig", r)] || null;
+        r.apick = PICKS[pickKey(tf, "sig", r, "Qkuk")] || null;
+        r.apickG = PICKS[pickKey(tf, "sig", r, "Gerry")] || null;
       });
     });
     rerenderTables(); liveStats();
@@ -3208,6 +3268,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var key = pickKey(tf, jenis, r), box = el("div");
     box.appendChild(admHead("Live pick \u2014 " + (r.sym || "").replace(/USDT$/, ""),
       tf.toUpperCase() + " \u00b7 " + jenis + " \u00b7 " + (r.ts || "")));
+    /* 12 Okt — PILIHAN ADMIN di form (permintaan user): Qkuk & Gerry bisa
+       memilih COIN YANG SAMA tanpa saling menimpa — pick disimpan ke kunci
+       masing-masing (kunci Gerry diberi prefiks "Gerry|"). Default = admin
+       yang sedang login; bisa diganti kalau menginput untuk rekan. */
+    var admSel = el("select", "adm-in");
+    ["Qkuk", "Gerry"].forEach(function (a) {
+      var op = el("option", null, "oleh admin: " + a + (a === meAdmin() ? " (kamu)" : ""));
+      op.value = a; admSel.appendChild(op);
+    });
+    admSel.value = (p && p.by === "Gerry") || (!p && meAdmin() === "Gerry") ? "Gerry" : "Qkuk";
+    box.appendChild(admSel);
     var sideSel = el("select", "adm-in");
     [["", "arah: ikut engine (" + r.dir + ")"], ["long", "koreksi: LONG"], ["short", "koreksi: SHORT"]]
       .forEach(function (o) { var op = el("option", null, o[1]); op.value = o[0]; sideSel.appendChild(op); });
@@ -3345,11 +3416,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (p) { var del = el("button", "adm-del", "hapus pick"); del.type = "button";
       row.insertBefore(del, cancel);
       del.addEventListener("click", function () {
-        delete PICKS[key]; plogAdd("hapus", key, p, r);
+        var kx = pickKey(tf, jenis, r, (p.by === "Gerry" ? "Gerry" : "Qkuk"));
+        delete PICKS[kx]; plogAdd("hapus", kx, p, r);
         savePicks(st, function () { applyPicks(); admClose(); });
       });
     }
-    box.appendChild(sideSel); box.appendChild(pctIn); box.appendChild(winSel);
+    box.appendChild(admSel); box.appendChild(sideSel); box.appendChild(pctIn); box.appendChild(winSel);
     box.appendChild(stSel); box.appendChild(inducIn);
     box.appendChild(noteIn); box.appendChild(alWrap); box.appendChild(imgWrap);
     box.appendChild(row); box.appendChild(st);
@@ -3363,14 +3435,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           al.push({ a: cb.value, tf: ch.dataset.tf });
         });
       });
-      PICKS[key] = { taken: 1, side: sideSel.value || null,
+      var who = admSel.value === "Gerry" ? "Gerry" : "Qkuk";
+      var k2 = pickKey(tf, jenis, r, who);              // kunci per-admin
+      var ada = PICKS[k2], lama = ada;                  // koreksi pick milik admin itu
+      PICKS[k2] = { taken: 1, side: sideSel.value || null,
         pct: pctIn.value === "" ? null : parseFloat(pctIn.value),
         win: winSel.value === "win" ? 1 : winSel.value === "loss" ? 0 : null,
         status: stSel.value || "menunggu",
         inducement: inducIn.value || null,
         note: noteIn.value || null, alasan: al, imgs: imgs.slice(0, IMG_MAX),
-        ts: new Date().toISOString(), by: meAdmin() };
-      plogAdd(p ? "koreksi" : "ambil", key, PICKS[key], r);
+        ts: new Date().toISOString(), by: who };
+      plogAdd(ada ? "koreksi" : "ambil", k2, PICKS[k2], r);
       savePicks(st, function () { applyPicks(); admClose(); });
     });
     cancel.addEventListener("click", admClose);
@@ -3491,11 +3566,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      tampil TERPISAH di sini (mis. sinyal short dikoreksi jadi long). */
   function corrCell(r, tf, jenis) {
     var td = el("td", "st apick");
-    var p = r.apick;
+    var p = r.apick || r.apickG;   // 12 Okt: koreksi Gerry juga tampil
     if (!p) { td.textContent = "—"; td.classList.add("dim"); return td; }
     var fixed = p.side && p.side !== r.dir ? p.side : null;
     if (!fixed) {
-      td.textContent = "ikut engine";
+      td.textContent = "ikut engine" + (r.apickG && r.apick !== r.apickG ? " · " + (p.by || "") : "");
       td.classList.add("dim");
       if (isAdmin()) {
         td.style.cursor = "pointer";
@@ -3506,7 +3581,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
     var b = el("button", "apbadge corr " + (fixed === "long" ? "apwin" : "aploss"));
     b.type = "button";
-    b.textContent = "⇄ " + fixed;
+    b.textContent = "⇄ " + fixed + (p.by ? " · " + p.by : "");
     b.title = "KOREKSI ADMIN: sinyal engine " + r.dir + " dikoreksi jadi " + fixed
       + (hasPct(p.pct) ? " · hasil " + sgn(p.pct, 1) + "%" : "")
       + (p.win === 1 ? " · WIN" : p.win === 0 ? " · LOSS" : " · open")
@@ -3518,9 +3593,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* sel kolom "live" di tabel: tombol ambil (admin) / badge hasil (semua) */
   function pickCell(r, tf, jenis) {
     var td = el("td", "st apick");
-    var p = r.apick;
+    /* 12 Okt — DUA pick bisa hidup berdampingan (Qkuk & Gerry memilih coin
+       sama). Kalau keduanya ada, tampil BADGE KEDUA — riwayat tiap admin
+       tidak saling menimpa. Klik badge → popup milik admin itu. */
+    var p = r.apick, pg = null;
+    if (r.apickG && (!p || r.apickG.by !== (p.by || ""))) pg = r.apickG;
     if (p) {
-      var ku = pickKey(tf, jenis, r);
+      var ku = pickKey(tf, jenis, r, p.by === "Gerry" ? "Gerry" : "Qkuk");
       td.dataset.tf = tf; td.dataset.jenis = jenis; td.dataset.key = ku;
     }
     if (!p) {
@@ -3566,6 +3645,20 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (qst === "tp" && p.win !== 1 && p.win !== 0)
         qw.appendChild(chipStatus("win/loss?", "fix", "pick TP tapi win/loss belum diisi — klik untuk buka popup resolve"));
       td.appendChild(qw);
+    }
+    /* 12 Okt — badge pick admin KEDUA (Gerry bila utama Qkuk, sebaliknya).
+       Bukan menimpa: dua riwayat tampil berdampingan dgn nama adminnya. */
+    if (pg) {
+      var sg = pg.side || r.dir;
+      var bg = el("button", "apbadge apg " + (pg.win === 1 ? "apwin" : pg.win === 0 ? "aploss" : "apopen"));
+      bg.type = "button";
+      bg.textContent = (sg === "long" ? "\u25b2" : "\u25bc") + "G"
+        + (pg.win === 1 ? " W" : pg.win === 0 ? " L" : "")
+        + (hasPct(pg.pct) ? " " + sgn(pg.pct, 1) + "%" : "");
+      bg.title = "pick " + (pg.by || "Gerry") + " — klik untuk koreksi/detail";
+      if (isAdmin()) bg.addEventListener("click", function () { openResolve(tf, jenis, r, pg); });
+      else bg.addEventListener("click", function () { openAlasan(tf, jenis, r, pg); });
+      td.appendChild(bg);
     }
     return td;
   }
@@ -4041,6 +4134,41 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         a.href = URL.createObjectURL(new Blob(["\ufeff" + isi], { type: "text/csv;charset=utf-8" }));
         a.download = "plog_qkuk_" + wibDate(new Date().toISOString()).replace(/-/g, "") + ".csv";
         document.body.appendChild(a); a.click(); a.remove();
+        /* 12 Okt — DOKUMEN GAMBAR ikut (permintaan user): CSV menyimpan jumlah
+           gambar saja, jadi galeri HTML terpisah di-unduh sekalian — tiap pick
+           dgn gambar jadi seksi dgn waktu/koin/admin + gambarnya sebenarnya,
+           terbuka offline di browser mana pun dalam format apa pun. */
+        var seksi = [];
+        PLOG.forEach(function (e, i) {
+          var kp = e.pickKey && e.pickKey.split("|"), p = e.pickKey ? PICKS[e.pickKey] : null;
+          var gs = (p && p.imgs || []).filter(function (d) { return typeof d === "string" && d.length > 8; });
+          if (!gs.length) return;
+          var L = ["<section style='margin:18px 0;border:1px solid #2a3532;border-radius:8px;padding:12px'>",
+            "<h3 style='font:600 14px/1.4 sans-serif'>#" + (i + 1) + " "
+              + (e.sym || "").replace(/USDT$/, "") + " · " + (e.tf || "").toUpperCase()
+              + " · " + wibStr(e.t) + " · oleh " + (e.who || "Qkuk") + "</h3>",
+            (p && p.note ? "<p style='font:12.5px/1.5 sans-serif'>" + String(p.note).replace(/</g, "&lt;") + "</p>" : "")];
+          gs.forEach(function (d) {
+            if (d.indexOf("data:image") === 0
+              || /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(d))
+              L.push("<img src='" + d + "' style='max-width:320px;border:1px solid #2a3532;border-radius:6px;display:block;margin:8px 0'>");
+            else
+              L.push("<a href='" + d + "' download style='font:12.5px sans-serif'>📎 unduh dokumen</a>");
+          });
+          L.push("</section>");
+          seksi.push(L.join(""));
+        });
+        if (seksi.length) {
+          var h = "<!doctype html><meta charset='utf-8'><title>Galeri pick "
+            + wibDate(new Date().toISOString()) + "</title>"
+            + "<body style='background:#0d1210;color:#e8efe9;padding:16px;max-width:720px;margin:auto'>"
+            + "<h2 style='font:600 16px sans-serif'>Dokumentasi gambar riwayat admin</h2>"
+            + seksi.join("") + "</body>";
+          var a2 = document.createElement("a");
+          a2.href = URL.createObjectURL(new Blob([h], { type: "text/html;charset=utf-8" }));
+          a2.download = "plog_galeri_" + wibDate(new Date().toISOString()).replace(/-/g, "") + ".html";
+          document.body.appendChild(a2); a2.click(); a2.remove();
+        }
       });
       pHead.appendChild(bEx);
     })();
