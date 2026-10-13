@@ -450,6 +450,15 @@
       var c = el("span", "wc"); c.appendChild(chainBadge(a.chain)); row.appendChild(c);
       var w = el("span", "ww"); w.appendChild(arahBadge(a.arah));
       if (a.level === "MEGA") w.appendChild(el("b", "wmega", "MEGA"));
+      /* 13 Okt — 💤 DORMAN: whale lama yang baru bangun (≥6 bln tanpa
+         mengirim) = bobot sinyal terbesar, tampil jadi chip emas di baris. */
+      if (a.dorman_bulan) {
+        var dm = a.dorman_bulan >= 12 ? "±" + (a.dorman_bulan / 12).toFixed(1) + " thn"
+                                      : "±" + a.dorman_bulan.toFixed(0) + " bln";
+        var chip = el("b", "wdorm", "💤 " + dm);
+        chip.title = "dormansi: umur transaksi kirim terakhir wallet (±, dari blok mempool.space) — whale lama yang baru bangun";
+        w.appendChild(chip);
+      }
       row.appendChild(w);
       row.appendChild(el("span", "wn", a.nominal || "—"));
       row.appendChild(el("span", "wv" + (a.usd >= 1e8 ? " mega" : ""), fmtUsd(a.usd || 0)));

@@ -741,6 +741,10 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 .wj.beli{background:var(--up-w);color:var(--up)}
 .wj.tra{background:rgba(139,150,143,.12);color:var(--fg-2)}
 .wmega{font-size:9px;letter-spacing:.1em;color:var(--gold);border:1px solid rgba(216,200,154,.4);border-radius:4px;padding:1px 4px}
+/* 13 Okt — chip 💤 DORMAN: whale lama yang baru bangun. Emas redup, non-
+   mencolok; tooltip = penjelasan metode (umur tx kirim terakhir). */
+.wdorm{font-size:9px;letter-spacing:.06em;color:#e8c96a;border:1px solid rgba(232,201,106,.35);
+  border-radius:4px;padding:1px 4px;margin-left:4px;white-space:nowrap}
 .wn{color:var(--fg);font-weight:600;white-space:nowrap}
 .wv{color:var(--fg-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .wv.mega{color:var(--gold)}
