@@ -2891,7 +2891,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (!p || (p.win !== 1 && p.win !== 0)) return;
       if ((k.split("|")[2] || "").slice(0, 7) !== bln) return;
       var who = p.by === "Gerry" ? "Gerry" : "Qkuk";
-      var pct = hasPct(p.pct) ? (p.side === "short" ? -p.pct : p.pct) : (p.win === 1 ? 1 : -1);
+      /* 13 Okt (koreksi): pct = HASIL UNTUNG/RUGI nett — positif untung,
+         negatip rugi, TIDAK DIBALIK utk short (dulu dibalik → admin yang isi
+         +8 utk short yang menang terbaca −8R → “win semua tapi net R minus”). */
+      var pct = hasPct(p.pct) ? p.pct : (p.win === 1 ? 1 : -1);
       var e = out[who];
       e[0]++; if (p.win === 1) e[1]++; e[2] += pct;
     });
@@ -2994,7 +2997,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
     host.appendChild(el("div", "cap",
       "Sumber: winrate live resolve admin (dgn penanda Qkuk/Gerry) — bukan backtest. "
-      + "Pick open belum dinilai. Net R: hasil % pick (short dibalik tanda); bila % kosong dinilai \u00b11R dari win/loss. "
+      + "Pick open belum dinilai. Net R = hasil % yang admin isi (positif = untung, negatif = rugi); bila % kosong dinilai \u00b11R dari win/loss. "
       + "Aggregasi memakai bulan yang dipilih di dropdown (default = bulan berjalan WIB) — selesai bulan hanya berganti bulan aktif, data bulan-bulan sebelumnya tidak dihapus dan bisa dibuka lagi."));
     return host;
   }
@@ -3142,6 +3145,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        sekali di render pertama → kedua SVG selalu menampilkan
        "belum ada resolve" karena picks cloud tiba belakangan. */
     charts(); hourHeat(); dayWinrate();
+    /* 13 Okt — LIVE SCORE & RINGKASAN AKURASI ikut segar: kartu dirender
+       sekali saat init (SEBELUM picks cloud tiba) → selalu “belum ada
+       trade”. Sekarang dirender ulang tiap picks datang/berubah. */
+    liveScoreMount(); plogRender();
   }
   /* simpan picks — hanya lewat cloud (textdb.dev); wajib login admin.
      Jalur GitHub dihapus (token repot & rawan salah scope). */
@@ -3297,22 +3304,20 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       .forEach(function (o) { var op = el("option", null, o[1]); op.value = o[0]; sideSel.appendChild(op); });
     if (p && p.side) sideSel.value = p.side;
     var pctIn = el("input", "adm-in"); pctIn.type = "number"; pctIn.step = "0.01";
-    pctIn.placeholder = "hasil: naik/turun berapa % (mis. -2.4)";
+    pctIn.placeholder = "hasil: untung/rugi berapa % (mis. 8 = untung, -2.4 = rugi)";
     if (p && hasPct(p.pct)) pctIn.value = p.pct;
     var winSel = el("select", "adm-in");
     [["", "hasil: masih open / belum ditentukan"], ["win", "hasil: WIN"], ["loss", "hasil: LOSS"]]
       .forEach(function (o) { var op = el("option", null, o[1]); op.value = o[0]; winSel.appendChild(op); });
     if (p && p.win === 1) winSel.value = "win"; else if (p && p.win === 0) winSel.value = "loss";
-    /* 13 Okt — HASIL & % KONSISTEN: admin cukup mengisi "naik/turun berapa %",
-       win/loss mengikuti otomatis (short dibalik tanda). Ini mematika
-       kontradiksi "WR 100% tapi net R minus": data entry salah tidak mungkin
-       lagi. Yang diisi manual tanpa % tetap sah. */
+    /* 13 Okt — HASIL & % KONSISTEN: admin mengisi untung/rugi %, win/loss
+       mengikuti otomatis (POSITIF = PROFIT, NEGATIF = LOSS — tanpa dibalik
+       untuk short; dulu dibalik → “WR 100% tapi net R minus”). */
     function sinkronWin() {
       var pv = parseFloat(pctIn.value);
       if (isNaN(pv)) return;
-      var kontrib = (sideSel.value === "short" ? -1 : 1) * pv;
-      if (kontrib > 0) winSel.value = "win";
-      else if (kontrib < 0) winSel.value = "loss";
+      if (pv > 0) winSel.value = "win";
+      else if (pv < 0) winSel.value = "loss";
       if (winSel.parentNode) {
         var hint = winSel.parentNode.querySelector(".sv-msg.winhint");
         if (!hint) {
@@ -3323,7 +3328,6 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       }
     }
     pctIn.addEventListener("input", sinkronWin);
-    sideSel.addEventListener("change", sinkronWin);
     var noteIn = el("input", "adm-in"); noteIn.type = "text";
     noteIn.placeholder = "catatan (alasan koreksi, dll)";
     if (p && p.note) noteIn.value = p.note;
@@ -4157,7 +4161,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         if (!p || (p.win !== 1 && p.win !== 0)) return;
         var kp = k.split("|");
         if (bln && (kp[2] || "").slice(0, 7) !== bln) return;
-        var con = hasPct(p.pct) ? (p.side === "short" ? -p.pct : p.pct) : (p.win === 1 ? 1 : -1);
+        var con = hasPct(p.pct) ? p.pct : (p.win === 1 ? 1 : -1);   // 13 Okt: % = untung/rugi nett, tanpa balik tanda short
         var nm = ((kp[0] || "?") + "").toUpperCase() + " · " + (kp[1] === "watch" ? "watchlist" : kp[1] === "sig" ? "sinyal" : (kp[1] || "?"));
         var e = tep[nm] || (tep[nm] = [0, 0, 0]);
         if (urut.indexOf(nm) < 0) urut.push(nm);
