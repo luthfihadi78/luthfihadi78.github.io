@@ -1141,8 +1141,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           var m = /(\d{2}):(\d{2})\s*$/.exec(String(r.ts || ""));
           if (!m) return;
           var hh = parseInt(m[1], 10); if (!(hh >= 0 && hh < 24)) return;
-          var dirEfektif = p.side || r.dir;
-          var pct = hasPct(p.pct) ? (dirEfektif === "short" ? -p.pct : p.pct)
+          var pct = hasPct(p.pct) ? p.pct      /* 13 Okt: untung/rugi nett — tanpa balik tanda short */
                     : (p.win === 1 ? 1 : -1);        // fallback 1R (juga saat pct null)
           var c = per[hh][tf]; c[0]++; c[1] += p.win; c[2] += pct;
         });
@@ -3831,8 +3830,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           var d = dowParseTs(r.ts); if (!d) return;
           if (!inMode(d)) return;
           var i = d.getDay();
-          var dirEfektif = p.side || r.dir;
-          var pct = hasPct(p.pct) ? ((dirEfektif === "short" ? -p.pct : p.pct))
+          var pct = hasPct(p.pct) ? p.pct   /* 13 Okt: untung/rugi nett — tanpa balik tanda short */
                     : (p.win === 1 ? 1 : -1);
           var c = per[i]; c[0]++; c[1] += p.win; c[2] += pct;
         });
@@ -3944,8 +3942,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           var m = /(\d{2}):(\d{2})\s*$/.exec(String(r.ts || ""));   // ts = "YYYY-MM-DD HH:MM"
           if (!m) return;
           var h = parseInt(m[1], 10); if (!(h >= 0 && h < 24)) return;
-          var dirEfektif = p.side || r.dir;
-          var pct = hasPct(p.pct) ? ((dirEfektif === "short" ? -p.pct : p.pct))
+          var pct = hasPct(p.pct) ? p.pct    /* 13 Okt: untung/rugi nett — tanpa balik tanda short */
                     : (p.win === 1 ? 1 : -1);        // fallback 1R
           var c = per[h][tf]; c[0]++; c[1] += p.win; c[2] += pct;
         });
