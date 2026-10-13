@@ -1040,25 +1040,28 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
   .wh-bulan{gap:3px;padding:8px 6px 6px}
   .wh-col .wh-v{font-size:9px}
 }
-
-/* 11 Okt — banner stale data + mini-histogram distribusi R */
-.stalebar{display:none;align-items:center;gap:8px;padding:9px 14px;margin:0 0 14px;
-  border:1px solid #B8860B55;border-radius:var(--r);background:#B8860B14;
-  color:var(--gold);font-size:12px;line-height:1.45}
-.stalebar.on{display:flex}
-.stalebar b{font-weight:700}
-.stalebar .sl-t{font-family:var(--mono);font-size:11px;color:var(--fg-3)}
-.rhist{display:flex;align-items:flex-end;gap:0;margin-top:12px;height:44px}
-.rhist-col{flex:1;display:flex;flex-direction:column;align-items:center;min-width:0}
-.rhist-bar{width:60%;max-width:18px;border-radius:2.5px 2.5px 0 0;min-height:1px}
-.rhist-bar.pos{background:var(--up);opacity:.62}
-.rhist-bar.neg{background:var(--dn);opacity:.6}
-.rhist-lb{font-family:var(--mono);font-size:9px;color:var(--fg-3);margin-top:3px}
-.rhist-cap{margin-top:4px;font-size:10px;color:var(--fg-3);line-height:1.4}
-
-/* ── 12 Okt: dokumen gambar non-img & badge pick Gerry ───────────────── */
-.pimg-file{display:flex;align-items:center;justify-content:center;height:74px;
-  padding:8px;font-size:11px;color:#e8efe9;background:#18201c;border:1px dashed #2a3532;
-  border-radius:6px;text-decoration:none;text-align:center}
-.pimg-file:hover{background:#202a26}
-.apbadge.apg{margin-left:4px;opacity:.85;border-style:dashed}
+/* ══ 13 Okt — lightbox gambar (klik = perbesar super jelas) + dropdown
+   bulan klasemen/riwayat + tabel ringkasan akurasi per engine ══ */
+.lbx{position:fixed;inset:0;z-index:100000;background:rgba(2,6,4,.92);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px}
+.lbx img{max-width:min(2400px,97vw);max-height:86vh;object-fit:contain;
+  border:1px solid var(--line);border-radius:10px;background:#000;
+  box-shadow:0 18px 60px rgba(0,0,0,.6)}
+.lbx-bar{display:flex;gap:10px;margin-bottom:10px;align-items:center}
+.lbx-bar .hh-fchip{cursor:pointer}
+.lbx-x{font-size:16px;padding:5px 16px;border-radius:8px;border:1px solid var(--line);
+  background:var(--s1,#131a16);color:var(--fg);cursor:pointer}
+.lbx-cap{margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--fg-2);opacity:.85;text-align:center}
+select.plog-bln,select.lg-sel{padding:6px 10px;border-radius:8px;border:1px solid var(--line);
+  background:var(--s0,#101614);color:var(--fg);font-family:var(--mono);font-size:12px;cursor:pointer}
+select.lg-sel{margin-left:auto}
+.plog-akk{margin:8px 0 16px}
+.plog-akk .pn-h{margin-bottom:6px}
+.plog-akk table{width:100%;border-collapse:collapse;background:var(--s1);
+  border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.plog-akk th,.plog-akk td{padding:6px 10px;border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:11.5px;text-align:left;color:var(--fg)}
+.plog-akk th{color:var(--fg-3);font-weight:600;background:var(--s0)}
+.plog-akk td.pos{color:var(--up)}
+.plog-akk td.neg{color:var(--dn)}
+.plog-akk td.mut{color:var(--fg-2)}

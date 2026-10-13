@@ -23,7 +23,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
    juga terbit baru. Menaikkan BUILD tanpa ikut menerbitkan data.json = reload
    tanpa henti. data.json hanya boleh terbit dari mesin bot, jadi di sini kita
    samakan. Cache busting tetap lewat ?v=20261005a di index.html. */
-  var BUILD = "qkuk-brick-20261012b";
+  var BUILD = "qkuk-brick-20261008a";
   /* 4 engine aktif (8 Okt): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      riset backtestnya MSS→IDM→zona OB 30m+mantul dgn gerbang searah BTC 24 jam,
@@ -747,31 +747,6 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         if (_pr != null) _rows.push(["per month", String(_pr), ""]);
         var bb = blok("backtest reference", _rows);
         if (_tip) bb.title = _tip;
-        /* 11 Okt — mini-histogram distribusi R (dari L.hist engine, semua sinyal
-           closed, bukan cuma 50 terakhir). 8 bucket tetap:
-           ≤−3 | −3..−2 | −2..−1 | −1..0 | 0..1 | 1..2 | 2..3 | ≥3.
-           Warna: merah utk rugi, hijau utk menang — bentuk hasil terlihat
-           sekilas (long tail? dua puncak? mayoritas −1R TP-miss?). */
-        var HG = L.hist;
-        if (HG && HG.n > 0 && HG.b && HG.b.length === 8) {
-          var mx = Math.max.apply(null, HG.b) || 1;
-          var bh = el("div", "rhist");
-          var LB = ["≤-3", "-3", "-2", "-1", "0", "1", "2", "3+"];
-          HG.b.forEach(function (cnt, i) {
-            var col = el("div", "rhist-col");
-            var bar = el("div", "rhist-bar " + (i < 4 ? "neg" : "pos"));
-            var hpx = Math.round(cnt / mx * 34);
-            bar.style.height = (cnt ? Math.max(3, hpx) : 1) + "px";
-            bar.title = LB[i] + "R: " + cnt + " trade" + (cnt === 1 ? "" : "s");
-            col.appendChild(bar);
-            col.appendChild(el("div", "rhist-lb", cnt ? String(cnt) : ""));
-            bh.appendChild(col);
-          });
-          var lab = el("div", "rhist-cap");
-          lab.textContent = "distribusi R · " + HG.n + " closed · −R merah / +R hijau";
-          bb.appendChild(bh);
-          bb.appendChild(lab);
-        }
         c.appendChild(bb);
       }
       host.appendChild(c);
@@ -2107,21 +2082,6 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var stale = age > 180;
     $("#dot").classList.toggle("stale", stale);
     $("#state").textContent = stale ? "stale" : "live";
-    /* 11 Okt — banner stale data di atas halaman: data >3 jam = pita kuning
-       jelas. Dulu hanya titik kecil "stale" di header yang mudah terlewat —
-       pengunjung membaca sinyal basi tanpa sadar. Umur diambil dari age
-       (header HTTP jam server Homepage — akurat lintas-zona). */
-    var SB = $("#stalebar");
-    if (SB) {
-      SB.classList.toggle("on", stale);
-      if (stale) {
-        var t = age < 3600 ? Math.round(age) + " mnt" : (Math.round(age / 60 * 10) / 10) + " jam";
-        var tx = $("#stalebar-txt");
-        if (tx) tx.textContent = "Engine belum terbit " + t + " terakhir — sinyal mungkin tidak terkini. Pantau status daemon.";
-        var tg = $("#stalebar-age");
-        if (tg) tg.textContent = "umur data: " + t;
-      }
-    }
   }
   /* 5 Okt — badge riset backtest (logs/bt_final_kanal.csv via data.json.bt).
      Data hilang → strip disembunyi.
@@ -2689,6 +2649,37 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       note: p && p.note ? p.note : null });
     if (PLOG.length > 2000) PLOG.length = 2000;   // dulu 200 — riwayat harian cepat terpotong
   }
+  /* 13 Okt — LIGHTBOX GAMBAR: klik gambar di popup detail / live pick
+     = tampil SUPER JELAS menutupi layar (resolusi penuh, format apa pun
+     data-URL/browser bisa baca). Dulu window.open(dataURL) diblokir
+     Chrome → tab blank; kini modal di halaman yang sama. Tombol "buka
+     tab" memakai blob URL yang diizinkan browser. */
+  function lightboxImg(src) {
+    var lb = el("div", "lbx");
+    var bar = el("div", "lbx-bar");
+    var bOpen = el("button", "hh-fchip lbx-open", "⤢ buka tab baru (ukuran penuh)"); bOpen.type = "button";
+    var bX = el("button", "lbx-x", "×"); bX.type = "button";
+    bar.appendChild(bOpen); bar.appendChild(bX);
+    var im = document.createElement("img"); im.src = src; im.alt = "gambar chart";
+    lb.appendChild(bar); lb.appendChild(im);
+    lb.appendChild(el("div", "lbx-cap", "klik area gelap untuk menutup · scroll/geser untuk melihat detail"));
+    function tutup() { if (lb.parentNode) lb.parentNode.removeChild(lb); }
+    function bukaTab() {
+      try {
+        var pcs = String(src).split(","), mime = (/:(.*?);/.exec(pcs[0]) || [, "image/png"])[1];
+        var bin = atob(pcs[1] || ""), n = bin.length, arr = new Uint8Array(n);
+        while (n--) arr[n] = bin.charCodeAt(n);
+        window.open(URL.createObjectURL(new Blob([arr], { type: mime || "image/png" })), "_blank");
+      } catch (e2) { try { window.open(src, "_blank"); } catch (e3) {} }
+    }
+    bOpen.addEventListener("click", bukaTab);
+    bX.addEventListener("click", tutup);
+    lb.addEventListener("click", function (ev) {
+      if (ev.target === lb || ev.target === im) tutup();
+    });
+    document.body.appendChild(lb);
+    return lb;
+  }
   /* popup DETAIL ALASAN — baca-saja, terlihat admin & pengunjung.
      27 Sep desain baru: pill arah/hasil + chip alasan×TF (satu alasan bisa
      punya beberapa chip TF). */
@@ -2733,27 +2724,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       box.appendChild(el("div", "al-sect", "inducement"));
       box.appendChild(el("div", "alnote", p.inducement));
     }
-    /* 12 Okt — gambar BLANK (permintaan user): dulu hanya data:image yang
-       tampil; HEIC/format lain (atau URL) → grid kosong. Sekarang SEMUA
-       string gambar tampil: data URL → <img> langsung, selainnya → kotak
-       unduhan (klik untuk buka/unduh file aslinya). */
-    var IMGList = (p.imgs || []).filter(function (d) { return typeof d === "string" && d.length > 8; });
+    var IMGList = (p.imgs || []).filter(function (d) { return typeof d === "string" && d.indexOf("data:image") === 0; });
     if (IMGList.length) {
       box.appendChild(el("div", "al-sect", "gambar chart saat ambil posisi"));
       var g = el("div", "pimg-grid view");
-      IMGList.forEach(function (d, idx) {
+      IMGList.forEach(function (d) {
         var it = el("div", "pimg-it");
-        if (d.indexOf("data:image") === 0 || /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(d)) {
-          var im = document.createElement("img"); im.src = d; im.alt = "gambar chart";
-          im.addEventListener("click", function () { window.open(d, "_blank"); });
-          im.title = "klik untuk perbesar";
-          it.appendChild(im);
-        } else {
-          var a = el("a", "pimg-file", "📎 dokumen " + (idx + 1) + " — buka/unduh");
-          a.href = d; a.target = "_blank"; a.download = "";
-          it.appendChild(a);
-        }
-        g.appendChild(it);
+        var im = document.createElement("img"); im.src = d; im.alt = "gambar chart";
+        im.addEventListener("click", function () { lightboxImg(d); });
+        im.title = "klik untuk perbesar (tampil full layar)";
+        it.appendChild(im); g.appendChild(it);
       });
       box.appendChild(g);
     }
@@ -2874,14 +2854,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       + "Pastikan alasan & timeframe-nya tercentang di popup ambil; winrate ini berubah otomatis saat resolve admin diperbarui."));
     host.appendChild(tip);
   }
-  /* 12 Okt — pickKey PER-ADMIN (bentrok pick Qkuk vs Gerry dgn coin+jam
-     sama). Format lama (Qkuk) tetap sama supaya SEMUA pick lama & data cloud
-     masih terbaca; pick Gerry dapat prefiks "Gerry|" — riwayat & live score
-     tak lagi saling menimpa meski coin-nya identik. */
-  function pickKey(tf, jenis, r, admin) {
-    var k = tf + "|" + jenis + "|" + (r.ts || "") + "|" + (r.sym || "");
-    return admin === "Gerry" ? "Gerry|" + k : k;
-  }
+  function pickKey(tf, jenis, r) { return tf + "|" + jenis + "|" + (r.ts || "") + "|" + (r.sym || ""); }
   /* ── 11 Okt — LIVE SCORE / KLASMEN ADMIN (permintaan user, paling atas) ──
      Winrate per admin (Qkuk vs Gerry) dari resolve live, PERIODE BULAN
      BERJALAN — otomatis reset tiap akhir bulan karena agregasi difilter
@@ -2907,9 +2880,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* 12 Okt — prioritas-4: ARSIP BULAN LALU. Reset bulanan tidak boleh
      menghapus konteks performa — baris kecil "bulan lalu" tampil di bawah
      total kalau ada data, per admin juga. Hitung dgn filter bulan-1. */
-  function lamaScoreRows() {
-    var d = new Date(); d.setMonth(d.getMonth() - 1);
-    var bln = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2);
+  /* 13 Okt — filter bulanan (permintaan user): klasemen bisa dipanggil
+     ke bulan mana pun lewat dropdown, bukan cuma "bulan ini" vs "bulan
+     lalu". bulanScoreRows(BLN) generik — liveScoreRows() = bulan berjalan. */
+  var LSV_BULAN = null;   // null = bulan berjalan
+  function bulanScoreRows(bln) {
     var out = { Qkuk: [0, 0, 0], Gerry: [0, 0, 0] };
     Object.keys(PICKS).forEach(function (k) {
       var p = PICKS[k];
@@ -2922,18 +2897,43 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     });
     return out;
   }
-  function liveScore() {
+  function lamaScoreRows() {
+    var d = new Date(); d.setMonth(d.getMonth() - 1);
+    return bulanScoreRows(d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2));
+  }
+  function liveScore(bln) {
     var host = document.getElementById("livescore");
     if (!host) {
       host = el("div", "card ls-card"); host.id = "livescore";
     }
     host.innerHTML = "";
+    if (bln === undefined) bln = LSV_BULAN;
+    var bulanSekarang = wibDate(new Date().toISOString()).slice(0, 7);
+    if (!bln) bln = bulanSekarang;
     var h = el("div", "card-h");
-    h.appendChild(el("h3", null, "Live score admin \u2014 klasemen bulan ini (reset otomatis tiap akhir bulan)"));
-    var namaBulan = wibDate(new Date().toISOString()).slice(0, 7);
-    h.appendChild(el("span", "lg", namaBulan));
+    h.appendChild(el("h3", null, "Live score admin \u2014 klasemen bulan (reset otomatis tiap akhir bulan)"));
+    /* 13 Okt — dropdown bulan (permintaan user): performa per bulan bisa
+       ditinjau kapan pun — total trade/WR/net R dihitung ulang untuk bulan
+       yang dipilih, DATA TIDAK PERNAH DIHAPUS. Amunisi = union bulan yang
+       punya pick resolved. */
+    var bulans = {};
+    Object.keys(PICKS).forEach(function (k) {
+      var p = PICKS[k];
+      if (!p || (p.win !== 1 && p.win !== 0)) return;
+      var b = (k.split("|")[2] || "").slice(0, 7);
+      if (/^\d{4}-\d{2}$/.test(b)) bulans[b] = 1;
+    });
+    var ops = Object.keys(bulans).sort().reverse();
+    if (ops.indexOf(bulanSekarang) < 0) ops.unshift(bulanSekarang);
+    var sel = el("select", "lg lg-sel"); sel.title = "pilih bulan klasemen";
+    ops.forEach(function (b) {
+      var op = el("option"); op.value = b; op.textContent = b; sel.appendChild(op);
+    });
+    sel.value = bln; if (sel.value !== bln) sel.value = bulanSekarang;
+    sel.addEventListener("change", function () { LSV_BULAN = sel.value; liveScoreMount(); });
+    h.appendChild(sel);
     host.appendChild(h);
-    var d = liveScoreRows();
+    var d = bulanScoreRows(bln);
     var tot = [0, 0, 0];
     ["Qkuk", "Gerry"].forEach(function (w) { tot[0] += d[w][0]; tot[1] += d[w][1]; tot[2] += d[w][2]; });
     var rows = el("div", "rows");
@@ -2977,7 +2977,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     });
     host.appendChild(grid);
     /* 12 Okt — prioritas-4: baris arsip bulan lalu (per admin + total) */
-    var lam = lamaScoreRows();
+    var lam = (bln !== bulanSekarang) ? { Qkuk: [0, 0, 0], Gerry: [0, 0, 0] } : lamaScoreRows();
     var totL = [0, 0, 0];
     ["Qkuk", "Gerry"].forEach(function (w) { totL[0] += lam[w][0]; totL[1] += lam[w][1]; totL[2] += lam[w][2]; });
     if (totL[0]) {
@@ -2995,7 +2995,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     host.appendChild(el("div", "cap",
       "Sumber: winrate live resolve admin (dgn penanda Qkuk/Gerry) — bukan backtest. "
       + "Pick open belum dinilai. Net R: hasil % pick (short dibalik tanda); bila % kosong dinilai \u00b11R dari win/loss. "
-      + "Aggregasi difilter bulan berjalan WIB — otomatis kosong lagi di awal bulan berikutnya (reset bulanan tanpa menghapus data)."));
+      + "Aggregasi memakai bulan yang dipilih di dropdown (default = bulan berjalan WIB) — selesai bulan hanya berganti bulan aktif, data bulan-bulan sebelumnya tidak dihapus dan bisa dibuka lagi."));
     return host;
   }
   function liveScoreMount() {
@@ -3128,12 +3128,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (!DATA || !DATA.live) return;
     ord().forEach(function (tf) {
       (DATA.live[tf].pantau || []).forEach(function (r) {
-        r.apick = PICKS[pickKey(tf, "watch", r, "Qkuk")] || null;
-        r.apickG = PICKS[pickKey(tf, "watch", r, "Gerry")] || null;
+        r.apick = PICKS[pickKey(tf, "watch", r)] || null;
       });
       (DATA.live[tf].sinyal || []).forEach(function (r) {
-        r.apick = PICKS[pickKey(tf, "sig", r, "Qkuk")] || null;
-        r.apickG = PICKS[pickKey(tf, "sig", r, "Gerry")] || null;
+        r.apick = PICKS[pickKey(tf, "sig", r)] || null;
       });
     });
     rerenderTables(); liveStats();
@@ -3153,7 +3151,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      Dipanggil saat setiap SAVE, cuma aktif setelah login admin. */
   function cairicitGambar() {
     if (!isLogged()) return 0;
-    var batas = Date.now() - 21 * 864e5, pgalak = 0;
+    var batas = Date.now() - 60 * 864e5, pgalak = 0;   // 13 Okt: 21 hr → 60 hr (gambar bulan berjalan + bulan lalu tetap tampil)
     Object.keys(PICKS).forEach(function (k) {
       var p = PICKS[k];
       if (!p || !Array.isArray(p.imgs) || !p.imgs.length) return;
@@ -3178,14 +3176,40 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function cloudWrite() {
     cairicitGambar();
     return sigAdmin().then(function (sig) {
-      return fetch("https://textdb.dev/api/data/" + TXTDB_ID, {
-        method: "POST", headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ __id: TXTDB_ID, value: JSON.stringify({
-          picks: PICKS, log: PLOG,
-          auth: (AUTHCLOUD || AUTH_HASHES[AUTH.user]) ? { user: AUTH.user, hash: AUTHCLOUD || AUTH_HASHES[AUTH.user] } : null,
-          hashes: Object.keys(AUTH_HASHES).length ? AUTH_HASHES : null,
-          sig: sig, sigBy: meAdmin() }) })
-      }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); });
+      /* 13 Okt — LINDUNGI DATA (akar masalah "kemarin ngisi malah ilang"):
+         textdb.dev = satu slot last-write-wins — klien dgn salinan lama yang
+         menyimpan menimpa SELURUH payload. Sekarang SEBELUM menulis: ambil
+         payload yang ada, GABUNGKAN (pick key sama → versi baru menang;
+         log digabung, duplikat dibuang, urut terbaru), baru tulis.
+         Pick/log dari admin lain tidak pernah musnah lagi. */
+      return fetch("https://textdb.dev/api/data/" + TXTDB_ID + "?t=" + Date.now(), { cache: "no-store" })
+        .then(function (r) { return r.ok ? r.text() : ""; })
+        .catch(function () { return ""; })
+        .then(function (t) {
+          var lamas = null;
+          try {
+            var env = JSON.parse(t);
+            var j = typeof (env && env.value) === "string" ? JSON.parse(env.value) : null;
+            if (j && j.picks && typeof j.picks === "object") lamas = j;
+          } catch (e) {}
+          var picks2 = Object.assign({}, (lamas && lamas.picks) || {}, PICKS);
+          var kd = function (e) { return (e.t || "") + "|" + (e.act || "") + "|" + (e.jenis || "") + "|" + (e.sym || "") + "|" + (e.win == null ? "" : e.win); };
+          var kunci = {}, plog2 = [];
+          PLOG.forEach(function (e) { var k2 = kd(e); if (!kunci[k2]) { kunci[k2] = 1; plog2.push(e); } });
+          ((lamas && Array.isArray(lamas.log)) ? lamas.log : []).forEach(function (e) {
+            var k2 = kd(e); if (!kunci[k2]) { kunci[k2] = 1; plog2.push(e); }
+          });
+          plog2.sort(function (a, b) { return String(b.t || "").localeCompare(String(a.t || "")); });
+          var hashes2 = Object.assign({}, (lamas && lamas.hashes) || {}, AUTH_HASHES || {});
+          return fetch("https://textdb.dev/api/data/" + TXTDB_ID, {
+            method: "POST", headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({ __id: TXTDB_ID, value: JSON.stringify({
+              picks: picks2, log: plog2,
+              auth: (AUTHCLOUD || AUTH_HASHES[AUTH.user]) ? { user: AUTH.user, hash: AUTHCLOUD || AUTH_HASHES[AUTH.user] } : (lamas && lamas.auth) || null,
+              hashes: Object.keys(hashes2).length ? hashes2 : null,
+              sig: sig, sigBy: meAdmin() }) })
+          }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); });
+        });
     });
   }
   function savePicks(st, done) {
@@ -3268,17 +3292,6 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var key = pickKey(tf, jenis, r), box = el("div");
     box.appendChild(admHead("Live pick \u2014 " + (r.sym || "").replace(/USDT$/, ""),
       tf.toUpperCase() + " \u00b7 " + jenis + " \u00b7 " + (r.ts || "")));
-    /* 12 Okt — PILIHAN ADMIN di form (permintaan user): Qkuk & Gerry bisa
-       memilih COIN YANG SAMA tanpa saling menimpa — pick disimpan ke kunci
-       masing-masing (kunci Gerry diberi prefiks "Gerry|"). Default = admin
-       yang sedang login; bisa diganti kalau menginput untuk rekan. */
-    var admSel = el("select", "adm-in");
-    ["Qkuk", "Gerry"].forEach(function (a) {
-      var op = el("option", null, "oleh admin: " + a + (a === meAdmin() ? " (kamu)" : ""));
-      op.value = a; admSel.appendChild(op);
-    });
-    admSel.value = (p && p.by === "Gerry") || (!p && meAdmin() === "Gerry") ? "Gerry" : "Qkuk";
-    box.appendChild(admSel);
     var sideSel = el("select", "adm-in");
     [["", "arah: ikut engine (" + r.dir + ")"], ["long", "koreksi: LONG"], ["short", "koreksi: SHORT"]]
       .forEach(function (o) { var op = el("option", null, o[1]); op.value = o[0]; sideSel.appendChild(op); });
@@ -3290,6 +3303,27 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     [["", "hasil: masih open / belum ditentukan"], ["win", "hasil: WIN"], ["loss", "hasil: LOSS"]]
       .forEach(function (o) { var op = el("option", null, o[1]); op.value = o[0]; winSel.appendChild(op); });
     if (p && p.win === 1) winSel.value = "win"; else if (p && p.win === 0) winSel.value = "loss";
+    /* 13 Okt — HASIL & % KONSISTEN: admin cukup mengisi "naik/turun berapa %",
+       win/loss mengikuti otomatis (short dibalik tanda). Ini mematika
+       kontradiksi "WR 100% tapi net R minus": data entry salah tidak mungkin
+       lagi. Yang diisi manual tanpa % tetap sah. */
+    function sinkronWin() {
+      var pv = parseFloat(pctIn.value);
+      if (isNaN(pv)) return;
+      var kontrib = (sideSel.value === "short" ? -1 : 1) * pv;
+      if (kontrib > 0) winSel.value = "win";
+      else if (kontrib < 0) winSel.value = "loss";
+      if (winSel.parentNode) {
+        var hint = winSel.parentNode.querySelector(".sv-msg.winhint");
+        if (!hint) {
+          hint = el("span", "sv-msg winhint");
+          winSel.parentNode.insertBefore(hint, winSel.nextSibling);
+        }
+        hint.textContent = "hasil win/loss mengikuti % × arah — pilih manual di dropdown bila memang beda maksud";
+      }
+    }
+    pctIn.addEventListener("input", sinkronWin);
+    sideSel.addEventListener("change", sinkronWin);
     var noteIn = el("input", "adm-in"); noteIn.type = "text";
     noteIn.placeholder = "catatan (alasan koreksi, dll)";
     if (p && p.note) noteIn.value = p.note;
@@ -3320,6 +3354,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       imgs.forEach(function (d, i) {
         var it = el("div", "pimg-it");
         var im = document.createElement("img"); im.src = d; im.alt = "pick " + (i + 1);
+        im.title = "klik perbesar (full layar)";
+        im.style.cursor = "zoom-in";
+        im.addEventListener("click", function () { lightboxImg(d); });
         it.appendChild(im);
         var x = el("button", "pimg-x", "\u00d7"); x.type = "button";
         x.title = "buang gambar ini";
@@ -3416,12 +3453,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (p) { var del = el("button", "adm-del", "hapus pick"); del.type = "button";
       row.insertBefore(del, cancel);
       del.addEventListener("click", function () {
-        var kx = pickKey(tf, jenis, r, (p.by === "Gerry" ? "Gerry" : "Qkuk"));
-        delete PICKS[kx]; plogAdd("hapus", kx, p, r);
+        delete PICKS[key]; plogAdd("hapus", key, p, r);
         savePicks(st, function () { applyPicks(); admClose(); });
       });
     }
-    box.appendChild(admSel); box.appendChild(sideSel); box.appendChild(pctIn); box.appendChild(winSel);
+    box.appendChild(sideSel); box.appendChild(pctIn); box.appendChild(winSel);
     box.appendChild(stSel); box.appendChild(inducIn);
     box.appendChild(noteIn); box.appendChild(alWrap); box.appendChild(imgWrap);
     box.appendChild(row); box.appendChild(st);
@@ -3435,17 +3471,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           al.push({ a: cb.value, tf: ch.dataset.tf });
         });
       });
-      var who = admSel.value === "Gerry" ? "Gerry" : "Qkuk";
-      var k2 = pickKey(tf, jenis, r, who);              // kunci per-admin
-      var ada = PICKS[k2], lama = ada;                  // koreksi pick milik admin itu
-      PICKS[k2] = { taken: 1, side: sideSel.value || null,
+      PICKS[key] = { taken: 1, side: sideSel.value || null,
         pct: pctIn.value === "" ? null : parseFloat(pctIn.value),
         win: winSel.value === "win" ? 1 : winSel.value === "loss" ? 0 : null,
         status: stSel.value || "menunggu",
         inducement: inducIn.value || null,
         note: noteIn.value || null, alasan: al, imgs: imgs.slice(0, IMG_MAX),
-        ts: new Date().toISOString(), by: who };
-      plogAdd(ada ? "koreksi" : "ambil", k2, PICKS[k2], r);
+        ts: new Date().toISOString(), by: meAdmin() };
+      plogAdd(p ? "koreksi" : "ambil", key, PICKS[key], r);
       savePicks(st, function () { applyPicks(); admClose(); });
     });
     cancel.addEventListener("click", admClose);
@@ -3566,11 +3599,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      tampil TERPISAH di sini (mis. sinyal short dikoreksi jadi long). */
   function corrCell(r, tf, jenis) {
     var td = el("td", "st apick");
-    var p = r.apick || r.apickG;   // 12 Okt: koreksi Gerry juga tampil
+    var p = r.apick;
     if (!p) { td.textContent = "—"; td.classList.add("dim"); return td; }
     var fixed = p.side && p.side !== r.dir ? p.side : null;
     if (!fixed) {
-      td.textContent = "ikut engine" + (r.apickG && r.apick !== r.apickG ? " · " + (p.by || "") : "");
+      td.textContent = "ikut engine";
       td.classList.add("dim");
       if (isAdmin()) {
         td.style.cursor = "pointer";
@@ -3581,7 +3614,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
     var b = el("button", "apbadge corr " + (fixed === "long" ? "apwin" : "aploss"));
     b.type = "button";
-    b.textContent = "⇄ " + fixed + (p.by ? " · " + p.by : "");
+    b.textContent = "⇄ " + fixed;
     b.title = "KOREKSI ADMIN: sinyal engine " + r.dir + " dikoreksi jadi " + fixed
       + (hasPct(p.pct) ? " · hasil " + sgn(p.pct, 1) + "%" : "")
       + (p.win === 1 ? " · WIN" : p.win === 0 ? " · LOSS" : " · open")
@@ -3593,13 +3626,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* sel kolom "live" di tabel: tombol ambil (admin) / badge hasil (semua) */
   function pickCell(r, tf, jenis) {
     var td = el("td", "st apick");
-    /* 12 Okt — DUA pick bisa hidup berdampingan (Qkuk & Gerry memilih coin
-       sama). Kalau keduanya ada, tampil BADGE KEDUA — riwayat tiap admin
-       tidak saling menimpa. Klik badge → popup milik admin itu. */
-    var p = r.apick, pg = null;
-    if (r.apickG && (!p || r.apickG.by !== (p.by || ""))) pg = r.apickG;
+    var p = r.apick;
     if (p) {
-      var ku = pickKey(tf, jenis, r, p.by === "Gerry" ? "Gerry" : "Qkuk");
+      var ku = pickKey(tf, jenis, r);
       td.dataset.tf = tf; td.dataset.jenis = jenis; td.dataset.key = ku;
     }
     if (!p) {
@@ -3645,20 +3674,6 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (qst === "tp" && p.win !== 1 && p.win !== 0)
         qw.appendChild(chipStatus("win/loss?", "fix", "pick TP tapi win/loss belum diisi — klik untuk buka popup resolve"));
       td.appendChild(qw);
-    }
-    /* 12 Okt — badge pick admin KEDUA (Gerry bila utama Qkuk, sebaliknya).
-       Bukan menimpa: dua riwayat tampil berdampingan dgn nama adminnya. */
-    if (pg) {
-      var sg = pg.side || r.dir;
-      var bg = el("button", "apbadge apg " + (pg.win === 1 ? "apwin" : pg.win === 0 ? "aploss" : "apopen"));
-      bg.type = "button";
-      bg.textContent = (sg === "long" ? "\u25b2" : "\u25bc") + "G"
-        + (pg.win === 1 ? " W" : pg.win === 0 ? " L" : "")
-        + (hasPct(pg.pct) ? " " + sgn(pg.pct, 1) + "%" : "");
-      bg.title = "pick " + (pg.by || "Gerry") + " — klik untuk koreksi/detail";
-      if (isAdmin()) bg.addEventListener("click", function () { openResolve(tf, jenis, r, pg); });
-      else bg.addEventListener("click", function () { openAlasan(tf, jenis, r, pg); });
-      td.appendChild(bg);
     }
     return td;
   }
@@ -4105,78 +4120,76 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       pHead.appendChild(chip);
     }
     host.appendChild(pHead);
-    /* 12 Okt — prioritas-7: TOMBOL UNDUH CSV. Semua PLOG (bukan hanya 50
-       yang tampil) jadi CSV: waktu WIB/ISO, koin, tf, jenis, admin, aksi,
-       arah, hasil, status pick, catatan. Berguna utk riset silang dgn
-       CSV engine di mesin (reclaim_swing_*.csv). */
+    /* 13 Okt — FILTER BULAN (permintaan user): riwayat & akurasi bertahan
+       sebulan penuh + bisa ditinjau balik bulan lalu. PL_BULAN: null =
+       bulan berjalan, "all" = semua bulan, atau "YYYY-MM". */
+    var blnSekarang = wibDate(new Date().toISOString()).slice(0, 7);
+    function wibBulan(t) {
+      var st = String(t || "");
+      var naive = /^(\d{4})-(\d{2})-(\d{2})[ T]/.exec(st);
+      if (naive) return naive[1] + "-" + naive[2];   // string tanpa zona = sudah WIB
+      var d = new Date(st);
+      if (isNaN(d.getTime())) return "";
+      var d2 = new Date(d.getTime() + 7 * 3600e3);
+      return d2.getUTCFullYear() + "-" + ("0" + (d2.getUTCMonth() + 1)).slice(-2);
+    }
+    var PL_BULAN = (typeof window.PL_BULAN === "string") ? window.PL_BULAN : null;
+    var bulanOps = [];
+    PLOG.forEach(function (e2) { var b2 = wibBulan(e2.t); if (b2 && bulanOps.indexOf(b2) < 0) bulanOps.push(b2); });
+    bulanOps.sort().reverse();
+    if (bulanOps.indexOf(blnSekarang) < 0) bulanOps.unshift(blnSekarang);
+    var selBln = el("select", "hh-fchip plog-bln");
+    selBln.title = "pilih bulan riwayat, akurasi & unduhan CSV";
+    [[blnSekarang, "bulan ini " + blnSekarang]].concat(bulanOps.filter(function (b) { return b !== blnSekarang; }).map(function (b) { return [b, b]; })).concat([["all", "semua bulan"]]).forEach(function (o) {
+      var op = el("option"); op.value = o[0]; op.textContent = o[1]; selBln.appendChild(op);
+    });
+    selBln.value = PL_BULAN === "all" ? "all" : (PL_BULAN || blnSekarang);
+    if (bulanOps.indexOf(selBln.value) < 0 && selBln.value !== "all") selBln.value = blnSekarang;
+    selBln.addEventListener("change", function () { window.PL_BULAN = selBln.value; plogRender(); });
+    pHead.appendChild(selBln);
+    /* 13 Okt — RINGKASAN AKURASI PER ENGINE bulan terpilih: live resolve
+       admin (bukan backtest), pemisahan per kanal engine × jenis. */
     (function () {
-      var bEx = el("button", "hh-fchip", "\u2b07 unduh CSV");
-      bEx.type = "button";
-      bEx.title = "unduh seluruh riwayat admin sebagai CSV";
-      bEx.addEventListener("click", function () {
-        var baris = [["waktu_iso", "waktu_wib", "koin", "tf", "jenis", "admin", "aksi", "arah", "arah_engine", "hasil_pct", "win", "status_pick", "img", "pick_key", "catatan"]];
-        PLOG.forEach(function (e) {
-          baris.push([
-            e.t || "", wibStr(e.t),
-            (e.sym || "").replace(/USDT$/, ""), (e.tf || "").toUpperCase(),
-            e.jenis || "", e.who || "Qkuk", e.act || "",
-            e.side || "", e.dir0 || "",
-            hasPct(e.pct) ? String(e.pct) : "",
-            e.win === 1 ? "win" : e.win === 0 ? "loss" : e.act === "hapus" || e.act === "password" ? "" : "open",
-            e.pickKey && PICKS[e.pickKey] ? (PICKS[e.pickKey].status || "menunggu") : "",
-            e.imgN != null ? String(e.imgN) : "",
-            e.pickKey || "", e.note || ""
-          ]);
-        });
-        function csv(v) { v = String(v == null ? "" : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
-        var isi = baris.map(function (r) { return r.map(csv).join(","); }).join("\n");
-        var a = document.createElement("a");
-        a.href = URL.createObjectURL(new Blob(["\ufeff" + isi], { type: "text/csv;charset=utf-8" }));
-        a.download = "plog_qkuk_" + wibDate(new Date().toISOString()).replace(/-/g, "") + ".csv";
-        document.body.appendChild(a); a.click(); a.remove();
-        /* 12 Okt — DOKUMEN GAMBAR ikut (permintaan user): CSV menyimpan jumlah
-           gambar saja, jadi galeri HTML terpisah di-unduh sekalian — tiap pick
-           dgn gambar jadi seksi dgn waktu/koin/admin + gambarnya sebenarnya,
-           terbuka offline di browser mana pun dalam format apa pun. */
-        var seksi = [];
-        PLOG.forEach(function (e, i) {
-          var kp = e.pickKey && e.pickKey.split("|"), p = e.pickKey ? PICKS[e.pickKey] : null;
-          var gs = (p && p.imgs || []).filter(function (d) { return typeof d === "string" && d.length > 8; });
-          if (!gs.length) return;
-          var L = ["<section style='margin:18px 0;border:1px solid #2a3532;border-radius:8px;padding:12px'>",
-            "<h3 style='font:600 14px/1.4 sans-serif'>#" + (i + 1) + " "
-              + (e.sym || "").replace(/USDT$/, "") + " · " + (e.tf || "").toUpperCase()
-              + " · " + wibStr(e.t) + " · oleh " + (e.who || "Qkuk") + "</h3>",
-            (p && p.note ? "<p style='font:12.5px/1.5 sans-serif'>" + String(p.note).replace(/</g, "&lt;") + "</p>" : "")];
-          gs.forEach(function (d) {
-            if (d.indexOf("data:image") === 0
-              || /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(d))
-              L.push("<img src='" + d + "' style='max-width:320px;border:1px solid #2a3532;border-radius:6px;display:block;margin:8px 0'>");
-            else
-              L.push("<a href='" + d + "' download style='font:12.5px sans-serif'>📎 unduh dokumen</a>");
-          });
-          L.push("</section>");
-          seksi.push(L.join(""));
-        });
-        if (seksi.length) {
-          var h = "<!doctype html><meta charset='utf-8'><title>Galeri pick "
-            + wibDate(new Date().toISOString()) + "</title>"
-            + "<body style='background:#0d1210;color:#e8efe9;padding:16px;max-width:720px;margin:auto'>"
-            + "<h2 style='font:600 16px sans-serif'>Dokumentasi gambar riwayat admin</h2>"
-            + seksi.join("") + "</body>";
-          var a2 = document.createElement("a");
-          a2.href = URL.createObjectURL(new Blob([h], { type: "text/html;charset=utf-8" }));
-          a2.download = "plog_galeri_" + wibDate(new Date().toISOString()).replace(/-/g, "") + ".html";
-          document.body.appendChild(a2); a2.click(); a2.remove();
-        }
+      var bln = PL_BULAN === "all" ? null : (/^\d{4}-\d{2}$/.test(PL_BULAN || "") ? PL_BULAN : blnSekarang);
+      var tep = {}, urut = [];
+      Object.keys(PICKS).forEach(function (k) {
+        var p = PICKS[k];
+        if (!p || (p.win !== 1 && p.win !== 0)) return;
+        var kp = k.split("|");
+        if (bln && (kp[2] || "").slice(0, 7) !== bln) return;
+        var con = hasPct(p.pct) ? (p.side === "short" ? -p.pct : p.pct) : (p.win === 1 ? 1 : -1);
+        var nm = ((kp[0] || "?") + "").toUpperCase() + " · " + (kp[1] === "watch" ? "watchlist" : kp[1] === "sig" ? "sinyal" : (kp[1] || "?"));
+        var e = tep[nm] || (tep[nm] = [0, 0, 0]);
+        if (urut.indexOf(nm) < 0) urut.push(nm);
+        e[0]++; if (p.win === 1) e[1]++; e[2] += con;
       });
-      pHead.appendChild(bEx);
+      if (!urut.length) return;
+      var wrapA = el("div", "plog-akk");
+      wrapA.appendChild(el("div", "pn-h lv-sub", "akurasi live resolve per engine — " + (bln ? "bulan " + bln : "semua bulan") + " (bukan backtest)"));
+      var tbA = el("table", "plog-t");
+      var trh2 = el("tr");
+      ["engine", "trade", "win · lose", "winrate", "net R"].forEach(function (x) { trh2.appendChild(el("th", null, x)); });
+      var thA = el("thead"); thA.appendChild(trh2); tbA.appendChild(thA);
+      var tbyA = el("tbody");
+      urut.sort(function (a, b) { return tep[b][0] - tep[a][0]; }).forEach(function (nm) {
+        var e = tep[nm], wr = e[1] / e[0] * 100, tr2 = el("tr");
+        function td2(v, c) { tr2.appendChild(el("td", c || "", v)); }
+        td2(nm); td2(String(e[0]), "mut"); td2(e[1] + " · " + (e[0] - e[1]), "mut");
+        td2(wr.toFixed(1) + "%", wr >= 50 ? "pos" : "neg");
+        td2(sgn(e[2], 2) + "R", e[2] > 0 ? "pos" : e[2] < 0 ? "neg" : "mut");
+        tbyA.appendChild(tr2);
+      });
+      tbA.appendChild(tbyA); wrapA.appendChild(tbA); host.appendChild(wrapA);
     })();
     /* entri riwayat difilter ke jam terpilih. Jam dibaca tahan-banting:
        "YYYY-MM-DD HH:MM" tanpa zona = sudah WIB; ISO berzona (hasil
        toISOString) digeser +7 jam ke WIB. Regex lama menuntut string
        berakhir HH:MM — selalu gagal pada t ISO dari plogAdd → filter kosong. */
     var daftar = PLOG;
+    if (PL_BULAN !== "all") {
+      var blnF = /^\d{4}-\d{2}$/.test(PL_BULAN || "") ? PL_BULAN : blnSekarang;
+      daftar = daftar.filter(function (e) { return wibBulan(e.t) === blnF; });
+    }
     if (fJam !== null && fJam !== undefined) {
       daftar = PLOG.filter(function (e) {
         var st = String(e.t || "");
@@ -4187,6 +4200,45 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         return new Date(d.getTime() + 7 * 3600e3).getUTCHours() === fJam;
       });
     }
+    /* 13 Okt — TOMBOL UNDUH CSV: ikut filter bulan & jam aktif. Versi
+       "CSV + foto" memasukkan gambar pick sebagai data-URI — rekapan
+       analisis bisa dibuka lagi di Excel/analytic beserta bukti chart. */
+    (function () {
+      function csv(v) { v = String(v == null ? "" : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+      function unduh(dgnFoto) {
+        var baris = [["waktu_iso", "waktu_wib", "bulan_wib", "koin", "tf", "jenis", "admin", "aksi", "arah", "arah_engine", "hasil_pct", "win", "status_pick", "img_n", "pick_key", "catatan"]];
+        if (dgnFoto) baris[0].push("foto_1", "foto_2", "foto_3", "foto_4");
+        daftar.forEach(function (e) {
+          var p = e.pickKey ? PICKS[e.pickKey] : null;
+          var gmb = (p && Array.isArray(p.imgs)) ? p.imgs.filter(function (d2) { return typeof d2 === "string" && d2.indexOf("data:image") === 0; }) : [];
+          var rek = [
+            e.t || "", wibStr(e.t), wibBulan(e.t),
+            (e.sym || "").replace(/USDT$/, ""), (e.tf || "").toUpperCase(),
+            e.jenis || "", e.who || "Qkuk", e.act || "",
+            e.side || "", e.dir0 || "",
+            hasPct(e.pct) ? String(e.pct) : "",
+            e.win === 1 ? "win" : e.win === 0 ? "loss" : (e.act === "hapus" || e.act === "password") ? "" : "open",
+            p ? (p.status || "menunggu") : "",
+            e.imgN != null ? String(e.imgN) : "",
+            e.pickKey || "", e.note || ""
+          ];
+          if (dgnFoto) { for (var i2 = 0; i2 < 4; i2++) rek.push(gmb[i2] || ""); }
+          baris.push(rek);
+        });
+        var isi = baris.map(function (r) { return r.map(csv).join(","); }).join("\n");
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob(["\ufeff" + isi], { type: "text/csv;charset=utf-8" }));
+        a.download = (dgnFoto ? "plog_qkuk_foto_" : "plog_qkuk_") + wibDate(new Date().toISOString()).replace(/-/g, "") + ".csv";
+        document.body.appendChild(a); a.click(); a.remove();
+      }
+      var bEx = el("button", "hh-fchip", "\u2b07 unduh CSV"); bEx.type = "button";
+      bEx.title = "unduh riwayat — mengikuti filter bulan & jam aktif";
+      bEx.addEventListener("click", function () { unduh(false); });
+      var bEx2 = el("button", "hh-fchip", "\u2b07 CSV + foto"); bEx2.type = "button";
+      bEx2.title = "unduh riwayat + gambar pick sebagai data-URI (file besar, kolom foto_1..4)";
+      bEx2.addEventListener("click", function () { unduh(true); });
+      pHead.appendChild(bEx); pHead.appendChild(bEx2);
+    })();
     if (!daftar.length) {
       host.appendChild(el("div", "plog-empty",
         !PLOG.length
