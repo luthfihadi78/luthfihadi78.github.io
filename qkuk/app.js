@@ -4182,6 +4182,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       });
       tbA.appendChild(tbyA); wrapA.appendChild(tbA); host.appendChild(wrapA);
     })();
+    renderRekapBulan(host);
     /* entri riwayat difilter ke jam terpilih. Jam dibaca tahan-banting:
        "YYYY-MM-DD HH:MM" tanpa zona = sudah WIB; ISO berzona (hasil
        toISOString) digeser +7 jam ke WIB. Regex lama menuntut string
@@ -4297,6 +4298,46 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var r = { ts: kp[2] || "", sym: kp[3] || "", dir: (p && p.side) || e.side || null };
     try { openAlasan(kp[0], kp[1], r, p || {}); }
     catch (err) { admFallback(err); }
+  }
+  /* 13 Okt — REKAP ANTAR-BULAN (permintaan user): grafik batang akumulasi
+     SEMUA bulan dari live resolve admin — tinggi = net R bulan
+     (hijau positif / merah negatif, skala bulan terbesar), label WR &
+     jumlah trade. TIDAK terpengaruh filter bulan di atasnya: ini gambaran
+     akumulasi penuh bulan demi bulan. Formula = untung/rugi nett
+     (positif = untung), sama dgn klasemen & ringkasan di atasnya. */
+  function renderRekapBulan(host) {
+    var bulan = {};
+    Object.keys(PICKS).forEach(function (k) {
+      var p = PICKS[k];
+      if (!p || (p.win !== 1 && p.win !== 0)) return;
+      var b = (k.split("|")[2] || "").slice(0, 7);
+      if (!/^\d{4}-\d{2}$/.test(b)) return;
+      var e = bulan[b] || (bulan[b] = [0, 0, 0]);
+      var v = hasPct(p.pct) ? p.pct : (p.win === 1 ? 1 : -1);
+      e[0]++; if (p.win === 1) e[1]++; e[2] += v;
+    });
+    var keys = Object.keys(bulan).sort();
+    if (!keys.length) return;
+    var maxV = 1;
+    keys.forEach(function (b) { maxV = Math.max(maxV, Math.abs(bulan[b][2])); });
+    var wrap = el("div", "rk-wrap");
+    wrap.appendChild(el("div", "pn-h lv-sub",
+      "rekap antar-bulan — akumulasi live resolve semua bulan (bukan backtest) · tinggi = net R, label = WR · trade"));
+    var grid = el("div", "rk-bar");
+    keys.forEach(function (b) {
+      var e = bulan[b], v = e[2], wr = e[0] ? e[1] / e[0] * 100 : 0;
+      var col = el("div", "rk-col " + (v >= 0 ? "pos" : "neg"));
+      col.appendChild(el("span", "rk-v", sgn(v, 1) + "R"));
+      var track = el("div", "rk-track");
+      var bat = el("div", "rk-bat");
+      bat.style.height = Math.max(3, Math.round(Math.abs(v) / maxV * 100)) + "%";
+      track.appendChild(bat); col.appendChild(track);
+      col.appendChild(el("span", "rk-wr", wr.toFixed(0) + "% · " + e[0]));
+      col.appendChild(el("span", "rk-b", b));
+      grid.appendChild(col);
+    });
+    wrap.appendChild(grid);
+    host.appendChild(wrap);
   }
   function adminInit() {
     try { localStorage.removeItem("qkuk_admin_token"); localStorage.removeItem("qkuk_admin_pass"); } catch (e) {} // bersihkan sisa mode lama
