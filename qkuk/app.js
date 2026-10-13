@@ -1158,7 +1158,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         var p = PICKS[k]; if (!p) return;
         if (p.win !== 0 && p.win !== 1) return;
         if (!eqPickFilter(p)) return;       // 11 Okt — filter admin/periode
-        var pct = hasPct(p.pct) ? (p.side === "short" ? -p.pct : p.pct)
+        var pct = hasPct(p.pct) ? p.pct   /* 13 Okt: untung/rugi nett — tanpa balik tanda short */
                   : (p.win === 1 ? 1 : -1);
         rows.push({ ts: kp[2] || "", pct: pct });
       });
@@ -2870,7 +2870,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var kp = k.split("|"), ts = kp[2] || "";
       if (ts.slice(0, 7) !== bulan) return;                      // pick bulan sebelumnya tdk dihitung
       var who = p.by === "Gerry" ? "Gerry" : "Qkuk";
-      var pct = hasPct(p.pct) ? (p.side === "short" ? -p.pct : p.pct)
+      var pct = hasPct(p.pct) ? p.pct            /* 13 Okt: untung/rugi nett, tanpa flip short */
                 : (p.win === 1 ? 1 : -1);                        // fallback ±1R
       var e = out[who];
       e[0]++; if (p.win === 1) e[1]++; e[2] += pct;
@@ -3737,7 +3737,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           var p = r.apick; if (!p) return;
           n++;
           if (p.win === 1) w++; else if (p.win === 0) l++; else open++;
-          if (hasPct(p.pct)) tot += ((p.side || r.dir) === "short" ? -p.pct : p.pct);
+          if (hasPct(p.pct)) tot += p.pct;   /* 13 Okt: % = untung/rugi nett — tanpa balik tanda short */
         });
       });
       var c = el("div", "ch"); var hh = el("div", "ch-h");
