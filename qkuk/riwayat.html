@@ -28,13 +28,16 @@ td.pos{color:var(--up)} td.neg{color:var(--dn)} td.mut{color:var(--fg2)}
 .lm{display:inline-block;min-width:44px;padding:2px 5px;border-radius:3px;font-size:10.5px}
 .lm.long{background:rgba(110,231,183,.1);color:var(--up)}
 .lm.short{background:rgba(255,122,110,.1);color:var(--dn)}
+.lm.nP{background:rgba(143,160,152,.12);color:var(--fg2)}
+.bbtn{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid #2a3a30;border-radius:6px;background:#111c17;color:var(--fg);text-decoration:none;font-size:13px;vertical-align:middle}
+.bbtn:active{background:#1c2a24}
 .kosong{color:var(--fg2);padding:22px;text-align:center}
 @media(max-width:640px){.bulan-row{grid-template-columns:60px 1fr 90px}}
 </style>
 </head>
 <body>
 <div class="wrap">
-<h1>QKUK — RIWAYAT PILIHAN ADMIN</h1>
+<h1 style="display:flex;align-items:center;gap:10px"><a href="index.html" class="bbtn" title="Kembali ke terminal">←</a>QKUK — RIWAYAT PILIHAN ADMIN <a href="archive.html" class="alink" style="font-size:11px;font-weight:400;color:var(--fg2);text-decoration:underline" title="Arsip data harian">🗄 arsip harian</a></h1>
 <div class="sub">arsip kurva akurasi live (BISA dibuka dgn mata manusia, bukan hanya JSON mentah) · hasil = untung/rugi <b>nett %</b> per pick · diperbarui bot harian dari cloud picks</div>
 <div class="kartu"><h2>nett % per bulan</h2><div class="bar-chart" id="bkurva"></div></div>
 <div class="kartu"><h2>semua pilihan yang sudah selesai</h2><div id="btab"></div></div>
@@ -71,7 +74,7 @@ fetch("picks-data.json?t=" + Date.now(), { cache: "no-store" })
   d.rows.slice().reverse().forEach(function (r) {
     T += "<tr><td class=\"mut\">" + r.t.replace("T", " ").slice(0, 16)
       + "</td><td>" + (eng[r.tf] || r.tf) + "</td><td><b>" + r.sym + "</b></td>"
-      + "<td><span class=\"lm " + (r.arah || "long") + "\">" + (r.arah || "?") + "</span></td>"
+      + "<td><span class='lm " + (r.arah || "nP") + "'>" + (r.arah || "ikut engine") + "</span></td>"
       + "<td class=\"" + (r.win ? "pos" : "neg") + "\">" + (r.pct == null ? (r.win ? "+1" : "-1") : (r.pct >= 0 ? "+" : "") + r.pct) + "%"
       + (r.win ? " ✔" : " ✘") + "</td><td class=\"mut\">" + (r.who || "QKUK") + "</td></tr>";
   });

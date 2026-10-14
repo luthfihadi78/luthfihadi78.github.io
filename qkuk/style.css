@@ -22,6 +22,11 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opa
   -webkit-mask-image:radial-gradient(80rem 50rem at 50% 0,#000,transparent 78%);
           mask-image:radial-gradient(80rem 50rem at 50% 0,#000,transparent 78%)}
 .wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 18px}
+/* 15 Okt — tombol kembali di halaman anak (whale) — PWA standalone tanpa tombol back */
+.wkembali{display:inline-flex;align-items:center;gap:6px;margin:10px 0 0;padding:6px 12px;
+  border:1px solid var(--line);border-radius:8px;background:rgba(13,20,17,.85);
+  color:var(--ac);font-size:12px;letter-spacing:.05em}
+.wkembali:active{background:rgba(110,231,183,.08)}
 a{color:var(--ac);text-decoration:none}
 a:hover{color:#9CF2CE}
 :focus-visible{outline:2px solid var(--ac);outline-offset:2px;border-radius:4px}

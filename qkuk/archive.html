@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>QKUK — Arsip data harian</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noarchive">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23070B09'/%3E%3Ctext x='16' y='23' font-family='monospace' font-size='18' font-weight='bold' fill='%236EE7B7' text-anchor='middle'%3EQ%3C/text%3E%3C/svg%3E">
+<style>
+:root{--s0:#0D1411;--fg:#E8E3D5;--fg2:#8FA098;--up:#6EE7B7;--dn:#ff7a6e;--mono:'Geist Mono',ui-monospace,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:#0A0F0D;color:var(--fg);font-family:var(--mono);font-size:13px;padding:18px 16px 40px}
+h1{font-size:15px;font-weight:600;letter-spacing:.04em;margin:0 0 4px;color:var(--up);display:flex;align-items:center;gap:10px}
+.sub{color:var(--fg2);font-size:11px;margin-bottom:14px}
+.wrap{max-width:1180px;margin:0 auto}
+.bbtn{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid #2a3a30;border-radius:6px;background:#111c17;color:var(--fg);text-decoration:none;font-size:13px;vertical-align:middle}
+/* tombol tanggal */
+.tanggal{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+.tgt{padding:5px 11px;border:1px solid #1c2a24;border-radius:16px;background:var(--s0);color:var(--fg2);
+  font-family:var(--mono);font-size:11.5px;cursor:pointer}
+.tgt:hover{color:var(--fg)}
+.tgt.on{border-color:var(--up);color:var(--up)}
+.tgt:disabled{opacity:.45;cursor:default}
+.kartu{background:var(--s0);border:1px solid #1c2a24;border-radius:9px;padding:14px 16px;margin-bottom:14px}
+.kartu h2{font-size:12.5px;color:var(--up);letter-spacing:.05em;margin:0 0 10px;font-weight:600;text-transform:uppercase}
+.meta{display:flex;flex-wrap:wrap;gap:14px}
+.meta div{min-width:120px}
+.meta span{display:block;color:var(--fg2);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em}
+.meta b{font-size:12.5px}
+.gp{color:var(--up)} .gn{color:var(--dn)} .gy{color:var(--fg)}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{text-align:left;color:var(--fg2);font-weight:500;padding:6px 8px;border-bottom:1px solid #1c2a24;
+  font-size:10.5px;letter-spacing:.05em;text-transform:uppercase}
+td{padding:6px 8px;border-bottom:1px solid #14211b}
+.lm{display:inline-block;min-width:44px;padding:2px 5px;border-radius:3px;font-size:10.5px}
+.lm.long{background:rgba(110,231,183,.1);color:var(--up)}
+.lm.short{background:rgba(255,122,110,.1);color:var(--dn)}
+.lm.nP{background:rgba(143,160,152,.12);color:var(--fg2)}
+.bl{display:flex;flex-wrap:wrap;gap:0 14px}
+.bl b{color:var(--fg)} .bl span{color:var(--fg2);font-size:10.5px;margin-right:5px}
+.kosong{color:var(--fg2);padding:22px;text-align:center}
+@media(max-width:640px){td:nth-child(6),th:nth-child(6){display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1><a href="index.html" class="bbtn" title="Kembali ke terminal">&larr;</a>QKUK — ARSIP DATA HARIAN</h1>
+<div class="sub">snapshot <b>data.json</b> tiap hari (otomatis bot) — lihat kembali apa yang terlihat engine di hari lalu · pilih tanggal di bawah</div>
+<div class="tanggal" id="tgzs"><span class="kosong">memuat daftar tanggal…</span></div>
+<div id="isi"><div class="kartu kosong">pilih tanggal</div></div>
+<div class="sub" style="margin-top:18px">sumber: <code>archive/YYYY-MM-DD.json</code> + manifest ber-tanggal — snapshot harian dashboard_data.json · tanpa API, tanpa kredensial</div>
+</div>
+<script>
+var SEL = new URLSearchParams(location.search).get("d") || null;
+function lm(v){ return "<span class='lm " + (v || "nP") + "'>" + (v || "ikut engine") + "</span>"; }
+function load(){
+  fetch("archive/dates.json?t=" + Date.now(), {cache:"no-store"})
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      var dates = (j.tanggal || []).slice().reverse();          // tanggal terbaru dulu
+      if (!dates.length) throw new Error("kosong");
+      var host = document.getElementById("tgzs");
+      host.innerHTML = "";
+      var pilih = SEL && dates.indexOf(SEL) >= 0 ? SEL : dates[0];
+      dates.forEach(function(d){
+        var b = document.createElement("button");
+        b.className = "tgt" + (d === pilih ? " on" : ""); b.textContent = d; b.type = "button";
+        b.addEventListener("click", function(){ location.replace("?d=" + d); });
+        host.appendChild(b);
+      });
+      return fetch("archive/" + pilih + ".json?t=" + Date.now(), {cache:"no-store"})
+        .then(function(r){ return r.json(); });
+    })
+    .then(render)
+    .catch(function(e){
+      document.getElementById("tgzs").innerHTML =
+        "<span class='kosong'>gagal memuat daftar arsip — " + e.message + "</span>";
+    });
+}
+function render(d){
+  var isi = document.getElementById("isi");
+  if (!d || typeof d !== "object") { isi.innerHTML = "<div class='kartu kosong'>snapshot tidak valid</div>"; return; }
+  var H = "<div class='kartu'><h2>snapshot " + (SEL || "").replace(/[^0-9-]/g, "") + "</h2><div class='meta'>"
+    + "<div><span>dibuat</span><b class='gy'>" + (d.dibuat || "—") + "</b></div>"
+    + "<div><span>alt dir</span><b class='gy'>" + (d.altdir && d.altdir.nama || "—") + "</b></div>"
+    + "<div><span>BTC 24j</span><b class='" + ((d.altdir && d.altdir.btc_chg) >= 0 ? "gp" : "gn") + "'>"
+        + (d.altdir && d.altdir.btc_chg != null ? ((d.altdir.btc_chg >= 0 ? "+" : "") + d.altdir.btc_chg.toFixed(2) + "%") : "—") + "</b></div>"
+    + "<div><span>onchain alert</span><b class='gy'>" + ((d.onchain || {}).alerts || []).length + "</b></div>"
+    + "</div></div>";
+  var eng = { "ob": "BRICK", "2h": "HARVEST", "4h": "SWING", "whale": "WHALE" };
+  var lv = d.live || {};
+  Object.keys(eng).forEach(function (tf) {
+    var L = lv[tf] || {};
+    var sig = (L.sinyal || []).slice().reverse();               // sinyal terbaru dulu
+    var nW = (L.pantau || []).length;
+    H += "<div class='kartu'><h2>" + eng[tf] + " (" + tf.toUpperCase() + ") — " + sig.length + " sinyal · " + nW + " watchlist</h2>";
+    if (!sig.length) { H += "<div class='kosong'>tidak ada sinyal di snapshot ini</div></div>"; return; }
+    H += "<table><thead><tr><th>ts sinyal</th><th>simbol</th><th>arah</th><th>status</th><th>hasil</th><th>pick</th></tr></thead><tbody>";
+    sig.forEach(function (r) {
+      var p = r.pick;
+      H += "<tr><td class='gy'>" + (r.ts || "—") + "</td><td><b>" + r.sym + "</b></td>"
+        + "<td>" + lm(r.dir) + "</td><td class='gy'>" + (r.st || "fired") + "</td>"
+        + "<td class='" + (r.pnl > 0 ? "gp" : r.pnl < 0 ? "gn" : "gy") + "'>"
+          + (r.pnl == null ? "—" : ((r.pnl > 0 ? "+" : "") + r.pnl + "R")) + "</td>"
+        + "<td class='gy'>" + (p ? ((p.side || p.dir0 || "ikut engine") + " · " + (p.by || "Qkuk") + (p.status ? " · " + p.status : "")) : "—") + "</td></tr>";
+    });
+    H += "</tbody></table></div>";
+  });
+  isi.innerHTML = H;
+}
+load();
+</script>
+</body>
+</html>

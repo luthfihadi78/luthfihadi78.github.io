@@ -1608,6 +1608,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   var bbRaf = null, bb24 = null, bbPx = null, bb24Ts = 0, bb24Fail = false;
   var bb24Src = -1, bbSrcName = ["Binance futures", "Binance spot", "CoinGecko", "CoinPaprika"];
+  /* 15 Okt (keluhan user: sinyal swing baru tak muncul di bubbles) — bubbles
+     dulu dibangun SEKALI (tiap DATA segar dulu 60dtk tak direbuild). Kini
+     sidik jari daftar (tf+sym+ts) dicek tiap render: berubah → direbuild.
+     Sidik hanya sym+ts (bukan harga/status) supaya fisika tak berhenti tiap 60dtk. */
+  function bubbleSig() {
+    var tf = bTf && DATA.live[bTf] ? bTf : ord()[0];
+    var rows = bubbleData(bMode, tf) || [];
+    return tf + "|" + rows.map(function (d) { return d.sym + "@" + d.ts; }).sort().join(",");
+  }
+  var bbSig = null;
   function bubbleData(mode, tf) {
     var L = (DATA.live || {})[tf];
     var src = L && L.sinyal;                    // 8 Okt: sinyal saja (watchlist ikut sinyal di tabel)
@@ -1907,6 +1917,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var tf = bTf && DATA.live[bTf] ? bTf : ord()[0];
     bTf = tf;
     var rows = bubbleData(bMode, tf);
+    bbSig = bubbleSig();                      // sidik jari untuk deteksi perubahan
     tabs($("#b-tabs"), tf, function (t) { bTf = t; bubbleDraw(); });
     if (!rows.length) {
       plot.appendChild(el("div", "empty", kosong(tf, "sinyal")));
@@ -2284,8 +2295,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     liveScoreMount();       // 11 Okt: live score klasemen — PALING ATAS halaman
     stamp(); gauge(); strip(); kamu(); applyPicks(); btBadges();
     scanNotif();
-    if (first) charts();
-    if (first || !bbBodies.length) bubbleDraw();   // jangan bangun ulang saat data 60 dtk segar — fisika jalan terus
+    if (!DATA || !DATA.live) return;
+    var _bsig = bubbleSig();                  // data segar bisa menambah sinyal baru
+    if (first || !bbBodies.length || _bsig !== bbSig) bubbleDraw();
     rerenderTables();
   }
   /* 8 Okt — render ulang tabel #s-table sesuai mode (sinyal / watchlist).
@@ -2456,7 +2468,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function sndIcon() {
     var m = $("#mute");
     if (!m) return;
-    m.textContent = MUTE ? "🔇" : "🔔";
+    m.textContent = MUTE ? "🔇" : "🔊";   // 15 Okt: ikon suara ≠ 🔔 notifikasi (dulu kembar, samar)
     m.setAttribute("aria-pressed", MUTE ? "true" : "false");
     m.title = (MUTE ? "Suara notifikasi: MATI — klik untuk nyalakan"
       : "Suara notifikasi: NYALA — klik untuk mati")
@@ -2708,6 +2720,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       b.addEventListener("click", function () {
         if (!("Notification" in window)) { alert("Browser tidak mendukung Notification."); return; }
         if (Notification.permission === "denied") { b.title = "Notifikasi diblokir — buka izin situs di pengaturan browser"; return; }
+        if (Notification.permission === "granted") {
+          /* 15 Okt (keluhan user: bell terasa blank) — saat sudah granted,
+             klik bell dulu secangkir bukti notifikasi, bukan jadi tidak beraksi. */
+          notifikasiKirim("Qkuk Terminal",
+            { body: "Izin notifikasi SUDAH aktif. Coba ikon 🧪 untuk tes ke lock screen.",
+              icon: QKUK_ICON, badge: QKUK_ICON, tag: "bell-ok-" + Date.now() });
+          return;
+        }
         Notification.requestPermission().then(function (s) { segar(); });
       });
       bar.appendChild(b); segar();
@@ -2887,7 +2907,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var box = el("div", "alview2");
     box.appendChild(admHead("Detail ambil posisi", (r.sym || "").replace(/USDT$/, "") + " · "
       + tf.toUpperCase() + " · " + (jenis === "sig" ? "sinyal" : jenis === "watch" ? "watchlist" : jenis)));
-    var side = p.side || r.dir || "—";
+    var side = p.side || p.dir0 || r.dir || "—";
     var meta = el("div", "almeta2");
     meta.appendChild(el("span", "alpill " + (side === "long" ? "up" : "dn"),
       (side === "long" ? "▲ " : "▼ ") + side.toUpperCase()));
@@ -3223,7 +3243,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       for (var i = 0; i < out.length; i++) {
         if (out[i].ts === kp[2] && out[i].sym === kp[3]) return;   // sudah ada di jendela
       }
-      out.push({ ts: kp[2] || "", sym: kp[3] || "", dir: p.side || null, apick: p });
+      out.push({ ts: kp[2] || "", sym: kp[3] || "", dir: p.side || p.dir0 || null, apick: p });
     });
     return out;
   }
@@ -3673,8 +3693,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         line.querySelectorAll(".al-tfchip.on").forEach(function (ch) {
           al.push({ a: cb.value, tf: ch.dataset.tf });
         });
-      });
-      PICKS[key] = { taken: 1, side: sideSel.value || null,
+      });        PICKS[key] = { taken: 1, side: sideSel.value || null,
+        /* 15 Okt (arah "?") — pilihan "ikut engine" kini ikut merekam
+           arah engine saat itu di dir0, biar riwayat tak perlu bertanda tanya. */
+        dir0: (!sideSel.value && r && r.dir) ? r.dir : null,
         pct: pctIn.value === "" ? null : parseFloat(pctIn.value),
         win: winSel.value === "win" ? 1 : winSel.value === "loss" ? 0 : null,
         status: stSel.value || "menunggu",
@@ -3842,7 +3864,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       } else { td.textContent = "\u2014"; td.classList.add("dim"); }
       return td;
     }
-    var side = p.side || r.dir;
+    var side = p.side || p.dir0 || r.dir;
     var b2 = el("button", "apbadge " + (p.win === 1 ? "apwin" : p.win === 0 ? "aploss" : "apopen"));
     b2.type = "button";
     b2.textContent = (side === "long" ? "\u25b2" : "\u25bc")
@@ -4570,7 +4592,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function plogDetail(e) {
     if (!e || !e.pickKey) return;
     var kp = e.pickKey.split("|"), p = PICKS[e.pickKey];
-    var r = { ts: kp[2] || "", sym: kp[3] || "", dir: (p && p.side) || e.side || null };
+    var r = { ts: kp[2] || "", sym: kp[3] || "", dir: (p && (p.side || p.dir0)) || e.side || null };
     try { openAlasan(kp[0], kp[1], r, p || {}); }
     catch (err) { admFallback(err); }
   }

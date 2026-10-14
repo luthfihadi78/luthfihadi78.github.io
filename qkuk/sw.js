@@ -8,10 +8,10 @@
      live tak boleh basi; kalau network fail, biarkan error (tapi dgn offline
      fallback opsi halaman masih terbuka dgn data terakhir).
    - Notifikasi: SW menerima push/ klik notifikasi → fokus tab yang ada. */
-const CACHE = "qkuk-v20261014c";
+const CACHE = "qkuk-v20261015a";
 const SHELL = [
   "./", "./index.html", "./app.js", "./style.css", "./manifest.json",
-  "./whale.html", "./whale.js", "./riwayat.html", "./icon-192.png", "./icon-512.png"
+  "./whale.html", "./whale.js", "./riwayat.html", "./archive.html", "./icon-192.png", "./icon-512.png"
 ];
 
 self.addEventListener("install", function (e) {
