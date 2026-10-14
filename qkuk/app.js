@@ -2617,17 +2617,21 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function deskNotify(kind, sym, tf, ts, dir) {
     if (!deskReady() || !document.hidden) return;   // tab aktif = toast cukup
     if (!nn(tf)) return;                            // 14 Okt: filter per engine
-    /* 13 Okt — jalur PWA: SW Device (Notification.showNotification) dgn ikon PWA;
-       fallback Notification() utk browser tanpa SW (mode lama).
-       Klik notif: buka NOTIF_INFO  — buka tab chart & fokuskan tab situs. */
+    notifKirim(kind, sym, tf, ts, dir);
+  }
+  /* 14 Okt — pengirim notifikasi dipisah dari deskNotify supaya tombol
+     🧪 TEST bisa menembakkan notifikasi contoh kapan pun. */
+  function notifKirim(kind, sym, tf, ts, dir) {
     var eng = NN_ENG[tf] || ("ENGINE " + (tf || "").toUpperCase());
     var judul = eng + " — SINYAL " + sym;
     var body = (dir === "long" || dir === "short" ? dir.toUpperCase() + " · " : "")
               + (tf || "").toUpperCase() + (ts ? " · " + ts : "")
               + " · klik untuk buka TradingView";
-    var tagTxt = "qkuk-" + tf + "-" + ts + "|" + sym;
-    var opsi = { body: body, tag: tagTxt, icon: QKUK_ICON, badge: QKUK_ICON, renotify: true,
-                 data: { url: tvUrl(sym, tf) } };   // 13 Okt: SW notificationclick pakai URL chart spesifik
+    notifikasiKirim(judul, { body: body, tag: "test-" + Date.now(), icon: QKUK_ICON,
+                              badge: QKUK_ICON, renotify: true,
+                              data: { url: tvUrl(sym, tf) } });
+  }
+  function notifikasiKirim(judul, opsi) {
     try {
       if (navigator.serviceWorker && navigator.serviceWorker.controller) {
         navigator.serviceWorker.getRegistration().then(function (reg) {
@@ -2637,12 +2641,30 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       } else baruNotif();
       function baruNotif() {
         var n = new Notification(judul, opsi);
-        n.onclick = klikFn; setTimeout(function () { try { n.close(); } catch (e) {} }, 9000);
+        var u = opsi && opsi.data && opsi.data.url;
+        n.onclick = function () {
+          try { window.focus(); if (u) window.open(u, "_blank", "noopener"); } catch (e) {}
+        };
+        setTimeout(function () { try { n.close(); } catch (e) {} }, 9000);
       }
-      var klikFn = function () {
-        try { window.focus(); window.open(tvUrl(sym, tf), "_blank", "noopener"); } catch (e) {}
-      };
     } catch (e) {}
+  }
+  /* 14 Okt — tombol 🧪 TEST: menembakkan notifikasi contoh (HARVEST /
+     BTCUSDT⚡TEST) SEKARANG juga, tanpa menunggu sinyal asli & tanpa
+     syarat document.hidden — verifikasi langsung rantai PWA di
+     perangkat (khusus iPhone: wajib via home screen, iOS 16.4+). */
+  var TESTTF = "2h";
+  function testNotify(tf) {
+    if (!("Notification" in window)) { alert("Browser ini tidak punya Notification API."); return; }
+    if (Notification.permission !== "granted") {
+      Notification.requestPermission().then(function (s) {
+        if (s === "granted") testNotify(tf);
+        else alert("Izin notifikasi belum diberikan — ketuk 🔔 dulu.");
+      });
+      return;
+    }
+    TESTTF = tf || TESTTF;
+    notifKirim("sinyal", "BTCUSDT\u26a1TEST", TESTTF, "sekarang", "long");
   }
   /* 13 Okt — PWA: daftarkan service worker + tombol langganan notifikasi watchlist.
      Beban zero-server: tanpa backend push, notifikasi dihosting dgn SW saat
@@ -2689,6 +2711,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         Notification.requestPermission().then(function (s) { segar(); });
       });
       bar.appendChild(b); segar();
+      /* 14 Okt — tombol 🧪 TEST: menembakkan notifikasi contoh sekarang
+         juga (HARVEST/BTCUSDT⚡TEST) — verifikasi langsung rantai PWA di
+         perangkat tanpa menunggu sinyal asli. Di iOS wajib via home screen. */
+      var tb = el("button", "adm-gear", "🧪"); tb.id = "qk-test-btn"; tb.type = "button";
+      tb.title = "Tes notifikasi di perangkat ini (HARVEST/BTCUSDT contoh)";
+      tb.addEventListener("click", function () { testNotify("2h"); });
+      bar.appendChild(tb);
     } catch (e) {}
   }
   /* ═══════════════════════════════════════════════════════════════════
