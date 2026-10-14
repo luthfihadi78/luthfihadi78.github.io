@@ -814,6 +814,60 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     return td;
   }
 
+  /* ══ 14 Okt (prioritas #4) — JARAK LIVE & HARGA TERAKHIR ════════════
+     Kolom "last" & "jarak" di tabel Signals: seberapa jauh harga Binance
+     SAAT INI dari entry sinyal/watchlist. Admin tak perlu hitung manual.
+     Sumber: api.binance.com/ticker/price (sudah di CSP) — dikumpul sekali
+     per render (batch) utk semua simbol tabel, cache 20 dtk per render,
+     auto-refresh list harga tiap 60 dtk selama tab terbuka. */
+  var LPRICE = {};          // sym → {p: harga, t: ms}, cache
+  var LPRICE_PENDING = false;
+  function lpriceGet(sym, cb) {
+    var c = LPRICE[sym];
+    if (c && Date.now() - c.t < 20000) { cb(c.p); return; }
+    if (c && LPRICE_PENDING) { cb(c.p); return; }   // nilai lama sambil menunggu
+    lpriceBatch(function () { var c2 = LPRICE[sym]; cb(c2 ? c2.p : null); });
+  }
+  function lpriceBatch(done) {
+    LPRICE_PENDING = true;
+    fetch("https://api.binance.com/api/v3/ticker/price", { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (j) {
+        var now = Date.now();
+        (j || []).forEach(function (x) {
+          if (x && x.symbol) LPRICE[x.symbol] = { p: +x.price || 0, t: now };
+        });
+      })
+      .catch(function () { /* diam: kolom hanya kosong */ })
+      .then(function () { LPRICE_PENDING = false; done && done(); });
+  }
+  function lastCell(sym, tf) {
+    var td = el("td", "n jrk-last");
+    td.textContent = "…";
+    var S = decodeURIComponent(tvUrl(sym, tf).split("symbol=")[1] || "");
+    var s = S.replace("BINANCE:", "").replace(".P", "");
+    lpriceGet(s, function (p) {
+      if (p) { td.textContent = fp(p); td.dataset.px = p; }
+      else { td.textContent = "—"; }
+    });
+    return td;
+  }
+  function jarakCell(r) {
+    var td = el("td", "n jrk-c");
+    td.textContent = "…";
+    var e = r._jenis === "watch" ? r.lv : r.e;
+    var eF = num(e);
+    if (eF === null) { td.textContent = "—"; return td; }
+    lpriceGet(r.sym, function (p) {
+      if (!p) { td.textContent = "—"; return; }
+      var dJ = (p - eF) / eF * 100;
+      td.textContent = sgn(dJ, 2) + "%";
+      td.style.color = Math.abs(dJ) < 0.3 ? "var(--up)" : Math.abs(dJ) > 3 ? "var(--dn)" : "var(--fg-2)";
+      td.title = "harga " + fp(p) + " vs entry " + fp(eF);
+    });
+    return td;
+  }
+
   /* 8 Okt — section Watchlist & Winrate-accuracy DIHAPUS (permintaan user:
      satukan watchlist + sinyal dalam SATU section Signals, tanpa pindah-pindah).
      8 Okt (lanjutan, permintaan user): watchlist MASUK KE DAFTAR SIGNAL — satu
@@ -892,6 +946,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           return r._jenis === "watch" ? txt("—", "n") : txt(fp(r.s), "n"); } },
       { h: "target", n: true, c: function (r) {
           return r._jenis === "watch" ? txt("—", "n") : txt(fp(r.t), "n"); } },
+      /* 14 Okt (prioritas #4) — JARAK LIVE: post(list harga terakhir ke
+         harga entry). Hitung dari entry vs harga Binance lastPrice
+         (cache 20 dtk per batch — CSP sudah mengizinkan api.binance.com).
+         watchlist lv = level reclaim (bhk jarak) + sinyal e = entry.
+         Tidak perlu memilih TP/SL manual — mata admin langsung melihat
+         dekat/dah mana posisi entry. Baris open atau "jauh" (>|3%|)
+         di-highlight via class jrk-far agar gampang dipindahkan. */
+      { h: "last", n: true, c: function (r) { return lastCell(r.sym, tf); } },
+      { h: "jarak", n: true, c: function (r) { return jarakCell(r); } },
       { h: "status", c: function (r) {
           var td = el("td", "st");
           if (r._jenis === "watch") {
@@ -2081,6 +2144,23 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var stale = age > 180;
     $("#dot").classList.toggle("stale", stale);
     $("#state").textContent = stale ? "stale" : "live";
+    /* 14 Okt (prioritas #3) — BANNER DATA BASI: statis di topbar bila data
+       lebih tua dari 3 jam & belum ada banner. Hilang sendiri setelah poll
+       mendapat data segar (stale → false). Tidak menutupi UI (posisi absolute). */
+    var st = $("#stalebar");
+    if (stale) {
+      if (!st) {
+        // inject topbar div — ada di index.html
+        st = el("div", "stalebar"); st.id = "stalebar";
+        var host_ = document.querySelector(".bar-in") || document.body;
+        host_.parentNode.insertBefore(st, host_);
+      }
+      st.textContent = "⚠️ data basi · terakhir: " + (age >= 60 ? (age / 60).toFixed(1) + " jam" : Math.round(age) + " mnt")
+                     + " lalu — bot mati? cek grup/mesin";
+      st.title = "data.json tertulis " + (DATA.dibuat || "?") + " (umur dari header server)";
+    } else if (st && st.parentNode) {
+      st.parentNode.removeChild(st);
+    }
   }
   /* 5 Okt — badge riset backtest (logs/bt_final_kanal.csv via data.json.bt).
      Data hilang → strip disembunyi.
@@ -2458,7 +2538,29 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     paintDesk();
     dr.appendChild(db);
     bx.appendChild(dr);
-    ov.appendChild(bx);
+    /* 14 Okt (permintaan user) — TOGGLE NOTIFIKASI PER ENGINE: 4 kartu
+       on/off utk BRICK/HARVEST/SWING/WHALE. Default semua ON. Preferensi
+       tersimpan di localStorage "qkuk_nkanal" (JSON tf→0/1). */
+    var nk = el("div", "nk-row");
+    nk.appendChild(el("div", "nk-h", "Notifikasi per engine"));
+    function paintNk() {
+      nk.querySelectorAll(".nk-t").forEach(function (b) {
+        b.classList.toggle("on", nn(b.dataset.tf));
+      });
+    }
+    ["ob", "2h", "4h", "whale"].forEach(function (tf) {
+      var b = el("button", "nk-t"); b.type = "button"; b.dataset.tf = tf;
+      b.textContent = NN_ENG[tf] || tf;
+      b.title = "Klik untuk hidup/matikan notifikasi engine ini";
+      b.addEventListener("click", function () {
+        NNOTE[tf] = nn(tf) ? 0 : 1;
+        try { localStorage.setItem("qkuk_nkanal", JSON.stringify(NNOTE)); } catch (e) {}
+        paintNk();
+      });
+      nk.appendChild(b);
+    });
+    paintNk();
+    bx.appendChild(nk);
     document.body.appendChild(ov);
     function close() {
       ov.classList.add("out");
@@ -2503,16 +2605,27 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function deskReady() {
     return ("Notification" in window) && Notification.permission === "granted" && DESK;
   }
+  /* 14 Okt (permintaan user) — NOTIFIKASI PER ENGINE: 4 engine aktif
+     (BRICK/HARVEST/SWING/WHALE) masing-masing punya toggle & emoji sendiri.
+     Default SEMUA ON; preferensi di localStorage "qkuk_nkanal" (JSON tf→0/1).
+     Judul notifikasi memakai emoji engine = beda visual di lock screen,
+     dgn nama singkat agar muat di banner HP. */
+  var NN_ENG = { "ob": "🧱 BRICK", "2h": "🩸 HARVEST", "4h": "🧵 SWING", "whale": "🐳 WHALE" };
+  var NNOTE = {};
+  try { NNOTE = JSON.parse(localStorage.getItem("qkuk_nkanal") || "{}") || {}; } catch (e) {}
+  function nn(tf) { return NNOTE[tf] !== 0; }   // default ON dgn nn(tf)
   function deskNotify(kind, sym, tf, ts, dir) {
     if (!deskReady() || !document.hidden) return;   // tab aktif = toast cukup
+    if (!nn(tf)) return;                            // 14 Okt: filter per engine
     /* 13 Okt — jalur PWA: SW Device (Notification.showNotification) dgn ikon PWA;
        fallback Notification() utk browser tanpa SW (mode lama).
        Klik notif: buka NOTIF_INFO  — buka tab chart & fokuskan tab situs. */
-    var judul = (kind === "sinyal" ? "SINYAL BARU — " : "WATCHLIST BARU — ") + sym;
+    var eng = NN_ENG[tf] || ("ENGINE " + (tf || "").toUpperCase());
+    var judul = eng + " — SINYAL " + sym;
     var body = (dir === "long" || dir === "short" ? dir.toUpperCase() + " · " : "")
               + (tf || "").toUpperCase() + (ts ? " · " + ts : "")
               + " · klik untuk buka TradingView";
-    var tagTxt = "qkuk-" + ts + "|" + sym + "|" + tf;
+    var tagTxt = "qkuk-" + tf + "-" + ts + "|" + sym;
     var opsi = { body: body, tag: tagTxt, icon: QKUK_ICON, badge: QKUK_ICON, renotify: true,
                  data: { url: tvUrl(sym, tf) } };   // 13 Okt: SW notificationclick pakai URL chart spesifik
     try {
@@ -2539,6 +2652,26 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     try {
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("sw.js").catch(function () {});
+      }
+    } catch (e) {}
+    /* 14 Okt (permintaan user — iPhone): NOTIFIKASI WEB-PUSH DI iOS hanya
+       jalan di PWA yang sudah ditambahkan ke Home Screen (Safari 16.4+).
+       Safari tab biasa = tidak ada notifikasi, itu batasan Apple. Deteksi:
+       iPhone && bukan standalone → banner sekali sehari mengajak install. */
+    try {
+      var iOS    = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      var alone  = window.navigator.standalone === true
+                || window.matchMedia("(display-mode: standalone)").matches;
+      if (iOS && !alone && !("Notification" in window && Notification.permission === "denied")) {
+        var KEY = "qkuk_ios_hint";
+        var last = 0;
+        try { last = +(localStorage.getItem(KEY) || 0); } catch (e) {}
+        if (Date.now() - last > 86400000) {
+          setTimeout(function () {
+            try { localStorage.setItem(KEY, String(Date.now())); } catch (e) {}
+            toast("ios-hint", "iOS", "", "", "");
+          }, 2500);
+        }
       }
     } catch (e) {}
     try {
@@ -4009,8 +4142,83 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       }
       tg.appendChild(btn("wr", "winrate"));
       tg.appendChild(btn("pct", "total %"));
+      /* 14 Okt (prioritas #5) — MODE "hari": 7 kolom Senin-Minggu, look jam × hari. */
+      tg.appendChild(btn("hari", "× hari"));
       host.appendChild(tg);
     })();
+    /* 14 Okt — mode 'hari': tabel 7 hari (Senin awal minggu, konvensi bursa)
+       × 4 engine dari sumber pick yang sama — jawab cepat "Senin pagi selalu jelek?" */
+    if (HH_MODE === "hari") {
+      var PERH = {};     // per[hari_i][tf] = [n, w, sum%]
+      var HMUL = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+      var setb = {};     // set(hari_i, tf) → [n,w,pct]
+      for (var di = 0; di < 7; di++) { setb[di] = {}; TFH.forEach(function (t) { setb[di][t[0]] = [0, 0, 0]; }); }
+      ord().forEach(function (tf) {
+        ["pantau", "sinyal"].forEach(function (jenis) {
+          liveRows(tf, jenis).forEach(function (r) {
+            var p = r.apick; if (!p) return;
+            if (p.win !== 0 && p.win !== 1) return;
+            var dd = dowParseTs(r.ts); if (!dd) return;
+            var wi = (dd.getDay() + 6) % 7;                // Senin=0 … Minggu=6
+            var pct = hasPct(p.pct) ? p.pct : (p.win === 1 ? 1 : -1);
+            var cc = setb[wi][tf]; cc[0]++; cc[1] += p.win; cc[2] += pct;
+          });
+        });
+      });
+      var w2 = el("div", "plog-scroll"), t2 = el("table", "hh-t");
+      var th2 = el("thead"), trh2 = el("tr");
+      trh2.appendChild(el("th", "hh-jam", "hari"));
+      TFH.map(function (t) { return t[1]; }).concat(["TOTAL"]).forEach(function (x) { trh2.appendChild(el("th", null, x)); });
+      trh2.appendChild.apply(trh2.children || trh2.children, []);
+      th2.appendChild(trh2); t2.appendChild(th2);
+      var tb2 = el("tbody");
+      var hTOT = 0;
+      for (var dI = 0; dI < 7; dI++) {
+        TFH.forEach(function (t) { hTOT += setb[dI][t[0]][0]; });
+      }
+      if (!hTOT) {
+        host.appendChild(el("div", "plog-empty", "belum ada resolve — mode × hari terisi otomatis"));
+        return;
+      }
+      for (var di2 = 0; di2 < 7; di2++) {
+        var trr = el("tr");
+        if (di2 === ((new Date().getDay() + 6) % 7)) trr.classList.add("hh-today");
+        trr.appendChild(el("td", "hh-jam", HMUL[di2]));
+        var tt2 = [0, 0, 0];
+        TFH.forEach(function (t) {
+          var c = setb[di2][t[0]]; tt2[0] += c[0]; tt2[1] += c[1]; tt2[2] += c[2];
+        });
+        var bestH2 = tt2[0] ? Math.max.apply(null, TFH.map(function (t) {
+          var c = setb[di2][t[0]]; return c[0] ? c[1] / c[0] : -1;
+        })) : 0;
+        TFH.forEach(function (t) {
+          var c = setb[di2][t[0]], td = el("td", "hh-c");
+          if (c[0]) {
+            var wr = c[1] / c[0] * 100;
+            td.className = "hh-c " + kelas(wr, true);
+            td.appendChild(el("span", "hh-wr " + (wr >= 50 ? "pos" : "neg"), wr.toFixed(0) + "%"));
+            td.appendChild(el("span", "hh-sub", c[0] + " picks · " + sgn(c[2], 1) + "%"));
+            if (c[0] && c[1] / c[0] === bestH2) td.appendChild(el("span", "hh-star", "\u2726"));
+            td.title = t[1] + " @ " + HMUL[di2] + " \u2014 " + c[0] + " pick, menang " + c[1]+ " (" + wr.toFixed(1) + "), total " + sgn(c[2], 1) + "%";
+          } else { td.classList.add("hh-none"); td.title = "belum ada resolve di hari ini"; }
+          trr.appendChild(td);
+        });
+        var tdT2 = el("td", "hh-c");
+        if (tt2[0]) {
+          var wrT2 = tt2[1] / tt2[0] * 100;
+          tdT2.className = "hh-c " + kelas(wrT2, true);
+          tdT2.appendChild(el("span", "hh-wr " + (wrT2 >= 50 ? "pos" : "neg"), wrT2.toFixed(0) + "%"));
+          tdT2.appendChild(el("span", "hh-sub", tt2[0] + " picks · " + sgn(tt2[2], 1) + "%"));
+          tdT2.title = HMUL[di2] + " total \u2014 " + tt2[0] + " pick, menang " + tt2[1] + " (" + wrT2.toFixed(1) + "), total " + sgn(tt2[2], 1) + "%";
+        } else { tdT2.classList.add("hh-none"); }
+        trr.appendChild(tdT2);
+        tb2.appendChild(trr);
+      }
+      t2.appendChild(tb2); w2.appendChild(t2);
+      host.appendChild(w2);
+      host.appendChild(el("div", "pn-h lv-sub", "hari terbaik — baris hari ini di-highlight"));
+      return;                                            // selesai 7-hari
+    }
     if (!TOT) {
       host.appendChild(el("div", "plog-empty", "belum ada resolve — isi win/loss lewat tombol ambil, heat table terisi otomatis"));
       return;
@@ -4412,6 +4620,20 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   sndIcon();
   function toast(kind, sym, tf, ts, dir) {
     var host = $("#toasts"); if (!host) return;
+    /* 14 Okt — toast petunjuk iOS: cara nyalakan notifikasi di iPhone. */
+    if (kind === "ios-hint") {
+      var tI = el("div", "toast t-wat t-hint");
+      var bI = el("div", "tbody");
+      bI.appendChild(el("span", "tkind", "📱 NOTIFIKASI DI iPHONE"));
+      bI.appendChild(el("span", "tsub", "Safari biasa tidak bisa — buka menu Share → 'Add to Home Screen', lalu buka lewat ikon QKUK. Notifikasi lalu tampil di lock screen (iOS 16.4+)."));
+      var xI = el("button", "tx"); xI.type = "button"; xI.textContent = "×";
+      tI.appendChild(bI); tI.appendChild(xI);
+      host.appendChild(tI);
+      requestAnimationFrame(function () { requestAnimationFrame(function () { tI.classList.add("in"); }); });
+      xI.addEventListener("click", function () { if (tI.parentNode) tI.parentNode.removeChild(tI); });
+      setTimeout(function () { if (tI.parentNode) { tI.classList.remove("in"); setTimeout(function () { if (tI.parentNode) tI.parentNode.removeChild(tI); }, 320); } }, 14000);
+      return;
+    }
     var t = el("div", "toast " + (kind === "sinyal" ? "t-sig" : "t-wat"));
     var b = el("div", "tbody");
     b.appendChild(el("span", "tkind", kind === "sinyal" ? "SINYAL BARU" : "WATCHLIST BARU"));

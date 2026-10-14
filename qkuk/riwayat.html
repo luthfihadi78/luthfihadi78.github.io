@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>QKUK — Riwayat Pilihan Admin (arsip)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noarchive">
+<style>
+:root{--s0:#0D1411;--fg:#E8E3D5;--fg2:#8FA098;--up:#6EE7B7;--dn:#ff7a6e;--mono:'Geist Mono',ui-monospace,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:#0A0F0D;color:var(--fg);font-family:var(--mono);font-size:13px;padding:18px 16px 40px}
+h1{font-size:15px;font-weight:600;letter-spacing:.04em;margin:0 0 4px;color:var(--up)}
+.sub{color:var(--fg2);font-size:11px;margin-bottom:18px}
+.wrap{max-width:1180px;margin:0 auto}
+.kartu{background:var(--s0);border:1px solid #1c2a24;border-radius:9px;padding:14px 16px;margin-bottom:14px}
+.kartu h2{font-size:12.5px;color:var(--up);letter-spacing:.05em;margin:0 0 10px;font-weight:600;text-transform:uppercase}
+.bar-chart{display:flex;flex-direction:column;gap:6px}
+.bulan-row{display:grid;grid-template-columns:74px 1fr 120px;gap:10px;align-items:center;font-size:11.5px}
+.bulan-l{color:var(--fg2)}
+.bar-bg{position:relative;height:16px;background:#111c17;border-radius:4px;overflow:hidden}
+.bar-fill{position:absolute;top:0;bottom:0;border-radius:4px;background:rgba(110,231,183,.35);border-right:2px solid var(--up)}
+.bar-fill.neg{background:rgba(255,122,110,.25);border-right-color:var(--dn)}
+.bulan-r{text-align:right;color:var(--fg2)}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{text-align:left;color:var(--fg2);font-weight:500;padding:6px 8px;border-bottom:1px solid #1c2a24;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase}
+td{padding:6px 8px;border-bottom:1px solid #14211b}
+td.pos{color:var(--up)} td.neg{color:var(--dn)} td.mut{color:var(--fg2)}
+.lm{display:inline-block;min-width:44px;padding:2px 5px;border-radius:3px;font-size:10.5px}
+.lm.long{background:rgba(110,231,183,.1);color:var(--up)}
+.lm.short{background:rgba(255,122,110,.1);color:var(--dn)}
+.kosong{color:var(--fg2);padding:22px;text-align:center}
+@media(max-width:640px){.bulan-row{grid-template-columns:60px 1fr 90px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>QKUK — RIWAYAT PILIHAN ADMIN</h1>
+<div class="sub">arsip kurva akurasi live (BISA dibuka dgn mata manusia, bukan hanya JSON mentah) · hasil = untung/rugi <b>nett %</b> per pick · diperbarui bot harian dari cloud picks</div>
+<div class="kartu"><h2>nett % per bulan</h2><div class="bar-chart" id="bkurva"></div></div>
+<div class="kartu"><h2>semua pilihan yang sudah selesai</h2><div id="btab"></div></div>
+<div class="sub" style="margin-top:18px">sumber: snapshot harian cloud picks (textdb) di repo <code>logs/picks_backup/</code> — halaman ini pre-render, nol API, nol kredensial.</div>
+</div>
+<script>
+fetch("picks-data.json?t=" + Date.now(), { cache: "no-store" })
+ .then(function (r) { return r.json(); })
+ .then(function (d) {
+  var eng = { "ob": "BRICK", "2h": "HARVEST", "4h": "SWING", "whale": "WHALE", "15m": "DART", "30m": "REA", "1h": "SNIPER" };
+  /* ── kurva bar per bulan ── */
+  var host = document.getElementById("bkurva");
+  var MABS = Math.max(5, Math.max.apply(null, (d.bulan || []).map(function (b) { return Math.abs(b.sum || 0); })));
+  (d.bulan || []).forEach(function (b) {
+    var r = document.createElement("div"); r.className = "bulan-row";
+    var l = document.createElement("span"); l.className = "bulan-l"; l.textContent = b.b;
+    var c = document.createElement("div"); c.className = "bar-bg";
+    var f = document.createElement("div");
+    f.className = "bar-fill" + (b.sum < 0 ? " neg" : "");
+    var w = Math.min(100, Math.abs(b.sum) / MABS * 100) + "%";
+    if (b.sum < 0) f.style.right = 0, f.style.left = (100 - Math.abs(w.replace("%","") - 0)) + "%";
+    else f.style.left = 0;
+    f.style.width = w;
+    c.appendChild(f);
+    var q = document.createElement("span"); q.className = "bulan-r";
+    q.textContent = (b.sum >= 0 ? "+" : "") + b.sum.toFixed(1) + "% · " + b.n + " pick · WR " + (b.wr == null ? "—" : b.wr.toFixed(0) + "%");
+    r.appendChild(l); r.appendChild(c); r.appendChild(q); host.appendChild(r);
+  });
+  if (!(d.bulan || []).length) { host.innerHTML = '<div class="kosong">belum ada bulan tuntas</div>'; }
+  /* ── tabel semua resolve ── */
+  var tb = document.getElementById("btab");
+  if (!(d.rows || []).length) { tb.innerHTML = '<div class="kosong">belum ada pick resolve</div>'; return; }
+  var T = '<table><thead><tr><th>waktu resolve</th><th>engine</th><th>simbol</th><th>arah</th><th>hasil</th><th>admin</th></tr></thead><tbody>';
+  d.rows.slice().reverse().forEach(function (r) {
+    T += "<tr><td class=\"mut\">" + r.t.replace("T", " ").slice(0, 16)
+      + "</td><td>" + (eng[r.tf] || r.tf) + "</td><td><b>" + r.sym + "</b></td>"
+      + "<td><span class=\"lm " + (r.arah || "long") + "\">" + (r.arah || "?") + "</span></td>"
+      + "<td class=\"" + (r.win ? "pos" : "neg") + "\">" + (r.pct == null ? (r.win ? "+1" : "-1") : (r.pct >= 0 ? "+" : "") + r.pct) + "%"
+      + (r.win ? " ✔" : " ✘") + "</td><td class=\"mut\">" + (r.who || "QKUK") + "</td></tr>";
+  });
+  tb.innerHTML = T + "</tbody></table>";
+ })
+ .catch(function (e) {
+  document.getElementById("bkurva").innerHTML = '<div class="kosong">gagal memuat picks-data.json — ' + e + '</div>';
+ });
+</script>
+</body>
+</html>
