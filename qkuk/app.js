@@ -211,8 +211,6 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         bd === "netral" ? "NEUTRAL" : bd.toUpperCase(), "mut");
     }
     /* 15 Okt (permintaan user): catatan penjelasan panjang dihapus — situs bersih */
-        + "the engine does not trade on it.";
-    m.appendChild(note);
     gaugeLivePaint();
   }
   function btc1h(cb) {
