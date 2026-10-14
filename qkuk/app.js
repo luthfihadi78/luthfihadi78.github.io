@@ -269,7 +269,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
          Dulu menampilkan nama rezim tabel stale (mis. "SANGAT BULLISH
          (altseason)" dari log berhari-hari lalu) persis di bawah label LIVE —
          terbaca seperti gauge berkata dua hal bertentangan sekaligus. */
-      $("#gname").textContent = "arah live · 2×mayoritas grup + BTC 1h + BTC.D + USDT.D";
+      $("#gname").textContent = "arah live · dominan HARVEST 2H (sinyal/watchlist) + mayoritas + BTC";
       var m = $("#dmeta"); m.innerHTML = "";
       function r(l, v2, c) {
         var x = el("div", "dr");
@@ -294,6 +294,22 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           V.status === "altseason" || V.status === "long" ? "pos"
           : V.status === "crash" || V.status === "short" ? "neg" : "mut");
         if (V.why) r("kondisi", V.why, "mut");
+      }
+      /* 15 Okt — komponen dominan baru: sinyal terbuka / watchlist HARVEST 2H */
+      if (V.harvest) {
+        var hlv = V.harvest;
+        r("HARVEST 2H",
+          "SINYAL " + (hlv.sym || "").replace(/USDT$/, "") + " " + (hlv.dir || "").toUpperCase()
+          + (V.harvestAge != null ? " · " + umur(V.harvestAge) + " lalu" : "")
+          + " → dHv " + sgn(V.dHv, 1),
+          hlv.dir === "long" ? "pos" : "neg");
+      } else if (V.harvestWatch) {
+        r("HARVEST 2H",
+          "watchlist pending — bias " + (V.harvestWatch > 0 ? "LONG" : "SHORT")
+          + " → dHv " + sgn(V.dHv, 1),
+          V.harvestWatch > 0 ? "pos" : "neg");
+      } else {
+        r("HARVEST 2H", "tidak ada sinyal terbuka / watchlist baru", "mut");
       }
       if (DEG) {
         r("status data", "DEGRADED — " + (V.degrade_reason || "input basi"), "warn");
@@ -392,12 +408,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (btcMom != null && isFinite(btcMom))
         r("momentum BTC", sgn(btcMom, 2) + "% (24 jam)", btcMom > 0 ? "pos" : btcMom < 0 ? "neg" : "mut");
       var note = el("div", "dnote");
-      note.textContent = "Arah LIVE = mayoritas watchlist+sinyal reclaim + BTC 1h + BTC.D + USDT.D "
-        + "(v35: skor = maj + BTC − BTC.D − 0,5×USDT.D; USDT.D naik menekan alt). Enam status: "
-        + "LONG (skor ≥+3) · ALTSEASON (≥+6 + BTC.D turun + BTC tak jatuh) · NETRAL · SHORT (≤−3) · "
-        + "CRASH (≤−6 + BTC −3% /24j) · DEGRADED (input basi). Balik arah butuh skor ≥4 atau "
-        + "dominan sepakat; keluar NETRAL butuh skor ≥3 selama 2 jam beruntun — gauge tidak "
-        + "lagi medsor dua-dua kali sejam. CoinGecko basi >24 jam → dominan tidak dihitung.";
+      note.textContent = "Arah LIVE baru (15 Okt): SINYAL TERBUKA TERBARU HARVEST 2H jadi "
+        + "komponen terbesar (±6) — rezim mengikuti sinyal reclaim itu, jadi gauge tidak goyang "
+        + "dipicu mayoritas sekali berubah. Tanpa sinyal terbuka: 3 watchlist 2h terbaru kasih "
+        + "bias lembut ±2,5, dan klasifikasi memakai komposit mayoritas + BTC 1h + BTC.D + USDT.D. "
+        + "Rezim: CRASH (skor ≤−6 + BTC jatuh ≥3%/24j) · ALTSEASON (skor ≥+6 + BTC.D turun + BTC tak "
+        + "jatuh) · LONG/SHORT (sinyal 2h ATAU skor ≥±3) · NETRAL (tengah). Tahanan rezim engine "
+        + "lolos bila tidak ada sinyal 2h; saat ada, sinyal menang.";
       m.appendChild(note);
     }
     /* 20 Sep v28: nilai arah dihitung JUGA di engine (dashboard_data →
@@ -602,37 +619,73 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      Sinkron dengan gauge_live.py v35 — satu sumber kebenaran. */
   var G35 = { thLong: 3, thShort: -3, thExtreme: 6, usdtW: 0.5 };
   function hitungStatus(V) {
+    /* 15 Okt (permintaan user) — GAUGE DIDOMINASI HARVEST 2H: sinyal TERBUKA
+       terbaru di kanal 2h (st "fired") jadi komponen TERBESAR (±6) — status
+       rezim mengikuti arah sinyal itu. Tanpa sinyal terbuka, 3 baris watchlist
+       2h terbaru memberi bias lembut ±2,5. Mayoritas grup / BTC / BTC.D /
+       USDT.D tinggal pengimbang ±1–2 → gauge stabil, berubah hanya saat
+       sinyal 2h berganti (yang pasti jarang, kanalnya 2 jam). */
+    var S2 = (DATA && DATA.live && DATA.live["2h"]) || {};
+    var sig2 = S2.sinyal || [], wat2 = S2.pantau || [];
+    var dom = null;
+    for (var i2 = sig2.length - 1; i2 >= 0; i2--) {
+      var s2 = sig2[i2];
+      if (s2 && s2.st === "fired" && (s2.dir === "long" || s2.dir === "short")) { dom = s2; break; }
+    }
+    var wdom = 0;
+    if (!dom && wat2.length) {
+      var mw = 0;
+      for (var j2 = Math.max(0, wat2.length - 3); j2 < wat2.length; j2++) {
+        var w2 = wat2[j2];
+        if (w2 && w2.dir === "long") mw++; else if (w2 && w2.dir === "short") mw--;
+      }
+      if (mw !== 0) wdom = (mw > 0 ? 2.5 : -2.5) * Math.min(1, Math.abs(mw) / 2);
+    }
+    var dHv = dom ? (dom.dir === "long" ? 6 : -6) : wdom;
+    var domAge = null;
+    if (dom) {
+      var t2 = Date.parse(String(dom.ts).replace(" ", "T") + "+07:00");
+      if (!isNaN(t2)) domAge = Math.max(0, (Date.now() - t2) / 1000);
+    }
+    V.harvest = dom; V.harvestWatch = wdom; V.harvestAge = domAge; V.dHv = dHv;
     var mom = (V.btc24h != null) ? V.btc24h : 0;
     var dU = (V.sUsdtd || 0) * G35.usdtW, dB = V.sBtcd || 0;
-    var skor = (V.maj || 0) + (V.dirBtc || 0) - dB - dU;
+    var skor = (V.maj || 0) + (V.dirBtc || 0) - dB - dU + dHv;
     V.scoreRaw = Math.round(skor * 10) / 10;
     V.score = Math.round(skor);
     V.strength = Math.abs(V.scoreRaw);
     var domAda = V.domAda !== undefined ? V.domAda : (V.btcD != null);
     var sR = V.scoreRaw;
-    if (sR >= G35.thExtreme && domAda && dB < 0 && mom > -1) {
-      V.status = "altseason"; V.bias = "long";
-      V.why = "skor " + sR + " + BTC.D turun (uang rotasi ke alt) + BTC tak jatuh";
-    } else if (sR <= -G35.thExtreme && domAda && mom < -3) {
+    if (sR <= -G35.thExtreme && domAda && mom < -3) {
       V.status = "crash"; V.bias = "short";
       V.why = "skor " + sR + " + BTC " + sgn(mom, 1) + "% (24 jam) — risk-off dalam";
+    } else if (sR >= G35.thExtreme && domAda && dB < 0 && mom > -1) {
+      V.status = "altseason"; V.bias = "long";
+      V.why = "skor " + sR + " + BTC.D turun (uang rotasi ke alt) + BTC tak jatuh";
+    } else if (dom) {
+      V.status = dom.dir; V.bias = dom.dir;
+      V.why = "sinyal HARVEST 2H " + (dom.sym || "") + (dom.dir === "long" ? " LONG (reclaim)" : " SHORT")
+        + (domAge != null ? " — " + Math.floor(domAge / 3600) + "j" + Math.floor((domAge % 3600) / 60) + "m lalu" : "")
+        + " · komponen terbesar gauge (" + sgn(dHv, 1) + ")";
     } else if (sR >= G35.thLong) {
       V.status = "long"; V.bias = "long";
-      V.why = domAda ? "skor " + sR + " — dominan tidak melawan"
+      V.why = domAda ? "skor " + sR + " — mayoritas + BTC sepakat, belum ada sinyal terbuka 2h"
                      : "skor " + sR + " (tanpa data dominan)";
     } else if (sR <= G35.thShort) {
       V.status = "short"; V.bias = "short";
-      V.why = domAda ? "skor " + sR + " — dominan tidak melawan"
+      V.why = domAda ? "skor " + sR + " — mayoritas + BTC sepakat, belum ada sinyal terbuka 2h"
                      : "skor " + sR + " (tanpa data dominan)";
     } else {
       V.status = "netral"; V.bias = "netral";
-      V.why = "skor " + sR + " di zona tengah (−3..+3)";
+      V.why = "skor " + sR + " di zona tengah — >3 poin dari sinyal/mayoritas diperlukan";
     }
     /* histeresis: cocokkan dgn bias engine (altdir_live.bias sudah melewati
        gate yang sama di server) — kalau engine MENAHAN rezim lama, browser
        ikut menahan; kalau engine flip, browser flip. */
+    /* 15 Okt: tahanan rezim engine (pubBias) TIDAK dipakai saat sinyal 2h
+       memerintah — dominan HARVEST menang, gauge harus mengikuti sinyal baru. */
     var pubBias = (DATA.altdir_live || {}).bias;
-    if (pubBias && pubBias !== V.bias && pubBias !== "netral" && V.bias !== "netral") {
+    if (!dom && pubBias && pubBias !== V.bias && pubBias !== "netral" && V.bias !== "netral") {
       V.bias = pubBias;
       V.status = (pubBias === "long" ? "long" : pubBias === "short" ? "short" : "netral");
       V.why = "rezim ditahan " + pubBias.toUpperCase() + " — " + V.why;
@@ -2409,7 +2462,18 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     { id: "crystal", label: "Crystal berkilau", wave: "sine",     seq: [[0, 1318.51, .3, .55], [.06, 1760, .3, .4], [.12, 2637, .44, .3]] },
     { id: "beacon",  label: "Beacon kapal",     wave: "triangle", seq: [[0, 622.25, .30, .9], [.34, 622.25, .30, .7]] },
     { id: "rocket",  label: "Rocket launch",    wave: "sawtooth", seq: [[0, 261.63, .45, .4, "rise"], [.10, 523.25, .4, .3]] },
-    { id: "startup", label: "Startup terminal", wave: "triangle", seq: [[0, 392, .14, .8], [.15, 523.25, .14, .8], [.30, 659.25, .14, .8], [.45, 783.99, .42, .9]] }
+    { id: "startup", label: "Startup terminal", wave: "triangle", seq: [[0, 392, .14, .8], [.15, 523.25, .14, .8], [.30, 659.25, .14, .8], [.45, 783.99, .42, .9]] },
+    /* 15 Okt — 10 jenis baru (permintaan user): 20 → 30 pilihan */
+    { id: "siren",   label: "Siren dua nada",   wave: "triangle", seq: [[0, 660, .14, .8], [.15, 880, .14, .8], [.30, 660, .14, .8], [.45, 880, .30, .8]] },
+    { id: "horn",    label: "Klakson kapal",    wave: "sawtooth", seq: [[0, 440, .35, .55], [.02, 554.37, .35, .4], [.42, 440, .45, .5], [.44, 554.37, .45, .35]] },
+    { id: "glass",   label: "Pecahan kaca",     wave: "sine",     seq: [[0, 1567.98, .12, .5], [.06, 2093, .12, .4], [.12, 2637.02, .16, .35], [.20, 3135.96, .30, .3]] },
+    { id: "uke",     label: "Ukulele senang",   wave: "triangle", seq: [[0, 659.25, .10, .9], [.08, 880, .10, .9], [.16, 1318.51, .26, .8]] },
+    { id: "phone",   label: "Telepon lama",     wave: "square",   seq: [[0, 1046.5, .06, .35], [.09, 1046.5, .06, .35], [.18, 1046.5, .06, .35], [.27, 1046.5, .06, .35]] },
+    { id: "kasir",   label: "Kasir cha-ching", wave: "sine",     seq: [[0, 1318.51, .10, .9], [.10, 1760, .10, .9], [.20, 2637.02, .40, .8]] },
+    { id: "genta",   label: "Genta kuil",      wave: "sine",     seq: [[0, 392, .60, .9], [.01, 587.33, .55, .45], [.02, 783.99, .50, .3]] },
+    { id: "kick",    label: "Kick drum",       wave: "sine",     seq: [[0, 150, .16, 1, "glide"], [.10, 90, .18, .8, "glide"]] },
+    { id: "morse",   label: "Kode morse",      wave: "square",   seq: [[0, 880, .07, .4], [.12, 880, .07, .4], [.24, 880, .22, .4]] },
+    { id: "bintang", label: "Bintang jember",  wave: "sine",     seq: [[0, 523.25, .11, .9], [.12, 659.25, .11, .9], [.24, 783.99, .11, .9], [.36, 1046.5, .11, .9], [.48, 1318.51, .40, 1]] }
   ];
   var VOL = 0.8;                       // volume master 0–1
   try { var _v = parseFloat(localStorage.getItem("qkuk_vol")); if (!isNaN(_v) && _v >= 0 && _v <= 1) VOL = _v; } catch (e) {}
@@ -2485,7 +2549,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     xc.setAttribute("aria-label", "Tutup pengaturan suara");
     hd.appendChild(xc);
     bx.appendChild(hd);
-    bx.appendChild(el("p", "snd-sub", "Pilih salah satu dari 20 jenis — contohnya langsung diputar saat dipilih. Notifikasi desktop muncul saat tab tidak aktif. Pilihan & volume tersimpan di perangkat ini."));
+    bx.appendChild(el("p", "snd-sub", "Pilih salah satu dari 30 jenis — contohnya langsung diputar saat dipilih. Notifikasi desktop muncul saat tab tidak aktif. Pilihan & volume tersimpan di perangkat ini."));
     var grid = el("div", "snd-grid");
     SOUNDS.forEach(function (s, i) {
       var b = el("button", "snd-opt" + (i === SIDX ? " on" : "")); b.type = "button";
@@ -2573,6 +2637,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     });
     paintNk();
     bx.appendChild(nk);
+    /* 15 Okt (bug blank): kotak panel pernah HILANG baris `ov.appendChild(bx)`
+       — overlay muncul sebagai layar gelap kosong. Kini kotak dipasang
+       sebelum overlay di-append ke body. */
+    ov.appendChild(bx);
     document.body.appendChild(ov);
     function close() {
       ov.classList.add("out");
