@@ -254,6 +254,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       }
       $("#g-fl").querySelectorAll(".fl").forEach(function (e) { e.setAttribute("fill", col); });
       $("#glow").style.background = "radial-gradient(circle, " + col + "55 0%, transparent 68%)";
+      /* 15 Okt — aura ekstrem: ALTSEASON api lebih terang & besar; CRASH api
+         merah berdarah dgn aura terbakar besar (kelas .st-alt / .st-crash). */
+      var gw = document.querySelector(".gwrap"), gf = $("#g-fl");
+      if (gw) {
+        gw.classList.toggle("st-alt", st === "altseason");
+        gw.classList.toggle("st-crash", st === "crash");
+      }
+      if (gf) {
+        gf.classList.toggle("st-alt", st === "altseason");
+        gf.classList.toggle("st-crash", st === "crash");
+      }
       var bA = $("#gbias"); bA.textContent = lab + " · LIVE"; bA.style.color = col;
       if (DEG && V.degrade_reason) bA.title = "input basi: " + V.degrade_reason;
       /* 21 Sep — gname = keterangan sumber arah, BUKAN rezim backtest.
@@ -698,33 +709,69 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     V.strength = Math.abs(V.scoreRaw);
     var domAda = V.domAda !== undefined ? V.domAda : (V.btcD != null);
     var sR = V.scoreRaw;
-    if (dirUsdt !== 0) {
-      /* INVERSI PASAR dari arah USDT.D (revisi-2):
-         USDT.D bullish (reclaim swing high) → uang lari ke stable →
-         pasar SHORT; ekstrem + BTC jatuh → CRASH.
-         USDT.D bearish (breakdown swing low) → uang masuk alt → LONG,
-         tapi sisi ini 47% di backtest → butuh skor ≥ ambang (konfirmasi
-         mayoritas/BTC); tanpa konfirmasi = netral, tak dipaksa arah. */
-      var usrcl = V.usdtRcl, pakaiR = (usrcl != null && usrcl !== 0);
-      var sgnArah = pakaiR ? usrcl : dirUsdt;      // + = USDT bullish, − = USDT bearish
-      var rclTxt = pakaiR ? "reclaim 2H USDT.D" : "Δ3j USDT.D";
-      if (sgnArah > 0 && mom < -3) {
-        V.status = "crash"; V.bias = "short";
-        V.why = "USDT.D " + rclTxt + " bullish + BTC " + sgn(mom, 1)
-          + "% (24 jam) — uang lari ke stable → risk-off (skor " + sR + ")";
-      } else if (sgnArah > 0) {
-        V.status = "short"; V.bias = "short";
-        V.why = "USDT.D " + rclTxt + " bullish (dominan — sisi 92% backtest)"
-          + (dHv ? " · HARVEST 2h " + (dHv > 0 ? "LONG" : "SHORT") + " tak sepakat — USDT menang" : "");
-      } else if (domAda && dB < 0 && mom > -1 && sR >= G35.thLong) {
-        V.status = "long"; V.bias = "long";
-        V.why = "USDT.D " + rclTxt + " bearish + BTC.D turun + BTC tak jatuh — "
-          + "konfirmasi komposit lolos (skor " + sR + ") → long/altseason";
-      } else {
-        V.status = "netral"; V.bias = "netral";
-        V.why = "USDT.D " + rclTxt + " bearish — sisi 47% di backtest, "
-          + "butuh konfirmasi komposit/skor (skor " + sR + ")";
-      }
+    /* ── KOMPOSISI PER-ENGINE (15 Okt, koreksi user) ──
+       • Harvest 2h TERBUKA banyak SHORT → SHORT; banyak LONG → LONG.
+       • Swing 4h + OB dua-duanya long-majority → LONG.
+       • SEMUA engine bearish + BTC turun + USDT.D naik → CRASH.
+       • SEMUA engine hijau + USDT.D turun → ALTSEASON.
+       USDT.D tetap d-bobot asimetris di skor (92%/47% backtest). */
+    var hitungKanal = function (tf) {
+      var L2 = (DATA.live || {})[tf] || {};
+      var L = 0, S = 0;
+      (L2.sinyal || []).forEach(function (r) {
+        if (r && r.st === "fired" && (r.dir === "long" || r.dir === "short"))
+          r.dir === "long" ? L++ : S++;
+      });
+      return { L: L, S: S };
+    };
+    var K2 = hitungKanal("2h"), K4 = hitungKanal("4h"), KO = hitungKanal("ob"), KW = hitungKanal("whale");
+    var arahK = function (k) { return (k.L + k.S) ? (k.L > k.S ? 1 : k.S > k.L ? -1 : 0) : 0; };
+    var d2 = arahK(K2), d4 = arahK(K4), dO = arahK(KO), dW = arahK(KW);
+    var berdata = [d2, d4, dO, dW].filter(function (d) { return d !== 0; });
+    var semuaMerah = berdata.length >= 2 && berdata.every(function (d) { return d < 0; });
+    var semuaHijau = berdata.length >= 2 && berdata.every(function (d) { return d > 0; });
+    var banyakShort2h = (K2.S >= 2 && K2.S > K2.L);
+    var banyakLong2h = (K2.L >= 2 && K2.L > K2.S);
+    var swingObLong = (d4 > 0 && dO > 0);
+    var usdtNaik = dirUsdt > 0, usdtTurun = dirUsdt < 0;
+    V.kanalArah = { "2h": d2, "4h": d4, ob: dO, whale: dW };
+    if (semuaMerah && mom < -3 && usdtNaik) {
+      V.status = "crash"; V.bias = "short";
+      V.why = "semua engine merah + BTC " + sgn(mom, 1) + "% (24 jam) + USDT.D naik — "
+        + "uang lari ke stable → CRASH";
+    } else if (semuaMerah && mom < -3) {
+      V.status = "crash"; V.bias = "short";
+      V.why = "semua engine merah + BTC " + sgn(mom, 1)
+        + "% (24 jam) jatuh — risk-off → CRASH (skor " + sR + ")";
+    } else if (semuaMerah) {
+      V.status = "short"; V.bias = "short";
+      V.why = "semua engine merah (bearish) — komposisi short" + (usdtNaik ? " + USDT.D naik" : "") + " (skor " + sR + ")";
+    } else if (semuaHijau && usdtTurun) {
+      V.status = "altseason"; V.bias = "long";
+      V.why = "semua engine hijau + USDT.D turun (uang masuk alt) — "
+        + "BTC " + (mom > -1 ? "tak jatuh" : sgn(mom, 1) + "% (24 jam)") + " (skor " + sR + ")";
+    } else if (banyakShort2h) {
+      V.status = "short"; V.bias = "short";
+      V.why = "Harvest 2h terbuka banyak SHORT (" + K2.S + "S vs " + K2.L + "L)"
+        + (usdtNaik ? " + USDT.D naik" : "") + " → komposisi short";
+    } else if (banyakLong2h) {
+      V.status = "long"; V.bias = "long";
+      V.why = "Harvest 2h terbuka banyak LONG (" + K2.L + "L vs " + K2.S + "S)"
+        + (usdtTurun ? " + USDT.D turun" : "") + " → komposisi long";
+    } else if (swingObLong) {
+      V.status = "long"; V.bias = "long";
+      V.why = "Swing 4h + OB dua-duanya long-majority → komposisi long"
+        + (usdtTurun ? " + USDT.D turun" : "") + " (skor " + sR + ")";
+    } else if (dirUsdt > 0 && mom < -3) {
+      V.status = "crash"; V.bias = "short";
+      V.why = "USDT.D reclaim bullish + BTC " + sgn(mom, 1) + "% (24 jam) — risk-off";
+    } else if (dirUsdt > 0) {
+      V.status = "short"; V.bias = "short";
+      V.why = "USDT.D reclaim 2H bullish (dominan — sisi 92% backtest)";
+    } else if (dirUsdt < 0 && domAda && dB < 0 && mom > -1 && sR >= G35.thLong) {
+      V.status = "long"; V.bias = "long";
+      V.why = "USDT.D reclaim bearish + BTC.D turun + BTC tak jatuh — "
+        + "konfirmasi komposit lolos (skor " + sR + ") → long/altseason";
     } else if (sR <= -G35.thExtreme && domAda && mom < -3) {
       V.status = "crash"; V.bias = "short";
       V.why = "skor " + sR + " + BTC " + sgn(mom, 1) + "% (24 jam) — risk-off dalam";
