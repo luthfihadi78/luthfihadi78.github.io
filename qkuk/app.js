@@ -2505,19 +2505,57 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   function deskNotify(kind, sym, tf, ts, dir) {
     if (!deskReady() || !document.hidden) return;   // tab aktif = toast cukup
-    try {
-      var n = new Notification(
-        (kind === "sinyal" ? "SINYAL BARU — " : "WATCHLIST BARU — ") + sym,
-        { body: (dir === "long" || dir === "short" ? dir.toUpperCase() + " · " : "")
+    /* 13 Okt — jalur PWA: SW Device (Notification.showNotification) dgn ikon PWA;
+       fallback Notification() utk browser tanpa SW (mode lama).
+       Klik notif: buka NOTIF_INFO  — buka tab chart & fokuskan tab situs. */
+    var judul = (kind === "sinyal" ? "SINYAL BARU — " : "WATCHLIST BARU — ") + sym;
+    var body = (dir === "long" || dir === "short" ? dir.toUpperCase() + " · " : "")
               + (tf || "").toUpperCase() + (ts ? " · " + ts : "")
-              + " · klik untuk buka TradingView",
-          tag: "qkuk-" + ts + "|" + sym + "|" + tf,
-          icon: QKUK_ICON, badge: QKUK_ICON, renotify: true });
-      n.onclick = function () {
+              + " · klik untuk buka TradingView";
+    var tagTxt = "qkuk-" + ts + "|" + sym + "|" + tf;
+    var opsi = { body: body, tag: tagTxt, icon: QKUK_ICON, badge: QKUK_ICON, renotify: true,
+                 data: { url: tvUrl(sym, tf) } };   // 13 Okt: SW notificationclick pakai URL chart spesifik
+    try {
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.getRegistration().then(function (reg) {
+          if (reg && reg.showNotification) reg.showNotification(judul, opsi);
+          else baruNotif();
+        }).catch(function () { baruNotif(); });
+      } else baruNotif();
+      function baruNotif() {
+        var n = new Notification(judul, opsi);
+        n.onclick = klikFn; setTimeout(function () { try { n.close(); } catch (e) {} }, 9000);
+      }
+      var klikFn = function () {
         try { window.focus(); window.open(tvUrl(sym, tf), "_blank", "noopener"); } catch (e) {}
-        n.close();
       };
-      setTimeout(function () { try { n.close(); } catch (e) {} }, 9000);
+    } catch (e) {}
+  }
+  /* 13 Okt — PWA: daftarkan service worker + tombol langganan notifikasi watchlist.
+     Beban zero-server: tanpa backend push, notifikasi dihosting dgn SW saat
+     halaman (statusnya) terbuka di belakang.
+    Admin dgn watchlist yang sering; user biasa aman (tidak apa intip). */
+  function pwaInit(tbtnBar) {
+    try {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js").catch(function () {});
+      }
+    } catch (e) {}
+    try {
+      var bar = document.querySelector(".bar-in");
+      if (!bar || document.getElementById("qk-notif-btn")) return;
+      var b = el("button", "adm-gear", "🔔"); b.id = "qk-notif-btn"; b.type = "button";
+      b.title = "Aktifkan notifikasi watchlist/sinyal di latar (PWA)";
+      function segar() {
+        var st = Notification && Notification.permission;
+        b.style.opacity = st === "granted" ? "1" : "0.55";
+      }
+      b.addEventListener("click", function () {
+        if (!("Notification" in window)) { alert("Browser tidak mendukung Notification."); return; }
+        if (Notification.permission === "denied") { b.title = "Notifikasi diblokir — buka izin situs di pengaturan browser"; return; }
+        Notification.requestPermission().then(function (s) { segar(); });
+      });
+      bar.appendChild(b); segar();
     } catch (e) {}
   }
   /* ═══════════════════════════════════════════════════════════════════
@@ -4572,6 +4610,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   gateInit();
 
   adminInit();
+  pwaInit();   // 13 Okt — daftarkan service worker + tombol 🔔 izin notifikasi PWA
   bbCacheLoad();   // %24j terakhir langsung hidup sebelum fetch pertama selesai
   load(true);
   setInterval(clock, 1000); clock();
