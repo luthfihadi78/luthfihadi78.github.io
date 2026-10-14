@@ -8,10 +8,10 @@
      live tak boleh basi; kalau network fail, biarkan error (tapi dgn offline
      fallback opsi halaman masih terbuka dgn data terakhir).
    - Notifikasi: SW menerima push/ klik notifikasi → fokus tab yang ada. */
-const CACHE = "qkuk-v20261013a";
+const CACHE = "qkuk-v20261014a";
 const SHELL = [
   "./", "./index.html", "./app.js", "./style.css", "./manifest.json",
-  "./whale.html", "./whale.js", "./icon-192.png", "./icon-512.png"
+  "./whale.html", "./whale.js", "./riwayat.html", "./icon-192.png", "./icon-512.png"
 ];
 
 self.addEventListener("install", function (e) {
@@ -31,6 +31,8 @@ self.addEventListener("fetch", function (e) {
   var url = new URL(e.request.url);
   // data live: selalu network
   if (/data\.json$/.test(url.pathname) || /picks\.json$/.test(url.pathname)
+      || /picks-data\.json$/.test(url.pathname)
+      || /\/archive\//.test(url.pathname)
       || url.hostname.indexOf("textdb.dev") >= 0 || url.hostname.indexOf("binance") >= 0
       || url.hostname.indexOf("coingecko") >= 0 || url.hostname.indexOf("coinpaprika") >= 0) {
     return;   // biarkan default network (tidak di-cache SW)
