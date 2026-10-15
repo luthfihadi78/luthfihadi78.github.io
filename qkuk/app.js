@@ -3234,6 +3234,19 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau belum ada yg lolos ambang, tampilkan "menunggu data" + tips.
      Dipanggil dari applyPicks → ikut segar tiap picks cloud berubah. */
   var MIN_AL_N = 3;
+  /* ring glow singkat saat komposisi #1 BERUBAH (nama/winrate/jumlah pick):
+     kotak analisis menyala mint 3.2 dtk supaya admin langsung sadar komposisi
+     terbaik sudah lain sebelum ambil posisi. Render pertama & render ulang
+     biasa (data sama) TIDAK menyala. */
+  var AN_LAST_TOP = "";
+  function anGlow(host) {
+    host.classList.remove("an-glow");
+    void host.offsetWidth;   // paksa reflow — animasi bisa diputar ulang
+    host.classList.add("an-glow");
+    clearTimeout(anGlow._t);
+    anGlow._t = setTimeout(function () { host.classList.remove("an-glow"); }, 3200);
+  }
+  var AN_LAST_POS = {};
   function comboStats() {
     var c = {};
     function add(nama, win) {
@@ -3268,18 +3281,49 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         "belum ada kombinasi alasan dgn cukup data (min " + MIN_AL_N
         + " pick resolved per kombinasi) — centang alasan & TF saat menekan \"ambil\", lalu resolve win/loss-nya"));
       host.appendChild(chips);
+      if (AN_LAST_TOP) anGlow(host);   // #1 hilang semua — tetap layak disorot
+      AN_LAST_TOP = ""; AN_LAST_POS = {};
       return;
     }
     stats.sort(function (a, b) { return (b.wr - a.wr) || (b.n - a.n); });
     var top = stats.slice(0, 3);
+    var kTop = top[0].nama + "|" + top[0].wr.toFixed(0) + "|" + top[0].n;
+    if (AN_LAST_TOP && AN_LAST_TOP !== kTop) anGlow(host);   // komposisi #1 berubah
+    AN_LAST_TOP = kTop;
     top.forEach(function (s, i) {
       var chip = el("div", "an-chip" + (i === 0 ? " best" : ""));
+      /* 15 Okt — chip #2/#3 dgn ring redup saat posisinya berubah antar render
+         (nama yang tadinya #2 naik ke #1 dsb). Pembanding: posisi nama di top
+         sebelumnya; pemain baru di #2/#3 juga berkedip redup karena merebut
+         kursi pemain lama. Data render ulang tanpa perubahan = tidak menyala. */
+      if (i > 0) {
+        var posLama = AN_LAST_POS[s.nama];
+        var pindah = posLama !== undefined && posLama !== i;
+        /* pemain baru di #2/#3: berkedip redup bila slot itu sebelumnya diisi
+           nama lain (merebut kursi pemain lama). Render pertama = tenang. */
+        if (posLama === undefined) {
+          var lama = null;
+          for (var k3 in AN_LAST_POS) {
+            if (AN_LAST_POS[k3] !== i) continue;
+            lama = k3; break;
+          }
+          if (lama !== null) pindah = true;
+        }
+        if (pindah) {
+          chip.classList.add("an-swap");
+          setTimeout(function (c) {
+            return function () { c.classList.remove("an-swap"); };
+          }(chip), 2600);
+        }
+      }
       chip.appendChild(el("span", "an-rank", i === 0 ? "#1" : "#" + (i + 1)));
       chip.appendChild(el("b", "an-nama", s.nama));
       chip.appendChild(el("span", "an-wr " + (s.wr >= 50 ? "pos" : "neg"), s.wr.toFixed(0) + "%"));
       chip.appendChild(el("span", "an-n", s.n + " pick"));
       chips.appendChild(chip);
     });
+    AN_LAST_POS = {};   // rekam posisi top render ini — pembanding render berikutnya
+    top.forEach(function (s, i) { AN_LAST_POS[s.nama] = i; });
     host.appendChild(chips);
     /* 11 Okt — TEKNIK-vs-TEKNIK Qkuk vs Gerry (permintaan user): winrate
        per alasan/teknik DIPECAH per admin; teknik dgn sampel cukup kedua
