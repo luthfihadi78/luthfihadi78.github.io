@@ -22,11 +22,6 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opa
   -webkit-mask-image:radial-gradient(80rem 50rem at 50% 0,#000,transparent 78%);
           mask-image:radial-gradient(80rem 50rem at 50% 0,#000,transparent 78%)}
 .wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 18px}
-/* 15 Okt — tombol kembali di halaman anak (whale) — PWA standalone tanpa tombol back */
-.wkembali{display:inline-flex;align-items:center;gap:6px;margin:10px 0 0;padding:6px 12px;
-  border:1px solid var(--line);border-radius:8px;background:rgba(13,20,17,.85);
-  color:var(--ac);font-size:12px;letter-spacing:.05em}
-.wkembali:active{background:rgba(110,231,183,.08)}
 a{color:var(--ac);text-decoration:none}
 a:hover{color:#9CF2CE}
 :focus-visible{outline:2px solid var(--ac);outline-offset:2px;border-radius:4px}
@@ -56,22 +51,6 @@ a:hover{color:#9CF2CE}
 .kv{font-size:11px;color:var(--fg-3);white-space:nowrap}
 .kv b{color:var(--fg-2);font-weight:500}
 
-/* 15 Okt — aura ekstrem gauge:
-   ALTSEASON: api lebih terang (brightness/saturate naik) + aura membesar.
-   CRASH: api merah berdarah (merah pekat, denyut lebih cepat) + aura
-   terbakar besar. Warna dasar tetap dari GC[st] via JS; kelas ini
-   memperkuat cahaya & ukurannya saja. CATATAN 15 Okt: durasi denyut api
-   di-skalakan lewat JS di gaugeLivePaint (app.js) — durasi inline per api
-   menang atas atur CSS apa pun, jadi override animation-duration di sini
-   tidak berfungsi dan dihapus. */
-.gwrap.st-alt .glow{opacity:.75;filter:blur(22px) saturate(1.7);
-  transform:translate(-50%,-50%) scale(1.4)}
-#g-fl.st-alt{filter:blur(2.2px) saturate(1.8) brightness(1.55)}
-.gwrap.st-crash .glow{opacity:.88;filter:blur(15px) saturate(2.6);
-  transform:translate(-50%,-50%) scale(1.55)}
-#g-fl.st-crash{filter:blur(2.6px) saturate(3.2) brightness(1.2)}
-@media(prefers-reduced-motion:reduce){
-  .gwrap.st-alt .glow,.gwrap.st-crash .glow{opacity:.5;transform:translate(-50%,-50%)}}
 /* arah altcoin: spidometer + aura api */
 .dir{display:grid;grid-template-columns:minmax(280px,340px) 1fr;gap:16px;
   background:var(--s1);border:1px solid var(--line);border-radius:var(--r);
@@ -106,18 +85,6 @@ a:hover{color:#9CF2CE}
 .gbias{margin-top:13px;font-size:20px;font-weight:700;letter-spacing:.1em;
   transition:color .5s ease}
 .gname{font-size:10.5px;letter-spacing:.1em;color:var(--fg-3);margin-top:3px}
-
-/* 16 Okt — tombol preview gauge ◀▶ (untuk menilai gaya aura ALTSEASON/CRASH
-   tanpa menunggu kondisinya terjadi di pasar). Efek dianimasinya hanya di
-   .gwrap; label tengah (gplab) menunjukkan status yang sedang dipرتinjau. */
-.gpv{display:flex;align-items:center;justify-content:center;gap:9px;margin-top:9px;user-select:none}
-.gpb{font-family:var(--mono,monospace);font-size:11px;line-height:1;padding:4px 10px;
-  border:1px solid var(--line-2);background:transparent;color:var(--fg-2);
-  border-radius:999px;cursor:pointer;transition:border-color .2s,color .2s}
-.gpb:hover{border-color:var(--ac);color:var(--fg)}
-.gpb:active{transform:scale(.94)}
-.gplab{font-size:10px;letter-spacing:.14em;color:var(--fg-2);text-transform:uppercase;min-width:64px;text-align:center}
-.gwrap.pv-on .gplab{color:var(--gold);font-weight:700}
 .dmeta{display:flex;flex-direction:column;justify-content:center;gap:9px;min-width:0}
 .dr{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:baseline;font-size:12px}
 .dr .l{color:var(--fg-3);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
@@ -257,20 +224,13 @@ svg.ch .z{stroke:var(--line-2);stroke-width:1;stroke-dasharray:3 4}
 @keyframes bbflick{from{opacity:.34;transform:scale(.985)}
   to{opacity:.62;transform:scale(1.025)}}
 @media(prefers-reduced-motion:reduce){.bb .aura{animation:none;opacity:.4}}
-/* 15 Okt — tag engine di dalam bubble + animasi bubble baru (pop + ring ping) */
-.bb em.bb-tag{font-style:normal;font-weight:700;pointer-events:none;
-  font-size:7.5px;letter-spacing:.08em;opacity:.85;text-shadow:0 1px 2px rgba(0,0,0,.5)}
-/* ⚠ .bb diposisikan via inline transform (fisika) — animasi masuk HARUS
-   tanpa transform, cukup fade + filter, supaya tak menimpa translate */
-.bb.baru{animation:bbpop .55s cubic-bezier(.2,1.6,.4,1) both}
-@keyframes bbpop{from{opacity:0;filter:brightness(1.8)}
-  60%{opacity:1;filter:brightness(1.25)}to{opacity:1;filter:none}}
-.bb.baru::after{content:"";position:absolute;inset:-4px;border-radius:999px;
-  pointer-events:none;border:2px solid rgba(255,255,255,.75);
-  animation:bbping 1.5s ease-out 3}
-@keyframes bbping{from{transform:scale(.9);opacity:.9}
-  to{transform:scale(1.75);opacity:0}}
-@media(prefers-reduced-motion:reduce){.bb.baru,.bb.baru::after{animation:none}}
+/* 15 Okt — bubble BARU: pop KESEKALI saat masuk (kayak gelembung pecah naik
+   kepermukaan), TIDAK berkedip terus. Ditulis dgn properti `scale` individual
+   supaya translate fisika (inline `transform`) tidak ikut termakan animasi;
+   class .bbin dilepas di animationend oleh app.js. */
+.bb.bbin{animation:bbPop .6s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes bbPop{0%{scale:.22;opacity:0}55%{scale:1.14;opacity:1}100%{scale:1;opacity:1}}
+@media(prefers-reduced-motion:reduce){.bb.bbin{animation:none}}
 .bb-tip{position:absolute;z-index:40;pointer-events:none;opacity:0;transition:opacity .15s;
   background:var(--s3);border:1px solid var(--line-2);border-radius:6px;
   padding:10px 12px;font-size:11px;min-width:200px;max-width:250px;color:var(--fg-2);
@@ -788,10 +748,6 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 .wj.beli{background:var(--up-w);color:var(--up)}
 .wj.tra{background:rgba(139,150,143,.12);color:var(--fg-2)}
 .wmega{font-size:9px;letter-spacing:.1em;color:var(--gold);border:1px solid rgba(216,200,154,.4);border-radius:4px;padding:1px 4px}
-/* 13 Okt — chip 💤 DORMAN: whale lama yang baru bangun. Emas redup, non-
-   mencolok; tooltip = penjelasan metode (umur tx kirim terakhir). */
-.wdorm{font-size:9px;letter-spacing:.06em;color:#e8c96a;border:1px solid rgba(232,201,106,.35);
-  border-radius:4px;padding:1px 4px;margin-left:4px;white-space:nowrap}
 .wn{color:var(--fg);font-weight:600;white-space:nowrap}
 .wv{color:var(--fg-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .wv.mega{color:var(--gold)}
@@ -982,39 +938,6 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
   border-top:1px dashed var(--line-2);padding-top:9px}
 .an-tip b{color:var(--gold)}
 .an-empty{font-size:11.5px;color:var(--fg-3);line-height:1.6}
-/* ring glow singkat saat komposisi #1 berubah: border & glow mint menyala
-   lalu memudar (3.2s, sekali jalan — kelas dipasang-lepas app.js) */
-.an-box.an-glow{animation:anGlowPulse 3.2s ease-out both}
-@keyframes anGlowPulse{
-  0%{box-shadow:0 0 0 1.5px var(--ac),0 0 26px rgba(110,231,183,.65);border-color:var(--ac)}
-  25%{box-shadow:0 0 0 1.5px var(--ac),0 0 26px rgba(110,231,183,.65)}
-  100%{box-shadow:0 0 0 0 rgba(110,231,183,0),0 0 0 rgba(110,231,183,0)}
-}
-/* chip #2/#3 pindah kursi: ring redup — jauh lebih senyap dari sorotan #1,
-   cukup supaya mata menangkap bahwa pelat kesempatan kedua/ketiga sudah geser */
-.an-chip.an-swap{animation:anSwapPulse 2.6s ease-out both}
-.an-chip.an-swap .an-rank{color:var(--gold)}
-@keyframes anSwapPulse{
-  0%{box-shadow:0 0 0 1px rgba(216,200,154,.4),0 0 10px rgba(216,200,154,.2);border-color:rgba(216,200,154,.55)}
-  25%{box-shadow:0 0 0 1px rgba(216,200,154,.4),0 0 10px rgba(216,200,154,.2)}
-  100%{box-shadow:0 0 0 0 rgba(216,200,154,0),0 0 0 rgba(216,200,154,0)}
-}
-@media(prefers-reduced-motion:reduce){
-  .an-box.an-glow,.an-chip.an-swap{animation:none;box-shadow:none}
-}
-/* drill-down kombinasi: chip terasa tombol + baris list di popup pembentuk */
-.an-chip{cursor:pointer}
-.an-chip:hover{border-color:var(--ac);background:rgba(110,231,183,.05)}
-.ko-rows{display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow-y:auto;margin-top:10px}
-.ko-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid var(--line-2);border-radius:8px;background:var(--s1);padding:8px 11px;cursor:pointer}
-.ko-row:hover{border-color:var(--ac)}
-.ko-time{font:10.5px/1 var(--mono,monospace);color:var(--fg-3);letter-spacing:.02em}
-.ko-sym{font-size:12.5px;font-weight:700}
-.ko-pct{font-family:var(--mono,monospace);font-size:12px;font-weight:700}
-.ko-pct.pos{color:var(--up)}
-.ko-pct.neg{color:var(--dn)}
-.ko-pct.mut{color:var(--fg-2)}
-.ko-by{margin-left:auto;font-size:10px;color:var(--fg-3)}
 
 /* ── v20 (27 Sep): TF multi-pilih per alasan + popup detail baru ── */
 /* chip timeframe: satu alasan bisa dipilih di banyak TF sekaligus */
@@ -1124,50 +1047,78 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
   .wh-bulan{gap:3px;padding:8px 6px 6px}
   .wh-col .wh-v{font-size:9px}
 }
-/* ══ 13 Okt — lightbox gambar (klik = perbesar super jelas) + dropdown
-   bulan klasemen/riwayat + tabel ringkasan akurasi per engine ══ */
-.lbx{position:fixed;inset:0;z-index:100000;background:rgba(2,6,4,.92);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px}
-.lbx img{max-width:min(2400px,97vw);max-height:86vh;object-fit:contain;
-  border:1px solid var(--line);border-radius:10px;background:#000;
-  box-shadow:0 18px 60px rgba(0,0,0,.6)}
-.lbx-bar{display:flex;gap:10px;margin-bottom:10px;align-items:center}
-.lbx-bar .hh-fchip{cursor:pointer}
-.lbx-x{font-size:16px;padding:5px 16px;border-radius:8px;border:1px solid var(--line);
-  background:var(--s1,#131a16);color:var(--fg);cursor:pointer}
-.lbx-cap{margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--fg-2);opacity:.85;text-align:center}
-select.plog-bln,select.lg-sel{padding:6px 10px;border-radius:8px;border:1px solid var(--line);
-  background:var(--s0,#101614);color:var(--fg);font-family:var(--mono);font-size:12px;cursor:pointer}
-select.lg-sel{margin-left:auto}
-.plog-akk{margin:8px 0 16px}
-.plog-akk .pn-h{margin-bottom:6px}
-.plog-akk table{width:100%;border-collapse:collapse;background:var(--s1);
-  border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
-.plog-akk th,.plog-akk td{padding:6px 10px;border-bottom:1px solid var(--line);
-  font-family:var(--mono);font-size:11.5px;text-align:left;color:var(--fg)}
-.plog-akk th{color:var(--fg-3);font-weight:600;background:var(--s0)}
-.plog-akk td.pos{color:var(--up)}
-.plog-akk td.neg{color:var(--dn)}
-.plog-akk td.mut{color:var(--fg-2)}
 
-/* 14 Okt — notifikasi per engine (BRICK/HARVEST/SWING/WHALE) */
-.nk-row{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
-.nk-h{flex:100%;font-family:var(--mono);font-size:10.5px;color:var(--fg-3);letter-spacing:.06em;text-transform:uppercase}
-.nk-t{font-family:var(--mono);font-size:12px;padding:7px 10px;border:1px solid rgba(110,231,183,.25);background:var(--s0);color:var(--fg-2);border-radius:6px;cursor:pointer;opacity:.5}
-.nk-t.on{opacity:1;color:var(--up);border-color:rgba(110,231,183,.55);background:rgba(110,231,183,.07)}
+/* 11 Okt — banner stale data + mini-histogram distribusi R */
+.stalebar{display:none;align-items:center;gap:8px;padding:9px 14px;margin:0 0 14px;
+  border:1px solid #B8860B55;border-radius:var(--r);background:#B8860B14;
+  color:var(--gold);font-size:12px;line-height:1.45}
+.stalebar.on{display:flex}
+.stalebar b{font-weight:700}
+.stalebar .sl-t{font-family:var(--mono);font-size:11px;color:var(--fg-3)}
+.rhist{display:flex;align-items:flex-end;gap:0;margin-top:12px;height:44px}
+.rhist-col{flex:1;display:flex;flex-direction:column;align-items:center;min-width:0}
+.rhist-bar{width:60%;max-width:18px;border-radius:2.5px 2.5px 0 0;min-height:1px}
+.rhist-bar.pos{background:var(--up);opacity:.62}
+.rhist-bar.neg{background:var(--dn);opacity:.6}
+.rhist-lb{font-family:var(--mono);font-size:9px;color:var(--fg-3);margin-top:3px}
+.rhist-cap{margin-top:4px;font-size:10px;color:var(--fg-3);line-height:1.4}
 
-/* 14 Okt — banner data basi (di atas bar saat data.json > 3 jam) */
-.stalebar{position:sticky;top:0;left:0;right:0;z-index:60;background:rgba(230,4,0,.14);color:#ff8a80;font-family:var(--mono);font-size:11px;padding:6px 12px;text-align:center;letter-spacing:.03em;border-bottom:1px solid rgba(230,4,0,.35)}
-.toast.t-hint .tsub{max-width:320px;white-space:normal;line-height:1.5}
+/* ── 12 Okt: dokumen gambar non-img & badge pick Gerry ───────────────── */
+.pimg-file{display:flex;align-items:center;justify-content:center;height:74px;
+  padding:8px;font-size:11px;color:#e8efe9;background:#18201c;border:1px dashed #2a3532;
+  border-radius:6px;text-decoration:none;text-align:center}
+.pimg-file:hover{background:#202a26}
+.apbadge.apg{margin-left:4px;opacity:.85;border-style:dashed}
 
-/* 14 Okt — highlight baris hari-ini di heat table × hari */
-.hh-t.hh-today, .hh-today{background:rgba(110,231,183,.07)}
-.hh-today .hh-jam{color:var(--up)}
+/* ── 15 Okt: nuansa latar ikut gauge live ──────────────────────────────
+   Lapisan #tema duduk DI ATAS grid halaman (z 0, sama dgn body::before) tapi
+   DI BAWAH semua konten (wrap z 1): crash api kebakaran, short bara merah,
+   long hijau bull, altseason aurora, deg amber, netral tanpa lapisan. */
+#tema{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;
+  transition:opacity 1.4s ease}
+body.tema-crash #tema{opacity:1;background:
+  radial-gradient(120% 62% at 50% 118%,rgba(255,109,94,.38),transparent 62%),
+  radial-gradient(85% 42% at 16% 112%,rgba(255,148,52,.26),transparent 60%),
+  radial-gradient(85% 42% at 84% 112%,rgba(202,38,52,.32),transparent 60%),
+  linear-gradient(180deg,transparent 64%,rgba(26,9,7,.45) 100%);
+  animation:tema-api 3.8s ease-in-out infinite}
+body.tema-short #tema{opacity:1;background:
+  radial-gradient(110% 50% at 50% 116%,rgba(232,135,124,.16),transparent 62%),
+  radial-gradient(70% 34% at 20% 110%,rgba(232,135,124,.10),transparent 60%)}
+body.tema-long #tema{opacity:1;background:
+  radial-gradient(110% 52% at 50% 116%,rgba(110,231,183,.18),transparent 62%),
+  radial-gradient(70% 34% at 14% 110%,rgba(45,212,167,.12),transparent 60%)}
+body.tema-altseason #tema{opacity:1;background:
+  radial-gradient(110% 55% at 50% 116%,rgba(182,243,107,.16),transparent 62%),
+  radial-gradient(80% 40% at 14% 108%,rgba(167,108,231,.20),transparent 60%),
+  radial-gradient(80% 40% at 86% 108%,rgba(231,108,183,.16),transparent 60%)}
+body.tema-deg #tema{opacity:1;background:
+  radial-gradient(100% 48% at 50% 116%,rgba(238,180,76,.16),transparent 62%)}
+@keyframes tema-api{0%,100%{filter:brightness(1)}18%{filter:brightness(1.22)}
+  37%{filter:brightness(.88)}55%{filter:brightness(1.14)}74%{filter:brightness(.95)}}
+@media (prefers-reduced-motion:reduce){body.tema-crash #tema{animation:none}}
 
-/* 14 Okt — whale search input */
-.wsearch{background:var(--s0);border:1px solid var(--line);color:var(--fg);font-family:var(--mono);font-size:11.5px;padding:5px 10px;border-radius:7px;min-width:180px;margin-left:auto}
-.wsearch:focus{border-color:var(--up);outline:none}
-
-/* 14 Okt — kolom last & jarak live */
-.jrk-last{color:var(--fg-2)}
-.jrk-c{font-variant-numeric:tabular-nums}
+/* chips pratinjau nuansa (panel gauge) — tak mengubah data, tampilan saja */
+.tema-demo{margin-top:14px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+  justify-content:center}
+.tema-demo .tt{font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--fg-3);margin-right:2px}
+.tema-demo .tag{font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--fg-3);border:1px dashed var(--line-2);border-radius:999px;
+  padding:3px 8px}
+.tema-demo .tag.live{color:var(--ac);border-style:solid;
+  border-color:rgba(110,231,183,.35)}
+.tema-demo .tag.pratinjau{color:var(--gold);border-style:solid;
+  border-color:rgba(216,200,154,.4)}
+.tema-demo button{font:11px/1.5 var(--mono);letter-spacing:.08em;
+  text-transform:uppercase;color:var(--fg-2);background:var(--s2);
+  border:1px solid var(--line-2);border-radius:999px;padding:4px 11px;
+  cursor:pointer;transition:color .18s,border-color .18s,background .18s}
+.tema-demo button:hover{color:var(--fg);border-color:var(--fg-3)}
+.tema-demo button.on{color:#070B09;font-weight:700;border-color:transparent}
+.tema-demo button.on[data-t="long"]{background:#6EE7B7}
+.tema-demo button.on[data-t="altseason"]{background:#B6F36B}
+.tema-demo button.on[data-t="short"]{background:#E8877C}
+.tema-demo button.on[data-t="crash"]{background:#FF6D5E}
+.tema-demo button.on[data-t="deg"]{background:#EEB44C}
+.tema-demo button.on[data-t="netral"]{background:#D9E2DD}
