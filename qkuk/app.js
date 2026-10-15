@@ -23,7 +23,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
    juga terbit baru. Menaikkan BUILD tanpa ikut menerbitkan data.json = reload
    tanpa henti. data.json hanya boleh terbit dari mesin bot, jadi di sini kita
    samakan. Cache busting tetap lewat ?v=20261005a di index.html. */
-  var BUILD = "qkuk-nuansa-kilat-20261016h";
+  var BUILD = "qkuk-nuansa-kilat-20261016i";
   /* 4 engine aktif (8 Okt): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      riset backtestnya MSS→IDM→zona OB 30m+mantul dgn gerbang searah BTC 24 jam,
@@ -5611,6 +5611,48 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     uIn.addEventListener("keydown", function (ev) { if (ev.key === "Enter") pIn.focus(); });
   }
   gateInit();
+
+  /* ── MODE TAMPILAN HP (15 Okt — permintaan user) ─────────────────────
+     Saat dibuka di HP, default tampilan kini "dinamis" (compact, kolom
+     sempit, tabel sampai benar-benar muat), tetapi ada pilihan chip
+     "dinamis / desktop" supaya orang yang suka tampilan penuh tetap bisa
+     pakai mode desktop. Pilihan disimpan di localStorage. Di desktop asli
+     chip tak muncul — selalu desktop.   ?tampilan=dinamis|desktop memaksa. */
+  (function tampilanInit() {
+    function isHP() {
+      return window.matchMedia("(max-width:820px)").matches &&
+             (window.matchMedia("(pointer:coarse)").matches ||
+              /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+    }
+    function simpan(v) { try { localStorage.setItem("qkuk_tampilan", v); } catch (e) {} }
+    function baca() {
+      try {
+        var q = (location.search || "").match(/tampilan=(dinamis|desktop)/);
+        if (q) return q[1];
+        return localStorage.getItem("qkuk_tampilan") || "dinamis";
+      } catch (e) { return "dinamis"; }
+    }
+    function pasang(kel) {
+      document.body.classList.toggle("mode-dinamis", kel === "dinamis");
+      document.body.classList.toggle("mode-desktop", kel === "desktop");
+    }
+    if (!isHP()) return;                       // desktop asli: selalu desktop
+    var kel = baca();
+    pasang(kel);
+    var chip = el("button", "tchip");
+    chip.type = "button";
+    chip.setAttribute("aria-label", "ganti mode tampilan");
+    function label() {
+      var sekarang = document.body.classList.contains("mode-dinamis");
+      chip.textContent = sekarang ? "📱 dinamis · buka desktop" : "🖥 desktop · buka dinamis";
+    }
+    chip.addEventListener("click", function () {
+      var ke = document.body.classList.contains("mode-dinamis") ? "desktop" : "dinamis";
+      pasang(ke); simpan(ke); label();
+    });
+    label();
+    document.body.appendChild(chip);
+  })();
 
   adminInit();
   pwaInit();   // 13 Okt — daftarkan service worker + tombol 🔔 izin notifikasi PWA

@@ -1229,3 +1229,45 @@ body.tema-deg #tema{opacity:1;background:
 .tema-demo button.on[data-t="crash"]{background:#FF6D5E}
 .tema-demo button.on[data-t="deg"]{background:#EEB44C}
 .tema-demo button.on[data-t="netral"]{background:#D9E2DD}
+
+   Saat dibuka di HP, body dapat kelas .mode-dinamis (default) atau
+   .mode-desktop sesuai chip pilihan. Di desktop asli chip tidak ada dan
+   tak ada kelas — tampilan penuh seperti biasa. Chip mengambang di kanan
+   bawah supaya gampang dijangkau jempol. */
+.tchip{position:fixed;right:12px;bottom:14px;z-index:60;display:none;
+  font-family:var(--mono);font-size:11px;letter-spacing:.05em;
+  color:var(--fg-2);background:rgba(7,11,9,.85);backdrop-filter:blur(6px);
+  border:1px solid var(--line-2);border-radius:999px;padding:8px 13px;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+  box-shadow:0 4px 14px rgba(0,0,0,.35);transition:color .15s,border-color .15s}
+.tchip:active{transform:scale(.96)}
+@media(pointer:coarse){body.mode-dinamis .tchip,body.mode-desktop .tchip{display:block}}
+
+/* ── versi dinamis: compact & kolom sempit — terminal yang pas di jempol ── */
+body.mode-dinamis{font-size:13px}
+body.mode-dinamis .wrap{padding:0 11px}
+body.mode-dinamis section{margin:0 0 20px}
+body.mode-dinamis .strip{gap:8px;margin:12px 0 18px}
+body.mode-dinamis .ch{padding:11px 12px}
+body.mode-dinamis .ch > .rows{gap:5px}
+body.mode-dinamis .row{font-size:11px}
+body.mode-dinamis .card{padding:12px}
+/* tabel: dulu min-width:820px = WAJIB scroll menyamping di HP. Dinamis:
+   tabel boleh sempit, font kecil, sel padat — kebaca tanpa menScroll. */
+body.mode-dinamis table{min-width:0;font-size:11px}
+body.mode-dinamis th{padding:7px 8px;font-size:9px;letter-spacing:.08em}
+body.mode-dinamis td{padding:6px 8px}
+body.mode-dinamis .tw{max-height:52vh;overscroll-behavior:contain}
+/* kolom yang kurang penting di layar kecil disembunyikan (dihilangkan lewat
+   header ganda: th&td berlabel sama disembunyikan sekaligus) */
+body.mode-dinamis .col-extra{display:none}
+body.mode-dinamis .grid2{grid-template-columns:1fr;gap:8px}
+body.mode-dinamis .sec-h{gap:8px;margin-bottom:9px}
+body.mode-dinamis .tab{padding:4px 8px;font-size:10px}
+body.mode-dinamis h2{font-size:12px}
+body.mode-dinamis .ak-grid{grid-template-columns:1fr}
+/* bubble: kanvas lebih pendek di HP supaya layar tetap utk daftar kanal */
+body.mode-dinamis .bb-plot{height:330px}
+body.mode-desktop{font-size:inherit}
+body.mode-desktop .tchip{display:block}
+@media(pointer:fine){body.mode-desktop .tchip{display:none}}
