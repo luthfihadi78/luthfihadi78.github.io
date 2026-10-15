@@ -312,6 +312,8 @@
 
   /* ── state ── */
   var DATA = null, FILTER = "semua", LEFT = 0;
+  /* 14 Okt — query cari simbol/exchange/entity (persisten per device) */
+  var WQ = ""; try { WQ = localStorage.getItem("qkuk_whale_q") || ""; } catch (e) {}
   /* 28 Sep — badge "+N BARU" di header feed utama: alert whale yang BARU
      muncul antar poll data.json (kunci = txid+chain+usd, per filter tab).
      Seed senyap saat ganti tab — pindah tab bukan alert segar, jadi badge
@@ -399,6 +401,18 @@
       b.addEventListener("click", function () { FILTER = f; renderFilter(); renderRows(); });
       host.appendChild(b);
     });
+    /* 14 Okt (prioritas #6) — SEARCH simbol / exchange / entity: input
+       pipih di kanan tab; dipertahankan saat re-render (imun st值的 seed). */
+    var sw = el("input", "wsearch"); sw.type = "search"; sw.placeholder = "cari simbol/exchange…";
+    sw.value = WQ;
+    sw.setAttribute("aria-label", "Cari alert by simbol, exchange, alasan");
+    var stq;
+    sw.addEventListener("input", function () {
+      WQ = this.value.toLowerCase();
+      try { localStorage.setItem("qkuk_whale_q", WQ); } catch (e) {}
+      clearTimeout(stq); stq = setTimeout(renderRows, 220);
+    });
+    host.appendChild(sw);
   }
 
   function explorerUrl(oc, chain, what, id) {
@@ -413,9 +427,16 @@
     var A = oc.alerts || [];
     var f = FILTER;
     var show = A.filter(function (a) {
-      if (f === "semua") return true;
-      if (f === "mega") return a.level === "MEGA";
-      return (a.arah || "").toLowerCase() === f;
+      if (f === "semua") { /* pass */ }
+      else if (f === "mega") { if (a.level !== "MEGA") return false; }
+      else if ((a.arah || "").toLowerCase() !== f) return false;
+      /* 14 Okt — filter text: cocokkan simbol / chain / entity / alasan */
+      if (WQ) {
+        var hay = (a.sym || a.symbol || "") + " " + (a.chain || "") + " " +
+                  (a.entity || a.label || "") + " " + (a.alasan || a.reason || "");
+        if (hay.toLowerCase().indexOf(WQ) < 0) return false;
+      }
+      return true;
     });
     $("#w-empty").hidden = show.length > 0;
     /* deteksi alert BARU (28 Sep): seed senyap saat ganti tab/konteks,
@@ -450,6 +471,15 @@
       var c = el("span", "wc"); c.appendChild(chainBadge(a.chain)); row.appendChild(c);
       var w = el("span", "ww"); w.appendChild(arahBadge(a.arah));
       if (a.level === "MEGA") w.appendChild(el("b", "wmega", "MEGA"));
+      /* 13 Okt — 💤 DORMAN: whale lama yang baru bangun (≥6 bln tanpa
+         mengirim) = bobot sinyal terbesar, tampil jadi chip emas di baris. */
+      if (a.dorman_bulan) {
+        var dm = a.dorman_bulan >= 12 ? "±" + (a.dorman_bulan / 12).toFixed(1) + " thn"
+                                      : "±" + a.dorman_bulan.toFixed(0) + " bln";
+        var chip = el("b", "wdorm", "💤 " + dm);
+        chip.title = "dormansi: umur transaksi kirim terakhir wallet (±, dari blok mempool.space) — whale lama yang baru bangun";
+        w.appendChild(chip);
+      }
       row.appendChild(w);
       row.appendChild(el("span", "wn", a.nominal || "—"));
       row.appendChild(el("span", "wv" + (a.usd >= 1e8 ? " mega" : ""), fmtUsd(a.usd || 0)));
