@@ -785,7 +785,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var swingObLong = (d4 > 0 && dO > 0);
     var usdtNaik = dirUsdt > 0, usdtTurun = dirUsdt < 0;
     V.kanalArah = { "2h": d2, "4h": d4, ob: dO, whale: dW };
-    if (semuaMerah && mom < -3 && usdtNaik) {
+    /* 16 Okt — SWEEP KEBAWAH BERSAMAAN (engine v36): ≥5 dari 8 mayor
+       menyapu low 24 jam dalam 3 bar 1h = keadaan darurat → CRASH, tanpa
+       menunggu gate dominan & tanpa ditahan histeresis. Angka dihitung
+       engine dari klines segar & diterbitkan di data.json (sweepN/
+       sweepSyms/sweepCrash) — browser hanya mengikuti. */
+    if ((DATA.altdir_live || {}).sweepCrash) {
+      V.status = "crash"; V.bias = "short"; V.sweepCrash = true;
+      V.why = "SWEEP KEBAWAH BERSAMAAN (" + (DATA.altdir_live.sweepN || 0) + "/8 mayor: "
+        + ((DATA.altdir_live.sweepSyms || []).join(", ") || "?") + ") → CRASH"
+        + (usdtNaik ? " + USDT.D naik" : "");
+    } else if (semuaMerah && mom < -3 && usdtNaik) {
       V.status = "crash"; V.bias = "short";
       V.why = "semua engine merah + BTC " + sgn(mom, 1) + "% (24 jam) + USDT.D naik — "
         + "uang lari ke stable → CRASH";
@@ -843,7 +853,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     /* histeresis: tahanan rezim engine (altdir_live.bias) hanya berlaku saat
        USDT.D datar (dirUsdt=0); saat dominan memerintah, gauge ikut USDT.D. */
     var pubBias = (DATA.altdir_live || {}).bias;
-    if (dirUsdt === 0 && pubBias && pubBias !== V.bias && pubBias !== "netral" && V.bias !== "netral") {
+    if (dirUsdt === 0 && pubBias && pubBias !== V.bias && pubBias !== "netral" && V.bias !== "netral" && !V.sweepCrash) {
       V.bias = pubBias;
       V.status = (pubBias === "long" ? "long" : pubBias === "short" ? "short" : "netral");
       V.why = "rezim ditahan " + pubBias.toUpperCase() + " — " + V.why;
