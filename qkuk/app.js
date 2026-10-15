@@ -263,7 +263,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       /* 23 Sep v32 — FRESHNESS GATE: input basi (BTC >15 mnt / gelombang grup
          >8 jam) → jarum netral + label DEGRADED, bukan arah palsu. Skor tetap
          dihitung engine (bot & logika tak berubah) — hanya tampilan yang jujur. */
-      var DEG = !!V.degraded || V.status === "deg";
+      /* 16 Okt — keadaan darurat sweep menembus freshness gate: engine
+         menghitung crash dari klines segar (sweepCrash), bukan CSV grup
+         yang basi — menampilkannya DEGRADED berarti menyembunyikan alarm. */
+      var DEG = (!!V.degraded && !V.sweepCrash) || V.status === "deg";
       var st = DEG ? "deg" : (V.status || V.bias || "netral");
       var col = GC[st] || GC[V.bias] || GC.netral;
       var NAMA = { long: "LONG", altseason: "ALTSEASON", netral: "NETRAL",
