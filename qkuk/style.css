@@ -67,6 +67,8 @@ a:hover{color:#9CF2CE}
 .gwrap.st-alt .glow{opacity:.75;filter:blur(22px) saturate(1.7);
   transform:translate(-50%,-50%) scale(1.4)}
 #g-fl.st-alt{filter:blur(2.2px) saturate(1.8) brightness(1.55)}
+.gwrap.st-crash .glow{opacity:.88;filter:blur(15px) saturate(2.6);
+  transform:translate(-50%,-50%) scale(1.55)}
 #g-fl.st-crash{filter:blur(2.6px) saturate(3.2) brightness(1.2)}
 @media(prefers-reduced-motion:reduce){
   .gwrap.st-alt .glow,.gwrap.st-crash .glow{opacity:.5;transform:translate(-50%,-50%)}}
