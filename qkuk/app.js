@@ -256,9 +256,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function gaugeLivePaint() {
     if (!DATA || !DATA.altdir) return;
     var A = DATA.altdir;
-    function paint(V) {
+    PVPAINT = paint;                      // pvStep (scope luas) butuh jalur ini;
+    function paint(V) {                   // di-set sinkron — klik ◀▶ bisa diidinap
       if (PVF) V = PVF; else PVLIVE = V;   // preview menimpa; asli disimpan
-      PVPAINT = paint;                     // pvStep (scope luas) butuh jalur ini
       GLIVE = V;
       /* 23 Sep v32 — FRESHNESS GATE: input basi (BTC >15 mnt / gelombang grup
          >8 jam) → jarum netral + label DEGRADED, bukan arah palsu. Skor tetap
