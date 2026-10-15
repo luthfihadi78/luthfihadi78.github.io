@@ -23,7 +23,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
    juga terbit baru. Menaikkan BUILD tanpa ikut menerbitkan data.json = reload
    tanpa henti. data.json hanya boleh terbit dari mesin bot, jadi di sini kita
    samakan. Cache busting tetap lewat ?v=20261005a di index.html. */
-  var BUILD = "qkuk-brick-20261015b";
+  var BUILD = "qkuk-brick-20261015c";
   /* 4 engine aktif (8 Okt): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      riset backtestnya MSS→IDM→zona OB 30m+mantul dgn gerbang searah BTC 24 jam,
@@ -1246,9 +1246,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         var p = PICKS[k]; if (!p) return;
         if (p.win !== 0 && p.win !== 1) return;
         if (!eqPickFilter(p)) return;       // 11 Okt — filter admin/periode
-        var pct = hasPct(p.pct) ? (p.side === "short" ? -p.pct : p.pct)
-                  : (p.win === 1 ? 1 : -1);
-        rows.push({ ts: kp[2] || "", pct: pct });
+        /* 15 Okt — pct = hasil resolve (bukan gerakan harga); short menang
+           disimpan positif — pembalikan tanda lama membuat kurva Net R salah. */
+        var pct = hasPct(p.pct) ? p.pct : (p.win === 1 ? 1 : -1);
+        rows.push({ ts: (kp.length === 5 ? kp[3] : kp[2]) || "", pct: pct });
       });
       rows.sort(function (a, b) { return a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0; });
       var pts = [], cum = 0;
@@ -2980,11 +2981,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     Object.keys(PICKS).forEach(function (k) {
       var p = PICKS[k];
       if (!p || (p.win !== 1 && p.win !== 0)) return;            // open: tidak dinilai
-      var kp = k.split("|"), ts = kp[2] || "";
+      // 15 Okt — tanggal kunci 5-bagian lama ('Gerry|tf|jenis|ts|sym') ada di
+      // bagian ke-3; dulu pick berformat itu tak pernah masuk klasemen.
+      var kp = k.split("|"), ts = (kp.length === 5 ? kp[3] : kp[2]) || "";
       if (ts.slice(0, 7) !== bulan) return;                      // pick bulan sebelumnya tdk dihitung
       var who = p.by === "Gerry" ? "Gerry" : "Qkuk";
-      var pct = hasPct(p.pct) ? (p.side === "short" ? -p.pct : p.pct)
-                : (p.win === 1 ? 1 : -1);                        // fallback ±1R
+      /* 15 Okt — fix Net R: pct = HASIL yang admin isi saat resolve
+         (label input: "hasil: naik/turun berapa %"), bukan gerakan harga —
+         short yang menang +8% sudah tersimpan +8. Pembalikan tanda lama
+         (side==\"short\" → -pct) menjadikan trade menang ber-R minus:
+         akurasi 100% tapi Net R minus. */
+      var pct = hasPct(p.pct) ? p.pct : (p.win === 1 ? 1 : -1);
       var e = out[who];
       e[0]++; if (p.win === 1) e[1]++; e[2] += pct;
     });
@@ -3000,9 +3007,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     Object.keys(PICKS).forEach(function (k) {
       var p = PICKS[k];
       if (!p || (p.win !== 1 && p.win !== 0)) return;
-      if ((k.split("|")[2] || "").slice(0, 7) !== bln) return;
+      /* 15 Okt — idem klasemen: tanggal kunci 5-bagian ada di bagian ke-3. */
+      var kp = k.split("|"), ts = (kp.length === 5 ? kp[3] : kp[2]) || "";
+      if (ts.slice(0, 7) !== bln) return;
       var who = p.by === "Gerry" ? "Gerry" : "Qkuk";
-      var pct = hasPct(p.pct) ? (p.side === "short" ? -p.pct : p.pct) : (p.win === 1 ? 1 : -1);
+      /* 15 Okt — idem: pct = hasil, JANGAN dibalik utk short (lihat fix Net R). */
+      var pct = hasPct(p.pct) ? p.pct : (p.win === 1 ? 1 : -1);
       var e = out[who];
       e[0]++; if (p.win === 1) e[1]++; e[2] += pct;
     });
