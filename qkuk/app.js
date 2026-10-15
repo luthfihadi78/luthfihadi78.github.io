@@ -232,7 +232,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      besar / merah berdarah terbakar) bisa dinilai kapan saja tanpa menunggu
      kondisi itu memang terjadi. Panel dmeta ikut menampilkan data sintetis
      yang ditandas "MODE PREVIEW" — nilai engine asli tidak tersentuh. */
-  var PVMODE = null, PVF = null, PVLIVE = null, PVELbl = null;
+  var PVMODE = null, PVF = null, PVLIVE = null, PVELbl = null, PVPAINT = null;
   function pvFake(mode) {
     var b = mode === "long" || mode === "altseason";
     return { status: mode, bias: mode,
@@ -251,13 +251,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     PVF = PVMODE ? pvFake(PVMODE) : null;
     if (window.__gwrap) window.__gwrap.classList.toggle("pv-on", !!PVF);
     if (PVELbl) PVELbl.textContent = PVF ? PVF.status.toUpperCase() : "LIVE";
-    if (PVF) paint(PVF); else if (PVLIVE) paint(PVLIVE);
+    if (PVF) PVPAINT(PVF); else if (PVLIVE && PVPAINT) PVPAINT(PVLIVE);
   }
   function gaugeLivePaint() {
     if (!DATA || !DATA.altdir) return;
     var A = DATA.altdir;
     function paint(V) {
       if (PVF) V = PVF; else PVLIVE = V;   // preview menimpa; asli disimpan
+      PVPAINT = paint;                     // pvStep (scope luas) butuh jalur ini
       GLIVE = V;
       /* 23 Sep v32 — FRESHNESS GATE: input basi (BTC >15 mnt / gelombang grup
          >8 jam) → jarum netral + label DEGRADED, bukan arah palsu. Skor tetap
