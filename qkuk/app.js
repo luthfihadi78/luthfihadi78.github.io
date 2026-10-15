@@ -23,7 +23,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
    juga terbit baru. Menaikkan BUILD tanpa ikut menerbitkan data.json = reload
    tanpa henti. data.json hanya boleh terbit dari mesin bot, jadi di sini kita
    samakan. Cache busting tetap lewat ?v=20261005a di index.html. */
-  var BUILD = "qkuk-brick-20261008a";
+  var BUILD = "qkuk-gauge-preview-20261016a";
   /* 4 engine aktif (8 Okt): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      riset backtestnya MSS→IDM→zona OB 30m+mantul dgn gerbang searah BTC 24 jam,
@@ -227,10 +227,37 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       })
       .catch(function () { clearTimeout(to); cb(GBTC.rows); });
   }
+  /* 16 Okt — PREVIEW gauge: tombol ◀▶ di sebelah label arah. Siklus
+     LIVE → LONG → SHORT → ALTSEASON → CRASH supaya gaya aura (api terang
+     besar / merah berdarah terbakar) bisa dinilai kapan saja tanpa menunggu
+     kondisi itu memang terjadi. Panel dmeta ikut menampilkan data sintetis
+     yang ditandas "MODE PREVIEW" — nilai engine asli tidak tersentuh. */
+  var PVMODE = null, PVF = null, PVLIVE = null, PVELbl = null;
+  function pvFake(mode) {
+    var b = mode === "long" || mode === "altseason";
+    return { status: mode, bias: mode,
+      scoreRaw: b ? 6 : -6, score: b ? 6 : -6,
+      usdtDir: b ? 1 : -1, dUsdtDominan: 0,
+      dirBtc: b ? 1 : -1, maj: b ? 4 : -4,
+      nMaj: 8, nLong: b ? 6 : 2, nShort: b ? 2 : 6,
+      why: "MODE PREVIEW — tombol ◀▶ gauge; desk skor asli tetap dari engine",
+      degraded: false };
+  }
+  function pvStep(d) {
+    var list = [null, "long", "short", "altseason", "crash"];
+    var i = list.indexOf(PVMODE);
+    i = (i + d + list.length) % list.length;
+    PVMODE = list[i];
+    PVF = PVMODE ? pvFake(PVMODE) : null;
+    if (window.__gwrap) window.__gwrap.classList.toggle("pv-on", !!PVF);
+    if (PVELbl) PVELbl.textContent = PVF ? PVF.status.toUpperCase() : "LIVE";
+    if (PVF) paint(PVF); else if (PVLIVE) paint(PVLIVE);
+  }
   function gaugeLivePaint() {
     if (!DATA || !DATA.altdir) return;
     var A = DATA.altdir;
     function paint(V) {
+      if (PVF) V = PVF; else PVLIVE = V;   // preview menimpa; asli disimpan
       GLIVE = V;
       /* 23 Sep v32 — FRESHNESS GATE: input basi (BTC >15 mnt / gelombang grup
          >8 jam) → jarum netral + label DEGRADED, bukan arah palsu. Skor tetap
@@ -272,7 +299,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           e.style.animationDuration = Math.round(e.dataset.bd * FAK) + "ms";
         });
       }
-      var bA = $("#gbias"); bA.textContent = lab + " · LIVE"; bA.style.color = col;
+      var bA = $("#gbias"); bA.textContent = lab + (PVF ? " · PREVIEW" : " · LIVE"); bA.style.color = col;
       if (DEG && V.degrade_reason) bA.title = "input basi: " + V.degrade_reason;
       /* 21 Sep — gname = keterangan sumber arah, BUKAN rezim backtest.
          Dulu menampilkan nama rezim tabel stale (mis. "SANGAT BULLISH
@@ -418,6 +445,21 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (btcMom != null && isFinite(btcMom))
         r("momentum BTC", sgn(btcMom, 2) + "% (24 jam)", btcMom > 0 ? "pos" : btcMom < 0 ? "neg" : "mut");
       /* 15 Okt (permintaan user): catatan panjang dihapus — panel bersih */
+    }
+    /* 16 Okt — tombol preview ◀▶ (sekali per render; id-guard) */
+    var gw = document.querySelector(".gwrap");
+    if (gw) window.__gwrap = gw;
+    if (gw && !document.getElementById("gpv")) {
+      var pv = el("div", "gpv"); pv.id = "gpv";
+      var gl = el("button", "gpb"); gl.type = "button"; gl.textContent = "◀"; gl.title = "kondisi sebelumnya";
+      var gr = el("button", "gpb"); gr.type = "button"; gr.textContent = "▶"; gr.title = "kondisi berikutnya (LIVE→LONG→SHORT→ALTSEASON→CRASH)";
+      PVELbl = el("span", "gplab", PVF ? PVF.status.toUpperCase() : "LIVE");
+      gl.addEventListener("click", function () { pvStep(-1); });
+      gr.addEventListener("click", function () { pvStep(1); });
+      pv.appendChild(gl); pv.appendChild(PVELbl); pv.appendChild(gr);
+      var gnameEl = $("#gname");
+      (gnameEl && gnameEl.parentNode || gw).insertBefore(pv, gnameEl ? gnameEl.nextSibling : gw.firstChild);
+      gw.classList.toggle("pv-on", !!PVF);
     }
     /* 20 Sep v28: nilai arah dihitung JUGA di engine (dashboard_data →
        altdir_live, logika rcl identik) dan diterbitkan di data.json.

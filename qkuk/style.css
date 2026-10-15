@@ -106,6 +106,18 @@ a:hover{color:#9CF2CE}
 .gbias{margin-top:13px;font-size:20px;font-weight:700;letter-spacing:.1em;
   transition:color .5s ease}
 .gname{font-size:10.5px;letter-spacing:.1em;color:var(--fg-3);margin-top:3px}
+
+/* 16 Okt — tombol preview gauge ◀▶ (untuk menilai gaya aura ALTSEASON/CRASH
+   tanpa menunggu kondisinya terjadi di pasar). Efek dianimasinya hanya di
+   .gwrap; label tengah (gplab) menunjukkan status yang sedang dipرتinjau. */
+.gpv{display:flex;align-items:center;justify-content:center;gap:9px;margin-top:9px;user-select:none}
+.gpb{font-family:var(--mono,monospace);font-size:11px;line-height:1;padding:4px 10px;
+  border:1px solid var(--line-2);background:transparent;color:var(--fg-2);
+  border-radius:999px;cursor:pointer;transition:border-color .2s,color .2s}
+.gpb:hover{border-color:var(--ac);color:var(--fg)}
+.gpb:active{transform:scale(.94)}
+.gplab{font-size:10px;letter-spacing:.14em;color:var(--fg-2);text-transform:uppercase;min-width:64px;text-align:center}
+.gwrap.pv-on .gplab{color:var(--gold);font-weight:700}
 .dmeta{display:flex;flex-direction:column;justify-content:center;gap:9px;min-width:0}
 .dr{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:baseline;font-size:12px}
 .dr .l{color:var(--fg-3);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
