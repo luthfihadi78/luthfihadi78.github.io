@@ -23,7 +23,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
    juga terbit baru. Menaikkan BUILD tanpa ikut menerbitkan data.json = reload
    tanpa henti. data.json hanya boleh terbit dari mesin bot, jadi di sini kita
    samakan. Cache busting tetap lewat ?v=20261005a di index.html. */
-  var BUILD = "qkuk-nuansa-partikel-20261016g";
+  var BUILD = "qkuk-nuansa-kilat-20261016h";
   /* 4 engine aktif (8 Okt): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      riset backtestnya MSS→IDM→zona OB 30m+mantul dgn gerbang searah BTC 24 jam,
@@ -226,13 +226,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* ── 16 Okt — NUANSA PARTIKEL (canvas #nuansa) — pasar jadi "hidup" ──
      netral = salju berbutir jatuh lembut · long = daun hijau berjatuhan ·
      altseason = daun + ANGIN KENCANG (jelas "pasar naik cepat") ·
-     short = gerimis merah gelap (hujan mendung menjelang badai, pilihan
-     user) · crash = API & BARA MEMENUHI SEMUA SISI, bukan sekadar cahaya ·
-     deg = debu amber mengambang.
+     short = gerimis merah gelap + KILAT HALUS SESEKALI (hujan mendung
+     menjelang badai) · crash = API & BARA MEMENUHI SEMUA SISI, bukan
+     sekadar cahaya · deg = debu amber mengambang.
      Ringan: 1 canvas, 1 rAF, tanpa shadowBlur; berhenti saat tab
      tersembunyi; hormati prefers-reduced-motion (tot mati). Cuma tampilan. */
   var NU = { cv: null, cx: null, W: 0, H: 0, parts: [], mode: null,
-             raf: 0, last: 0, sp: null, wind: 0 };
+             raf: 0, last: 0, sp: null, wind: 0,
+             k: { next: 0, t0: -9, pts: null } };   // k = kilat (short)
   var NU_REDUCED = false;
   try { NU_REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
   var NU_KEDALIM = { snow: 96, leaf: 58, buduk: 14, driz: 140,
@@ -287,6 +288,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       p.rot = r() * 6.283; p.vr = (r() - .5) * 2.6;
       p.a = .5 + r() * .3;
       p.wind = NU.mode === "altseason";
+      p.bkg = NU.mode === "altseason" && r() < .3;   // 30% jadi daun belakang (blur)
     } else if (kind === "buduk") {          // coretan angin kencang
       p.x = isi ? r() * NU.W : -30; p.y = r() * NU.H * .9;
       p.vx = 320 + r() * 280; p.ln = 16 + r() * 26; p.a = .05 + r() * .06;
@@ -323,6 +325,26 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var W = NU.W, H = NU.H, r = Math.random, i, p, x, alive;
     NU.wind = NU.mode === "altseason"
       ? 96 + 64 * Math.sin(t * .55) + 120 * Math.max(0, Math.sin(t * 1.9)) : 0;
+    /* 16 Okt — KILAT HALUS (short): sesekali, bukan hujan kilat. Sambaran
+       pertama ~1–3 dtk setelah masuk short biar terlihat, lalu tiap 4–11 dtk.
+       Subjek: garis jagged dari langit (~65% layar) + kedip kabur dua-nadi
+       (0–90ms terang, jeda, 130–240ms susulan) — seperti petang nyata. */
+    var K = NU.k;
+    if (NU.mode === "short") {
+      if (!K.next) K.next = t + 1.2 + r() * 2;
+      if (t >= K.next) {
+        K.t0 = t; K.next = t + 4 + r() * 7;
+        var bp = [], bx = NU.W * (.12 + r() * .76), by = -8;
+        var seg = 6 + (r() * 4 | 0);
+        for (var q = 0; q < seg; q++) {
+          bp.push([bx, by]);
+          bx += (r() - .5) * NU.W * .07;
+          by += NU.H * (.05 + r() * .06);
+          if (by > NU.H * .68) break;
+        }
+        K.pts = bp;
+      }
+    } else if (K.next) { K.next = 0; K.pts = null; K.t0 = -9; }
     for (i = NU.parts.length - 1; i >= 0; i--) {
       p = NU.parts[i]; alive = true;
       if (p.k === "snow") {
@@ -331,7 +353,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         if (p.y > H + 6) { NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false; p.k = "snow"; }
       } else if (p.k === "leaf") {
         p.x += (Math.sin(t * .9 + p.ph) * (18 + p.sw) + NU.wind * (p.wind ? 1 : .12)) * dt;
-        p.y += p.vy * dt; p.rot += p.vr * dt;
+        p.y += p.vy * (p.bkg ? 1.55 : 1) * dt; p.rot += p.vr * dt;   // belakang bergerak lebih cepat = mendekati paralaks
         if (p.y > H + 14 || p.x < -40 || p.x > W + 40) {
           NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false;
         }
@@ -363,6 +385,22 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         cx.fillStyle = "rgba(" + p.c + "," + (p.a * (0.6 + 0.4 * Math.sin(t * p.fs + p.ph))).toFixed(3) + ")";
         cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.283); cx.fill();
       } else if (p.k === "leaf") {
+        /* 16 Okt — dua lapis kedalaman: daun BELAKANG (r ~10%, alpha pendek)
+           digambar blur-pseudo (3 kopi alpha rendah dgn offset ikut arah
+           angin) = gerak dgn trail; daun depan tetap tajam. blur nyata
+           (ctx.filter) mahal & tak konsisten lintas-browser — dgn 3 kopi
+           per daun belakang (~6 daun) biaya masih kecil tanpa shadowBlur. */
+        if (p.bkg) {
+          var tril = NU.wind * .05 + 9;
+          cx.save(); cx.globalAlpha = p.a * .28; cx.fillStyle = p.c;
+          for (var tl = 1; tl <= 3; tl++) {
+            cx.save(); cx.translate(p.x - tril * tl * .03, p.y + tl * 2.1);
+            cx.rotate(p.rot);
+            cx.beginPath(); cx.ellipse(0, 0, p.w, p.h, 0, 0, 6.283); cx.fill();
+            cx.restore();
+          }
+          cx.restore();
+        }
         cx.save(); cx.translate(p.x, p.y); cx.rotate(p.rot);
         cx.globalAlpha = p.a; cx.fillStyle = p.c;
         cx.beginPath(); cx.ellipse(0, 0, p.w, p.h, 0, 0, 6.283); cx.fill();
@@ -393,6 +431,30 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.283); cx.fill();
       }
     });
+    /* kilat halus (short): ambient kabur + garis inti — digambar PALING AKHIR
+       biar di atas gerimis; hilang sendiri dalam setengah detik */
+    var K = NU.k, age = t - K.t0;
+    if (K.pts && age >= 0 && age < .5) {
+      var env = age < .09 ? 1 - age / .09
+        : (age > .13 && age < .24 ? (0.24 - age) / .11 * .7 : 0);
+      if (env > 0) {
+        cx.fillStyle = "rgba(255,110,100," + (env * .06).toFixed(3) + ")";
+        cx.fillRect(0, 0, NU.W, NU.H);
+        for (var g = 0; g < 2; g++) {
+          cx.strokeStyle = g === 0
+            ? "rgba(255,96,84," + (env * .3).toFixed(3) + ")"
+            : "rgba(255,224,214," + (env * .85).toFixed(3) + ")";
+          cx.lineWidth = g === 0 ? 4 : 1.4;
+          cx.lineJoin = "round";
+          cx.beginPath();
+          for (var s2 = 0; s2 < K.pts.length; s2++) {
+            if (s2 === 0) cx.moveTo(K.pts[s2][0], K.pts[s2][1]);
+            else cx.lineTo(K.pts[s2][0], K.pts[s2][1]);
+          }
+          cx.stroke();
+        }
+      } else if (age >= .24) K.pts = null;
+    }
   }
   function nuLoop(ts) {
     NU.raf = 0;
@@ -413,6 +475,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (mode === NU.mode) return;
     NU.mode = mode || null;
     NU.parts.length = 0; NU.wind = 0;
+    NU.k.next = 0; NU.k.pts = null; NU.k.t0 = -9;   // reset kilat saat ganti mode
     if (!NU.mode) { if (NU.cv) NU.cv.style.display = "none"; return; }
     nuInit();
     NU.cv.style.display = "block";
