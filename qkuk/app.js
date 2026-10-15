@@ -262,6 +262,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (gf) {
         gf.classList.toggle("st-alt", st === "altseason");
         gf.classList.toggle("st-crash", st === "crash");
+        /* 15 Okt (uji live) — durasi tiap api di-set INLINE (bawah), jadi
+           override .gwrap.st-alt .fl di CSS tidak pernah menang. Skala durasi
+           dari sini: julur altseason 0.62× (lebih cepat, hidup), crash 0.5×
+           (mengamuk). */
+        var FAK = st === "crash" ? .5 : st === "altseason" ? .62 : 1;
+        gf.querySelectorAll(".fl").forEach(function (e) {
+          if (!e.dataset.bd) e.dataset.bd = parseInt(e.style.animationDuration) || 1700;
+          e.style.animationDuration = Math.round(e.dataset.bd * FAK) + "ms";
+        });
       }
       var bA = $("#gbias"); bA.textContent = lab + " · LIVE"; bA.style.color = col;
       if (DEG && V.degrade_reason) bA.title = "input basi: " + V.degrade_reason;
@@ -1775,20 +1784,23 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     return rows.map(function (d) { return d.tf + "|" + d.sym + "@" + d.ts; }).sort().join(",");
   }
   var bbSig = null;
-  function bubbleData(mode) {
+  function bubbleData(mode, tf) {
     /* batas = 7 hari lalu (tanggal WIB) */
     var n = new Date(Date.now() + (7 * 60 + new Date().getTimezoneOffset()) * 60000);
     n.setDate(n.getDate() - 7);
     var p = n.getFullYear() + "-" + ("0" + (n.getMonth() + 1)).slice(-2) + "-" + ("0" + n.getDate()).slice(-2);
     var out = [];
-    ord().forEach(function (tf) {
-      var L = (DATA.live || {})[tf], src = mode === "sinyal" ? L && L.sinyal : L && L.pantau;
+    ord().forEach(function (t) {
+      /* 15 Okt v2 — filter per-tab: "all" = gabungan semua engine,
+         tab lain = satu engine saja (permintaan user). */
+      if (tf && tf !== "all" && t !== tf) return;
+      var L = (DATA.live || {})[t], src = mode === "sinyal" ? L && L.sinyal : L && L.pantau;
       if (!src) return;
       src.forEach(function (r) {
         var ts = r.ts || "";
         if (ts.slice(0, 10) < p) return;        // seminggu terakhir saja
         out.push({ sym: r.sym, dir: r.dir, e: r.e, s: r.s, t: r.t, ts: ts,
-          st: r.st, r: r.pnl, slp: num(r.slp), tf: tf, egn: (L.nama || tf).replace(/^[^\w]+/, "") });
+          st: r.st, r: r.pnl, slp: num(r.slp), tf: t, egn: (L.nama || t).replace(/^[^\w]+/, "") });
       });
     });
     var seen = {};
@@ -2081,13 +2093,31 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (!plot) return;   // 8 Okt: section Bubbles dihapus dari index.html — biarkan mati
     bbStop(); bbBodies = [];
     plot.innerHTML = ""; tip.classList.remove("on");
-    var tf = "all";                             // 15 Okt: bubbles gabungan semua engine
-    var rows = bubbleData(bMode);
+    /* 15 Okt v2 — filter per-engine dikembalikan (permintaan user):
+       tab "SEMUA" = gabungan seminggu (revisi sebelumnya), tab lain =
+       satu engine. Jendela 7 hari & maks 40 bubble tetap berlaku. */
+    var tf = bTf && (bTf === "all" || DATA.live[bTf]) ? bTf : "all";
+    bTf = tf;
+    var rows = bubbleData(bMode, tf);
     bbSig = bubbleSig();                      // sidik jari untuk deteksi perubahan
-    var tabsEl = $("#b-tabs");                // 15 Okt: tab per-engine dihapus —
-    if (tabsEl) tabsEl.innerHTML = "";        // bubbles = gabungan seminggu (label di bubble)
+    var tabsEl = $("#b-tabs");
+    if (tabsEl) {
+      tabsEl.innerHTML = "";
+      var mk = el("button", "tab" + (tf === "all" ? " on" : ""), "SEMUA");
+      mk.setAttribute("role", "tab");
+      mk.setAttribute("aria-selected", tf === "all" ? "true" : "false");
+      mk.addEventListener("click", function () { bTf = "all"; bubbleDraw(); });
+      tabsEl.appendChild(mk);
+      ord().forEach(function (t) {
+        var b = el("button", "tab" + (tf === t ? " on" : ""), TAB_NAME[t] || t.toUpperCase());
+        b.setAttribute("role", "tab");
+        b.setAttribute("aria-selected", tf === t ? "true" : "false");
+        b.addEventListener("click", function () { bTf = t; bubbleDraw(); });
+        tabsEl.appendChild(b);
+      });
+    }
     if (!rows.length) {
-      plot.appendChild(el("div", "empty", "Belum ada sinyal seminggu terakhir."));
+      plot.appendChild(el("div", "empty", tf === "all" ? "Belum ada sinyal seminggu terakhir." : kosong(tf, "sinyal")));
       return;
     }
     var W = plot.clientWidth || 900, H = plot.clientHeight || 480;

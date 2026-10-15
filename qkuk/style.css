@@ -60,15 +60,14 @@ a:hover{color:#9CF2CE}
    ALTSEASON: api lebih terang (brightness/saturate naik) + aura membesar.
    CRASH: api merah berdarah (merah pekat, denyut lebih cepat) + aura
    terbakar besar. Warna dasar tetap dari GC[st] via JS; kelas ini
-   memperkuat cahaya & ukurannya saja. */
+   memperkuat cahaya & ukurannya saja. CATATAN 15 Okt: durasi denyut api
+   di-skalakan lewat JS di gaugeLivePaint (app.js) — durasi inline per api
+   menang atas atur CSS apa pun, jadi override animation-duration di sini
+   tidak berfungsi dan dihapus. */
 .gwrap.st-alt .glow{opacity:.75;filter:blur(22px) saturate(1.7);
   transform:translate(-50%,-50%) scale(1.4)}
 #g-fl.st-alt{filter:blur(2.2px) saturate(1.8) brightness(1.55)}
-.gwrap.st-alt .fl{animation-duration:1.05s}
-.gwrap.st-crash .glow{opacity:.88;filter:blur(15px) saturate(2.6);
-  transform:translate(-50%,-50%) scale(1.55)}
 #g-fl.st-crash{filter:blur(2.6px) saturate(3.2) brightness(1.2)}
-.gwrap.st-crash .fl{animation-duration:.85s}
 @media(prefers-reduced-motion:reduce){
   .gwrap.st-alt .glow,.gwrap.st-crash .glow{opacity:.5;transform:translate(-50%,-50%)}}
 /* arah altcoin: spidometer + aura api */
