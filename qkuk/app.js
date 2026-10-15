@@ -3316,6 +3316,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           }(chip), 2600);
         }
       }
+      chip.title = "Klik untuk lihat " + s.n + " pick yang membentuk winrate " + s.nama;
+      chip.addEventListener("click", function () { openKombo(s.nama); });   // drill-down pembentuk winrate
       chip.appendChild(el("span", "an-rank", i === 0 ? "#1" : "#" + (i + 1)));
       chip.appendChild(el("b", "an-nama", s.nama));
       chip.appendChild(el("span", "an-wr " + (s.wr >= 50 ? "pos" : "neg"), s.wr.toFixed(0) + "%"));
@@ -3382,8 +3384,77 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     tip.appendChild(el("span", null,
       top[0].nama + " — komposisi dgn winrate live tertinggi saat ini ("
       + top[0].wr.toFixed(0) + "% dari " + top[0].n + " pick resolved). "
-      + "Pastikan alasan & timeframe-nya tercentang di popup ambil; winrate ini berubah otomatis saat resolve admin diperbarui."));
+      + "Pastikan alasan & timeframe-nya tercentang di popup ambil; winrate ini berubah otomatis saat resolve admin diperbarui. "
+      + "Klik chip kombinasi untuk melihat daftar pick pembentuknya."));
     host.appendChild(tip);
+  }
+  /* 16 Okt — DRILL-DOWN KOMBINASI: klik chip di kotak analisis membuka popup
+     daftar pick yang membentuk winrate kombinasi itu. Sumber = PICKS (sama
+     dgn sumber comboStats: hanya pick resolved win 1/0), dipasangkan lewat
+     alasanList penuh — kombinasi "MSS 1h + FVG 15m" hanya menghitung pick
+     yang memakai SEMUA pasangan itu. Klik baris → popup detail ambil posisi
+     yang sudah ada (openAlasan), konsisten dgn alur di watchlist. */
+  function openKombo(nama) {
+    try {
+      /* nama = pasangan-pasangan "ALASAN tf" dijool " + " — diurai balik dgn
+         pemisahan di spasi TERAKHIR (nama alasan tak punya spasi: BOS, MSS,
+         EMA20-atas, SuperTrend-Buy, …). */
+      var pairs = nama.split(" + ").map(function (x) {
+        var i = x.lastIndexOf(" ");
+        return { a: x.slice(0, i), tf: x.slice(i + 1) };
+      });
+      /* sumber = liveRows per engine — SAMA dgn comboStats, supaya isi popup
+         kongruen dgn angka pada chip. Jangan iterasi mentah PICKS: baris dgn
+         kunci non-standar bisa masuk dan membuat jumlahnya beda. */
+      var rows = [];
+      ord().forEach(function (tf) {
+        ["pantau", "sinyal"].forEach(function (jenis) {
+          var rseg = jenis === "pantau" ? "watch" : "sig";   // utk label popup (watchlist/sinyal)
+          liveRows(tf, jenis).forEach(function (r) {
+            var p = r.apick; if (!p || (p.win !== 1 && p.win !== 0)) return;
+            var have = {};
+            alasanList(p).forEach(function (a) { have[a] = 1; });
+            for (var i = 0; i < pairs.length; i++) if (!have[pairs[i].a + " " + pairs[i].tf]) return;
+            rows.push({ tf: tf, rseg: rseg, sym: r.sym || "", p: p });
+          });
+        });
+      });
+      var W = rows.filter(function (r) { return r.p.win === 1; }).length;
+      var box = el("div", "alview2");
+      box.appendChild(admHead("Pick pembentuk kombinasi", nama));
+      if (!rows.length) {
+        box.appendChild(el("div", "alnote", "belum ada pick resolved yang memakai kombinasi ini."));
+      } else {
+        var wr = W / rows.length * 100;   // pasti kongruen dgn chip — sumber sama
+        var meta = el("div", "almeta2");
+        meta.appendChild(el("span", "alpill " + (wr >= 50 ? "up" : "dn"),
+          wr.toFixed(0) + "% winrate · " + W + "W/" + (rows.length - W) + "L"));
+        meta.appendChild(el("span", "alwhen", rows.length + " pick"));
+        box.appendChild(meta);
+        box.appendChild(el("div", "al-sect", "klik baris untuk detail ambil posisi"));
+        var list = el("div", "ko-rows");
+        rows.sort(function (a, b) { return ((b.p.ts || "").localeCompare(a.p.ts || "")); });
+        rows.forEach(function (r) {
+          var side = (r.p.side || r.p.dir0 || "").toLowerCase();
+          var row = el("div", "ko-row");
+          row.title = "detail ambil posisi " + (r.sym || "").replace(/USDT$/, "");
+          row.appendChild(el("span", "ko-time", wibStr(r.p.ts)));
+          row.appendChild(el("b", "ko-sym", (r.sym || "\u2014").replace(/USDT$/, "")));
+          if (side)
+            row.appendChild(el("span", "alpill " + (side === "long" ? "up" : "dn"), (side === "long" ? "\u25b2 " : "\u25bc ") + side.toUpperCase()));
+          row.appendChild(el("span", "alpill " + (r.p.win === 1 ? "win" : "loss"), r.p.win === 1 ? "WIN" : "LOSS"));
+          if (hasPct(r.p.pct))
+            row.appendChild(el("b", "ko-pct " + (r.p.pct > 0 ? "pos" : r.p.pct < 0 ? "neg" : "mut"), sgn(r.p.pct, 1) + "%"));
+          row.appendChild(el("span", "ko-by", "oleh " + (r.p.by || "admin") + " \u00b7 " + r.tf.toUpperCase()));
+          row.addEventListener("click", function () {
+            openAlasan(r.tf, r.rseg, { sym: r.sym, dir: side || null, ts: r.p.ts }, r.p);
+          });
+          list.appendChild(row);
+        });
+        box.appendChild(list);
+      }
+      admShow(box);
+    } catch (err) { admFallback(err); }
   }
   function pickKey(tf, jenis, r) { return tf + "|" + jenis + "|" + (r.ts || "") + "|" + (r.sym || ""); }
   /* ── 11 Okt — LIVE SCORE / KLASMEN ADMIN (permintaan user, paling atas) ──

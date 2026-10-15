@@ -1002,6 +1002,19 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 @media(prefers-reduced-motion:reduce){
   .an-box.an-glow,.an-chip.an-swap{animation:none;box-shadow:none}
 }
+/* drill-down kombinasi: chip terasa tombol + baris list di popup pembentuk */
+.an-chip{cursor:pointer}
+.an-chip:hover{border-color:var(--ac);background:rgba(110,231,183,.05)}
+.ko-rows{display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow-y:auto;margin-top:10px}
+.ko-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid var(--line-2);border-radius:8px;background:var(--s1);padding:8px 11px;cursor:pointer}
+.ko-row:hover{border-color:var(--ac)}
+.ko-time{font:10.5px/1 var(--mono,monospace);color:var(--fg-3);letter-spacing:.02em}
+.ko-sym{font-size:12.5px;font-weight:700}
+.ko-pct{font-family:var(--mono,monospace);font-size:12px;font-weight:700}
+.ko-pct.pos{color:var(--up)}
+.ko-pct.neg{color:var(--dn)}
+.ko-pct.mut{color:var(--fg-2)}
+.ko-by{margin-left:auto;font-size:10px;color:var(--fg-3)}
 
 /* ── v20 (27 Sep): TF multi-pilih per alasan + popup detail baru ── */
 /* chip timeframe: satu alasan bisa dipilih di banyak TF sekaligus */
