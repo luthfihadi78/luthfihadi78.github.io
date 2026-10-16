@@ -1776,13 +1776,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     return ord().map(function (tf) {
       var rows = [];
       Object.keys(PICKS).forEach(function (k) {
-        var kp = k.split("|"); if (kp[0] !== tf) return;
+        var kp = kpOf(k); if (kp.tf !== tf) return;   // 16 Okt: kunci 5-bagian juga
         var p = PICKS[k]; if (!p) return;
         if (p.win !== 0 && p.win !== 1) return;
         if (!eqPickFilter(p)) return;       // 11 Okt — filter admin/periode
         var pct = hasPct(p.pct) ? p.pct   /* 13 Okt: untung/rugi nett — tanpa balik tanda short */
                   : (p.win === 1 ? 1 : -1);
-        rows.push({ ts: kp[2] || "", pct: pct });
+        rows.push({ ts: kp.ts || "", pct: pct });
       });
       rows.sort(function (a, b) { return a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0; });
       var pts = [], cum = 0;
@@ -3456,6 +3456,22 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function restoreWho() { if (!SS.get("qkuk_admin_who")) SS.set("qkuk_admin_who", "Qkuk"); }
   restoreWho();
   var PLOG = [];          // riwayat semua aksi admin (ambil/koreksi/hapus)
+  /* 16 Okt — kunci pick punya DUA bentuk (bukti live score tak pernah
+     menghitung pick Gerry: parser lama melirik [2] sbg ts, padahal di
+     kunci 5-bagian [2] = jenis):
+       4-bagian: '2h|sig|2026-10-09 13:00|OPGUSDT'        → [tf, jenis, ts, sym]
+       5-bagian: 'Gerry|ob|sig|2026-10-08 15:04|JTOUSDT'  → [admin, tf, jenis, ts, sym]
+     Satu pintu kpOf() dipakai SEMUA parser — admin lamanya tak lagi lenyap
+     dr klasemen/riwayat/kurva. */
+  function kpOf(k) {
+    var kp = String(k || "").split("|");
+    var five = kp.length >= 5;
+    return { admin: five ? (kp[0] || null) : null,
+             tf: five ? (kp[1] || "") : (kp[0] || ""),
+             jenis: five ? (kp[2] || "") : (kp[1] || ""),
+             ts: five ? (kp[3] || "") : (kp[2] || ""),
+             sym: five ? (kp[4] || "") : (kp[3] || "") };
+  }
   var AUTHCLOUD = null;   // hash password Qkuk hasil "ganti password" (dari cloud)
   var AUTH_HASHES = {};   // 11 Okt — hash per-akun dari cloud {"admin":…, "Admin2":…} (hasil ganti password)
   /* hash efektif akun k: hasil "ganti password" di cloud (jika ada),
@@ -3474,9 +3490,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     return d.getUTCFullYear() + "-" + ("0" + (d.getUTCMonth() + 1)).slice(-2) + "-" + ("0" + d.getUTCDate()).slice(-2);
   }
   function plogAdd(act, key, p, r) {
-    var kp = (key || "").split("|");
+    var kp = kpOf(key);                        // 16 Okt: kunci 5-bagian ikut benar
     PLOG.unshift({ t: new Date().toISOString(), act: act,
-      sym: (r && r.sym) || kp[3] || "", tf: kp[0] || "", jenis: kp[1] || "",
+      sym: (r && r.sym) || kp.sym || "", tf: kp.tf || "", jenis: kp.jenis || "",
       dir0: (r && r.dir) || null, side: p ? (p.side || null) : null,
       pct: hasPct(p && p.pct) ? p.pct : null, win: p ? p.win : null,
       who: act && p && p.by ? p.by : meAdmin(),
@@ -3812,48 +3828,37 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      ke bulan ini, bukan dihapus dari sumber. Kolom: jumlah trade (tertutup),
      win, lose, winrate, net R (hasil % + fallback ±1R saat pct kosong).
      Barisan atas = total dua admin. */
-  function liveScoreRows() {
-    var bulan = wibDate(new Date().toISOString()).slice(0, 7);   // "YYYY-MM"
-    var out = { Qkuk: [0, 0, 0], Gerry: [0, 0, 0] };             // [n, win, sumR]
-    Object.keys(PICKS).forEach(function (k) {
-      var p = PICKS[k];
-      if (!p || (p.win !== 1 && p.win !== 0)) return;            // open: tidak dinilai
-      var kp = k.split("|"), ts = kp[2] || "";
-      if (ts.slice(0, 7) !== bulan) return;                      // pick bulan sebelumnya tdk dihitung
-      var who = p.by === "Gerry" ? "Gerry" : "Qkuk";
-      var pct = hasPct(p.pct) ? p.pct            /* 13 Okt: untung/rugi nett, tanpa flip short */
-                : (p.win === 1 ? 1 : -1);                        // fallback ±1R
-      var e = out[who];
-      e[0]++; if (p.win === 1) e[1]++; e[2] += pct;
-    });
-    return out;
-  }
-  /* 12 Okt — prioritas-4: ARSIP BULAN LALU. Reset bulanan tidak boleh
-     menghapus konteks performa — baris kecil "bulan lalu" tampil di bawah
-     total kalau ada data, per admin juga. Hitung dgn filter bulan-1. */
-  /* 13 Okt — filter bulanan (permintaan user): klasemen bisa dipanggil
-     ke bulan mana pun lewat dropdown, bukan cuma "bulan ini" vs "bulan
-     lalu". bulanScoreRows(BLN) generik — liveScoreRows() = bulan berjalan. */
-  var LSV_BULAN = null;   // null = bulan berjalan
+  /* 16 Okt (permintaan user: "kemarin Gerry sudah isi namun tidak masuk
+     live score") — klasemen kini MENGHITUNG pick yang admin ambil walau
+     belum resolve: tampil sbg "terbuka". WR & net R TETAP hanya dari
+     pick resolve (win 0/1) — sama dgn blok digest live_stats.py. */
   function bulanScoreRows(bln) {
-    var out = { Qkuk: [0, 0, 0], Gerry: [0, 0, 0] };
+    var out = { Qkuk: { ambil: 0, buka: 0, selesai: 0, win: 0, R: 0 },
+                Gerry: { ambil: 0, buka: 0, selesai: 0, win: 0, R: 0 } };
     Object.keys(PICKS).forEach(function (k) {
       var p = PICKS[k];
-      if (!p || (p.win !== 1 && p.win !== 0)) return;
-      if ((k.split("|")[2] || "").slice(0, 7) !== bln) return;
-      var who = p.by === "Gerry" ? "Gerry" : "Qkuk";
-      /* 13 Okt (koreksi): pct = HASIL UNTUNG/RUGI nett — positif untung,
-         negatip rugi, TIDAK DIBALIK utk short (dulu dibalik → admin yang isi
-         +8 utk short yang menang terbaca −8R → “win semua tapi net R minus”). */
-      var pct = hasPct(p.pct) ? p.pct : (p.win === 1 ? 1 : -1);
-      var e = out[who];
-      e[0]++; if (p.win === 1) e[1]++; e[2] += pct;
+      if (!p) return;
+      if (kpOf(k).ts.slice(0, 7) !== bln) return;
+      var who = (p.by || kpOf(k).admin) === "Gerry" ? "Gerry" : "Qkuk";
+      var e = out[who]; e.ambil++;
+      if (p.win !== 1 && p.win !== 0) { e.buka++; return; }   // terbuka: dihitung, belum dinilai
+      e.selesai++; if (p.win === 1) e.win++;
+      var pct = hasPct(p.pct) ? p.pct             /* 13 Okt: untung/rugi nett, tanpa flip short */
+                : (p.win === 1 ? 1 : -1);                        // fallback ±1R
+      e.R += pct;
     });
     return out;
   }
+  var LSV_BULAN = null;   // null = bulan berjalan
   function lamaScoreRows() {
     var d = new Date(); d.setMonth(d.getMonth() - 1);
     return bulanScoreRows(d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2));
+  }
+  function tblLine(w, e) {
+    return "<b>" + w + "</b> " + e.ambil + " trade" + (e.buka ? " (terbuka " + e.buka + ")" : "") + " · "
+         + e.win + "W/" + (e.selesai - e.win) + "L · WR "
+         + (e.selesai ? (e.win / e.selesai * 100).toFixed(0) + "%" : "—")
+         + " · " + sgn(e.R, 2) + "R";
   }
   function liveScore(bln) {
     var host = document.getElementById("livescore");
@@ -3874,7 +3879,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     Object.keys(PICKS).forEach(function (k) {
       var p = PICKS[k];
       if (!p || (p.win !== 1 && p.win !== 0)) return;
-      var b = (k.split("|")[2] || "").slice(0, 7);
+      var b = kpOf(k).ts.slice(0, 7);             // 16 Okt: kunci 5-bagian ikut
       if (/^\d{4}-\d{2}$/.test(b)) bulans[b] = 1;
     });
     var ops = Object.keys(bulans).sort().reverse();
@@ -3888,8 +3893,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     h.appendChild(sel);
     host.appendChild(h);
     var d = bulanScoreRows(bln);
-    var tot = [0, 0, 0];
-    ["Qkuk", "Gerry"].forEach(function (w) { tot[0] += d[w][0]; tot[1] += d[w][1]; tot[2] += d[w][2]; });
+    var tot = { ambil: 0, buka: 0, selesai: 0, win: 0, R: 0 };
+    ["Qkuk", "Gerry"].forEach(function (w) {
+      ["ambil", "buka", "selesai", "win", "R"].forEach(function (f) { tot[f] += d[w][f]; });
+    });
     var rows = el("div", "rows");
     function baris(l, v, cls, sub) {
       var x = el("div", "row");
@@ -3898,14 +3905,21 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (sub) vs.title = sub;
       x.appendChild(vs); rows.appendChild(x);
     }
-    if (!tot[0]) {
-      baris("total", "belum ada trade resolved bulan ini", "mut");
+    if (!tot.ambil) {
+      baris("total", "belum ada trade bulan ini", "mut");
       baris("Qkuk · Gerry", "0 · 0", "mut");
     } else {
-      var wr = tot[1] / tot[0] * 100;
-      baris("total trade", tot[0] + " · win " + tot[1] + " · lose " + (tot[0] - tot[1]), "");
-      baris("total winrate", wr.toFixed(1) + "%", wr >= 50 ? "pos" : "neg");
-      baris("total net R", sgn(tot[2], 2) + "R", tot[2] > 0 ? "pos" : tot[2] < 0 ? "neg" : "mut");
+      if (tot.buka) {
+        baris("total trade", tot.ambil + " (terbuka " + tot.buka + ") · win " + tot.win
+              + " · lose " + (tot.selesai - tot.win), "");
+      } else {
+        baris("total trade", tot.ambil + " · win " + tot.win + " · lose " + (tot.selesai - tot.win), "");
+      }
+      if (tot.selesai) {
+        var wr = tot.win / tot.selesai * 100;
+        baris("total winrate", wr.toFixed(1) + "%", wr >= 50 ? "pos" : "neg");
+      } else { baris("total winrate", "—", "mut"); }
+      baris("total net R", sgn(tot.R, 2) + "R", tot.R > 0 ? "pos" : tot.R < 0 ? "neg" : "mut");
     }
     host.appendChild(rows);
     var grid = el("div", "ls-grid");
@@ -3918,36 +3932,40 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var rw = el("div", "rows");
       function rr(a, b, cls) { var x2 = el("div", "row"); x2.appendChild(el("span", "l", a));
         x2.appendChild(el("span", "d")); x2.appendChild(el("span", "v " + (cls || ""), b)); rw.appendChild(x2); }
-      if (!e[0]) {
+      if (!e.ambil) {
         rr("trade bulan ini", "belum ada", "mut");
       } else {
-        var wrw = e[1] / e[0] * 100;
-        rr("jumlah trade", String(e[0]));
-        rr("win · lose", e[1] + " · " + (e[0] - e[1]), "mut");
-        rr("winrate", wrw.toFixed(1) + "%", wrw >= 50 ? "pos" : "neg");
-        rr("net R", sgn(e[2], 2) + "R", e[2] > 0 ? "pos" : e[2] < 0 ? "neg" : "mut");
+        /* 16 Okt — pick yang baru diambil & belum resolve TETAP tampil
+           (dulu lenyap → user tahu "sudah isi" tapi live score kosong). */
+        rr("jumlah trade", e.ambil + (e.buka ? " (terbuka " + e.buka + ")" : ""));
+        rr("win · lose", e.win + " · " + (e.selesai - e.win), "mut");
+        if (e.selesai) {
+          var wrw = e.win / e.selesai * 100;
+          rr("winrate", wrw.toFixed(1) + "%", wrw >= 50 ? "pos" : "neg");
+        }
+        rr("net R", sgn(e.R, 2) + "R", e.R > 0 ? "pos" : e.R < 0 ? "neg" : "mut");
       }
       c.appendChild(rw); grid.appendChild(c);
     });
     host.appendChild(grid);
     /* 12 Okt — prioritas-4: baris arsip bulan lalu (per admin + total) */
-    var lam = (bln !== bulanSekarang) ? { Qkuk: [0, 0, 0], Gerry: [0, 0, 0] } : lamaScoreRows();
-    var totL = [0, 0, 0];
-    ["Qkuk", "Gerry"].forEach(function (w) { totL[0] += lam[w][0]; totL[1] += lam[w][1]; totL[2] += lam[w][2]; });
-    if (totL[0]) {
+    var lam = (bln !== bulanSekarang)
+      ? { Qkuk: { ambil:0, buka:0, selesai:0, win:0, R:0 }, Gerry: { ambil:0, buka:0, selesai:0, win:0, R:0 } }
+      : lamaScoreRows();
+    if (lam.Qkuk.ambil || lam.Gerry.ambil) {
       var barL = el("div", "ls-lama");
-      function selL(w, e) {
-        var wr = e[0] ? (e[1] / e[0] * 100).toFixed(0) : "—";
-        return "<b>" + w + "</b> " + e[0] + " trade · " + e[1] + "W/" + (e[0] - e[1]) + "L · WR " + wr + "% · " + sgn(e[2], 2) + "R";
-      }
+      function selL(w, e) { return tblLine(w, e); }
       barL.appendChild(el("span", "ls-lama-judul", "bulan lalu:"));
-      barL.appendChild(el("span", null, selL("total", totL)));
-      barL.appendChild(el("span", null, selL("Qkuk", lam.Qkuk)));
-      barL.appendChild(el("span", null, selL("Gerry", lam.Gerry)));
+      barL.appendChild(el("span", null, tblLine("total", {
+        ambil: lam.Qkuk.ambil + lam.Gerry.ambil, buka: lam.Qkuk.buka + lam.Gerry.buka,
+        selesai: lam.Qkuk.selesai + lam.Gerry.selesai,
+        win: lam.Qkuk.win + lam.Gerry.win, R: lam.Qkuk.R + lam.Gerry.R })));
+      barL.appendChild(el("span", null, tblLine("Qkuk", lam.Qkuk)));
+      barL.appendChild(el("span", null, tblLine("Gerry", lam.Gerry)));
       host.appendChild(barL);
     }
     host.appendChild(el("div", "cap",
-      "Winrate live resolve admin · net R dari hasil % yang diisi; open belum dinilai."));
+      "WR & net R dari resolve admin (open dihitung terbuka, belum dinilai)."));
     return host;
   }
   function liveScoreMount() {
@@ -3968,12 +3986,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var seg = jenis === "pantau" ? "watch" : jenis === "sinyal" ? "sig" : jenis;
     Object.keys(PICKS).forEach(function (k) {
       var kp = k.split("|");
-      if (kp[0] !== tf || kp[1] !== seg) return;
+      var kp = kpOf(k);
+      if (kp.tf !== tf || kp.jenis !== seg) return;
       var p = PICKS[k]; if (!p) return;
       for (var i = 0; i < out.length; i++) {
-        if (out[i].ts === kp[2] && out[i].sym === kp[3]) return;   // sudah ada di jendela
+        if (out[i].ts === kp.ts && out[i].sym === kp.sym) return;   // sudah ada di jendela
       }
-      out.push({ ts: kp[2] || "", sym: kp[3] || "", dir: p.side || p.dir0 || null, apick: p });
+      out.push({ ts: kp.ts || "", sym: kp.sym || "", dir: p.side || p.dir0 || null, apick: p });
     });
     return out;
   }
@@ -4031,9 +4050,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
          dari pick itu sendiri supaya tabel riwayat tidak pernah blank */
       if (!PLOG.length && Object.keys(PICKS).length) {
         PLOG = Object.keys(PICKS).map(function (k) {
-          var kp = k.split("|"), p = PICKS[k] || {};
-          return { t: p.ts || "", act: "ambil", sym: kp[3] || "", tf: kp[0] || "",
-            jenis: kp[1] || "", dir0: null, side: p.side || null,
+          var kp = kpOf(k), p = PICKS[k] || {};   // 16 Okt: kunci 5-bagian ikut
+          return { t: p.ts || kp.ts || "", act: "ambil", sym: kp.sym || "", tf: kp.tf || "",
+            jenis: kp.jenis || "", dir0: null, side: p.side || null,
             pct: (typeof p.pct === "number") ? p.pct : null,
             win: (p.win === 0 || p.win === 1) ? p.win : null, note: p.note || null };
         }).sort(function (a, b) { return (b.t || "").localeCompare(a.t || ""); });
@@ -5183,10 +5202,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       Object.keys(PICKS).forEach(function (k) {
         var p = PICKS[k];
         if (!p || (p.win !== 1 && p.win !== 0)) return;
-        var kp = k.split("|");
-        if (bln && (kp[2] || "").slice(0, 7) !== bln) return;
+        var kp = kpOf(k);
+        if (bln && (kp.ts || "").slice(0, 7) !== bln) return;
         var con = hasPct(p.pct) ? p.pct : (p.win === 1 ? 1 : -1);   // 13 Okt: % = untung/rugi nett, tanpa balik tanda short
-        var nm = ((kp[0] || "?") + "").toUpperCase() + " · " + (kp[1] === "watch" ? "watchlist" : kp[1] === "sig" ? "sinyal" : (kp[1] || "?"));
+        var nm = ((kp.tf || "?") + "").toUpperCase() + " · " + (kp.jenis === "watch" ? "watchlist" : kp.jenis === "sig" ? "sinyal" : (kp.jenis || "?"));
         var e = tep[nm] || (tep[nm] = [0, 0, 0]);
         if (urut.indexOf(nm) < 0) urut.push(nm);
         e[0]++; if (p.win === 1) e[1]++; e[2] += con;
@@ -5321,9 +5340,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      log yang basi. */
   function plogDetail(e) {
     if (!e || !e.pickKey) return;
-    var kp = e.pickKey.split("|"), p = PICKS[e.pickKey];
-    var r = { ts: kp[2] || "", sym: kp[3] || "", dir: (p && (p.side || p.dir0)) || e.side || null };
-    try { openAlasan(kp[0], kp[1], r, p || {}); }
+    var kp = kpOf(e.pickKey), p = PICKS[e.pickKey];
+    var r = { ts: kp.ts || "", sym: kp.sym || "", dir: (p && (p.side || p.dir0)) || e.side || null };
+    try { openAlasan(kp.tf, kp.jenis, r, p || {}); }
     catch (err) { admFallback(err); }
   }
   /* 13 Okt — REKAP ANTAR-BULAN (permintaan user): grafik batang akumulasi
