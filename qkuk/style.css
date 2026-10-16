@@ -1189,19 +1189,19 @@ body.tema-crash #tema{opacity:1;background:
 body.tema-short #tema{opacity:1;background:
   radial-gradient(110% 50% at 50% 116%,rgba(232,135,124,.16),transparent 62%),
   radial-gradient(70% 34% at 20% 110%,rgba(232,135,124,.10),transparent 60%)}
-/* 16 Okt (permintaan user): nuansa long & altseason dinaikkan — long tak
-   lagi hijau mint polos (basi); kini jade-teal dgn intan warna emas di
-   sudut (rasanya "market naik+nilai"). Altseason kini aurora ungu-magenta
-   penuh (bukan daun hijau) — khas cuaca rotasi ke altcoin. */
+/* 16 Okt (PILIHAN USER): long = Jade-Emas; altseason = CYBER LIME —
+   lime #B6F36B + cyan #22D3EE + grid digital tipis (kesan terminal altseason). */
 body.tema-long #tema{opacity:1;background:
   radial-gradient(110% 52% at 50% 116%,rgba(45,212,167,.22),transparent 62%),
   radial-gradient(70% 34% at 14% 110%,rgba(20,184,166,.14),transparent 60%),
   radial-gradient(42% 26% at 84% 112%,rgba(238,180,76,.14),transparent 60%)}
 body.tema-altseason #tema{opacity:1;background:
-  radial-gradient(110% 55% at 50% 116%,rgba(167,108,231,.22),transparent 62%),
-  radial-gradient(80% 40% at 14% 108%,rgba(236,72,153,.18),transparent 60%),
-  radial-gradient(80% 40% at 86% 108%,rgba(232,121,249,.16),transparent 60%),
-  radial-gradient(50% 28% at 50% 96%,rgba(99,102,241,.14),transparent 60%)}
+  radial-gradient(110% 55% at 50% 116%,rgba(182,243,107,.22),transparent 62%),
+  radial-gradient(80% 40% at 14% 108%,rgba(34,211,238,.18),transparent 60%),
+  radial-gradient(80% 40% at 86% 108%,rgba(163,230,53,.14),transparent 60%),
+  linear-gradient(rgba(34,211,238,.05) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(34,211,238,.05) 1px,transparent 1px);
+  background-size:auto,auto,auto,44px 44px,44px 44px}
 body.tema-deg #tema{opacity:1;background:
   radial-gradient(100% 48% at 50% 116%,rgba(238,180,76,.16),transparent 62%)}
 @keyframes tema-api{0%,100%{filter:brightness(1)}18%{filter:brightness(1.22)}
@@ -1233,7 +1233,7 @@ body.tema-deg #tema{opacity:1;background:
 .tema-demo button.on{color:#070B09;font-weight:700;border-color:transparent}
 /* 16 Okt: chip preview ikut warna baru (long=jade, altseason=ungu aurora) */
 .tema-demo button.on[data-t="long"]{background:#2DD4A7}
-.tema-demo button.on[data-t="altseason"]{background:#A76CE7;color:#fff}
+.tema-demo button.on[data-t="altseason"]{background:#B6F36B}
 .tema-demo button.on[data-t="short"]{background:#E8877C}
 .tema-demo button.on[data-t="crash"]{background:#FF6D5E}
 .tema-demo button.on[data-t="deg"]{background:#EEB44C}
