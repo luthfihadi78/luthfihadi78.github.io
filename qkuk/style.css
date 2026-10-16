@@ -432,8 +432,10 @@ button.apbadge{cursor:pointer}
 .adm-modal{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(4,7,6,.72);display:none;
   align-items:center;justify-content:center;z-index:90;padding:16px}
 .adm-modal.in{display:flex}
+/* 16 Okt (permintaan user): kotak live pick terlalu sempit — dinaikkan dari
+   430px → 620px supaya checklist alasan + chip timeframe muat dua kolom. */
 .adm-box{background:var(--s2,#101614);border:1px solid var(--line-2,#2a3532);border-radius:10px;
-  padding:18px;width:min(430px,94vw);max-height:88vh;overflow:auto;
+  padding:18px;width:min(620px,96vw);max-height:88vh;overflow:auto;
   box-shadow:0 18px 60px rgba(0,0,0,.55)}
 .adm-h{display:flex;align-items:baseline;gap:8px;margin-bottom:12px}
 .adm-h b{font-size:14px;letter-spacing:.02em}

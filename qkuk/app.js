@@ -3388,13 +3388,18 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* limit upload gambar per pick (kvota user) — di-crop di sisi server cloud */
   var IMG_MAX = 4;
   var ALASAN = ["BOS", "EMA20-atas", "EMA20-bawah", "EMA200-atas", "EMA200-bawah",
-                 "MSS", "FVG", "IFVG", "INDUCEMENT", "MACD", "OB", "SuperTrend-Buy", "SuperTrend-Sell"];
+                 "MSS", "FVG", "IFVG", "INDUCEMENT", "MACD", "OB", "Buyer", "Seller",
+                 "SuperTrend-Buy", "SuperTrend-Sell"];
   var ALASAN_NAMA = { "EMA20-atas": "EMA20 di atas", "EMA20-bawah": "EMA20 di bawah",
                        "EMA200-atas": "EMA200 di atas", "EMA200-bawah": "EMA200 di bawah",
                        "INDUCEMENT": "Inducement", "MACD": "MACD", "OB": "OB (Order Block)", "BOS": "BOS",
                        "MSS": "MSS", "FVG": "FVG", "IFVG": "IFVG",
+                       "Buyer": "List Buyer",
+                       "Seller": "List Seller",
                        "SuperTrend-Buy": "SuperTrend Buy", "SuperTrend-Sell": "SuperTrend Sell" };
-  var TF_OPTS = ["1m", "5m", "15m", "30m", "1h", "1D"];   /* 2 Okt: 2h/4h dibuang — kanalnya dimatikan */
+  /* 16 Okt (permintaan user): timeframe 2h masuk daftar lagi (kanal 2h hidup
+     balik s/d klasemen fair-share) + alasan List Buyer/Seller baru. */
+  var TF_OPTS = ["1m", "5m", "15m", "30m", "1h", "2h", "4h", "1D"];  /* 2 Okt dulu 2h/4h dibgt; kini 2h kembali, 4h ikut utk alasan swing */
   function alasanNama(a) { return ALASAN_NAMA[a] || a; }
   /* 27 Sep — SATU alasan bisa dipilih di BANYAK timeframe (mis. MSS 1h + MSS 30m
      + MSS 5m dalam satu pick). Format baru: p.alasan = [{a:"MSS",tf:"1h"}, …].
