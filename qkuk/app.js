@@ -106,7 +106,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      short, crash (short kuat), deg (degraded). ALTSEASON & CRASH bukan
      sekadar LONG/SHORT ekstrem: faktor dominannya beda (altseason syarat
      BTC.D TURUN; crash syarat BTC turun dalam), makanya warnanya sendiri. */
-  var GC = { long: "#6EE7B7", altseason: "#B6F36B", short: "#E8877C", crash: "#FF6D5E",
+  /* 16 Okt (permintaan user): nuansa LONG & ALTSEASON "terlalu biasa" беras
+     hijau mint polos. Rekomendasi — LONG: teal-jade berlapis emas (mewah,
+     tegas, beda dari "hijau default" chart); ALTSEASON: ungu-magenta aurora
+     (klasik altseason =cuaca otokotok-many warna, bukan hijau). GC dipakai
+     di: needle gauge, arc flow, glow, dan label bias. */
+  var GC = { long: "#2DD4A7", altseason: "#A76CE7", short: "#E8877C", crash: "#FF6D5E",
              netral: "#EEF4F1", deg: "#EEB44C" };
   var GA = 140, GB = 142, GR = 104;            // pusat & radius busur
   function pol(r, deg) {
@@ -281,14 +286,18 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       p.vy = 16 + r() * 26; p.sw = 8 + r() * 18; p.r = .8 + r() * 2.2;
       p.a = .3 + r() * .5; p.c = r() < .75 ? "224,238,246" : "198,222,244";
     } else if (kind === "leaf") {
-      p.c = coba(["#6EE7B7", "#2DD4A7", "#A7F3D0", "#8FE9C6"]);
+      /* 16 Okt: daun kini jade/teal — mencocokkan GC.long baru; mode
+         altseason daunnya kini ungu-aurora (konsisten dgn nuansa). */
+      var _aurora = NU.mode === "altseason";
+      p.bkg = _aurora && r() < .3;   // 30% daun belakang (blur)
+      p.c = _aurora ? coba(["#A76CE7", "#C084FC", "#E879F9", "#7C6CE7"])
+                    : coba(["#2DD4A7", "#14B8A6", "#A7F3D0", "#EEB44C"]);
       p.x = r() * NU.W; p.y = isi ? r() * NU.H : -10;
       p.vy = 26 + r() * 30; p.sw = 14 + r() * 18; p.ph = r() * 6.283;
       p.w = 5 + r() * 6; p.h = p.w * .5;
       p.rot = r() * 6.283; p.vr = (r() - .5) * 2.6;
       p.a = .5 + r() * .3;
       p.wind = NU.mode === "altseason";
-      p.bkg = NU.mode === "altseason" && r() < .3;   // 30% jadi daun belakang (blur)
     } else if (kind === "buduk") {          // coretan angin kencang
       p.x = isi ? r() * NU.W : -30; p.y = r() * NU.H * .9;
       p.vx = 320 + r() * 280; p.ln = 16 + r() * 26; p.a = .05 + r() * .06;
