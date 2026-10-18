@@ -1210,8 +1210,8 @@ body.tema-deg #tema{opacity:1;background:
 
 /* ── 16 Okt: lapisan partikel nuansa (#nuansa) — pasar jadi "hidup" ──
    Canvas duduk tepat setelah #tema (z 0, di bawah konten): salju netral,
-   daun long, daun+angin altseason, gerimis merah short, api semua sisi
-   crash, debu amber deg. Dirender app.js; hormati reduced-motion. */
+   CRONA PULSA long, DENJIRI NEON altseason, gerimis merah short, api
+   semua sisi crash, debu amber deg. Dirender app.js; hormati reduced-motion. */
 #nuansa{position:fixed;inset:0;z-index:0;pointer-events:none}
 
 /* chips pratinjau nuansa (panel gauge) — tak mengubah data, tampilan saja */

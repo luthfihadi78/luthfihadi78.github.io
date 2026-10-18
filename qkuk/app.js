@@ -228,11 +228,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     kotak.appendChild(r);
   }
   /* ── 16 Okt — NUANSA PARTIKEL (canvas #nuansa) — pasar jadi "hidup" ──
-     netral = salju berbutir jatuh lembut · long = daun hijau berjatuhan ·
-     altseason = daun + ANGIN KENCANG (jelas "pasar naik cepat") ·
+      netral = salju berbutir jatuh lembut · long = CRONA PULSA (serpihan
+     cahaya jade/emas berkilau naik, lahir-mati lembut) ·
+     altseason = DENJIRI NEON (rerik pendek lime/cyan diagonal juntai
+     kencang — kesan pasar jalan cepat) ·
      short = gerimis merah gelap + KILAT HALUS SESEKALI (hujan mendung
      menjelang badai) · crash = API & BARA MEMENUHI SEMUA SISI, bukan
      sekadar cahaya · deg = debu amber mengambang.
+     (17 Okt — daun dibusak: user minta desain non-daun; idear "daun long,"
+     daun+angin altseason" diganti CRONA PULSA & DENJIRI NEON.)
      Ringan: 1 canvas, 1 rAF, tanpa shadowBlur; berhenti saat tab
      tersembunyi; hormati prefers-reduced-motion (tot mati). Cuma tampilan. */
   var NU = { cv: null, cx: null, W: 0, H: 0, parts: [], mode: null,
@@ -240,8 +244,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
              k: { next: 0, t0: -9, pts: null } };   // k = kilat (short)
   var NU_REDUCED = false;
   try { NU_REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
-  var NU_KEDALIM = { snow: 96, leaf: 58, buduk: 14, driz: 140,
-                     bara: 210, api: 5, debu: 32 };
+  var NU_KEDALIM = { snow: 96, driz: 140, bara: 210, api: 5, debu: 32,
+                     pulsa: 46, debuneon: 62 };
   function nuSprite() {   // 1 sprite api pra-render — murah tiap gambarkan
     if (NU.sp) return NU.sp;
     var s = document.createElement("canvas"); s.width = s.height = 128;
@@ -284,23 +288,21 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       p.x = r() * NU.W; p.y = isi ? r() * NU.H : -8;
       p.vy = 16 + r() * 26; p.sw = 8 + r() * 18; p.r = .8 + r() * 2.2;
       p.a = .3 + r() * .5; p.c = r() < .75 ? "224,238,246" : "198,222,244";
-    } else if (kind === "leaf") {
-      /* 16 Okt: daun kini jade/teal (LONG Jade-Emas pilihan user); mode
-         altseason = CYBER LIME: daun lime/cyan + motong grid digital. */
-      var _alt = NU.mode === "altseason";
-      p.bkg = _alt && r() < .3;   // 30% daun belakang (blur)
-      p.c = _alt ? coba(["#B6F36B", "#22D3EE", "#A3E635", "#67E8F9"])
-                 : coba(["#2DD4A7", "#14B8A6", "#A7F3D0", "#EEB44C"]);
-      p.x = r() * NU.W; p.y = isi ? r() * NU.H : -10;
-      p.vy = 26 + r() * 30; p.sw = 14 + r() * 18; p.ph = r() * 6.283;
-      p.w = 5 + r() * 6; p.h = p.w * .5;
-      p.rot = r() * 6.283; p.vr = (r() - .5) * 2.6;
-      p.a = .5 + r() * .3;
-      p.wind = NU.mode === "altseason";
-    } else if (kind === "buduk") {          // coretan angin kencang
-      p.x = isi ? r() * NU.W : -30; p.y = r() * NU.H * .9;
-      p.vx = 320 + r() * 280; p.ln = 16 + r() * 26; p.a = .05 + r() * .06;
-    } else if (kind === "driz") {           // gerimis merah gelap
+    } else if (kind === "pulsa") {          // LONG: serpihan cahaya berkilau naik
+      p.x = r() * NU.W; p.y = isi ? r() * NU.H : NU.H + 6;
+      p.vy = -(12 + r() * 26);               // naik pelan dari dasar
+      p.r = 1.1 + r() * 2.3;
+      p.umur = 0; p.ttl = 2.4 + r() * 2.8;   // hidup-mati dgn envelope sin
+      p.c = coba(["#2DD4A7", "#EEB44C", "#A7F3D0", "#E8C97A"]);   // jade & emas
+      p.a = .4 + r() * .45;
+    } else if (kind === "debuneon") {       // ALTSEASON: rerik neon diagonal
+      p.x = r() * (NU.W + 90) - 45; p.y = isi ? r() * NU.H : -18 - r() * 70;
+      p.vx = 30 + r() * 46;                  // miring landai ke kanan
+      p.vy = 200 + r() * 190;                // deras ke bawah
+      p.ln = 9 + r() * 17;
+      p.c = coba(["#B6F36B", "#22D3EE", "#A3E635", "#67E8F9"]);   // lime & cyan
+      p.a = .26 + r() * .38;
+    } else if (kind === "driz") {            // gerimis merah gelap
       p.x = r() * (NU.W + 40) - 20; p.y = isi ? r() * NU.H : -14;
       p.vx = -12 - r() * 12; p.vy = 320 + r() * 150;
       p.ln = 9 + r() * 9; p.a = .22 + r() * .26;
@@ -359,15 +361,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         p.x += Math.sin(t * p.fs + p.ph) * p.sw * dt;
         p.y += p.vy * dt;
         if (p.y > H + 6) { NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false; p.k = "snow"; }
-      } else if (p.k === "leaf") {
-        p.x += (Math.sin(t * .9 + p.ph) * (18 + p.sw) + NU.wind * (p.wind ? 1 : .12)) * dt;
-        p.y += p.vy * (p.bkg ? 1.55 : 1) * dt; p.rot += p.vr * dt;   // belakang bergerak lebih cepat = mendekati paralaks
-        if (p.y > H + 14 || p.x < -40 || p.x > W + 40) {
+      } else if (p.k === "pulsa") {
+        p.x += Math.sin(t * p.fs * .9 + p.ph) * 8 * dt;   // goyang pelan
+        p.y += p.vy * dt; p.umur += dt;
+        if (p.umur > p.ttl || p.y < -12) {
           NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false;
         }
-      } else if (p.k === "buduk") {
-        p.x += (p.vx + NU.wind * .6) * dt; p.y += 14 * dt;
-        if (p.x > W + 40) { NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false; }
+      } else if (p.k === "debuneon") {
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        if (p.y > H + 24 || p.x > W + 70) {
+          NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false;
+        }
       } else if (p.k === "driz") {
         p.x += p.vx * dt; p.y += p.vy * dt;
         if (p.y > H + 14) { NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false; }
@@ -392,31 +396,33 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (p.k === "snow") {
         cx.fillStyle = "rgba(" + p.c + "," + (p.a * (0.6 + 0.4 * Math.sin(t * p.fs + p.ph))).toFixed(3) + ")";
         cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.283); cx.fill();
-      } else if (p.k === "leaf") {
-        /* 16 Okt — dua lapis kedalaman: daun BELAKANG (r ~10%, alpha pendek)
-           digambar blur-pseudo (3 kopi alpha rendah dgn offset ikut arah
-           angin) = gerak dgn trail; daun depan tetap tajam. blur nyata
-           (ctx.filter) mahal & tak konsisten lintas-browser — dgn 3 kopi
-           per daun belakang (~6 daun) biaya masih kecil tanpa shadowBlur. */
-        if (p.bkg) {
-          var tril = NU.wind * .05 + 9;
-          cx.save(); cx.globalAlpha = p.a * .28; cx.fillStyle = p.c;
-          for (var tl = 1; tl <= 3; tl++) {
-            cx.save(); cx.translate(p.x - tril * tl * .03, p.y + tl * 2.1);
-            cx.rotate(p.rot);
-            cx.beginPath(); cx.ellipse(0, 0, p.w, p.h, 0, 0, 6.283); cx.fill();
-            cx.restore();
-          }
-          cx.restore();
-        }
-        cx.save(); cx.translate(p.x, p.y); cx.rotate(p.rot);
-        cx.globalAlpha = p.a; cx.fillStyle = p.c;
-        cx.beginPath(); cx.ellipse(0, 0, p.w, p.h, 0, 0, 6.283); cx.fill();
+      } else if (p.k === "pulsa") {
+        /* CRONA PULSA: alpha memuncak di tengah umur (envelope sin) — lahir
+           & mati lembut. Inti titik + salib kilau tipis (garis +) dgn
+           composite lighter supaya bersinar, tanpa shadowBlur (mahal). */
+        var um = Math.min(1, p.umur / p.ttl);
+        var env = Math.sin(Math.PI * um);
+        cx.save(); cx.globalCompositeOperation = "lighter";
+        cx.globalAlpha = p.a * env; cx.fillStyle = p.c;
+        cx.beginPath(); cx.arc(p.x, p.y, p.r * (0.8 + 0.5 * env), 0, 6.283); cx.fill();
+        cx.strokeStyle = p.c; cx.lineWidth = 1;
+        var kl = p.r * 2.2 + 2.4 * env;
+        cx.beginPath();
+        cx.moveTo(p.x - kl, p.y); cx.lineTo(p.x + kl, p.y);
+        cx.moveTo(p.x, p.y - kl); cx.lineTo(p.x, p.y + kl);
+        cx.stroke();
         cx.restore(); cx.globalAlpha = 1;
-      } else if (p.k === "buduk") {
-        cx.strokeStyle = "rgba(214,244,220," + p.a.toFixed(3) + ")";
-        cx.lineWidth = 1;
-        cx.beginPath(); cx.moveTo(p.x, p.y); cx.lineTo(p.x - p.ln, p.y - 3); cx.stroke();
+      } else if (p.k === "debuneon") {
+        /* DENJIRI NEON: satu garis lebar halus (glow) + inti tajam;
+           kemiringan mengikuti vx/vy supaya terlihat miring landai. */
+        var dn = p.ln * (p.vx / p.vy);
+        cx.save(); cx.globalCompositeOperation = "lighter"; cx.lineCap = "round";
+        cx.strokeStyle = p.c;
+        cx.globalAlpha = p.a * .45; cx.lineWidth = 3;
+        cx.beginPath(); cx.moveTo(p.x, p.y); cx.lineTo(p.x + dn, p.y + p.ln); cx.stroke();
+        cx.globalAlpha = p.a; cx.lineWidth = 1.1;
+        cx.beginPath(); cx.moveTo(p.x, p.y); cx.lineTo(p.x + dn, p.y + p.ln); cx.stroke();
+        cx.restore(); cx.globalAlpha = 1;
       } else if (p.k === "driz") {
         cx.strokeStyle = "rgba(190,74,66," + p.a.toFixed(3) + ")";
         cx.lineWidth = 1;
@@ -488,8 +494,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     nuInit();
     NU.cv.style.display = "block";
     var m = NU.mode;
-    var jenis = m === "netral" ? ["snow"] : m === "long" ? ["leaf"] :
-                m === "altseason" ? ["leaf", "buduk"] : m === "short" ? ["driz"] :
+    var jenis = m === "netral" ? ["snow"] : m === "long" ? ["pulsa"] :
+                m === "altseason" ? ["debuneon"] : m === "short" ? ["driz"] :
                 m === "crash" ? ["bara", "api"] : ["debu"];
     jenis.forEach(function (k) {
       var c = NU_KEDALIM[k] || 24;
