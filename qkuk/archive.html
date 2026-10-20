@@ -87,9 +87,10 @@ function render(d){
         + (d.altdir && d.altdir.btc_chg != null ? ((d.altdir.btc_chg >= 0 ? "+" : "") + d.altdir.btc_chg.toFixed(2) + "%") : "—") + "</b></div>"
     + "<div><span>onchain alert</span><b class='gy'>" + ((d.onchain || {}).alerts || []).length + "</b></div>"
     + "</div></div>";
-  var eng = { "ob": "BRICK", "2h": "HARVEST", "4h": "SWING", "whale": "WHALE" };
+  var eng = { "ob": "BRICK", "2h": "HARVEST", "4h": "SWING", "ob4h": "BASTION 4H", "whale": "WHALE" };
   var lv = d.live || {};
   Object.keys(eng).forEach(function (tf) {
+    if (!lv[tf]) return;   // snapshot baru tak punya whale; snapshot lama tak punya ob4h
     var L = lv[tf] || {};
     var sig = (L.sinyal || []).slice().reverse();               // sinyal terbaru dulu
     var nW = (L.pantau || []).length;

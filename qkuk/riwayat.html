@@ -47,7 +47,7 @@ td.pos{color:var(--up)} td.neg{color:var(--dn)} td.mut{color:var(--fg2)}
 fetch("picks-data.json?t=" + Date.now(), { cache: "no-store" })
  .then(function (r) { return r.json(); })
  .then(function (d) {
-  var eng = { "ob": "BRICK", "2h": "HARVEST", "4h": "SWING", "whale": "WHALE", "15m": "DART", "30m": "REA", "1h": "SNIPER" };
+  var eng = { "ob": "BRICK", "2h": "HARVEST", "4h": "SWING", "ob4h": "BASTION 4H", "whale": "WHALE", "15m": "DART", "30m": "REA", "1h": "SNIPER" };
   /* ── kurva bar per bulan ── */
   var host = document.getElementById("bkurva");
   var MABS = Math.max(5, Math.max.apply(null, (d.bulan || []).map(function (b) { return Math.abs(b.sum || 0); })));
