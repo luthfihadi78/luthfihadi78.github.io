@@ -17,7 +17,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bastion-4h-20261020a";
+  var BUILD = "qkuk-harvest-ims-20261020a";
   /* 4 engine aktif (20 Okt): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · 🧵 SWING 4h = hijau (Sweep+Reclaim 4h, TVI 240) ·
@@ -2797,7 +2797,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
     host.innerHTML = "";
     var list = [];
-    if (bt["2h"]) list.push({ nama: "🩸 HARVEST", chip: "2H", d: bt["2h"] });
+    if (bt["2h"]) list.push({ nama: bt["2h"].nama || "🩸 HARVEST", chip: "2H",
+                              d: bt["2h"], w: bt["2h"] });
     if (wh && wh.n) list.push({ nama: "🏰 BASTION 4H", chip: "OB4H",
       d: { wr: wh.wr, ev: wh.ev, totr: wh.totr, n: wh.n,
            ci: wh.ci, significant: wh.significant, per_arah: wh.per_arah },
