@@ -8,31 +8,24 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      ini. Tanpa "2h", tab & winrate HARVEST lenyap diam-diam walau data.json
      sudah membawanya. "30m" dibiarkan (REVERSAL mati) — ord() menyaring
      otomatis kalau datanya tak ada. */
-  var DATA = null, ORDER = ["ob", "2h", "4h", "whale"], LEFT = 60;   // 8 Okt: 4 engine aktif — REA 30m keluar
+  var DATA = null, ORDER = ["ob", "2h", "4h", "ob4h"], LEFT = 60;   // 20 Okt: BASTION 4H ganti WHALE
   /* ⚠️ GitHub Pages menyajikan index.html dgn cache-control 600 dtk, dan tab
      yang dibiarkan terbuka TIDAK PERNAH mengambil ulang HTML-nya sama sekali —
      ia hanya menarik data.json. Akibatnya pembaruan tampilan tak terlihat
      sampai pembaca menekan hard-reload, dan itu tidak masuk akal untuk halaman
      yang memang dimaksudkan ditinggal terbuka. Versi build ditanam saat terbit;
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
-  /* 5 Okt: kartu riset 🐳 WHALE (n=59 WR 69.5% EV +0.372R, IS→OOS + sebaran
-   bulan) di bawah strip bandeng; kartu SNIPER 1h dihapus dari tampilan.
-   ⚠️ BUILD sengaja TIDAK dinaikkan. Penaga auto-reload di bawah compares
-   BUILD vs data.json.build; kalau BUILD beda, tab memuat ulang — dan karena
-   kuncinya per-versi, ia akan reload lagi tiap poll SELAMA data.json belum
-   juga terbit baru. Menaikkan BUILD tanpa ikut menerbitkan data.json = reload
-   tanpa henti. data.json hanya boleh terbit dari mesin bot, jadi di sini kita
-   samakan. Cache busting tetap lewat ?v=20261005a di index.html. */
-  var BUILD = "qkuk-nuansa-kilat-20261016i";
-  /* 4 engine aktif (8 Okt): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
+  /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
+     BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
+  var BUILD = "qkuk-bastion-4h-20261020a";
+  /* 4 engine aktif (20 Okt): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
-     riset backtestnya MSS→IDM→zona OB 30m+mantul dgn gerbang searah BTC 24 jam,
      oranye bata) · 🧵 SWING 4h = hijau (Sweep+Reclaim 4h, TVI 240) ·
-     🐳 WHALE = emas. Reversal 30m = ungu (mati, dibiarkan utk riwayat).
+     🏰 BASTION 4H = amber (OB 4h, TVI 240). Reversal 30m = ungu (mati).
      TVI = interval TradingView — tanpa entri tf-nya link chart jatuh ke
      fallback "240", interval salah. */
-  var COLOR = { "30m": "#C792EA", "2h": "#FF6B6B", "ob": "#E8965A", "4h": "#7CE38B", "whale": "#FFD54F" };
-  var TVI = { "30m": "30", "2h": "120", "ob": "60", "4h": "240", "whale": "60" };
+  var COLOR = { "30m": "#C792EA", "2h": "#FF6B6B", "ob": "#E8965A", "4h": "#7CE38B", "ob4h": "#E8B04B" };
+  var TVI = { "30m": "30", "2h": "120", "ob": "60", "4h": "240", "ob4h": "240" };
 
   function $(s) { return document.querySelector(s); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
@@ -1127,17 +1120,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       });
       return { L: L, S: S };
     };
-    var K2 = hitungKanal("2h"), K4 = hitungKanal("4h"), KO = hitungKanal("ob"), KW = hitungKanal("whale");
+    var K2 = hitungKanal("2h"), K4 = hitungKanal("4h"), KO = hitungKanal("ob"), KB = hitungKanal("ob4h");
     var arahK = function (k) { return (k.L + k.S) ? (k.L > k.S ? 1 : k.S > k.L ? -1 : 0) : 0; };
-    var d2 = arahK(K2), d4 = arahK(K4), dO = arahK(KO), dW = arahK(KW);
-    var berdata = [d2, d4, dO, dW].filter(function (d) { return d !== 0; });
+    var d2 = arahK(K2), d4 = arahK(K4), dO = arahK(KO), dB = arahK(KB);
+    var berdata = [d2, d4, dO, dB].filter(function (d) { return d !== 0; });
     var semuaMerah = berdata.length >= 2 && berdata.every(function (d) { return d < 0; });
     var semuaHijau = berdata.length >= 2 && berdata.every(function (d) { return d > 0; });
     var banyakShort2h = (K2.S >= 2 && K2.S > K2.L);
     var banyakLong2h = (K2.L >= 2 && K2.L > K2.S);
     var swingObLong = (d4 > 0 && dO > 0);
     var usdtNaik = dirUsdt > 0, usdtTurun = dirUsdt < 0;
-    V.kanalArah = { "2h": d2, "4h": d4, ob: dO, whale: dW };
+    V.kanalArah = { "2h": d2, "4h": d4, ob: dO, ob4h: dB };
     /* 16 Okt — SWEEP KEBAWAH BERSAMAAN (engine v36): ≥5 dari 8 mayor
        menyapu low 24 jam dalam 3 bar 1h = keadaan darurat → CRASH, tanpa
        menunggu gate dominan & tanpa ditahan histeresis. Angka dihitung
@@ -1305,11 +1298,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         if (bPikPt) c.appendChild(bPikPt);
       }
 
-      /* 9 Okt — kartu "backtest reference" kini utk SEMUA engine. Sumber:
-         HARVEST/SWING dari DATA.engine[tf] (schema per_bln), BRICK dari
-         DATA.bt_brick & WHALE dari DATA.bt_whale (schema sendiri, tak punya
-         per_bln → dihitung n / n_bulan; tooltip jendela + populasi). */
-      var BT = (tf === "ob" && DATA.bt_brick) || (tf === "whale" && DATA.bt_whale) || E;
+      /* 20 Okt — kartu "backtest reference" untuk SEMUA engine. Sumber:
+         HARVEST/SWING dari DATA.engine[tf], BRICK dari DATA.bt_brick,
+         BASTION 4H dari DATA.bt_brick4h (schema sendiri, tak punya per_bln
+         → dihitung n / n_bulan; tooltip jendela + populasi). */
+      var BT = (tf === "ob" && DATA.bt_brick) || (tf === "ob4h" && DATA.bt_brick4h) || E;
       if (BT && BT.n) {
         var _pr = BT.per_bln;
         if (_pr == null && BT.n_bulan) _pr = Math.round(BT.n / BT.n_bulan * 10) / 10;
@@ -1331,7 +1324,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* 8 Okt (permintaan user): label tab pakai NAMA ENGINE — BRICK/HARVEST/SWING
      bukan kode TF "OB"/"2H"/"4H", biar konsisten dgn grup WA & strip riset. */
   var TAB_NAME = { "30m": "REA", "2h": "HARVEST", "4h": "SWING",
-                   "ob": "BRICK", "whale": "WHALE", "1h": "SNIPER", "15m": "DART" };
+                   "ob": "BRICK", "ob4h": "BASTION 4H", "1h": "SNIPER", "15m": "DART" };
   function tabs(host, active, pick) {
     host.innerHTML = "";
     ord().forEach(function (tf) {
@@ -1450,16 +1443,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   var sMode = "semua";
   var wTf = null, sTf = null, sQ = "", sSort = "ts", sSide = "", bq = "";
 
-  /* ⚠️ 5 Okt — kanal yang memang LANGKA perlu dijelaskan saat kosong.
-     Pesan umum "Nothing on the watchlist for this channel." dibaca sebagai
-     "kanal ini mati/error", padahal 🐳 WHALE memang dirancang jarang: ia
-     hanya berbunyi saat konfluensi penuh (reclaim 1h + killzone + IDM +
-     SuperTrend), sekitar 5 sinyal/bulan — sudah diaudit di RESEARCH_STATE
-     5 Okt dan nol watchlist-nya memang benar, bukan bug. */
+  /* 20 Okt — BASTION 4H hanya mengirim tier premium (OB 4h searah EMA200). */
   var KANAL_LANGKA = {
-    whale: {
-      w: "🐳 Watchlist 🐳 WHALE kosong — kanal ini hanya berbunyi saat konfluensi penuh.",
-      s: "🐳 Belum ada sinyal 🐳 WHALE — kanal ini memang jarang berbunyi."
+    ob4h: {
+      w: "🏰 Watchlist BASTION 4H kosong — hanya tier premium yang ditampilkan.",
+      s: "🏰 Belum ada sinyal BASTION 4H — kanal ini hanya mengirim tier premium."
     }
   };
   function kosong(tf, jenis) {
@@ -1756,16 +1744,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      ② hr : winrate per jam WIB — lollipop per jam (bukan garis: user
             makin bingung dgn 3 garis bersilangan)
      Sumber sama dengan heat table & kartu live resolve: picks admin. */
-  /* whale = "Whale 1h" bukan salah ketik: resep 🐳 WHALE memang reclaim 1h
-     + killzone + IDM + SuperTrend (riset n=59). */
-  var HR_NAME = { "ob": "Engine OB", "30m": "Reversal 30m", "2h": "Harvest 2h", "4h": "Swing 4h", "whale": "Whale 1h" };
+  /* 20 Okt — BASTION 4H = order block 4h tier premium. */
+  var HR_NAME = { "ob": "Engine OB", "30m": "Reversal 30m", "2h": "Harvest 2h", "4h": "Swing 4h", "ob4h": "Bastion 4h" };
   /* 25 Sep — tinggi ter-akhir tiap batang histogram (urut h×kanal), buat
      tween antar segaran: batang MELUNCUR dari tinggi lama ke baru, persis
      histogram divergen di tab Whale. Bentuk array mengikuti urutan render. */
   var HR_RAW = null;
   /* 6 Okt — kanal chart by-hour/kurva live = ord() (kanal aktif di
      DATA.live), bukan ["1h","30m"] hardcoded: sejak swap DART→shadow &
-     HARVEST naik, key DATA.live hanya 15m/2h/whale, jadi chart lama
+     HARVEST naik, key DATA.live hanya 2h/4h/ob/ob4h, jadi chart lama
      selalu kosong. Init per[h] dinamis ikut daftar kanal itu. */
   function liveHourAgg() {
     var tfs = ord(), per = {}, h;
@@ -2611,7 +2598,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       /* aura bola panas dihapus (revisi 19 Sep) — kanvas bersih tanpa api */
       var nm = d.sym.replace(/USDT$/, "");
       b.appendChild(el("b", null, nm));
-      b.appendChild(el("em", "bb-tag", d.tf.toUpperCase()));   // tag engine (2H/OB/WHALE/…)
+      b.appendChild(el("em", "bb-tag", d.tf.toUpperCase()));   // tag engine (2H/OB/OB4H/…)
       var chg = bubbleChg(d);
       b.appendChild(el("i", null,
         chg === null ? "n/a" : (chg > 0 ? "+" : "") + chg.toFixed(2) + "%"));
@@ -2791,17 +2778,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var host = $("#bt-badges");
     if (!host) return;
     var bt = DATA && DATA.bt;
-    var wh = DATA && DATA.bt_whale;
+    var wh = DATA && DATA.bt_brick4h;
     /* 6 Okt malam (permintaan user): REVERSAL 30m dihapus dari strip (kanal
-       mati), dan kartu 🐳 WHALE yang terpisah DILEBUR ke sini — semua kanal
-       satu desain badge; detail riset WHALE (jendela, populasi, resep,
-       IS→OOS)       pindah ke tooltip badge-nya.
+       mati), dan kartu riset terpisah DILEBUR ke sini — semua kanal
+       satu desain badge; detail riset BASTION 4H (jendela, populasi, resep,
+       IS→OOS) pindah ke tooltip badge-nya.
      7 Okt — kartu lain dimatikan & DIHAPUS dari strip (EV-nya negatif) dan
        penggantinya 🧱 BRICK masuk: kanal 30m MSS→IDM→zona OB+mantul,
        gerbang searah BTC 24 jam, TP 3R (data.json.bt_engine_ob).
      7 Okt (kemudian) — 🧵 SWING (Sweep+Reclaim 4h) masuk strip lagi; strip
-       kini 4 engine = HARVEST · BRICK · SWING · WHALE (data.json.bt_swing,
-       JSON statis dari duel RCL: n=112 · WR 59,8% · EV +0,333R · 10/12 bln).
+       kini 4 engine = HARVEST · BRICK · SWING · BASTION 4H
+       (data.json.bt_swing & bt_brick4h).
      8 Okt — rebrand "🧷 ENGINE OB" DIBATALKAN (hasil live buruk, keputusan
        user) → label kembali 🧱 BRICK. */
     if (!bt || !bt["2h"]) {
@@ -2811,8 +2798,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     host.innerHTML = "";
     var list = [];
     if (bt["2h"]) list.push({ nama: "🩸 HARVEST", chip: "2H", d: bt["2h"] });
-    if (wh && wh.n) list.push({ nama: "🐳 WHALE", chip: "WHALE",
-      d: { wr: wh.wr, ev: wh.ev, totr: wh.totr, n: wh.n }, w: wh });
+    if (wh && wh.n) list.push({ nama: "🏰 BASTION 4H", chip: "OB4H",
+      d: { wr: wh.wr, ev: wh.ev, totr: wh.totr, n: wh.n,
+           ci: wh.ci, significant: wh.significant, per_arah: wh.per_arah },
+      w: wh });
     var ek = DATA && DATA.bt_engine_ob;
     if (ek && ek.n) list.push({ nama: "🧱 BRICK", chip: "BRICK",
       d: { wr: ek.wr, ev: ek.ev, totr: ek.totr, n: ek.n,
@@ -2894,9 +2883,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
   }
 
-  /* 6 Okt malam — kartu 🐳 WHALE terpisah DIHAPUS (permintaan user: "jangan
+  /* 6 Okt malam — kartu riset terpisah dihapus (permintaan user: "jangan
      beda sendiri"): angkanya kini badge di strip backtest atas, detail
-     risetnya di tooltip. Fungsi lama whaleCard() dibuang. */
+     risetnya di tooltip. */
   function render(first) {
     liveScoreMount();       // 11 Okt: live score klasemen — PALING ATAS halaman
     stamp(); gauge(); strip(); kamu(); applyPicks(); btBadges();
@@ -3177,9 +3166,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     paintDesk();
     dr.appendChild(db);
     bx.appendChild(dr);
-    /* 14 Okt (permintaan user) — TOGGLE NOTIFIKASI PER ENGINE: 4 kartu
-       on/off utk BRICK/HARVEST/SWING/WHALE. Default semua ON. Preferensi
-       tersimpan di localStorage "qkuk_nkanal" (JSON tf→0/1). */
+    /* 20 Okt — TOGGLE NOTIFIKASI PER ENGINE: BRICK/HARVEST/SWING/BASTION 4H.
+       Default semua ON. Preferensi di localStorage "qkuk_nkanal" (JSON tf→0/1). */
     var nk = el("div", "nk-row");
     nk.appendChild(el("div", "nk-h", "Notifikasi per engine"));
     function paintNk() {
@@ -3187,7 +3175,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         b.classList.toggle("on", nn(b.dataset.tf));
       });
     }
-    ["ob", "2h", "4h", "whale"].forEach(function (tf) {
+    ["ob", "2h", "4h", "ob4h"].forEach(function (tf) {
       var b = el("button", "nk-t"); b.type = "button"; b.dataset.tf = tf;
       b.textContent = NN_ENG[tf] || tf;
       b.title = "Klik untuk hidup/matikan notifikasi engine ini";
@@ -3248,12 +3236,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   function deskReady() {
     return ("Notification" in window) && Notification.permission === "granted" && DESK;
   }
-  /* 14 Okt (permintaan user) — NOTIFIKASI PER ENGINE: 4 engine aktif
-     (BRICK/HARVEST/SWING/WHALE) masing-masing punya toggle & emoji sendiri.
+  /* 20 Okt — NOTIFIKASI PER ENGINE: BRICK/HARVEST/SWING/BASTION 4H.
      Default SEMUA ON; preferensi di localStorage "qkuk_nkanal" (JSON tf→0/1).
-     Judul notifikasi memakai emoji engine = beda visual di lock screen,
-     dgn nama singkat agar muat di banner HP. */
-  var NN_ENG = { "ob": "🧱 BRICK", "2h": "🩸 HARVEST", "4h": "🧵 SWING", "whale": "🐳 WHALE" };
+     Judul notifikasi memakai emoji engine = beda visual di lock screen. */
+  var NN_ENG = { "ob": "🧱 BRICK", "2h": "🩸 HARVEST", "4h": "🧵 SWING", "ob4h": "🏰 BASTION 4H" };
   var NNOTE = {};
   try { NNOTE = JSON.parse(localStorage.getItem("qkuk_nkanal") || "{}") || {}; } catch (e) {}
   function nn(tf) { return NNOTE[tf] !== 0; }   // default ON dgn nn(tf)
@@ -4919,7 +4905,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (lg && lg.parentNode === kamu) kamu.insertBefore(host, lg.nextSibling);
       else kamu.appendChild(host);
     }
-    var TFH = [["ob", "BRICK"], ["2h", "HARVEST"], ["4h", "SWING"], ["whale", "WHALE"]];
+    var TFH = [["ob", "BRICK"], ["2h", "HARVEST"], ["4h", "SWING"], ["ob4h", "BASTION 4H"]];
     var per = {}, j;                       // per[jam][tf] = [n, w, sum%]
     if (typeof HH_FILTER === "undefined") window.HH_FILTER = null;   // jam terpilih (klik sel)
     for (j = 0; j < 24; j++) { per[j] = {}; TFH.forEach(function (t) { per[j][t[0]] = [0, 0, 0]; }); }
@@ -5532,8 +5518,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      persis keluhan "kotak analisis kembali ke atas, harusnya di bawah
      bubbles". #footer ikut dicantumkan supaya tidak nyangkut di tengah
      halaman saat section di atasnya dipindah.
-     ⚠️ 5 Okt — kartu baru #whalestrip (riset 🐳 WHALE) juga HARUS ada di
-     daftar ini. Section yang tidak tercantum tidak cuma tertinggal di tempat
+     ⚠️ 5 Okt — strip riset #btstrip juga HARUS ada di daftar ini.
+     Section yang tidak tercantum tidak cuma tertinggal di tempat
      lama: begitu section lain di bawahnya dipindah dengan appendChild, ia
      tertinggal di ATAS. Dua strip riset ada di paling atas wrap, jadi
      dicantumkan paling depan agar posisinya pasti. */

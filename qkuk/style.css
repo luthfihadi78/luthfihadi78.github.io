@@ -141,9 +141,8 @@ a:hover{color:#9CF2CE}
 @media(max-width:600px){.kv.btc{display:none}}
 
 /* ── channel strip ── */
-/* 7 Okt — 3→4 kolom: strip kini 4 kanal (HARVEST · BRICK · SWING · WHALE);
-   dengan repeat(3,1fr) kartu ke-4 (WHALE) jatuh sendirian ke baris kedua dan
-   baris winrate-nya tak sejajar dgn kartu lain. Breakpoint ikut pola .ak-grid. */
+/* 20 Okt — strip 4 kanal (HARVEST · BRICK · SWING · BASTION 4H).
+   Breakpoint ikut pola .ak-grid. */
 .strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0 26px}
 @media(max-width:1100px){.strip{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:640px){.strip{grid-template-columns:1fr}}
@@ -1060,8 +1059,9 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 .bt-badge .bt-tf{font-size:10px;color:var(--fg-3);border:1px solid var(--line-2);border-radius:4px;padding:0 5px}
 .bt-badge .bt-tf.t15m{color:#7CE38B;border-color:rgba(124,227,139,.4)}
 .bt-badge .bt-tf.t30m{color:#C792EA;border-color:rgba(199,146,234,.4)}
-.bt-badge .bt-tf.t2h{color:#FF6B6B;border-color:rgba(255,107,107,.4)}  .bt-badge .bt-tf.twhale{color:#4DC9F6;border-color:rgba(77,201,246,.4)}
+.bt-badge .bt-tf.t2h{color:#FF6B6B;border-color:rgba(255,107,107,.4)}
   .bt-badge .bt-tf.tob{color:#F2A65A;border-color:rgba(242,166,90,.4)}
+.bt-badge .bt-tf.tob4h{color:#E8B04B;border-color:rgba(232,176,75,.4)}
 .bt-badge .bt-tf.t1h{color:#4DC9F6;border-color:rgba(77,201,246,.4)}
 .bt-badge .bt-tf.t4h{color:#7CE38B;border-color:rgba(124,227,139,.4)}
 .bt-badge .bt-angka{display:flex;gap:16px;margin-top:9px}
@@ -1152,7 +1152,7 @@ select.lg-sel{margin-left:auto}
 .plog-akk td.neg{color:var(--dn)}
 .plog-akk td.mut{color:var(--fg-2)}
 
-/* 14 Okt — notifikasi per engine (BRICK/HARVEST/SWING/WHALE) */
+/* 20 Okt — notifikasi per engine (BRICK/HARVEST/SWING/BASTION 4H) */
 .nk-row{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
 .nk-h{flex:100%;font-family:var(--mono);font-size:10.5px;color:var(--fg-3);letter-spacing:.06em;text-transform:uppercase}
 .nk-t{font-family:var(--mono);font-size:12px;padding:7px 10px;border:1px solid rgba(110,231,183,.25);background:var(--s0);color:var(--fg-2);border-radius:6px;cursor:pointer;opacity:.5}
