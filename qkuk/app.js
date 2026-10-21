@@ -17,7 +17,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-harvest-ims-20261020a";
+  var BUILD = "qkuk-gauge-recency-20261021a";
   /* 4 engine aktif (20 Okt): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · 🧵 SWING 4h = hijau (Sweep+Reclaim 4h, TVI 240) ·
@@ -677,14 +677,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           V.status === "altseason" || V.status === "long" ? "pos"
           : V.status === "crash" || V.status === "short" ? "neg" : "mut");
         if (V.why) r("kondisi", V.why, "mut");
+        if (V.altCond) r("altcoin", V.altWhy || V.altCond,
+          V.altCond === "alt_kuat" ? "pos" : V.altCond === "alt_lemah" ? "neg" : "mut");
       }
       /* 15 Okt revisi-2 — komponen dominan: USDT.D reclaim 2H, bobot
          asimetris dgn backtest (bullish→SHORT ±4 · 92%; bearish→LONG −2 · 47%);
          sinyal/watchlist HARVEST 2h ditampilkan sebagai konfirmasi ±3. */
       r("USDT.D (dominan)",
-        (V.usdtDir > 0 ? "↓ turun — LONG " : V.usdtDir < 0 ? "↑ naik — SHORT " : "→ datar ")
-        + "→ dU " + sgn(V.dUsdtDominan, 1),
-        V.usdtDir > 0 ? "pos" : V.usdtDir < 0 ? "neg" : "mut");
+        (V.usdtDir > 0 ? "↑ naik — SHORT " : V.usdtDir < 0 ? "↓ turun — LONG " : "→ datar ")
+        + "→ dU " + sgn(V.dUsdtDominan, 1)
+        + (V.usdtRclConflict ? " (reclaim lama diabaikan)" : ""),
+        V.usdtDir > 0 ? "neg" : V.usdtDir < 0 ? "pos" : "mut");
       if (V.harvest) {
         var hlv = V.harvest;
         r("HARVEST 2H (konfirmasi)",
@@ -1015,6 +1018,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
          bila tanpa data engine, browser memakai baris "tahan" di bawah).
      Sinkron dengan gauge_live.py v35 — satu sumber kebenaran. */
   var G35 = { thLong: 3, thShort: -3, thExtreme: 6, usdtW: 0.5 };
+  /* 21 Okt — sinyal lama tidak boleh menahan gauge selamanya. Hanya
+     sinyal `fired` ≤24 jam yang dihitung; di luar itu = histori. */
+  var G37 = { breadthH: 24, hv2H: 24, btcLedMom: 0.5, btcLedMajFloor: -3, usdtConflict: 0.05 };
+  function umurSinyalS(ts) {
+    var t = Date.parse(String(ts || "").replace(" ", "T") + "+07:00");
+    return isNaN(t) ? null : Math.max(0, (Date.now() - t) / 1000);
+  }
   /* ═══ 15 Okt revisi-2 — SERI USDT.D utk detektor reclaim (V.usdtRcl) ══
      Sumber: DefiLlama stablecoins API (gratis, tanpa kunci, rate-limit santai):
        • /stablecoincharts/all?stablecoin=1  → pasokan USDT harian (sejak 2014)
@@ -1065,7 +1075,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var dom = null;
     for (var i2 = sig2.length - 1; i2 >= 0; i2--) {
       var s2 = sig2[i2];
-      if (s2 && s2.st === "fired" && (s2.dir === "long" || s2.dir === "short")) { dom = s2; break; }
+      var u2 = s2 ? umurSinyalS(s2.ts) : null;
+      if (s2 && s2.st === "fired" && (s2.dir === "long" || s2.dir === "short")
+          && u2 != null && u2 <= G37.hv2H * 3600) { dom = s2; break; }
     }
     /* konfirmasi: sinyal terbuka ±3; tanpa sinyal → 3 watchlist ±3 (skala) */
     var dHv = dom ? (dom.dir === "long" ? 3 : -3) : 0;
@@ -1074,7 +1086,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var mw = 0;
       for (var j2 = Math.max(0, wat2.length - 3); j2 < wat2.length; j2++) {
         var w2 = wat2[j2];
-        if (w2 && w2.dir === "long") mw++; else if (w2 && w2.dir === "short") mw--;
+        var uw = w2 ? umurSinyalS(w2.ts) : null;
+        if (uw == null || uw > G37.hv2H * 3600) continue;
+        if (w2.dir === "long") mw++; else if (w2.dir === "short") mw--;
       }
       if (mw !== 0) wdom = (mw > 0 ? 3 : -3) * Math.min(1, Math.abs(mw) / 2);
     }
@@ -1091,15 +1105,22 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        USDT.D itu sendiri (detektor sweep+reclaim atas seri dominasi dari
        DefiLlama). Backtest 18 bln: sisi USDT-bullish→SHORT 92% (KUAT),
        sisi USDT-bearish→LONG 47% (LEMAH — dipakai hanya sbg penimbang). */
-    var dirUsdt;
-    if (V.usdtRcl != null && V.usdtRcl !== 0) dirUsdt = V.usdtRcl;   // +1 = USDT.D bullish (bearish pasar), −1 = bearish (bullish pasar)
-    else dirUsdt = dUraw < -0.05 ? 1 : dUraw > 0.05 ? -1 : 0;
-    /* bobot komposit: sisi kuat ±4 (diuji 92%), sisi lemah −2 (47%) */
+    var dirUsdtRaw;
+    if (V.usdtRcl != null && V.usdtRcl !== 0) dirUsdtRaw = V.usdtRcl;   // +1 = USDT.D bullish (bearish pasar), −1 = bearish (bullish pasar)
+    else dirUsdtRaw = dUraw < -0.05 ? 1 : dUraw > 0.05 ? -1 : 0;
+    /* Reclaim harian bisa tertinggal dari Δ3 jam. Bila bertabrakan kuat,
+       jangan biarkan sinyal lama menang (kasus 21 Okt: USDT.D turun tapi
+       why bilang "USDT.D naik"). */
+    var konflik = (dirUsdtRaw > 0 && dUraw < -G37.usdtConflict)
+               || (dirUsdtRaw < 0 && dUraw > G37.usdtConflict);
+    var dirUsdt = konflik ? 0 : dirUsdtRaw;
     var dUDominan = dirUsdt > 0 ? 4 : dirUsdt < 0 ? -2 : 0;
+    V.usdtRclRaw = dirUsdtRaw; V.usdtRcl = dirUsdt;
+    V.usdtRclConflict = !!konflik;
     V.usdtDir = dirUsdt; V.dUsdtDominan = dUDominan;
     var mom = (V.btc24h != null) ? V.btc24h : 0;
-    var dU = dUraw * G35.usdtW, dB = V.sBtcd || 0;
-    var skor = (V.maj || 0) + (V.dirBtc || 0) - dB - dU + dUDominan + dHv;
+    var dU = dUraw * G35.usdtW, dBF = V.sBtcd || 0;
+    var skor = (V.maj || 0) + (V.dirBtc || 0) - dBF - dU + dUDominan + dHv;
     V.scoreRaw = Math.round(skor * 10) / 10;
     V.score = Math.round(skor);
     V.strength = Math.abs(V.scoreRaw);
@@ -1113,33 +1134,64 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        USDT.D tetap d-bobot asimetris di skor (92%/47% backtest). */
     var hitungKanal = function (tf) {
       var L2 = (DATA.live || {})[tf] || {};
-      var L = 0, S = 0;
+      var uniq = {};
       (L2.sinyal || []).forEach(function (r) {
-        if (r && r.st === "fired" && (r.dir === "long" || r.dir === "short"))
-          r.dir === "long" ? L++ : S++;
+        if (!r || (r.st !== "fired" && r.st !== "closed")) return;
+        if (r.dir !== "long" && r.dir !== "short") return;
+        var k = [r.ts, r.sym, r.dir].join("\u0001");
+        if (!uniq[k] || r.st === "closed") uniq[k] = r;
       });
+      var L = 0, S = 0;
+      for (var k in uniq) {
+        var r = uniq[k];
+        if (r.st !== "fired") continue;
+        var u = umurSinyalS(r.ts);
+        if (u == null || u > G37.breadthH * 3600) continue;
+        r.dir === "long" ? L++ : S++;
+      }
       return { L: L, S: S };
     };
     var K2 = hitungKanal("2h"), K4 = hitungKanal("4h"), KO = hitungKanal("ob"), KB = hitungKanal("ob4h");
     var arahK = function (k) { return (k.L + k.S) ? (k.L > k.S ? 1 : k.S > k.L ? -1 : 0) : 0; };
-    var d2 = arahK(K2), d4 = arahK(K4), dO = arahK(KO), dB = arahK(KB);
-    var berdata = [d2, d4, dO, dB].filter(function (d) { return d !== 0; });
+    var d2 = arahK(K2), d4 = arahK(K4), dO = arahK(KO), dB4 = arahK(KB);
+    var berdata = [d2, d4, dO, dB4].filter(function (d) { return d !== 0; });
+    var altPos = berdata.filter(function (d) { return d > 0; }).length;
+    var altNeg = berdata.filter(function (d) { return d < 0; }).length;
     var semuaMerah = berdata.length >= 2 && berdata.every(function (d) { return d < 0; });
     var semuaHijau = berdata.length >= 2 && berdata.every(function (d) { return d > 0; });
     var banyakShort2h = (K2.S >= 2 && K2.S > K2.L);
     var banyakLong2h = (K2.L >= 2 && K2.L > K2.S);
     var swingObLong = (d4 > 0 && dO > 0);
     var usdtNaik = dirUsdt > 0, usdtTurun = dirUsdt < 0;
-    V.kanalArah = { "2h": d2, "4h": d4, ob: dO, ob4h: dB };
-    /* 16 Okt — SWEEP KEBAWAH BERSAMAAN (engine v36): ≥5 dari 8 mayor
+    /* Kondisi alt dipisah dari arah BTC: BTC.D naik belum tentu alt rusak
+       bila USDT.D turun dan arus alt masih positif. */
+    var altCond, altWhy;
+    if (dUraw < -G37.usdtConflict && dBF <= 0.05 && altPos >= 2) {
+      altCond = "alt_kuat";
+      altWhy = "alt kuat: USDT.D turun, arus alt positif (" + altPos + "/" + berdata.length + ")";
+    } else if (dBF > 0.05 || altNeg >= 2) {
+      altCond = "alt_lemah";
+      altWhy = "alt lemah: BTC.D " + sgn(dBF, 2) + "pp, arus alt negatif (" + altNeg + "/" + berdata.length + ")";
+    } else {
+      altCond = "alt_netral";
+      altWhy = "alt netral: rotasi belum terkonfirmasi";
+    }
+    V.altCond = altCond; V.altWhy = altWhy;
+    var btcLedLong = (V.dirBtc > 0 && mom >= G37.btcLedMom && dirUsdt <= 0
+                      && dUraw <= G37.usdtConflict
+                      && (V.maj || 0) >= G37.btcLedMajFloor);
+    V.kanalArah = { "2h": d2, "4h": d4, ob: dO, ob4h: dB4 };
+    /* 16 Okt — SWEEP KEBAWAH BERSAMAAN (engine v36): mayoritas altcoin
        menyapu low 24 jam dalam 3 bar 1h = keadaan darurat → CRASH, tanpa
        menunggu gate dominan & tanpa ditahan histeresis. Angka dihitung
        engine dari klines segar & diterbitkan di data.json (sweepN/
        sweepSyms/sweepCrash) — browser hanya mengikuti. */
-    if ((DATA.altdir_live || {}).sweepCrash) {
+    var sw = DATA.altdir_live || {};
+    if (sw.sweepCrash) {
       V.status = "crash"; V.bias = "short"; V.sweepCrash = true;
-      V.why = "SWEEP KEBAWAH BERSAMAAN (" + (DATA.altdir_live.sweepN || 0) + "/8 mayor: "
-        + ((DATA.altdir_live.sweepSyms || []).join(", ") || "?") + ") → CRASH"
+      V.sweepMin = sw.sweepMin || 6; V.sweepTotal = sw.sweepTotal || 11;
+      V.why = "SWEEP KEBAWAH BERSAMAAN (" + (sw.sweepN || 0) + "/" + V.sweepTotal
+        + " altcoin: " + ((sw.sweepSyms || []).join(", ") || "?") + ") → CRASH"
         + (usdtNaik ? " + USDT.D naik" : "");
     } else if (semuaMerah && mom < -3 && usdtNaik) {
       V.status = "crash"; V.bias = "short";
@@ -1168,20 +1220,24 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       V.status = "long"; V.bias = "long";
       V.why = "Swing 4h + OB dua-duanya long-majority → komposisi long"
         + (usdtTurun ? " + USDT.D turun" : "") + " (skor " + sR + ")";
+    } else if (btcLedLong) {
+      V.status = "long"; V.bias = "long";
+      V.why = "BTC-led LONG — BTC " + sgn(mom, 2) + "% (24 jam), BTC.D "
+        + sgn(dBF, 2) + "pp, USDT.D " + sgn(dUraw, 2) + "pp; " + altWhy;
     } else if (dirUsdt > 0 && mom < -3) {
       V.status = "crash"; V.bias = "short";
       V.why = "USDT.D reclaim bullish + BTC " + sgn(mom, 1) + "% (24 jam) — risk-off";
     } else if (dirUsdt > 0) {
       V.status = "short"; V.bias = "short";
       V.why = "USDT.D reclaim 2H bullish (dominan — sisi 92% backtest)";
-    } else if (dirUsdt < 0 && domAda && dB < 0 && mom > -1 && sR >= G35.thLong) {
+    } else if (dirUsdt < 0 && domAda && dBF < 0 && mom > -1 && sR >= G35.thLong) {
       V.status = "long"; V.bias = "long";
       V.why = "USDT.D reclaim bearish + BTC.D turun + BTC tak jatuh — "
         + "konfirmasi komposit lolos (skor " + sR + ") → long/altseason";
     } else if (sR <= -G35.thExtreme && domAda && mom < -3) {
       V.status = "crash"; V.bias = "short";
       V.why = "skor " + sR + " + BTC " + sgn(mom, 1) + "% (24 jam) — risk-off dalam";
-    } else if (sR >= G35.thExtreme && domAda && dB < 0 && mom > -1) {
+    } else if (sR >= G35.thExtreme && domAda && dBF < 0 && mom > -1) {
       V.status = "altseason"; V.bias = "long";
       V.why = "skor " + sR + " + BTC.D turun (uang rotasi ke alt) + BTC tak jatuh";
     } else if (sR >= G35.thLong) {
@@ -1199,7 +1255,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     /* histeresis: tahanan rezim engine (altdir_live.bias) hanya berlaku saat
        USDT.D datar (dirUsdt=0); saat dominan memerintah, gauge ikut USDT.D. */
     var pubBias = (DATA.altdir_live || {}).bias;
-    if (dirUsdt === 0 && pubBias && pubBias !== V.bias && pubBias !== "netral" && V.bias !== "netral" && !V.sweepCrash) {
+    var allowBtcLed = (V.bias === "long" && btcLedLong);
+    if (dirUsdt === 0 && pubBias && pubBias !== V.bias && pubBias !== "netral"
+        && V.bias !== "netral" && !V.sweepCrash && !allowBtcLed) {
       V.bias = pubBias;
       V.status = (pubBias === "long" ? "long" : pubBias === "short" ? "short" : "netral");
       V.why = "rezim ditahan " + pubBias.toUpperCase() + " — " + V.why;
