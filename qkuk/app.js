@@ -722,7 +722,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       /* 28 Sep v34 — rincian faktor: mayoritas, BTC, BTC.D, USDT.D (Δ3 jam) */
       if (V.domAda || V.btcD != null) r("BTC.D", ar(V.sBtcd || 0) + " " + sgn(V.sBtcd, 2) + "pp (3 jam)" + (V.btcDNow != null ? " → " + sgn(V.btcDNow, 2) + "%" : ""), fc(V.sBtcd || 0));
       else r("BTC.D", "— tidak tersedia", "mut");
-      if (V.domAda || V.usdtD != null) r("USDT.D", ar(V.sUsdtd || 0) + " " + sgn(V.sUsdtd, 2) + "pp (3 jam)" + (V.usdtDNow != null ? " → " + sgn(V.usdtDNow, 2) + "%" : ""), fc(-(V.sUsdtd || 0)));
+      /* 22 Okt — warna USDT.D mengikuti arah angkanya (turun = merah),
+         bukan dibalik menjadi bias pasar. Baris "(dominan)" tetap memakai
+         warna bias LONG/SHORT karena teksnya menjelaskan arah trade. */
+      if (V.domAda || V.usdtD != null) r("USDT.D", ar(V.sUsdtd || 0) + " " + sgn(V.sUsdtd, 2) + "pp (3 jam)" + (V.usdtDNow != null ? " → " + sgn(V.usdtDNow, 2) + "%" : ""), fc(V.sUsdtd || 0));
       else r("USDT.D", "— tidak tersedia", "mut");
       if (V.pubTs) r("dihitung engine", V.pubTs + " WIB", "mut");
       /* 24 Sep — umur data sumber saat NORMAL: biar terlihat segar/tidaknya
