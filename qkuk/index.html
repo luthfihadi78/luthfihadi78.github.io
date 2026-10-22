@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=20261020a">
+<link rel="stylesheet" href="style.css?v=20261022b">
 </head>
 <body>
 
@@ -128,7 +128,7 @@
   <section id="bubbles">
     <div class="sec-h">
       <h2><i>&gt;</i> Bubbles</h2>
-      <span class="hint">daftar sinyal — % change is live 24h from Binance</span>
+      <span class="hint">sinyal + watchlist 7 hari — % change is live 24h from Binance</span>
       <div class="tabs" id="b-tabs" role="tablist"></div>
     </div>
     <div class="bb-stage">
@@ -139,6 +139,7 @@
           <span><i class="lg-id"></i>no 24h data</span>
         </div>
         <input id="b-q" type="search" placeholder="sorot koin… (e.g. AVAX)" aria-label="Highlight bubbles by coin">
+        <span class="bb-found" id="b-found" role="status" aria-live="polite"></span>
       </div>
       <div class="b-chips" id="b-chips"></div>
       <div class="bb-plot" id="bb-plot"></div>
@@ -160,7 +161,7 @@
   <section id="signals">
     <div class="sec-h">
       <h2><i>&gt;</i> Signals</h2>
-      <span class="hint">entries &amp; watchlist issued to the group — satu tempat, tanpa pindah-pindah</span>
+      <span class="hint">SEMUA = sinyal entry hari ini; tab engine = entries &amp; watchlist</span>
       <div class="tabs" id="s-tabs" role="tablist"></div>
     </div>
     <div class="s-tools">
@@ -213,6 +214,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20261022a" defer></script>
+<script src="app.js?v=20261022b" defer></script>
 </body>
 </html>

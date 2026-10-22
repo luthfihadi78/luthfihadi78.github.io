@@ -1386,8 +1386,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      bukan kode TF "OB"/"2H"/"4H", biar konsisten dgn grup WA & strip riset. */
   var TAB_NAME = { "30m": "REA", "2h": "HARVEST", "4h": "SWING",
                    "ob": "BRICK", "ob4h": "BASTION 4H", "1h": "SNIPER", "15m": "DART" };
-  function tabs(host, active, pick) {
+  function tabs(host, active, pick, withAll) {
     host.innerHTML = "";
+    if (withAll) {
+      var all = el("button", "tab", "SEMUA");
+      all.setAttribute("role", "tab");
+      all.setAttribute("aria-selected", active === "all" ? "true" : "false");
+      all.title = "Semua sinyal entry hari ini dari seluruh engine";
+      all.addEventListener("click", function () { pick("all"); });
+      host.appendChild(all);
+    }
     ord().forEach(function (tf) {
       var b = el("button", "tab", TAB_NAME[tf] || tf.toUpperCase());
       b.setAttribute("role", "tab");
@@ -1502,7 +1510,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      tabel berisi sinyal entry DAN baris watchlist (kolom "jenis" membedakan).
      sMode = filter: "semua" (default, gabungan) / "sig" / "watch". */
   var sMode = "semua";
-  var wTf = null, sTf = null, sQ = "", sSort = "ts", sSide = "", bq = "";
+  var wTf = null, sTf = "all", sQ = "", sSort = "ts", sSide = "", bq = "";
 
   /* 20 Okt — BASTION 4H hanya mengirim tier premium (OB 4h searah EMA200). */
   var KANAL_LANGKA = {
@@ -1523,17 +1531,28 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      (permintaan user: "watchlist masuk ke daftar signal biar gampang
      maintenance"). Kolom "jenis" membedakan; sMode memfilter bila perlu. */
   function signals(tf) {
-    sTf = tf; tabs($("#s-tabs"), tf, signals);
-    var gabung = sMode === "semua";
+    sTf = tf; tabs($("#s-tabs"), tf, signals, true);
+    var semua = tf === "all";
+    var hariIni = wibDate(new Date().toISOString());
+    var gabung = sMode === "semua" && !semua;
     var rows = [];
-    if (sMode !== "watch")
-      (DATA.live[tf].sinyal || []).forEach(function (r) {
-        rows.push(Object.assign({}, r, { _jenis: "sig" }));
+    if (semua) {
+      ord().forEach(function (t) {
+        (DATA.live[t].sinyal || []).forEach(function (r) {
+          if ((r.ts || "").slice(0, 10) !== hariIni) return;
+          rows.push(Object.assign({}, r, { _jenis: "sig", _tf: t }));
+        });
       });
-    if (sMode !== "sig")
-      (DATA.live[tf].pantau || []).forEach(function (r) {
-        rows.push(Object.assign({}, r, { _jenis: "watch" }));
-      });
+    } else {
+      if (sMode !== "watch")
+        (DATA.live[tf].sinyal || []).forEach(function (r) {
+          rows.push(Object.assign({}, r, { _jenis: "sig", _tf: tf }));
+        });
+      if (sMode !== "sig")
+        (DATA.live[tf].pantau || []).forEach(function (r) {
+          rows.push(Object.assign({}, r, { _jenis: "watch", _tf: tf }));
+        });
+    }
     if (sQ) rows = rows.filter(function (r) { return (r.sym || "").toUpperCase().indexOf(sQ) !== -1; });
     if (sSide) rows = rows.filter(function (r) { return r.dir === sSide; });
     if (sSort === "pick") {
@@ -1553,11 +1572,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       rows.sort(function (a, b) { return (b.ts || "").localeCompare(a.ts || ""); });
     }
     var kolom = [
-      { h: "", c: function (r) { return tvCell(r.sym, tf); } },
+      { h: "", c: function (r) { return tvCell(r.sym, r._tf); } },
       { h: "time WIB", c: function (r) { return txt(r.ts); } },
-      { h: "pair", c: function (r) { return pairCell(r.sym, sQ); } },
+      { h: "pair", c: function (r) { return pairCell(r.sym, sQ); } }];
+    if (semua) kolom.push({ h: "engine", c: function (r) {
+      var td = el("td", "st", TAB_NAME[r._tf] || String(r._tf || "").toUpperCase());
+      td.style.color = COLOR[r._tf] || "var(--fg-2)";
+      return td; } });
+    kolom.push(
       { h: "side", c: function (r) { return side(r.dir); } },
-      { h: "koreksi admin", c: function (r) { return corrCell(r, tf, r._jenis); } }];
+      { h: "koreksi admin", c: function (r) { return corrCell(r, r._tf, r._jenis); } });
     if (gabung) kolom.push({ h: "jenis", c: function (r) {
       var td = el("td", "st", r._jenis === "sig" ? "⚡ sinyal" : "👁 watchlist");
       if (r._jenis !== "sig") td.style.color = "var(--fg-2)";
@@ -1576,7 +1600,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
          Tidak perlu memilih TP/SL manual — mata admin langsung melihat
          dekat/dah mana posisi entry. Baris open atau "jauh" (>|3%|)
          di-highlight via class jrk-far agar gampang dipindahkan. */
-      { h: "last", n: true, c: function (r) { return lastCell(r.sym, tf); } },
+      { h: "last", n: true, c: function (r) { return lastCell(r.sym, r._tf); } },
       { h: "jarak", n: true, c: function (r) { return jarakCell(r); } },
       { h: "status", c: function (r) {
           var td = el("td", "st");
@@ -1591,7 +1615,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           return td; } },
       { h: "result R", n: true, c: function (r) {
           return r._jenis === "watch" ? rcell(r.r, false) : rcell(r.pnl, r.st === "fired"); } },
-      { h: "live", c: function (r) { return pickCell(r, tf, r._jenis); } });
+      { h: "live", c: function (r) { return pickCell(r, r._tf, r._jenis); } });
     kolom.push({ h: "★", c: function (r) {                 // dipilih user di CSV (kolom picked)
           var td = el("td", "st" + (r.pick ? " pickb" : " dim"));
           td.textContent = r.pick ? (r.flip ? "★⇄" : "★") : "—";
@@ -1600,7 +1624,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
               + (r.dir === "long" ? "short" : "long") + ", R dihitung dari arahmu" : "")
             + (r.note ? " — " + r.note : "");
           return td; } });
-    table($("#s-table"), kolom, rows, sQ ? "No signal matches \u201C" + sQ + "\u201D on this channel."
+    table($("#s-table"), kolom, rows, sQ
+      ? "No signal matches \u201C" + sQ + "\u201D" + (semua ? " in any engine today." : " on this channel.")
+      : semua
+      ? "Belum ada sinyal entry hari ini di semua engine."
       : DATA.live[tf].uji
       ? "Shadow channel — no entry signal recorded yet."
       : kosong(tf, "sinyal"));
@@ -2128,10 +2155,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      perubahan harga 24 jam LIVE dari Binance fapi (CORS terbuka), bukan
      angka R. Warna: hijau naik, merah turun, kuning = tak ada data 24 jam.
      Aura api: koin yang memang ada di catatan engine hari ini. */
-  /* 8 Okt (permintaan user): bubbles kembali — tapi isi = daftar SINYAL saja
-     (watchlist sekarang juga tampil di daftar signal, jadi bubbles mengikuti).
-     Tab mode dihapus; bMode dipatok "sinyal". */
-  var bMode = "sinyal", bTf = null;
+  /* 8 Okt (permintaan user): bubbles kembali — isi = daftar sinyal.
+     Watchlist juga masuk daftar signal, jadi bubbles wajib mengikutinya.
+     Tab mode dihapus; bMode "semua" = sinyal + watchlist. */
+  var bMode = "semua", bTf = null;
   var BB = { up: { glow: "rgba(110,231,183,.32)", edge: "rgba(110,231,183,.85)",
                    fill: "rgba(110,231,183,.10)", txt: "#8DF0C6" },
              dn: { glow: "rgba(232,135,124,.30)", edge: "rgba(232,135,124,.85)",
@@ -2235,7 +2262,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      jari); sinyal baru dapat animasi ring "ping" saat muncul. */
   function bubbleSig() {
     var rows = bubbleData(bMode) || [];
-    return rows.map(function (d) { return d.tf + "|" + d.sym + "@" + d.ts; }).sort().join(",");
+    return rows.map(function (d) { return d.jenis + "|" + d.tf + "|" + d.sym + "@" + d.ts; }).sort().join(",");
   }
   var bbSig = null;
   function bubbleData(mode, tf) {
@@ -2248,20 +2275,31 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       /* 15 Okt v2 — filter per-tab: "all" = gabungan semua engine,
          tab lain = satu engine saja (permintaan user). */
       if (tf && tf !== "all" && t !== tf) return;
-      var L = (DATA.live || {})[t], src = mode === "sinyal" ? L && L.sinyal : L && L.pantau;
-      if (!src) return;
-      src.forEach(function (r) {
-        var ts = r.ts || "";
-        if (ts.slice(0, 10) < p) return;        // seminggu terakhir saja
-        out.push({ sym: r.sym, dir: r.dir, e: r.e, s: r.s, t: r.t, ts: ts,
-          st: r.st, r: r.pnl, slp: num(r.slp), tf: t, egn: (L.nama || t).replace(/^[^\w]+/, "") });
+      var L = (DATA.live || {})[t];
+      if (!L) return;
+      var srcs = [];
+      if (mode !== "watch" && mode !== "pantau") srcs.push(["sig", L.sinyal]);
+      if (mode !== "sig" && mode !== "sinyal") srcs.push(["watch", L.pantau]);
+      srcs.forEach(function (pair) {
+        var jenis = pair[0], src = pair[1];
+        if (!src) return;
+        src.forEach(function (r) {
+          var ts = r.ts || "";
+          if (ts.slice(0, 10) < p) return;        // seminggu terakhir saja
+          var watch = jenis === "watch";
+          out.push({ sym: r.sym, dir: r.dir,
+            e: watch ? r.lv : r.e, s: watch ? null : r.s, t: watch ? null : r.t,
+            ts: ts, st: watch ? (r.h || "watch") : r.st,
+            r: watch ? num(r.r) : r.pnl, slp: watch ? null : num(r.slp),
+            tf: t, egn: (L.nama || t).replace(/^[^\w]+/, ""), jenis: jenis });
+        });
       });
     });
     var seen = {};
     out.forEach(function (d) { seen[d.sym] = (seen[d.sym] || 0) + 1; });
     out.forEach(function (d) { d.n = seen[d.sym]; });
     out.sort(function (a, b) { return (b.ts || "").localeCompare(a.ts || ""); });
-    return out.slice(0, 40);                    // maks 40 bubble terbaru
+    return out;
   }
   /* 24 jam dari Binance fapi — sudah dicek CORS-nya terbuka (*). Cache
      60 detik: 455 ticker per request, jangan dipanggil tiap render. */
@@ -2288,7 +2326,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       bb24 = j.m; bb24Ts = 0;                     // t=0 → fetch segar tetap jalan
       bb24Src = (typeof j.src === "number" && j.src >= 0) ? j.src : -1;
       var h = $("#bubbles .hint");
-      if (h && bb24Src >= 0) h.textContent = "coins detected by this engine only — % change is live 24h via "
+      if (h && bb24Src >= 0) h.textContent = "coins from signal + watchlist — % change is live 24h via "
         + bbSrcName[bb24Src] + " (cache)";
       return true;
     } catch (e) { return false; }
@@ -2362,7 +2400,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           bb24 = d.m; bbPx = d.px; bb24Ts = Date.now(); bb24Fail = false; bb24Src = step;
           bbCacheSave();
           var h = $("#bubbles .hint");                      // transparansi sumber
-          if (h) h.textContent = "coins detected by this engine only — % change is live 24h via "
+          if (h) h.textContent = "coins from signal + watchlist — % change is live 24h via "
             + bbSrcName[step];
           btcUpd(); bbChips(); cb();
         })
@@ -2393,6 +2431,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      besar % makin besar bubble — avax +30% besar, -30% juga besar tapi merah.
      Skala akar-kuadrat biar perbedaannya terasa tapi 20 koin tetap muat. */
   var bbNMax = 1;                             // fallback skala lama saat Binance tak terjangkau
+  var bbFit = 1;                              // skala agar semua bubble muat di panggung
+  var bbCompact = false;                      // layar sempit: sembunyikan detail kecil
   /* ── 7 TINGKAT dikurangi 30% (revisi 19 Sep): 34 → 43 → 57 → 74 → 96 →
      125 → 162px. Ambil 20/30/40% tetap terpisah jelas. */
   var BB_TIERS = [
@@ -2419,11 +2459,18 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
     return BB_TIERS[0].dia;                   // sumber OK tapi koin tak terdaftar
   }
+  function bbFitCalc(list, W, H) {
+    var area = 0;
+    list.forEach(function (d) { var dia = bbDia(d); area += Math.PI * dia * dia / 4; });
+    var target = Math.max(0, (W - 16) * (H - 16)) * .62;
+    return Math.max(.3, Math.min(1, Math.sqrt(target / Math.max(1, area))));
+  }
   function bbApplyDia(body, dia) {            // tulis ukuran baru ke badan fisik
     body.r = dia / 2;
     body.el.style.width = body.el.style.height = dia.toFixed(1) + "px";
     var fs = dia > 56 ? 11.5 : dia > 44 ? 10 : 8.5;
     body.el.style.fontSize = fs + "px";
+    body.el.classList.toggle("xs", dia < (bbCompact ? 42 : 28));
   }
   /* ── chip koin teraktif: 6 koin dengan |%24j| terbesar di kanal aktif,
      satu klik = sorot bubble-nya (klik lagi = lepas sorot). Digenerate
@@ -2475,14 +2522,27 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* ── sorot hasil pencarian bubble: yang cocok dapat ring berdenyut,
      sisanya diredupkan. Kosongkan kotak → semua normal lagi. */
   function bbSorot() {
+    var q = (bq || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    var qBase = q.replace(/USDT$/, "") || q;
+    var hits = 0;
     bbBodies.forEach(function (body) {
       var el = body.el;
-      if (!bq) { el.classList.remove("dim", "hit"); return; }
-      var nm = (body.sym || "").replace(/USDT$/, "");
-      var hit = nm.indexOf(bq) !== -1 || (body.sym || "").indexOf(bq) !== -1;
+      if (!q) { el.classList.remove("dim", "hit"); return; }
+      var sym = (body.sym || "").toUpperCase();
+      var nm = sym.replace(/USDT$/, "");
+      var hit = nm === qBase || sym === q || nm.indexOf(qBase) === 0 || sym.indexOf(q) === 0;
+      if (hit) hits++;
       el.classList.toggle("hit", hit);
       el.classList.toggle("dim", !hit);
     });
+    var box = $("#b-q");
+    if (box) box.title = !q ? "" : hits ? hits + " bubble cocok" : "Tidak ada bubble \"" + q + "\"";
+    var stat = $("#b-found");
+    if (!stat) return;
+    stat.className = "bb-found";
+    if (!q) { stat.textContent = ""; return; }
+    stat.textContent = hits ? hits + " cocok" : "tidak ada";
+    stat.classList.add(hits ? "ok" : "warn");
   }
   function bubbleAura(d) {                    // koin ada di catatan engine hari ini?
     var hariIni = (function () {
@@ -2538,6 +2598,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
     for (i = 0; i < bbBodies.length; i++) {
       a = bbBodies[i];
+      a.x = Math.max(a.r, Math.min(W - a.r, a.x));
+      a.y = Math.max(a.r, Math.min(H - a.r, a.y));
       a.el.style.transform = "translate(" + (a.x - a.r).toFixed(1) + "px," + (a.y - a.r).toFixed(1) + "px)";
     }
     bbRaf = requestAnimationFrame(bbTick);
@@ -2548,8 +2610,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     bbStop(); bbBodies = [];
     plot.innerHTML = ""; tip.classList.remove("on");
     /* 15 Okt v2 — filter per-engine dikembalikan (permintaan user):
-       tab "SEMUA" = gabungan seminggu (revisi sebelumnya), tab lain =
-       satu engine. Jendela 7 hari & maks 40 bubble tetap berlaku. */
+       tab "SEMUA" = gabungan seminggu, tab lain = satu engine.
+       Semua koin unik (sinyal + watchlist) tampil; tidak dipotong 40. */
     var tf = bTf && (bTf === "all" || DATA.live[bTf]) ? bTf : "all";
     bTf = tf;
     var rows = bubbleData(bMode, tf);
@@ -2571,10 +2633,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       });
     }
     if (!rows.length) {
-      plot.appendChild(el("div", "empty", tf === "all" ? "Belum ada sinyal seminggu terakhir." : kosong(tf, "sinyal")));
+      plot.appendChild(el("div", "empty", tf === "all" ? "Belum ada sinyal/watchlist seminggu terakhir." : kosong(tf, "sinyal")));
       return;
     }
-    var W = plot.clientWidth || 900, H = plot.clientHeight || 480;
     var nMax = Math.max.apply(null, rows.map(function (d) { return d.n || 1; }));
     bbNMax = nMax;
     // koin unik diposisikan sekali; koin yang muncul berulang membesarkan
@@ -2586,10 +2647,20 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       else {
         u.n = Math.max(u.n || 1, d.n || 1);
         if ((d.ts || "") > (u.ts || "")) Object.assign(u, { ts: d.ts, dir: d.dir,
-          lv: d.lv, h: d.h, r: d.r, e: d.e, s: d.s, t: d.t, st: d.st, slp: d.slp });
+          lv: d.lv, h: d.h, r: d.r, e: d.e, s: d.s, t: d.t, st: d.st, slp: d.slp,
+          jenis: d.jenis });
       }
     });
     var list = Object.keys(uniq).map(function (k) { return uniq[k]; });
+    if (plot.clientWidth <= 700) {
+      var needH = Math.round(Math.sqrt(list.length) * 62);
+      plot.style.height = Math.max(380, Math.min(760, needH)) + "px";
+    } else {
+      plot.style.height = "";
+    }
+    var W = plot.clientWidth || 900, H = plot.clientHeight || 480;
+    bbCompact = W <= 700;
+    bbFit = bbFitCalc(list, W, H);
     list.sort(function (a, b) {                 // besar dulu; tie → |%| asli menentukan
       var ca = bb24 ? bubbleChg(a) : null, cb = bb24 ? bubbleChg(b) : null;
       return bbDia(b) - bbDia(a)
@@ -2609,7 +2680,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var slots = outer.length >= Math.max(0, list.length - 3) ? outer : cells;
     var TOPN = Math.min(3, list.length);
     list.forEach(function (d, li) {
-      var base = bbDia(d);                                    // diameter dari %24j live (cache 60 dtk)
+      var base = bbDia(d) * bbFit;                            // diameter dari %24j live (cache 60 dtk)
       var r = base / 2;
       var x, y;
       if (li < TOPN) {
@@ -2650,6 +2721,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var fs = d._dia > 56 ? 11.5 : d._dia > 44 ? 10 : 8.5;
       b.style.fontSize = fs + "px";
       b.dataset.sym = d.sym;                    // dipakai sorot pencarian & resize
+      b.classList.toggle("xs", d._dia < (bbCompact ? 42 : 28));
       if (bubbleAura(d)) {
         var au = el("span", "aura");
         au.style.background = "radial-gradient(circle, " + C.glow + " 0%, transparent 70%)";
@@ -2659,7 +2731,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       /* aura bola panas dihapus (revisi 19 Sep) — kanvas bersih tanpa api */
       var nm = d.sym.replace(/USDT$/, "");
       b.appendChild(el("b", null, nm));
-      b.appendChild(el("em", "bb-tag", d.tf.toUpperCase()));   // tag engine (2H/OB/OB4H/…)
+      b.appendChild(el("em", "bb-tag", d.tf.toUpperCase() + (d.jenis === "watch" ? " W" : "")));
       var chg = bubbleChg(d);
       b.appendChild(el("i", null,
         chg === null ? "n/a" : (chg > 0 ? "+" : "") + chg.toFixed(2) + "%"));
@@ -2721,8 +2793,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       b.addEventListener("mouseenter", function (ev) {
         if (body.drag) return;
         tip.innerHTML = "";
-        var hd = el("div", "hd", nm + " · " + d.dir.toUpperCase() + " · "
-          + ((d.egn || d.tf) + " · " + (d.tf || "").toUpperCase()));
+        var hd = el("div", "hd", nm + " · " + (d.dir || "").toUpperCase() + " · "
+          + ((d.egn || d.tf) + " · " + (d.tf || "").toUpperCase())
+          + (d.jenis === "watch" ? " · WATCHLIST" : ""));
         tip.appendChild(hd);
         var t = el("div", "t");
         function rw(l, v2, cls) {
@@ -2740,7 +2813,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           rw("result", rr === null ? "open" : sgn(rr, 2) + "R",
              rr === null ? "" : rr > 0 ? "pos" : "neg");
         }
-        rw("seen", String(d.n || 1) + "x on " + tf.toUpperCase());
+        rw("seen", String(d.n || 1) + "x · " + (d.tf || "").toUpperCase());
         tip.appendChild(t);
         tip.classList.add("on");
       });
@@ -2758,12 +2831,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     bbChips();                    // placeholder chip langsung tampil;
     bbPickedMark();               // tanda admin untuk render awal (kalau picks sudah ada)
                                   // digenerate ulang saat %24j tiba
+    bbSorot();                    // pertahankan sorotan saat data/tab berubah
     bbLoad24(function () {        // angka %24j datang belakangan — pasang saat tiba
       if (!DATA) return;
+      bbFit = bbFitCalc(list, plot.clientWidth || W, plot.clientHeight || H);
       bbBodies.forEach(function (body) {
         var d2 = list.filter(function (q) { return q.sym === body.sym; })[0];
         if (!d2) return;        var res = bubbleRes(d2), C = BB[res];
-        bbApplyDia(body, bbDia(d2));             // ukuran mengikuti %24j yang baru tiba
+        bbApplyDia(body, bbDia(d2) * bbFit);     // ukuran mengikuti %24j yang baru tiba
         body.el.classList.remove("hot");         // api dihapus — tidak ada status hot lagi
         body.el.style.background = "radial-gradient(circle at 32% 26%, rgba(255,255,255,.20), "
           + C.fill + " 46%, rgba(255,255,255,.03) 100%)";
@@ -2960,8 +3035,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* 8 Okt — render ulang tabel #s-table sesuai mode (sinyal / watchlist).
      Pemanggil lama "if (wTf) watch(wTf); if (sTf) signals(sTf);" memakai ini. */
   function rerenderTables() {
-    var tf = sTf && DATA.live[sTf] ? sTf : ord()[0];
-    if (sMode === "watch") watch(tf); else signals(tf);
+    var tf = sTf === "all" ? "all" : (sTf && DATA.live[sTf] ? sTf : ord()[0]);
+    if (sMode === "watch" && tf !== "all") watch(tf); else signals(tf);
   }
   /* 27 Sep — baris kembar (sym+ts sama) dalam satu kanal dibuang saat data
      tiba: pickKey baris kembar identik sehingga satu pick admin "menimpa"
@@ -3020,7 +3095,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      listener sama sekali. Saat mengetik: sorot bubble yang cocok. Escape/klik
      X (type=search) membersihkan sorotan. */
   $("#b-q").addEventListener("input", function () {
-    bq = this.value.trim().toUpperCase();
+    bq = this.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
     bbSorot();
   });
   $("#b-q").addEventListener("search", function () {

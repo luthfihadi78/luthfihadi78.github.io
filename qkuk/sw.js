@@ -8,8 +8,8 @@
      live tak boleh basi; kalau network fail, biarkan error (tapi dgn offline
      fallback opsi halaman masih terbuka dgn data terakhir).
    - Notifikasi: SW menerima push/ klik notifikasi → fokus tab yang ada. */
-/* 22 Okt: bump cache agar perbaikan warna USDT.D tidak tertahan SW lama. */
-const CACHE = "qkuk-v20261022a";
+/* 22 Okt: bump cache agar perbaikan warna USDT.D + tab SEMUA tidak tertahan SW lama. */
+const CACHE = "qkuk-v20261022b";
 const SHELL = [
   "./", "./index.html", "./app.js", "./style.css", "./manifest.json",
   "./whale.html", "./whale.js", "./riwayat.html", "./archive.html", "./icon-192.png", "./icon-512.png"

@@ -246,7 +246,8 @@ svg.ch .z{stroke:var(--line-2);stroke-width:1;stroke-dasharray:3 4}
   will-change:transform}
 .bb.drag{cursor:grabbing;z-index:30}
 .bb b{font-weight:600;letter-spacing:.02em;white-space:nowrap;overflow:hidden;
-  max-width:92%;pointer-events:none;text-shadow:0 1px 2px rgba(0,0,0,.45)}
+  max-width:92%;pointer-events:none;text-shadow:0 1px 2px rgba(0,0,0,.45);
+  text-overflow:ellipsis}
 .bb i{font-style:normal;font-weight:700;pointer-events:none;
   text-shadow:0 1px 2px rgba(0,0,0,.45)}
 /* aura api: koin yang sedang ADA di catatan engine hari ini */
@@ -259,6 +260,8 @@ svg.ch .z{stroke:var(--line-2);stroke-width:1;stroke-dasharray:3 4}
 /* 15 Okt — tag engine di dalam bubble + animasi bubble baru (pop + ring ping) */
 .bb em.bb-tag{font-style:normal;font-weight:700;pointer-events:none;
   font-size:7.5px;letter-spacing:.08em;opacity:.85;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.bb.xs i,.bb.xs em.bb-tag,.bb.xs .bbstar,.bb.xs .bbfix,.bb.xs .bbadmin{display:none}
+.bb.xs b{max-width:96%}
 /* ⚠ .bb diposisikan via inline transform (fisika) — animasi masuk HARUS
    tanpa transform, cukup fade + filter, supaya tak menimpa translate */
 .bb.baru{animation:bbpop .55s cubic-bezier(.2,1.6,.4,1) both}
@@ -387,6 +390,15 @@ td.dim{color:var(--line-2)}
   margin-left:14px}
 #b-q::placeholder{color:var(--fg-3)}
 #b-q:focus{outline:none;border-color:var(--ac)}
+.bb-found{font-size:10px;color:var(--fg-3);margin-left:8px;white-space:nowrap}
+.bb-found.ok{color:var(--gold)}
+.bb-found.warn{color:var(--dn)}
+@media(max-width:700px){
+  .bb-bar{flex-wrap:wrap;row-gap:8px}
+  .bb-legend{order:3;width:100%;margin-left:0}
+  #b-q{margin-left:auto}
+  .bb-found{margin-left:0}
+}
 .bb{transition:opacity .25s, box-shadow .25s}
 .bb.dim{opacity:.18;filter:saturate(.3)}
 .bb.hit{z-index:25}
