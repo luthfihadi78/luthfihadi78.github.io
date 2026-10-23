@@ -1426,8 +1426,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     return td;
   }
   function txt(v, c) { var td = el("td", c); td.textContent = (v == null || v === "") ? "—" : v; return td; }
-  /* sel pair dengan highlight kata pencarian (watchlist & signals) */
-  function pairCell(sym, q) {
+  /* sel pair dengan highlight kata pencarian (watchlist & signals).
+     23 Okt — konsTfs = daftar engine yang men-sinyal koin yang sama hari
+     ini; ≥2 → badge 🔥N "konsensus" (setup terkuat: lebih dari satu engine
+     melihat setup yang sama). */
+  function pairCell(sym, q, konsTfs) {
     var td = el("td", "sym");
     var s = sym || "—";
     if (q && q.length >= 2) {
@@ -1436,10 +1439,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         if (i > 0) td.appendChild(el("span", null, s.slice(0, i)));
         td.appendChild(el("mark", "hlmark", s.slice(i, i + q.length)));
         if (i + q.length < s.length) td.appendChild(el("span", null, s.slice(i + q.length)));
-        return td;
-      }
+      } else td.textContent = s;
+    } else td.textContent = s;
+    if (konsTfs && konsTfs.length > 1) {
+      var b = el("span", "konsen", "🔥" + konsTfs.length);
+      b.title = "konsensus " + konsTfs.length + " engine: "
+        + konsTfs.map(function (t) { return TAB_NAME[t] || String(t).toUpperCase(); }).join(" + ");
+      td.appendChild(document.createTextNode(" "));
+      td.appendChild(b);
     }
-    td.textContent = s;
     return td;
   }
   function rcell(v, h) {
@@ -1488,6 +1496,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     });
     return td;
   }
+  /* 23 Okt — kolom "jarak" jadi PROGRESS BAR: untuk sinyal, posisi harga
+     antara stop → target (tick = entry); untuk watchlist, kedekatan ke
+     level reclaim (skala 3%). Angka % tetap ada di samping bar. */
   function jarakCell(r) {
     var td = el("td", "n jrk-c");
     td.textContent = "…";
@@ -1497,9 +1508,105 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     lpriceGet(r.sym, function (p) {
       if (!p) { td.textContent = "—"; return; }
       var dJ = (p - eF) / eF * 100;
-      td.textContent = sgn(dJ, 2) + "%";
-      td.style.color = Math.abs(dJ) < 0.3 ? "var(--up)" : Math.abs(dJ) > 3 ? "var(--dn)" : "var(--fg-2)";
-      td.title = "harga " + fp(p) + " vs entry " + fp(eF);
+      td.innerHTML = "";
+      var bar = el("span", "jbar" + (r._jenis === "watch" ? " jbar-w" : ""));
+      var fill = el("i", "jbar-f");
+      var sF = r._jenis === "watch" ? null : num(r.s);
+      var tF = r._jenis === "watch" ? null : num(r.t);
+      var prog = null;
+      if (sF !== null && tF !== null && sF !== tF) {
+        prog = r.dir === "short" ? (sF - p) / (sF - tF) : (p - sF) / (tF - sF);
+        var ep = r.dir === "short" ? (sF - eF) / (sF - tF) : (eF - sF) / (tF - sF);
+        if (isFinite(ep) && ep >= 0 && ep <= 1) {
+          var tick = el("i", "jbar-e");
+          tick.style.left = (ep * 100).toFixed(1) + "%";
+          bar.appendChild(tick);
+        }
+      }
+      if (r._jenis === "watch") {
+        fill.style.width = Math.min(100, Math.abs(dJ) / 3 * 100).toFixed(1) + "%";
+        bar.title = "jarak " + sgn(dJ, 2) + "% ke level reclaim " + fp(eF) + " (harga " + fp(p) + ")";
+      } else if (prog !== null && isFinite(prog)) {
+        fill.style.width = (Math.max(0, Math.min(1, prog)) * 100).toFixed(1) + "%";
+        if (prog > 1) bar.classList.add("jbar-hit");        // target terlampaui
+        else if (prog < 0) bar.classList.add("jbar-stop");  // di bawah stop
+        bar.title = "stop " + fp(sF) + " → target " + fp(tF)
+          + " · entry " + fp(eF) + " · harga " + fp(p);
+      } else {
+        fill.style.width = Math.min(100, Math.abs(dJ) / 3 * 100).toFixed(1) + "%";
+        bar.title = "harga " + fp(p) + " vs entry " + fp(eF);
+      }
+      bar.appendChild(fill);
+      td.appendChild(bar);
+      var tx = el("span", "jbar-t", sgn(dJ, 2) + "%");
+      tx.style.color = Math.abs(dJ) < 0.3 ? "var(--up)" : Math.abs(dJ) > 3 ? "var(--dn)" : "var(--fg-2)";
+      td.appendChild(tx);
+    });
+    return td;
+  }
+
+  /* 23 Okt — SPARKLINE 24 JAM per baris: kurva harga 1j × 24 bar Binance
+     (spot klines → futures klines fallback), cache 10 menit per simbol,
+     pool maks 4 fetch paralel biar tabel besar tak membanjiri API. */
+  var SPARK = {};                    // sym → { c:[close…], t: ms, up: bool }
+  var SPARK_POOL = [], SPARK_RUN = 0;
+  function sparkQueue(sym, cb) {
+    var c = SPARK[sym];
+    if (c && Date.now() - c.t < 600000) { cb(c); return; }
+    SPARK_POOL.push([sym, cb]);
+    sparkPump();
+  }
+  function sparkPump() {
+    while (SPARK_RUN < 4 && SPARK_POOL.length) {
+      var job = SPARK_POOL.shift(), sym = job[0], cb = job[1];
+      if (SPARK[sym] && Date.now() - SPARK[sym].t < 600000) { cb(SPARK[sym]); continue; }
+      SPARK_RUN++;
+      (function (sym, cb) {
+        fetch("https://api.binance.com/api/v3/klines?symbol=" + encodeURIComponent(sym)
+            + "&interval=1h&limit=24", { cache: "no-store" })
+          .then(function (r) { return r.ok ? r.json() : Promise.reject(0); })
+          .catch(function () {
+            return fetch("https://fapi.binance.com/fapi/v1/klines?symbol=" + encodeURIComponent(sym)
+              + "&interval=1h&limit=24", { cache: "no-store" })
+              .then(function (r2) { return r2.ok ? r2.json() : []; });
+          })
+          .then(function (k) {
+            var c = null;
+            if (Array.isArray(k) && k.length > 2) {
+              var cl = k.map(function (x) { return +x[4]; }).filter(isFinite);
+              if (cl.length > 2) c = { c: cl, t: Date.now(), up: cl[cl.length - 1] >= cl[0] };
+            }
+            if (c) SPARK[sym] = c;
+            cb(c);
+          })
+          .catch(function () { cb(null); })
+          .then(function () { SPARK_RUN--; sparkPump(); });
+      })(sym, cb);
+    }
+  }
+  function sparkCell(sym) {
+    var td = el("td", "n spark-c");
+    var box = el("span", "spark", "…");
+    td.appendChild(box);
+    if (!sym) { box.textContent = "—"; return td; }
+    sparkQueue(sym, function (c) {
+      box.innerHTML = "";
+      if (!c) { box.textContent = "—"; return; }
+      var W = 72, H = 22, lo = Math.min.apply(null, c.c), hi = Math.max.apply(null, c.c);
+      var rg = (hi - lo) || 1;
+      var pts = c.c.map(function (v, i) {
+        return [2 + i / (c.c.length - 1) * (W - 6), H - 3 - (v - lo) / rg * (H - 6)];
+      });
+      var col = c.up ? "var(--up)" : "var(--dn)";
+      var svg = mk("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H });
+      svg.appendChild(mk("path", {
+        d: "M" + pts.map(function (q) { return q[0].toFixed(1) + "," + q[1].toFixed(1); }).join("L"),
+        fill: "none", stroke: col, "stroke-width": 1.4,
+        "stroke-linecap": "round", "stroke-linejoin": "round" }));
+      svg.appendChild(mk("circle", { cx: pts[pts.length - 1][0].toFixed(1),
+        cy: pts[pts.length - 1][1].toFixed(1), r: 1.8, fill: col }));
+      box.appendChild(svg);
+      box.title = "harga 24 jam terakhir — " + sgn((c.c[c.c.length - 1] / c.c[0] - 1) * 100, 2) + "%";
     });
     return td;
   }
@@ -1553,6 +1660,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           rows.push(Object.assign({}, r, { _jenis: "watch", _tf: tf }));
         });
     }
+    /* 23 Okt — KONSENSUS ENGINE (tab SEMUA): hitung berapa engine yang
+       men-sinyal koin yang sama hari ini (SEBELUM filter search/side,
+       supaya badge tetap benar saat mencari). */
+    var kons = null;
+    if (semua) {
+      kons = {};
+      rows.forEach(function (r) {
+        var a = kons[r.sym] || (kons[r.sym] = []);
+        if (a.indexOf(r._tf) < 0) a.push(r._tf);
+      });
+    }
     if (sQ) rows = rows.filter(function (r) { return (r.sym || "").toUpperCase().indexOf(sQ) !== -1; });
     if (sSide) rows = rows.filter(function (r) { return r.dir === sSide; });
     if (sSort === "pick") {
@@ -1574,7 +1692,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var kolom = [
       { h: "", c: function (r) { return tvCell(r.sym, r._tf); } },
       { h: "time WIB", c: function (r) { return txt(r.ts); } },
-      { h: "pair", c: function (r) { return pairCell(r.sym, sQ); } }];
+      { h: "pair", c: function (r) { return pairCell(r.sym, sQ, kons ? kons[r.sym] : null); } }];
     if (semua) kolom.push({ h: "engine", c: function (r) {
       var td = el("td", "st", TAB_NAME[r._tf] || String(r._tf || "").toUpperCase());
       td.style.color = COLOR[r._tf] || "var(--fg-2)";
@@ -1593,6 +1711,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           return r._jenis === "watch" ? txt("—", "n") : txt(fp(r.s), "n"); } },
       { h: "target", n: true, c: function (r) {
           return r._jenis === "watch" ? txt("—", "n") : txt(fp(r.t), "n"); } },
+      /* 23 Okt — sparkline 24 jam: konteks tren harga sebelum entry,
+         kurva 1j × 24 bar Binance (cache 10 mnt, pool 4 fetch). */
+      { h: "24j", n: true, c: function (r) { return sparkCell(r.sym); } },
       /* 14 Okt (prioritas #4) — JARAK LIVE: post(list harga terakhir ke
          harga entry). Hitung dari entry vs harga Binance lastPrice
          (cache 20 dtk per batch — CSP sudah mengizinkan api.binance.com).
@@ -2270,22 +2391,30 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var n = new Date(Date.now() + (7 * 60 + new Date().getTimezoneOffset()) * 60000);
     n.setDate(n.getDate() - 7);
     var p = n.getFullYear() + "-" + ("0" + (n.getMonth() + 1)).slice(-2) + "-" + ("0" + n.getDate()).slice(-2);
+    /* 23 Okt (permintaan user): tab "SEMUA" = SINYAL ENTRY HARI INI saja —
+       persis set baris tab SEMUA di Signals, bukan gabungan seminggu.
+       Tab per-engine tetap: sinyal + watchlist seminggu terakhir. */
+    var hariIni = wibDate(new Date().toISOString());
     var out = [];
     ord().forEach(function (t) {
-      /* 15 Okt v2 — filter per-tab: "all" = gabungan semua engine,
+      /* 15 Okt v2 — filter per-tab: "all" = semua engine,
          tab lain = satu engine saja (permintaan user). */
       if (tf && tf !== "all" && t !== tf) return;
       var L = (DATA.live || {})[t];
       if (!L) return;
       var srcs = [];
-      if (mode !== "watch" && mode !== "pantau") srcs.push(["sig", L.sinyal]);
-      if (mode !== "sig" && mode !== "sinyal") srcs.push(["watch", L.pantau]);
+      if (tf === "all") srcs.push(["sig", L.sinyal]);           // SEMUA = sinyal hari ini saja
+      else {
+        if (mode !== "watch" && mode !== "pantau") srcs.push(["sig", L.sinyal]);
+        if (mode !== "sig" && mode !== "sinyal") srcs.push(["watch", L.pantau]);
+      }
       srcs.forEach(function (pair) {
         var jenis = pair[0], src = pair[1];
         if (!src) return;
         src.forEach(function (r) {
           var ts = r.ts || "";
-          if (ts.slice(0, 10) < p) return;        // seminggu terakhir saja
+          if (tf === "all") { if (ts.slice(0, 10) !== hariIni) return; }   // hari ini saja
+          else if (ts.slice(0, 10) < p) return;        // seminggu terakhir saja
           var watch = jenis === "watch";
           out.push({ sym: r.sym, dir: r.dir,
             e: watch ? r.lv : r.e, s: watch ? null : r.s, t: watch ? null : r.t,
@@ -2609,9 +2738,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (!plot) return;   // 8 Okt: section Bubbles dihapus dari index.html — biarkan mati
     bbStop(); bbBodies = [];
     plot.innerHTML = ""; tip.classList.remove("on");
-    /* 15 Okt v2 — filter per-engine dikembalikan (permintaan user):
-       tab "SEMUA" = gabungan seminggu, tab lain = satu engine.
-       Semua koin unik (sinyal + watchlist) tampil; tidak dipotong 40. */
+    /* 23 Okt — tab "SEMUA" = sinyal entry HARI INI semua engine (set baris
+       = tab SEMUA di Signals); tab lain = sinyal + watchlist seminggu. */
     var tf = bTf && (bTf === "all" || DATA.live[bTf]) ? bTf : "all";
     bTf = tf;
     var rows = bubbleData(bMode, tf);
@@ -2622,18 +2750,20 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var mk = el("button", "tab" + (tf === "all" ? " on" : ""), "SEMUA");
       mk.setAttribute("role", "tab");
       mk.setAttribute("aria-selected", tf === "all" ? "true" : "false");
+      mk.title = "Sinyal entry hari ini dari semua engine";
       mk.addEventListener("click", function () { bTf = "all"; bubbleDraw(); });
       tabsEl.appendChild(mk);
       ord().forEach(function (t) {
         var b = el("button", "tab" + (tf === t ? " on" : ""), TAB_NAME[t] || t.toUpperCase());
         b.setAttribute("role", "tab");
         b.setAttribute("aria-selected", tf === t ? "true" : "false");
+        b.title = "Sinyal + watchlist seminggu terakhir";
         b.addEventListener("click", function () { bTf = t; bubbleDraw(); });
         tabsEl.appendChild(b);
       });
     }
     if (!rows.length) {
-      plot.appendChild(el("div", "empty", tf === "all" ? "Belum ada sinyal/watchlist seminggu terakhir." : kosong(tf, "sinyal")));
+      plot.appendChild(el("div", "empty", tf === "all" ? "Belum ada sinyal entry hari ini di semua engine." : kosong(tf, "sinyal")));
       return;
     }
     var nMax = Math.max.apply(null, rows.map(function (d) { return d.n || 1; }));
@@ -3020,12 +3150,317 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
   }
 
+  /* ══ 23 Okt — LEADERBOARD ADMIN (Qkuk vs Gerry, head-to-head) ════════
+     Tabel per engine + TOTAL: trade, winrate, net R dari pick yang
+     di-resolve admin (sinyal + watchlist digabung, sama dgn live score).
+     Scope: semua bulan / bulan berjalan (tersimpan di localStorage). */
+  var LB_PER = "all";
+  try { LB_PER = localStorage.getItem("qkuk_lb_per") === "bln" ? "bln" : "all"; } catch (e) {}
+  function lbScore(tf) {
+    var bulan = wibDate(new Date().toISOString()).slice(0, 7);
+    var out = {};
+    ["Qkuk", "Gerry"].forEach(function (w) { out[w] = { n: 0, buka: 0, done: 0, win: 0, R: 0 }; });
+    Object.keys(PICKS).forEach(function (k) {
+      var kp = kpOf(k), p = PICKS[k];
+      if (!p) return;
+      if (tf !== "ALL" && kp.tf !== tf) return;
+      if (LB_PER === "bln" && (kp.ts || "").slice(0, 7) !== bulan) return;
+      var who = (p.by || kp.admin) === "Gerry" ? "Gerry" : "Qkuk";
+      var e = out[who]; e.n++;
+      if (p.win !== 1 && p.win !== 0) { e.buka++; return; }   // terbuka: dihitung, belum dinilai
+      e.done++; if (p.win === 1) e.win++;
+      e.R += hasPct(p.pct) ? p.pct : (p.win === 1 ? 1 : -1);
+    });
+    return out;
+  }
+  function leaderboard() {
+    var host = $("#lb-table"); if (!host || !DATA) return;
+    var bar = $("#lb-tabs");
+    if (bar) {
+      bar.innerHTML = "";
+      [["all", "semua bulan"], ["bln", "bulan ini"]].forEach(function (o) {
+        var b = el("button", "tab", o[1]);
+        b.setAttribute("role", "tab");
+        b.setAttribute("aria-selected", LB_PER === o[0] ? "true" : "false");
+        b.addEventListener("click", function () {
+          LB_PER = o[0];
+          try { localStorage.setItem("qkuk_lb_per", LB_PER); } catch (e) {}
+          leaderboard();
+        });
+        bar.appendChild(b);
+      });
+    }
+    var rows = ord().map(function (tf) {
+      var s = lbScore(tf);
+      return { nm: TAB_NAME[tf] || tf.toUpperCase(), tf: tf, Q: s.Qkuk, G: s.Gerry };
+    });
+    var tot = lbScore("ALL");
+    rows.push({ nm: "TOTAL", tf: "ALL", Q: tot.Qkuk, G: tot.Gerry, tot: true });
+    function tradeTxt(e) {
+      return e.n ? e.n + (e.buka ? " (" + e.buka + " buka)" : "") : "—";
+    }
+    function wrCell(e) {
+      if (!e.done) return txt("—", "n");
+      var wr = e.win / e.done * 100, td = el("td", "n");
+      td.textContent = wr.toFixed(1) + "%";
+      td.style.color = wr >= 50 ? "var(--up)" : "var(--dn)";
+      return td;
+    }
+    function rCell(e) {
+      var td = el("td", "n");
+      if (!e.n) { td.textContent = "—"; return td; }
+      td.textContent = sgn(e.R, 2);
+      td.style.color = e.R > 0 ? "var(--up)" : e.R < 0 ? "var(--dn)" : "var(--fg-3)";
+      return td;
+    }
+    table(host, [
+      { h: "engine", c: function (r) {
+          var td = el("td", "st", r.nm);
+          td.style.color = r.tot ? "var(--fg)" : (COLOR[r.tf] || "var(--fg-2)");
+          return td; } },
+      { h: "Qkuk trade", n: true, c: function (r) { return txt(tradeTxt(r.Q), "n"); } },
+      { h: "Qkuk WR", n: true, c: function (r) { return wrCell(r.Q); } },
+      { h: "Qkuk net R", n: true, c: function (r) { return rCell(r.Q); } },
+      { h: "Gerry trade", n: true, c: function (r) { return txt(tradeTxt(r.G), "n"); } },
+      { h: "Gerry WR", n: true, c: function (r) { return wrCell(r.G); } },
+      { h: "Gerry net R", n: true, c: function (r) { return rCell(r.G); } },
+      { h: "unggul", c: function (r) {
+          var td = el("td", "st");
+          if (r.Q.done && r.G.done && r.Q.R !== r.G.R) {
+            td.textContent = r.Q.R > r.G.R ? "Qkuk" : "Gerry";
+            td.style.color = "var(--gold)";
+            td.title = "net R tertinggi: Qkuk " + sgn(r.Q.R, 2) + " vs Gerry " + sgn(r.G.R, 2);
+          } else { td.textContent = "—"; td.className = "st dim"; }
+          return td; } }
+    ], rows, "Belum ada pick admin yang bisa dibandingkan.");
+  }
+
+  /* ══ 23 Okt — SIMULASI WHAT-IF ════════════════════════════════════════
+     "Kalau ambil SEMUA sinyal engine dengan risk tetap, equity sekarang
+     seperti apa?" Sumber: hasil R sinyal closed pada jendela data.json
+     (±100 sinyal terakhir per kanal) — bukan pick admin, bukan backtest
+     penuh. Mode: flat (risk % dari equity awal) / compounding. */
+  var WI = { tf: "all", risk: 1, comp: false };
+  try {
+    var _wi = JSON.parse(localStorage.getItem("qkuk_wi") || "null");
+    if (_wi && typeof _wi === "object") {
+      if (typeof _wi.tf === "string") WI.tf = _wi.tf;
+      if ([0.5, 1, 2].indexOf(+_wi.risk) >= 0) WI.risk = +_wi.risk;
+      if (typeof _wi.comp === "boolean") WI.comp = _wi.comp;
+    }
+  } catch (e) {}
+  function wiSave() { try { localStorage.setItem("qkuk_wi", JSON.stringify(WI)); } catch (e) {} }
+  function wiSeries() {
+    var rows = [];
+    (WI.tf === "all" ? ord() : [WI.tf]).forEach(function (tf) {
+      ((DATA.live[tf] || {}).sinyal || []).forEach(function (r) {
+        var pnl = num(r.pnl);
+        if (pnl === null) return;                       // open: tidak dinilai
+        rows.push({ ts: r.ts || "", R: pnl, sym: r.sym });
+      });
+    });
+    rows.sort(function (a, b) { return (a.ts || "").localeCompare(b.ts || ""); });
+    return rows;
+  }
+  function whatif() {
+    var svg = $("#wi-svg"); if (!svg || !DATA) return;
+    var ctl = $("#wi-ctl"); if (ctl) {
+      ctl.innerHTML = "";
+      var selT = el("select", "lg lg-sel"); selT.title = "pilih kanal";
+      [["all", "semua kanal"]].concat(ord().map(function (tf) {
+        return [tf, TAB_NAME[tf] || tf.toUpperCase()];
+      })).forEach(function (o) {
+        var op = el("option"); op.value = o[0]; op.textContent = o[1]; selT.appendChild(op);
+      });
+      if (!selT.querySelector('option[value="' + WI.tf + '"]')) WI.tf = "all";
+      selT.value = WI.tf;
+      selT.addEventListener("change", function () { WI.tf = this.value; wiSave(); whatif(); });
+      ctl.appendChild(selT);
+      var selR = el("select", "lg lg-sel"); selR.title = "risk per trade (% equity)";
+      [[0.5, "risk 0.5%/trade"], [1, "risk 1%/trade"], [2, "risk 2%/trade"]].forEach(function (o) {
+        var op = el("option"); op.value = o[0]; op.textContent = o[1]; selR.appendChild(op);
+      });
+      selR.value = WI.risk;
+      selR.addEventListener("change", function () { WI.risk = +this.value; wiSave(); whatif(); });
+      ctl.appendChild(selR);
+      var bC = el("button", "hh-tg" + (WI.comp ? " on" : ""), WI.comp ? "compounding" : "flat");
+      bC.type = "button";
+      bC.title = "flat = risk % tetap dari equity awal · compounding = risk % dari equity berjalan";
+      bC.addEventListener("click", function () { WI.comp = !WI.comp; wiSave(); whatif(); });
+      ctl.appendChild(bC);
+    }
+    var st = $("#wi-stats"); if (st) st.innerHTML = "";
+    var rows = wiSeries();
+    if (rows.length < 2) {
+      svgEmpty(svg, "belum cukup sinyal closed untuk disimulasikan");
+      if (st) st.appendChild(el("div", "row mut", "butuh ≥2 sinyal closed di kanal terpilih"));
+      return;
+    }
+    var eq = 100, peak = 100, dd = 0, pts = [];
+    rows.forEach(function (r, i) {
+      if (WI.comp) eq *= 1 + r.R * WI.risk / 100;
+      else eq += r.R * WI.risk;
+      if (eq > peak) peak = eq;
+      var cur = eq / peak * 100 - 100;                  // drawdown % dari peak
+      if (cur < dd) dd = cur;
+      pts.push([rows.length > 1 ? i / (rows.length - 1) : 0, eq]);
+    });
+    var wins = rows.filter(function (r) { return r.R > 0; }).length;
+    var totR = rows.reduce(function (a, r) { return a + r.R; }, 0);
+    /* kurva equity — gaya sama dengan chart #eq */
+    svg.innerHTML = "";
+    var W = 620, H = 190, P = { t: 12, r: 46, b: 22, l: 46 };
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("preserveAspectRatio", "none");
+    var lo = Math.min(100, Math.min.apply(null, pts.map(function (q) { return q[1]; })));
+    var hi = Math.max(100, Math.max.apply(null, pts.map(function (q) { return q[1]; })));
+    var pd = (hi - lo) * .12 || 4; lo -= pd; hi += pd;
+    var rg = (hi - lo) || 1;
+    var X = function (x) { return P.l + x * (W - P.l - P.r); };
+    var Y = function (y) { return P.t + (1 - (y - lo) / rg) * (H - P.t - P.b); };
+    for (var g = 0; g <= 3; g++) {
+      var yy = P.t + g / 3 * (H - P.t - P.b);
+      svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: yy, y2: yy, "class": "g" }));
+      var lb = mk("text", { x: P.l - 6, y: yy + 3, "text-anchor": "end" });
+      lb.textContent = (lo + g / 3 * rg).toFixed(0); svg.appendChild(lb);
+    }
+    svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: Y(100), y2: Y(100), "class": "z" }));
+    var tx0 = mk("text", { x: X(0), y: H - 7, "text-anchor": "middle" });
+    tx0.textContent = (rows[0].ts || "").slice(5, 10); svg.appendChild(tx0);
+    var tx1 = mk("text", { x: X(1), y: H - 7, "text-anchor": "middle" });
+    tx1.textContent = (rows[rows.length - 1].ts || "").slice(5, 10); svg.appendChild(tx1);
+    var lp = pts.map(function (q) { return [X(q[0]), Y(q[1])]; });
+    var col = eq >= 100 ? "var(--up)" : "var(--dn)";
+    var dLine = "M" + lp.map(function (q) { return q[0].toFixed(1) + "," + q[1].toFixed(1); }).join("L");
+    var gid = "wig";
+    var defs = mk("defs"), gg = mk("linearGradient", { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 });
+    gg.appendChild(mk("stop", { offset: "0%", "stop-color": col, "stop-opacity": .16 }));
+    gg.appendChild(mk("stop", { offset: "100%", "stop-color": col, "stop-opacity": 0 }));
+    defs.appendChild(gg); svg.appendChild(defs);
+    svg.appendChild(mk("path", { d: dLine + "L" + lp[lp.length - 1][0] + "," + Y(100)
+      + "L" + lp[0][0] + "," + Y(100) + "Z", fill: "url(#" + gid + ")", stroke: "none" }));
+    svg.appendChild(mk("path", { d: dLine, fill: "none", stroke: col, "stroke-width": 1.8,
+      "stroke-linecap": "round", "stroke-linejoin": "round" }));
+    svg.appendChild(mk("circle", { cx: lp[lp.length - 1][0], cy: lp[lp.length - 1][1], r: 3.2, fill: col }));
+    var lb2 = mk("text", { x: lp[lp.length - 1][0] + 8, y: lp[lp.length - 1][1] + 3, "class": "eq-end", fill: col });
+    lb2.textContent = eq.toFixed(0); svg.appendChild(lb2);
+    if (st) {
+      function baris(l, v, cls) {
+        var x = el("div", "row"); x.appendChild(el("span", "l", l)); x.appendChild(el("span", "d"));
+        x.appendChild(el("span", "v " + (cls || ""), v)); st.appendChild(x);
+      }
+      baris("sinyal closed", rows.length + " (" + wins + "W/" + (rows.length - wins) + "L)");
+      baris("winrate", (wins / rows.length * 100).toFixed(1) + "%", wins / rows.length >= .5 ? "pos" : "neg");
+      baris("total hasil", sgn(totR, 2) + "R", totR > 0 ? "pos" : "neg");
+      baris("equity akhir (mulai 100)", eq.toFixed(1), eq >= 100 ? "pos" : "neg");
+      baris("max drawdown", dd.toFixed(1) + "%", "neg");
+    }
+  }
+
+  /* ══ 23 Okt — MARKET CONTEXT ══════════════════════════════════════════
+     Funding 8j + OI 24j + long/short (Binance futures, sudah di CSP) dan
+     fear & greed (alternative.me — ditambahkan ke CSP). Segar tiap 5 mnt. */
+  var MCTX_AMBER = "#E8B04B";
+  function mctxTile(host, name) {
+    var t = el("div", "mc-t");
+    t.appendChild(el("span", "mc-n", name));
+    var v = el("span", "mc-v", "…"); t.appendChild(v);
+    var s = el("span", "mc-s", ""); t.appendChild(s);
+    host.appendChild(t);
+    return { v: v, s: s, t: t };
+  }
+  function mctxFunded(v) { var f = num(v); return f === null ? "—" : sgn(f * 100, 4) + "%"; }
+  function mctxJ(path) {
+    return fetch("https://fapi.binance.com" + path, { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .catch(function () { return []; });
+  }
+  function mctxOI(tile, sym) {
+    mctxJ("/futures/data/openInterestHist?symbol=" + sym + "&period=1h&limit=25")
+      .then(function (j) {
+        if (!Array.isArray(j) || j.length < 2) { tile.v.textContent = "—"; return; }
+        var last = +j[j.length - 1].sumOpenInterestValue || 0;
+        var first = +j[0].sumOpenInterestValue || 0;
+        tile.v.textContent = last >= 1e9 ? "$" + (last / 1e9).toFixed(2) + "B" : "$" + (last / 1e6).toFixed(0) + "M";
+        var d = first ? (last - first) / first * 100 : 0;
+        tile.s.textContent = sgn(d, 2) + "% 24j";
+        tile.s.style.color = d > 0 ? "var(--up)" : d < 0 ? "var(--dn)" : "";
+      });
+  }
+  function mctxLSR(tile, sym) {
+    Promise.all([
+      mctxJ("/futures/data/globalLongShortAccountRatio?symbol=" + sym + "&period=5m&limit=1"),
+      mctxJ("/futures/data/topLongShortPositionRatio?symbol=" + sym + "&period=5m&limit=1")
+    ]).then(function (rs) {
+      var a = (rs[0] || [])[0], b = (rs[1] || [])[0];
+      var lr = num(a && a.longShortRatio), pr = num(b && b.longShortRatio);
+      if (lr === null && pr === null) { tile.v.textContent = "—"; return; }
+      tile.v.textContent = lr !== null ? lr.toFixed(2) : "—";
+      tile.s.textContent = pr !== null ? "top posisi " + pr.toFixed(2) : "";
+      if (lr !== null) tile.v.style.color = lr >= 2 ? MCTX_AMBER : lr <= 1 ? "var(--up)" : "var(--fg-2)";
+      tile.t.title = "akun long/short " + (a ? (+(a.longAccount || 0) * 100).toFixed(0) + "/"
+          + (+(a.shortAccount || 0) * 100).toFixed(0) + "%"
+        : "—") + " · rasio posisi top trader " + (pr !== null ? pr.toFixed(2) : "—");
+    });
+  }
+  function mctx() {
+    var host = $("#mctx-grid"); if (!host) return;
+    host.innerHTML = "";
+    var tiles = {
+      bf: mctxTile(host, "BTC funding 8j"),
+      ef: mctxTile(host, "ETH funding 8j"),
+      bo: mctxTile(host, "BTC open interest"),
+      eo: mctxTile(host, "ETH open interest"),
+      bl: mctxTile(host, "BTC long/short"),
+      elv: mctxTile(host, "ETH long/short"),
+      fg: mctxTile(host, "fear & greed")
+    };
+    var src = $("#mctx-src");
+    mctxJ("/fapi/v1/premiumIndex").then(function (j) {
+      (Array.isArray(j) ? j : []).forEach(function (x) {
+        var f = num(x.lastFundingRate);
+        if (x.symbol === "BTCUSDT" && f !== null) {
+          tiles.bf.v.textContent = mctxFunded(f);
+          tiles.bf.v.style.color = f >= 0 ? "var(--up)" : "var(--dn)";
+          tiles.bf.t.title = "mark " + fp(+x.markPrice) + " · funding positif = long bayar short";
+        }
+        if (x.symbol === "ETHUSDT" && f !== null) {
+          tiles.ef.v.textContent = mctxFunded(f);
+          tiles.ef.v.style.color = f >= 0 ? "var(--up)" : "var(--dn)";
+          tiles.ef.t.title = "mark " + fp(+x.markPrice) + " · funding positif = long bayar short";
+        }
+      });
+      if (src) src.textContent = "funding · OI · long/short (Binance futures) · fear&greed (alternative.me) · "
+        + wibStr(new Date().toISOString());
+    });
+    mctxOI(tiles.bo, "BTCUSDT");
+    mctxOI(tiles.eo, "ETHUSDT");
+    mctxLSR(tiles.bl, "BTCUSDT");
+    mctxLSR(tiles.elv, "ETHUSDT");
+    fetch("https://api.alternative.me/fng/?limit=2", { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        var d = j && j.data && j.data[0];
+        if (!d) { tiles.fg.v.textContent = "—"; return; }
+        var v = +d.value;
+        tiles.fg.v.textContent = v + " · " + (d.value_classification || "");
+        var y = j.data[1] ? +j.data[1].value : null;
+        if (y !== null && isFinite(y)) {
+          tiles.fg.s.textContent = sgn(v - y, 0) + " vs kemarin";
+        }
+        tiles.fg.v.style.color = v >= 76 ? MCTX_AMBER : v >= 56 ? "var(--up)"
+          : v <= 24 ? MCTX_AMBER : v <= 44 ? "var(--dn)" : "var(--fg-2)";
+      })
+      .catch(function () { tiles.fg.v.textContent = "—"; });
+  }
+
   /* 6 Okt malam — kartu riset terpisah dihapus (permintaan user: "jangan
      beda sendiri"): angkanya kini badge di strip backtest atas, detail
      risetnya di tooltip. */
   function render(first) {
     liveScoreMount();       // 11 Okt: live score klasemen — PALING ATAS halaman
     stamp(); gauge(); strip(); kamu(); applyPicks(); btBadges();
+    leaderboard(); whatif();   // 23 Okt: leaderboard admin + simulasi what-if
     scanNotif();
     if (!DATA || !DATA.live) return;
     var _bsig = bubbleSig();                  // data segar bisa menambah sinyal baru
@@ -4259,6 +4694,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        sekali saat init (SEBELUM picks cloud tiba) → selalu “belum ada
        trade”. Sekarang dirender ulang tiap picks datang/berubah. */
     liveScoreMount(); plogRender();
+    leaderboard(); whatif();   // 23 Okt: ikut segar saat picks berubah
   }
   /* simpan picks — hanya lewat cloud (textdb.dev); wajib login admin.
      Jalur GitHub dihapus (token repot & rawan salah scope). */
@@ -5662,7 +6098,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      dicantumkan paling depan agar posisinya pasti. */
   (function reOrder() {
     /* 11 Okt — #kor-bx (riwayat koreksi) dipindah ke bawah #signals */
-    var ids  = ["btstrip", "dir", "bubbles", "analisa", "watch", "signals", "kor-bx", "kamu", "charts", "akurasi", "strip", "footer"];
+    var ids  = ["btstrip", "dir", "mctx", "bubbles", "analisa", "watch", "signals", "kor-bx", "kamu", "charts", "leaderboard", "whatif", "akurasi", "strip", "footer"];
     var host = document.querySelector(".wrap") || document.body;
     ids.forEach(function (id) {
       var s = document.getElementById(id);
@@ -5827,5 +6263,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   setInterval(function () {                  // segarkan %24j tiap 90 detik selama tab terbuka
     if (DATA && !document.hidden) { bb24Ts = 0; bbLoad24(function () {}); }
   }, 90000);
+  mctx();                                    // 23 Okt: market context — segar tiap 5 menit
+  setInterval(mctx, 300000);
   document.addEventListener("visibilitychange", function () { if (!document.hidden) load(false); });
 })();
