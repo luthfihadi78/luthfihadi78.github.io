@@ -6224,8 +6224,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      tertinggal di ATAS. Dua strip riset ada di paling atas wrap, jadi
      dicantumkan paling depan agar posisinya pasti. */
   (function reOrder() {
-    /* 11 Okt — #kor-bx (riwayat koreksi) dipindah ke bawah #signals */
-    var ids  = ["btstrip", "dir", "mctx", "bubbles", "analisa", "watch", "signals", "kor-bx", "kamu", "charts", "leaderboard", "whatif", "akurasi", "strip", "footer"];
+    /* 11 Okt — #kor-bx (riwayat koreksi) dipindah ke bawah #signals
+       24 Okt — #bigcaps (Big caps top 20) tepat di bawah #signals: section
+       baru WAJIB dicantumkan di sini, kalau tidak ia tertinggal di ATAS wrap. */
+    var ids  = ["btstrip", "dir", "mctx", "bubbles", "analisa", "watch", "signals", "bigcaps", "kor-bx", "kamu", "charts", "leaderboard", "whatif", "akurasi", "strip", "footer"];
     var host = document.querySelector(".wrap") || document.body;
     ids.forEach(function (id) {
       var s = document.getElementById(id);
