@@ -5848,7 +5848,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       sh.appendChild(el("span", "hint", "di bawah Signals — klik baris untuk detail alasan + gambar"));
       hostBox.appendChild(sh);
       var sig = document.getElementById("signals");
-      if (sig && sig.parentNode) sig.parentNode.insertBefore(hostBox, sig.nextSibling);
+      /* 24 Okt — #bigcaps (Big caps top 20) menempati tepat di bawah tabel
+         Signals; riwayat koreksi bergeser ke bawahnya, bukan menengah. */
+      var bcAfterSig = document.getElementById("bigcaps");
+      if (sig && sig.parentNode) sig.parentNode.insertBefore(hostBox, bcAfterSig || sig.nextSibling);
       else (document.querySelector(".wrap") || document.body).appendChild(hostBox);
     }
     var host = document.getElementById("plog");
