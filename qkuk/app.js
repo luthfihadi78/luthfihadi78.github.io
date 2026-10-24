@@ -17,7 +17,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bigcap-20261024b";
+  var BUILD = "qkuk-bigcap-20261024c";
   /* 4 engine aktif (20 Okt): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · 🧵 SWING 4h = hijau (Sweep+Reclaim 4h, TVI 240) ·
@@ -5849,9 +5849,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       hostBox.appendChild(sh);
       var sig = document.getElementById("signals");
       /* 24 Okt — #bigcaps (Big caps top 20) menempati tepat di bawah tabel
-         Signals; riwayat koreksi bergeser ke bawahnya, bukan menengah. */
+         Signals; riwayat koreksi bergeser ke bawahnya, bukan menengah.
+         Jangkar = saudara BERIKUTNYA dari #bigcaps (insertBefore menaruh
+         hostBox SEBELUM jangkar — dulu keliru pakai #bigcaps langsung,
+         kor-bx menenggelami bigcaps ke bawah riwayat koreksi). */
       var bcAfterSig = document.getElementById("bigcaps");
-      if (sig && sig.parentNode) sig.parentNode.insertBefore(hostBox, bcAfterSig || sig.nextSibling);
+      var jangkarKor = (bcAfterSig && bcAfterSig.nextSibling)
+                     || (sig && sig.nextSibling);
+      if (sig && sig.parentNode) sig.parentNode.insertBefore(hostBox, jangkarKor);
       else (document.querySelector(".wrap") || document.body).appendChild(hostBox);
     }
     var host = document.getElementById("plog");
