@@ -17,7 +17,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-gauge-recency-20261021a";
+  var BUILD = "qkuk-bigcap-20261024a";
   /* 4 engine aktif (20 Okt): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · 🧵 SWING 4h = hijau (Sweep+Reclaim 4h, TVI 240) ·
@@ -25,7 +25,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      TVI = interval TradingView — tanpa entri tf-nya link chart jatuh ke
      fallback "240", interval salah. */
   var COLOR = { "30m": "#C792EA", "2h": "#FF6B6B", "ob": "#E8965A", "4h": "#7CE38B", "ob4h": "#E8B04B" };
-  var TVI = { "30m": "30", "2h": "120", "ob": "60", "4h": "240", "ob4h": "240" };
+  var TVI = { "30m": "30", "1d": "1440", "2h": "120", "ob": "60", "4h": "240", "ob4h": "240" };
 
   function $(s) { return document.querySelector(s); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
@@ -1617,7 +1617,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      tabel berisi sinyal entry DAN baris watchlist (kolom "jenis" membedakan).
      sMode = filter: "semua" (default, gabungan) / "sig" / "watch". */
   var sMode = "semua";
-  var wTf = null, sTf = "all", sQ = "", sSort = "ts", sSide = "", bq = "";
+  var wTf = null, sTf = "all", sQ = "", sSort = "ts", sSide = "", bq = "", bSort = "mcap";
 
   /* 20 Okt — BASTION 4H hanya mengirim tier premium (OB 4h searah EMA200). */
   var KANAL_LANGKA = {
@@ -1752,6 +1752,129 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       : DATA.live[tf].uji
       ? "Shadow channel — no entry signal recorded yet."
       : kosong(tf, "sinyal"));
+  }
+
+  /* ═══ 24 Okt — BIG CAPS TOP-20 (permintaan user) ══════════════════════
+     Tabel di bawah Signals: 20 koin market cap terbesar (stablecoin & token
+     wrap dibuang) sebagai pembanding — "pergerakan big cap sama atau beda
+     dengan sinyal alt?". Data dihitung DI ENGINE (dashboard_data.bangun →
+     CoinGecko, cache 15 mnt) lalu ditanam data.json; browser nol panggilan
+     API tambahan. Ringkasan + badge perbandingan arah vs sinyal hari ini. */
+  function pctf(v) {
+    var f = num(v);
+    return f === null ? "—" : (f > 0 ? "+" : "") + f.toFixed(2) + "%";
+  }
+  function fdu(v) {                       /* dolar ringkas: $1.23T/$456.7B/$78.9M */
+    var f = num(v); if (f === null) return "—";
+    if (f >= 1e12) return "$" + (f / 1e12).toFixed(2) + "T";
+    if (f >= 1e9) return "$" + (f / 1e9).toFixed(1) + "B";
+    if (f >= 1e6) return "$" + (f / 1e6).toFixed(1) + "M";
+    return "$" + Math.round(f).toLocaleString("en-US");
+  }
+  function bcpct(v, strong) {
+    var f = num(v);
+    var cls = "n bcp " + (f === null || f === 0 ? "mut" : f > 0 ? "pos" : "neg")
+            + (strong ? " bcs" : "");
+    var td = el("td", cls);
+    td.textContent = f === null ? "—" : pctf(f);
+    return td;
+  }
+  function bcspark(arr) {
+    var td = el("td", "bc-sp");
+    var a = (arr || []).filter(function (x) { return isFinite(+x); });
+    if (a.length < 2) { td.textContent = "—"; return td; }
+    var mn = Math.min.apply(null, a), mx = Math.max.apply(null, a), sp = (mx - mn) || 1;
+    var w = 100, h = 28, pts = [];
+    for (var i = 0; i < a.length; i++)
+      pts.push(((i / (a.length - 1)) * w).toFixed(1) + ","
+             + (h - 3 - ((a[i] - mn) / sp) * (h - 6)).toFixed(1));
+    var NS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + w + " " + h);
+    svg.setAttribute("class", "bc-spark " + (a[a.length - 1] >= a[0] ? "s-up" : "s-dn"));
+    svg.setAttribute("preserveAspectRatio", "none");
+    var pl = document.createElementNS(NS, "polyline");
+    pl.setAttribute("points", pts.join(" "));
+    pl.setAttribute("fill", "none");
+    svg.appendChild(pl);
+    td.title = "3 hari terakhir (per jam)";
+    td.appendChild(svg);
+    return td;
+  }
+  function bigcaps() {
+    var host = $("#bc-table"); if (!host) return;
+    var B = DATA.bigcaps, sum = $("#bc-sum");
+    if (sum) sum.innerHTML = "";
+    if (!B || !B.coins || !B.coins.length) {
+      table(host, [], [], "Data big caps belum tersedia — CoinGecko gagal saat penerbitan, coba lagi nanti.");
+      return;
+    }
+    var R = B.ringkas || {}, coins = B.coins.slice();
+    if (bSort === "g24") coins.sort(function (a, b) {
+      return (num(b.h24) == null ? -1e9 : b.h24) - (num(a.h24) == null ? -1e9 : a.h24); });
+    else if (bSort === "g7") coins.sort(function (a, b) {
+      return (num(b.d7) == null ? -1e9 : b.d7) - (num(a.d7) == null ? -1e9 : a.d7); });
+    else if (bSort === "vol") coins.sort(function (a, b) { return (num(b.vol) || 0) - (num(a.vol) || 0); });
+    else if (bSort === "ath") coins.sort(function (a, b) {
+      return (num(a.ath) == null ? 0 : a.ath) - (num(b.ath) == null ? 0 : b.ath); });
+    /* badge pembanding: arah bigcaps (avg 24j) vs arah sinyal alt hari ini
+       (semua engine — hitungan sama dgn tab SEMUA di Signals). */
+    var L = 0, S = 0, hari = wibDate(new Date().toISOString());
+    ord().forEach(function (t) {
+      ((DATA.live[t] || {}).sinyal || []).forEach(function (r) {
+        if ((r.ts || "").slice(0, 10) !== hari) return;
+        if (r.dir === "long") L++; else if (r.dir === "short") S++;
+      });
+    });
+    var dB = num(R.avg24) || 0, dA = L - S, bcls = "mut", btxt;
+    if (!L && !S) btxt = "alt: belum ada sinyal hari ini";
+    else if (dB > 0.05 && dA > 0) { bcls = "pos"; btxt = "SEARAH — bigcaps naik · alt LONG " + L + "/" + (L + S); }
+    else if (dB < -0.05 && dA < 0) { bcls = "pos"; btxt = "SEARAH — bigcaps turun · alt SHORT " + S + "/" + (L + S); }
+    else if (Math.abs(dB) <= 0.05 || Math.abs(dA) < 2) { bcls = "mut"; btxt = "NETRAL — bigcaps " + pctf(dB) + " · alt " + L + "L/" + S + "S"; }
+    else { bcls = "warn"; btxt = "BERLAWANAN — bigcaps " + pctf(dB) + " · alt " + L + "L/" + S + "S"; }
+    if (sum) {
+      var chip = function (l, v, cls) {
+        var s = el("span", "bc-chip " + (cls || ""));
+        s.appendChild(el("b", null, l));
+        s.appendChild(el("span", null, v));
+        return s;
+      };
+      sum.appendChild(chip("naik 24j", (num(R.up24) || 0) + "/" + (B.n || coins.length), "pos"));
+      sum.appendChild(chip("turun 24j", (num(R.down24) || 0) + "/" + (B.n || coins.length), "neg"));
+      sum.appendChild(chip("avg 24j", pctf(R.avg24), dB > 0 ? "pos" : dB < 0 ? "neg" : "mut"));
+      sum.appendChild(chip("avg 7d", pctf(R.avg7), (num(R.avg7) || 0) > 0 ? "pos" : (num(R.avg7) || 0) < 0 ? "neg" : "mut"));
+      sum.appendChild(chip("vol 24j", fdu(R.vol)));
+      sum.appendChild(chip("total mcap", fdu(R.mcap)));
+      if (R.btc_share != null) sum.appendChild(chip("BTC share", R.btc_share + "%"));
+      if (B.stale) sum.appendChild(chip("cache basi", "+" + (num(B.usia_menit) || 0) + " mnt", "warn"));
+      sum.appendChild(chip("vs sinyal alt", btxt, bcls));
+      if (B.ts) sum.appendChild(chip("update", B.ts, "mut"));
+    }
+    var kolom = [
+      { h: "#", n: true, c: function (r) { return txt(r.rank, "n dim"); } },
+      { h: "coin", c: function (r) {
+          var td = el("td", "sym");
+          var a = document.createElement("a");
+          a.className = "bc-link";
+          a.href = r.binance ? tvUrl(r.sym + "USDT", "1d")
+                             : ("https://www.coingecko.com/en/coins/" + (r.cg || r.sym));
+          a.target = "_blank"; a.rel = "noopener noreferrer";
+          a.textContent = r.sym;
+          a.title = r.nama + (r.binance ? " — perp TradingView (chart 1d)" : " — CoinGecko");
+          td.appendChild(a);
+          td.appendChild(el("span", "bc-nama", r.nama));
+          return td; } },
+      { h: "price", n: true, c: function (r) { return txt("$" + fp(r.harga), "n"); } },
+      { h: "1j", n: true, c: function (r) { return bcpct(r.h1); } },
+      { h: "24j", n: true, c: function (r) { return bcpct(r.h24, true); } },
+      { h: "7d", n: true, c: function (r) { return bcpct(r.d7); } },
+      { h: "30d", n: true, c: function (r) { return bcpct(r.d30); } },
+      { h: "3d", c: function (r) { return bcspark(r.spark); } },
+      { h: "vol 24j", n: true, c: function (r) { return txt(fdu(r.vol), "n"); } },
+      { h: "mcap", n: true, c: function (r) { return txt(fdu(r.mcap), "n"); } },
+      { h: "vs ATH", n: true, c: function (r) { return bcpct(r.ath); } }
+    ];
+    table(host, kolom, coins, "Belum ada data big caps.");
   }
 
   /* ── watchlist accuracy: skor mekanis 1R:1R atas SEMUA reclaim terdeteksi ── */
@@ -3459,7 +3582,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      risetnya di tooltip. */
   function render(first) {
     liveScoreMount();       // 11 Okt: live score klasemen — PALING ATAS halaman
-    stamp(); gauge(); strip(); kamu(); applyPicks(); btBadges();
+    stamp(); gauge(); strip(); bigcaps(); kamu(); applyPicks(); btBadges();
     leaderboard(); whatif();   // 23 Okt: leaderboard admin + simulasi what-if
     scanNotif();
     if (!DATA || !DATA.live) return;
@@ -3541,6 +3664,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   });
   $("#s-sort").addEventListener("change", function () {
     sSort = this.value; rerenderTables();
+  });
+  /* 24 Okt — urutan tabel Big caps top 20. */
+  $("#bc-sort").addEventListener("change", function () {
+    bSort = this.value; bigcaps();
   });
 
   /* ── notifikasi watchlist / sinyal baru ──

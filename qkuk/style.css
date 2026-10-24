@@ -1320,3 +1320,25 @@ body.mode-desktop .tchip{display:block}
   .mc-grid{grid-template-columns:repeat(2,1fr)}
   .jbar{width:46px}
 }
+
+/* ── 24 Okt — Big caps top 20 (pembanding arah vs sinyal alt) ── */
+.bc-sum{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+.bc-chip{display:inline-flex;gap:6px;align-items:baseline;border:1px solid var(--line);
+  border-radius:999px;padding:4px 10px;font-size:11px;background:var(--s1)}
+.bc-chip b{color:var(--fg-3);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:10px}
+.bc-chip span{color:var(--fg-2)}
+.bc-chip.pos span{color:var(--up)}
+.bc-chip.neg span{color:var(--dn)}
+.bc-chip.warn span{color:var(--gold)}
+.bcp.pos{color:var(--up)}
+.bcp.neg{color:var(--dn)}
+.bcp.mut{color:var(--fg-3)}
+td.bcs{font-weight:700}
+.bc-nama{display:block;font-size:10px;color:var(--fg-3);font-weight:400;margin-top:1px}
+.bc-link{color:var(--fg);font-weight:700;text-decoration:none;border-bottom:1px dotted var(--line-2)}
+.bc-link:hover{color:var(--ac);border-bottom-color:var(--ac)}
+.bc-spark{width:92px;height:26px;display:block}
+.bc-spark polyline{stroke-width:1.6;fill:none;stroke-linejoin:round;stroke-linecap:round}
+.bc-spark.s-up polyline{stroke:var(--up)}
+.bc-spark.s-dn polyline{stroke:var(--dn)}
+td.bc-sp{padding:3px 6px}

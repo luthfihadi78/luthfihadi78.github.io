@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=20261023a">
+<link rel="stylesheet" href="style.css?v=20261024a">
 </head>
 <body>
 
@@ -191,6 +191,23 @@
     <div class="tw" id="s-table"></div>
   </section>
 
+  <section id="bigcaps">
+    <div class="sec-h">
+      <h2><i>></i> Big caps top 20</h2>
+      <span class="hint">market cap terbesar (stablecoin & token wrap dibuang) — pembanding arah vs sinyal alt</span>
+      <select id="bc-sort" aria-label="Sort big caps">
+        <option value="mcap">mcap terbesar</option>
+        <option value="g24">24h % terbaik</option>
+        <option value="g7">7d % terbaik</option>
+        <option value="vol">volume terbesar</option>
+        <option value="ath">terjauh dari ATH</option>
+      </select>
+    </div>
+    <div class="bc-sum" id="bc-sum"></div>
+    <div class="tw" id="bc-table"></div>
+    <p class="cap">CoinGecko via engine (cache 15 mnt) · klik koin → perp TradingView kalau ada, selain itu CoinGecko.</p>
+  </section>
+
   <section id="kamu">
     <div class="sec-h">
       <h2><i>&gt;</i> Picked by you</h2>
@@ -246,6 +263,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20261023a" defer></script>
+<script src="app.js?v=20261024a" defer></script>
 </body>
 </html>
