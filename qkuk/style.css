@@ -1342,3 +1342,9 @@ td.bcs{font-weight:700}
 .bc-spark.s-up polyline{stroke:var(--up)}
 .bc-spark.s-dn polyline{stroke:var(--dn)}
 td.bc-sp{padding:3px 6px}
+
+/* ── 25 Okt — big caps: crossover 🟡, korelasi gold, tombol TV kiri ── */
+.bc-xmark{margin-left:5px;font-size:10px}
+tr.bc-x td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
+tr.bc-x td{background:rgba(216,200,154,.05)}
+td.bcw{color:var(--gold)}

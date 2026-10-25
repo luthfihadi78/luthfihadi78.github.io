@@ -17,7 +17,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bigcap-20261024c";
+  var BUILD = "qkuk-bigcap2-20261025a";
   /* 4 engine aktif (20 Okt): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · 🧵 SWING 4h = hijau (Sweep+Reclaim 4h, TVI 240) ·
@@ -1801,6 +1801,31 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     td.appendChild(svg);
     return td;
   }
+  /* 25 Okt — kolom baru: posisi range 24j · korelasi BTC 7d · funding. */
+  function bcpos(r) {
+    var p = num(r.pos24);
+    var td = el("td", "n " + (p === null ? "mut" : p >= 70 ? "pos" : p <= 30 ? "neg" : "mut"));
+    td.textContent = p === null ? "—" : p.toFixed(0) + "%";
+    td.title = (r.r24approx ? "perkiraan dari spark per jam" : "high/low 24 jam Binance")
+      + (r.lo24 != null && r.hi24 != null
+        ? " · low $" + fp(r.lo24) + " → high $" + fp(r.hi24) + " · sekarang $" + fp(r.harga)
+        : "");
+    return td;
+  }
+  function bccorr(v) {
+    var f = num(v);
+    var td = el("td", "n " + (f === null ? "mut" : f >= 0.75 ? "bcw" : f <= 0.25 ? "pos" : "mut"));
+    td.textContent = f === null ? "—" : f.toFixed(2);
+    td.title = "korelasi return per jam, 7 hari vs BTC — ≥0.75 ikutan kuat · ≤0.25 mandiri";
+    return td;
+  }
+  function bcfund(v) {
+    var f = num(v);
+    var td = el("td", "n " + (f === null ? "mut" : f > 0 ? "neg" : f < 0 ? "pos" : "mut"));
+    td.textContent = f === null ? "—" : f.toFixed(3) + "%";
+    td.title = "funding rate per 8 jam — positif = long bayar short (caution)";
+    return td;
+  }
   function bigcaps() {
     var host = $("#bc-table"); if (!host) return;
     var B = DATA.bigcaps, sum = $("#bc-sum");
@@ -1810,20 +1835,29 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       return;
     }
     var R = B.ringkas || {}, coins = B.coins.slice();
-    if (bSort === "g24") coins.sort(function (a, b) {
+    if (bSort === "g1") coins.sort(function (a, b) {
+      return (num(b.h1) == null ? -1e9 : b.h1) - (num(a.h1) == null ? -1e9 : a.h1); });
+    else if (bSort === "g24") coins.sort(function (a, b) {
       return (num(b.h24) == null ? -1e9 : b.h24) - (num(a.h24) == null ? -1e9 : a.h24); });
     else if (bSort === "g7") coins.sort(function (a, b) {
       return (num(b.d7) == null ? -1e9 : b.d7) - (num(a.d7) == null ? -1e9 : a.d7); });
+    else if (bSort === "pos24") coins.sort(function (a, b) {
+      return (num(b.pos24) == null ? -1 : b.pos24) - (num(a.pos24) == null ? -1 : a.pos24); });
+    else if (bSort === "corr") coins.sort(function (a, b) {
+      return (num(b.corr7) == null ? -2 : b.corr7) - (num(a.corr7) == null ? -2 : a.corr7); });
     else if (bSort === "vol") coins.sort(function (a, b) { return (num(b.vol) || 0) - (num(a.vol) || 0); });
+    else if (bSort === "oi") coins.sort(function (a, b) { return (num(b.oi) || 0) - (num(a.oi) || 0); });
     else if (bSort === "ath") coins.sort(function (a, b) {
       return (num(a.ath) == null ? 0 : a.ath) - (num(b.ath) == null ? 0 : b.ath); });
     /* badge pembanding: arah bigcaps (avg 24j) vs arah sinyal alt hari ini
        (semua engine — hitungan sama dgn tab SEMUA di Signals). */
     var L = 0, S = 0, hari = wibDate(new Date().toISOString());
+    var xsig = {};   /* 25 Okt — crossover: koin big-cap yang di-sinyal engine hari ini */
     ord().forEach(function (t) {
       ((DATA.live[t] || {}).sinyal || []).forEach(function (r) {
         if ((r.ts || "").slice(0, 10) !== hari) return;
         if (r.dir === "long") L++; else if (r.dir === "short") S++;
+        if (r.sym) xsig[r.sym] = (xsig[r.sym] || 0) + 1;
       });
     });
     var dB = num(R.avg24) || 0, dA = L - S, bcls = "mut", btxt;
@@ -1839,6 +1873,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         s.appendChild(el("span", null, v));
         return s;
       };
+      sum.appendChild(chip("naik 1j", (num(R.up1) || 0) + "/" + (B.n || coins.length), "pos"));
       sum.appendChild(chip("naik 24j", (num(R.up24) || 0) + "/" + (B.n || coins.length), "pos"));
       sum.appendChild(chip("turun 24j", (num(R.down24) || 0) + "/" + (B.n || coins.length), "neg"));
       sum.appendChild(chip("avg 24j", pctf(R.avg24), dB > 0 ? "pos" : dB < 0 ? "neg" : "mut"));
@@ -1851,6 +1886,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (B.ts) sum.appendChild(chip("update", B.ts, "mut"));
     }
     var kolom = [
+      /* 25 Okt — tombol TradingView di ujung kiri, persis gaya Signals. */
+      { h: "", c: function (r) {
+          if (!r.binance) { var td0 = el("td", "dim"); td0.textContent = "—"; return td0; }
+          return tvCell(r.sym, "1h"); } },
       { h: "#", n: true, c: function (r) { return txt(r.rank, "n dim"); } },
       { h: "coin", c: function (r) {
           var td = el("td", "sym");
@@ -1862,19 +1901,37 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           a.textContent = r.sym;
           a.title = r.nama + (r.binance ? " — perp TradingView (chart 1d)" : " — CoinGecko");
           td.appendChild(a);
+          if (xsig[r.sym]) {
+            var x = el("span", "bc-xmark", "🟡");
+            x.title = "ada sinyal engine hari ini (" + xsig[r.sym] + " engine)";
+            td.appendChild(x);
+          }
           td.appendChild(el("span", "bc-nama", r.nama));
           return td; } },
       { h: "price", n: true, c: function (r) { return txt("$" + fp(r.harga), "n"); } },
-      { h: "1j", n: true, c: function (r) { return bcpct(r.h1); } },
-      { h: "24j", n: true, c: function (r) { return bcpct(r.h24, true); } },
+      { h: "1j", n: true, c: function (r) { return bcpct(r.h1, true); } },
+      { h: "24j", n: true, c: function (r) { return bcpct(r.h24); } },
       { h: "7d", n: true, c: function (r) { return bcpct(r.d7); } },
       { h: "30d", n: true, c: function (r) { return bcpct(r.d30); } },
       { h: "3d", c: function (r) { return bcspark(r.spark); } },
+      { h: "pos 24j", n: true, c: function (r) { return bcpos(r); } },
+      { h: "corr BTC 7d", n: true, c: function (r) { return bccorr(r.corr7); } },
+      { h: "funding", n: true, c: function (r) { return bcfund(r.funding); } },
+      { h: "OI", n: true, c: function (r) { return txt(r.oi != null ? fdu(r.oi) : null, "n"); } },
       { h: "vol 24j", n: true, c: function (r) { return txt(fdu(r.vol), "n"); } },
       { h: "mcap", n: true, c: function (r) { return txt(fdu(r.mcap), "n"); } },
       { h: "vs ATH", n: true, c: function (r) { return bcpct(r.ath); } }
     ];
     table(host, kolom, coins, "Belum ada data big caps.");
+    /* 25 Okt — highlight crossover: garis emas kiri utk koin yang juga
+       di-sinyal engine hari ini (urutan tr = urutan coins setelah sort). */
+    var trs = host.querySelectorAll("tbody tr");
+    coins.forEach(function (c, i) {
+      var tr = trs[i];
+      if (!tr || !xsig[c.sym]) return;
+      tr.classList.add("bc-x");
+      tr.title = "🟡 ada sinyal engine hari ini (" + xsig[c.sym] + " engine)";
+    });
   }
 
   /* ── watchlist accuracy: skor mekanis 1R:1R atas SEMUA reclaim terdeteksi ── */
