@@ -1910,23 +1910,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
     var bcp = bcPickMap();   /* 28 Okt — koin yang sedang dipantau admin (bertahan 7 hari) */
     var kolom = [
-      /* 28 Okt — link EXCHANGE langsung (bukan TradingView): tombol kiri =
-         chart Binance USDT-M Futures utk pasangan {SYM}USDT. Link TV lama
-         salah karena r.sym ("BTC") bukan pair lengkap & interval 1d tak
-         ada di TVI. */
+      /* 28 Okt — tombol chart kiri = TradingView (sama seperti Signals).
+         big caps sym = "BTC" → TV pakai "BTCUSDT" (BINANCE:BTCUSDT.P). */
       { h: "", c: function (r) {
           if (!r.binance) { var td0 = el("td", "dim"); td0.textContent = "—"; return td0; }
-          var td = el("td");
-          var a = document.createElement("a");
-          a.className = "tv";
-          a.href = "https://www.binance.com/en/futures/" + r.sym + "USDT";
-          a.target = "_blank"; a.rel = "noopener noreferrer";
-          a.title = r.sym + "USDT — Binance Futures · candle live";
-          a.setAttribute("aria-label", a.title);
-          a.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"'
-            + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-            + '<path d="M3 20h18"/><path d="M7 20V9"/><path d="M12 20V4"/><path d="M17 20v-7"/></svg>';
-          td.appendChild(a); return td; } },
+          return tvCell(r.sym + "USDT", "1h"); } },
       { h: "#", n: true, c: function (r) { return txt(r.rank, "n dim"); } },
       { h: "coin", c: function (r) {
           var td = el("td", "sym");
