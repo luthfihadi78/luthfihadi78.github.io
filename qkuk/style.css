@@ -1347,4 +1347,11 @@ td.bc-sp{padding:3px 6px}
 .bc-xmark{margin-left:5px;font-size:10px}
 tr.bc-x td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
 tr.bc-x td{background:rgba(216,200,154,.05)}
+/* 28 Okt — PICK big caps (admin): bintang kuning ★ + sorotan baris, 7 hari */
+.bc-pstar{margin-left:5px;color:#ffd54f;font-size:11px}
+tr.bc-pick td:first-child{box-shadow:inset 3px 0 0 #ffd54f}
+tr.bc-pick td{background:rgba(255,213,84,.055)}
+button.bc-pick{cursor:pointer;background:none;border:1px solid var(--line);border-radius:6px;color:var(--fg-3);font:600 11px/1 inherit;padding:4px 9px}
+button.bc-pick:hover{border-color:#ffd54f;color:#ffd54f}
+button.bc-pick.on{background:rgba(255,213,84,.14);border-color:#ffd54f;color:#ffd54f}
 td.bcw{color:var(--gold)}

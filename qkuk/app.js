@@ -17,7 +17,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bigcap2-20261025a";
+  var BUILD = "qkuk-bigcap3-20261028a";
   /* 4 engine aktif (20 Okt): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · 🧵 SWING 4h = hijau (Sweep+Reclaim 4h, TVI 240) ·
@@ -1826,6 +1826,29 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     td.title = "funding rate per 8 jam — positif = long bayar short (caution)";
     return td;
   }
+  /* 28 Okt — PICK BIG CAPS (khusus admin): tandai koin yang sedang
+     dipantau — bintang kuning ★ + sorotan baris, bertahan 7 HARI
+     (localStorage per perangkat admin; lewat masa pantau → otomatis
+     terhapus). Tombol pick hanya tampil saat login admin. */
+  var BCPICK_KEY = "qkuk_bcpick_v1";
+  function bcPickMap() {
+    var out = {};
+    try {
+      var m = JSON.parse(localStorage.getItem(BCPICK_KEY) || "{}");
+      var now = Date.now(), prune = false;
+      Object.keys(m).forEach(function (k) {
+        if (now - m[k] < 7 * 864e5) out[k] = m[k]; else prune = true;
+      });
+      if (prune) localStorage.setItem(BCPICK_KEY, JSON.stringify(out));
+    } catch (e) {}
+    return out;
+  }
+  function bcPickToggle(sym) {
+    var m = bcPickMap();
+    if (m[sym]) delete m[sym]; else m[sym] = Date.now();
+    try { localStorage.setItem(BCPICK_KEY, JSON.stringify(m)); } catch (e) {}
+    bigcaps();
+  }
   function bigcaps() {
     var host = $("#bc-table"); if (!host) return;
     var B = DATA.bigcaps, sum = $("#bc-sum");
@@ -1885,26 +1908,47 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       sum.appendChild(chip("vs sinyal alt", btxt, bcls));
       if (B.ts) sum.appendChild(chip("update", B.ts, "mut"));
     }
+    var bcp = bcPickMap();   /* 28 Okt — koin yang sedang dipantau admin (bertahan 7 hari) */
     var kolom = [
-      /* 25 Okt — tombol TradingView di ujung kiri, persis gaya Signals. */
+      /* 28 Okt — link EXCHANGE langsung (bukan TradingView): tombol kiri =
+         chart Binance USDT-M Futures utk pasangan {SYM}USDT. Link TV lama
+         salah karena r.sym ("BTC") bukan pair lengkap & interval 1d tak
+         ada di TVI. */
       { h: "", c: function (r) {
           if (!r.binance) { var td0 = el("td", "dim"); td0.textContent = "—"; return td0; }
-          return tvCell(r.sym, "1h"); } },
+          var td = el("td");
+          var a = document.createElement("a");
+          a.className = "tv";
+          a.href = "https://www.binance.com/en/futures/" + r.sym + "USDT";
+          a.target = "_blank"; a.rel = "noopener noreferrer";
+          a.title = r.sym + "USDT — Binance Futures · candle live";
+          a.setAttribute("aria-label", a.title);
+          a.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"'
+            + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            + '<path d="M3 20h18"/><path d="M7 20V9"/><path d="M12 20V4"/><path d="M17 20v-7"/></svg>';
+          td.appendChild(a); return td; } },
       { h: "#", n: true, c: function (r) { return txt(r.rank, "n dim"); } },
       { h: "coin", c: function (r) {
           var td = el("td", "sym");
           var a = document.createElement("a");
           a.className = "bc-link";
-          a.href = r.binance ? tvUrl(r.sym + "USDT", "1d")
+          /* 28 Okt — nama koin buka Bybit USDT perp (candle live, pasangan
+             lengkap {SYM}USDT); koin non-Binance tetap ke CoinGecko. */
+          a.href = r.binance ? "https://www.bybit.com/trade/usdt/" + r.sym + "USDT"
                              : ("https://www.coingecko.com/en/coins/" + (r.cg || r.sym));
           a.target = "_blank"; a.rel = "noopener noreferrer";
           a.textContent = r.sym;
-          a.title = r.nama + (r.binance ? " — perp TradingView (chart 1d)" : " — CoinGecko");
+          a.title = r.nama + (r.binance ? " — buka di Bybit (USDT perp, candle live)" : " — CoinGecko");
           td.appendChild(a);
           if (xsig[r.sym]) {
             var x = el("span", "bc-xmark", "🟡");
             x.title = "ada sinyal engine hari ini (" + xsig[r.sym] + " engine)";
             td.appendChild(x);
+          }
+          if (bcp[r.sym]) {
+            var st = el("span", "bc-pstar", "★");
+            st.title = "dipantau admin — tanda bertahan 7 hari (lepas lewat kolom pick)";
+            td.appendChild(st);
           }
           td.appendChild(el("span", "bc-nama", r.nama));
           return td; } },
@@ -1920,15 +1964,29 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       { h: "OI", n: true, c: function (r) { return txt(r.oi != null ? fdu(r.oi) : null, "n"); } },
       { h: "vol 24j", n: true, c: function (r) { return txt(fdu(r.vol), "n"); } },
       { h: "mcap", n: true, c: function (r) { return txt(fdu(r.mcap), "n"); } },
-      { h: "vs ATH", n: true, c: function (r) { return bcpct(r.ath); } }
+      { h: "vs ATH", n: true, c: function (r) { return bcpct(r.ath); } },
+      /* 28 Okt — PICK (khusus admin): tandai koin yang sedang dipantau;
+         bintang kuning ★ + sorot baris, otomatis lepas setelah 7 hari. */
+      { h: "pick", c: function (r) {
+          if (!isLogged()) return txt("—", "st dim");
+          var td = el("td", "st");
+          var b = el("button", "bc-pick" + (bcp[r.sym] ? " on" : ""), bcp[r.sym] ? "★" : "+");
+          b.type = "button";
+          b.title = bcp[r.sym] ? "lepas pantauan " + r.sym : "pantau " + r.sym + " — tanda kuning bertahan 7 hari";
+          b.addEventListener("click", function () { bcPickToggle(r.sym); });
+          td.appendChild(b);
+          return td; } }
     ];
     table(host, kolom, coins, "Belum ada data big caps.");
     /* 25 Okt — highlight crossover: garis emas kiri utk koin yang juga
-       di-sinyal engine hari ini (urutan tr = urutan coins setelah sort). */
+       di-sinyal engine hari ini (urutan tr = urutan coins setelah sort).
+       28 Okt — koin yang di-PICK admin dapat sorotan kuning (bc-pick). */
     var trs = host.querySelectorAll("tbody tr");
     coins.forEach(function (c, i) {
       var tr = trs[i];
-      if (!tr || !xsig[c.sym]) return;
+      if (!tr) return;
+      if (bcp[c.sym]) tr.classList.add("bc-pick");
+      if (!xsig[c.sym]) return;
       tr.classList.add("bc-x");
       tr.title = "🟡 ada sinyal engine hari ini (" + xsig[c.sym] + " engine)";
     });
