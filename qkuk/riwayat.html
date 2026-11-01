@@ -47,11 +47,30 @@ td.pos{color:var(--up)} td.neg{color:var(--dn)} td.mut{color:var(--fg2)}
 fetch("picks-data.json?t=" + Date.now(), { cache: "no-store" })
  .then(function (r) { return r.json(); })
  .then(function (d) {
-  var eng = { "ob": "BRICK", "2h": "HARVEST", "4h": "SWING", "ob4h": "BASTION 4H", "ob2h": "SCALP 2H", "whale": "WHALE", "15m": "DART", "30m": "REA", "1h": "SNIPER" };
+  /* 1 Nov — engine SWING (tf "4h") & WYCKOFF dimatikan (permintaan user) →
+     pick mereka dibuang dari riwayat; kurva bulanan dihitung ulang dari
+     baris tersisa supaya angkanya tidak membawa jejak engine yang mati. */
+  var eng = { "ob": "BRICK", "2h": "HARVEST", "ob4h": "BASTION 4H", "ob2h": "SCALP 2H", "whale": "WHALE", "15m": "DART", "30m": "REA", "1h": "SNIPER" };
+  var MATI = { "4h": 1, "wyckoff": 1, "wyk": 1, "tell": 1 };   /* pick engine mati = tak ditampilkan */
+  var rows = (d.rows || []).filter(function (r) { return !MATI[r.tf]; });
+  /* ── kurva bar per bulan (dihitung ulang dari baris bersih) ── */
+  var pbulan = {};
+  rows.forEach(function (r) {
+    if (r.win == null && r.pct == null) return;          /* belum resolve */
+    var b = (r.t || "").slice(0, 7);
+    var o = pbulan[b] || (pbulan[b] = { sum: 0, n: 0, win: 0, selesai: 0 });
+    o.n += 1;
+    if (r.win != null) { o.selesai += 1; o.win += r.win ? 1 : 0; }
+    if (r.pct != null) o.sum += r.pct;
+  });
+  var bln = Object.keys(pbulan).sort().map(function (b) {
+    var o = pbulan[b];
+    return { b: b, sum: o.sum, n: o.n, wr: o.selesai ? o.win / o.selesai * 100 : null };
+  });
   /* ── kurva bar per bulan ── */
   var host = document.getElementById("bkurva");
-  var MABS = Math.max(5, Math.max.apply(null, (d.bulan || []).map(function (b) { return Math.abs(b.sum || 0); })));
-  (d.bulan || []).forEach(function (b) {
+  var MABS = Math.max(5, Math.max.apply(null, bln.map(function (b) { return Math.abs(b.sum || 0); })));
+  bln.forEach(function (b) {
     var r = document.createElement("div"); r.className = "bulan-row";
     var l = document.createElement("span"); l.className = "bulan-l"; l.textContent = b.b;
     var c = document.createElement("div"); c.className = "bar-bg";
@@ -66,12 +85,12 @@ fetch("picks-data.json?t=" + Date.now(), { cache: "no-store" })
     q.textContent = (b.sum >= 0 ? "+" : "") + b.sum.toFixed(1) + "% · " + b.n + " pick · WR " + (b.wr == null ? "—" : b.wr.toFixed(0) + "%");
     r.appendChild(l); r.appendChild(c); r.appendChild(q); host.appendChild(r);
   });
-  if (!(d.bulan || []).length) { host.innerHTML = '<div class="kosong">belum ada bulan tuntas</div>'; }
+  if (!bln.length) { host.innerHTML = '<div class="kosong">belum ada bulan tuntas</div>'; }
   /* ── tabel semua resolve ── */
   var tb = document.getElementById("btab");
-  if (!(d.rows || []).length) { tb.innerHTML = '<div class="kosong">belum ada pick resolve</div>'; return; }
+  if (!rows.length) { tb.innerHTML = '<div class="kosong">belum ada pick resolve</div>'; return; }
   var T = '<table><thead><tr><th>waktu resolve</th><th>engine</th><th>simbol</th><th>arah</th><th>hasil</th><th>admin</th></tr></thead><tbody>';
-  d.rows.slice().reverse().forEach(function (r) {
+  rows.slice().reverse().forEach(function (r) {
     T += "<tr><td class=\"mut\">" + r.t.replace("T", " ").slice(0, 16)
       + "</td><td>" + (eng[r.tf] || r.tf) + "</td><td><b>" + r.sym + "</b></td>"
       + "<td><span class='lm " + (r.arah || "nP") + "'>" + (r.arah || "ikut engine") + "</span></td>"

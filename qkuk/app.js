@@ -20,15 +20,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-scalp2h-202610a";
-  /* 4 engine aktif (20 Okt): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
+  var BUILD = "qkuk-scalp2h-20261101a";
+  /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
-     oranye bata) · 🧵 SWING 4h = hijau (Sweep+Reclaim 4h, TVI 240) ·
+     oranye bata) · ⭐ SCALP 2H = kuning emas (OB 2h, TVI 120) ·
      🏰 BASTION 4H = amber (OB 4h, TVI 240). Reversal 30m = ungu (mati).
      TVI = interval TradingView — tanpa entri tf-nya link chart jatuh ke
      fallback "240", interval salah. */
-  var COLOR = { "30m": "#C792EA", "2h": "#FF6B6B", "ob": "#E8965A", "4h": "#7CE38B", "ob4h": "#E8B04B", "ob2h": "#F5C542" };
-  var TVI = { "30m": "30", "1d": "1440", "2h": "120", "ob": "60", "4h": "240", "ob4h": "240", "ob2h": "120" };
+  /* 1 Nov — kanal "4h" (SWING) dimatikan permanen; warna kuning emasnya
+     diwariskan ke ⭐ SCALP 2H (ob2h). */
+  var COLOR = { "30m": "#C792EA", "2h": "#FF6B6B", "ob": "#E8965A", "ob4h": "#E8B04B", "ob2h": "#F5C542" };
+  var TVI = { "30m": "30", "1d": "1440", "2h": "120", "ob": "60", "ob4h": "240", "ob2h": "120" };
 
   function $(s) { return document.querySelector(s); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
@@ -1157,7 +1159,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       }
       return { L: L, S: S };
     };
-    var K2 = hitungKanal("2h"), K4 = hitungKanal("4h"), KO = hitungKanal("ob"), KB = hitungKanal("ob4h");
+    /* 1 Nov — SWING "4h" mati → komposit gauge memakai arah ⭐ SCALP 2H (ob2h). */
+    var K2 = hitungKanal("2h"), K4 = hitungKanal("ob2h"), KO = hitungKanal("ob"), KB = hitungKanal("ob4h");
     var arahK = function (k) { return (k.L + k.S) ? (k.L > k.S ? 1 : k.S > k.L ? -1 : 0) : 0; };
     var d2 = arahK(K2), d4 = arahK(K4), dO = arahK(KO), dB4 = arahK(KB);
     var berdata = [d2, d4, dO, dB4].filter(function (d) { return d !== 0; });
@@ -1167,7 +1170,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var semuaHijau = berdata.length >= 2 && berdata.every(function (d) { return d > 0; });
     var banyakShort2h = (K2.S >= 2 && K2.S > K2.L);
     var banyakLong2h = (K2.L >= 2 && K2.L > K2.S);
-    var swingObLong = (d4 > 0 && dO > 0);
+    var swingObLong = (d4 > 0 && dO > 0);   /* d4 = arah SCALP 2H (pengganti kanal 4h lamanya) */
     var usdtNaik = dirUsdt > 0, usdtTurun = dirUsdt < 0;
     /* Kondisi alt dipisah dari arah BTC: BTC.D naik belum tentu alt rusak
        bila USDT.D turun dan arus alt masih positif. */
@@ -1186,7 +1189,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var btcLedLong = (V.dirBtc > 0 && mom >= G37.btcLedMom && dirUsdt <= 0
                       && dUraw <= G37.usdtConflict
                       && (V.maj || 0) >= G37.btcLedMajFloor);
-    V.kanalArah = { "2h": d2, "4h": d4, ob: dO, ob4h: dB4 };
+    V.kanalArah = { "2h": d2, "ob2h": d4, ob: dO, ob4h: dB4 };
     /* 16 Okt — SWEEP KEBAWAH BERSAMAAN (engine v36): mayoritas altcoin
        menyapu low 24 jam dalam 3 bar 1h = keadaan darurat → CRASH, tanpa
        menunggu gate dominan & tanpa ditahan histeresis. Angka dihitung
@@ -1387,7 +1390,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* ── tables ── */
   /* 8 Okt (permintaan user): label tab pakai NAMA ENGINE — BRICK/HARVEST/SWING
      bukan kode TF "OB"/"2H"/"4H", biar konsisten dgn grup WA & strip riset. */
-  var TAB_NAME = { "30m": "REA", "2h": "HARVEST", "4h": "SWING",
+  var TAB_NAME = { "30m": "REA", "2h": "HARVEST",
                    "ob": "BRICK", "ob4h": "BASTION 4H", "ob2h": "SCALP 2H", "1h": "SNIPER", "15m": "DART" };
   function tabs(host, active, pick, withAll) {
     host.innerHTML = "";
@@ -1845,10 +1848,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var R = B.ringkas || {}, coins = B.coins.slice();
     if (bSort === "g1") coins.sort(function (a, b) {
       return (num(b.h1) == null ? -1e9 : b.h1) - (num(a.h1) == null ? -1e9 : a.h1); });
+    else if (bSort === "1h") coins.sort(function (a, b) {          /* 1 Nov: terburuk 1h */
+      return (num(a.h1) == null ? 1e9 : a.h1) - (num(b.h1) == null ? 1e9 : b.h1); });
     else if (bSort === "g24") coins.sort(function (a, b) {
       return (num(b.h24) == null ? -1e9 : b.h24) - (num(a.h24) == null ? -1e9 : a.h24); });
+    else if (bSort === "24h") coins.sort(function (a, b) {         /* 1 Nov: terburuk 24h */
+      return (num(a.h24) == null ? 1e9 : a.h24) - (num(b.h24) == null ? 1e9 : b.h24); });
     else if (bSort === "g7") coins.sort(function (a, b) {
       return (num(b.d7) == null ? -1e9 : b.d7) - (num(a.d7) == null ? -1e9 : a.d7); });
+    else if (bSort === "7d") coins.sort(function (a, b) {          /* 1 Nov: terburuk 7d */
+      return (num(a.d7) == null ? 1e9 : a.d7) - (num(b.d7) == null ? 1e9 : b.d7); });
     else if (bSort === "pos24") coins.sort(function (a, b) {
       return (num(b.pos24) == null ? -1 : b.pos24) - (num(a.pos24) == null ? -1 : a.pos24); });
     else if (bSort === "corr") coins.sort(function (a, b) {
@@ -3270,8 +3279,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
            ci: sw.ci, significant: sw.significant, per_arah: sw.per_arah },
       w: sw }); */
     /* 27 Okt — kartu ⭐ SCALP 2H belum punya backtest riset di data.json;
-       diberi slot dari DATA.bt_brick2h supaya riset menyusul tampil otomatis. */
-    var sc = DATA && DATA.bt_brick2h;
+       data dari DATA.bt_scalp_2h (riset 28 Okt 2026). */
+    var sc = DATA && DATA.bt_scalp_2h;
     if (sc && sc.n) list.push({ nama: "⭐ SCALP 2H", chip: "SCALP",
       d: { wr: sc.wr, ev: sc.ev, totr: sc.totr, n: sc.n,
            ci: sc.ci, significant: sc.significant, per_arah: sc.per_arah },
@@ -3739,7 +3748,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   $("#s-sort").addEventListener("change", function () {
     sSort = this.value; rerenderTables();
   });
-  /* 24 Okt — urutan tabel Big caps top 20. */
+  /* 24 Okt — urutan tabel Big caps top 50. */
   $("#bc-sort").addEventListener("change", function () {
     bSort = this.value; bigcaps();
   });
@@ -4012,7 +4021,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* 20 Okt — NOTIFIKASI PER ENGINE: BRICK/HARVEST/SWING/BASTION 4H.
      Default SEMUA ON; preferensi di localStorage "qkuk_nkanal" (JSON tf→0/1).
      Judul notifikasi memakai emoji engine = beda visual di lock screen. */
-  var NN_ENG = { "ob": "🧱 BRICK", "2h": "🩸 HARVEST", "4h": "🧵 SWING", "ob4h": "🏰 BASTION 4H", "ob2h": "⭐ SCALP 2H" };
+  var NN_ENG = { "ob": "🧱 BRICK", "2h": "🩸 HARVEST", "ob4h": "🏰 BASTION 4H", "ob2h": "⭐ SCALP 2H" };
   var NNOTE = {};
   try { NNOTE = JSON.parse(localStorage.getItem("qkuk_nkanal") || "{}") || {}; } catch (e) {}
   function nn(tf) { return NNOTE[tf] !== 0; }   // default ON dgn nn(tf)
@@ -5922,7 +5931,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       sh.appendChild(el("span", "hint", "di bawah Signals — klik baris untuk detail alasan + gambar"));
       hostBox.appendChild(sh);
       var sig = document.getElementById("signals");
-      /* 24 Okt — #bigcaps (Big caps top 20) menempati tepat di bawah tabel
+      /* 1 Nov — #bigcaps (Big caps top 50) menempati tepat di bawah tabel
          Signals; riwayat koreksi bergeser ke bawahnya, bukan menengah.
          Jangkar = saudara BERIKUTNYA dari #bigcaps (insertBefore menaruh
          hostBox SEBELUM jangkar — dulu keliru pakai #bigcaps langsung,
@@ -6307,7 +6316,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      dicantumkan paling depan agar posisinya pasti. */
   (function reOrder() {
     /* 11 Okt — #kor-bx (riwayat koreksi) dipindah ke bawah #signals
-       24 Okt — #bigcaps (Big caps top 20) tepat di bawah #signals: section
+       1 Nov — #bigcaps (Big caps top 50) tepat di bawah #signals: section
        baru WAJIB dicantumkan di sini, kalau tidak ia tertinggal di ATAS wrap. */
     var ids  = ["btstrip", "dir", "mctx", "bubbles", "analisa", "watch", "signals", "bigcaps", "kor-bx", "kamu", "charts", "leaderboard", "whatif", "akurasi", "strip", "footer"];
     var host = document.querySelector(".wrap") || document.body;

@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=20261024a">
+<link rel="stylesheet" href="style.css?v=20261101a">
 </head>
 <body>
 
@@ -193,13 +193,16 @@
 
   <section id="bigcaps">
     <div class="sec-h">
-      <h2><i>></i> Big caps top 20</h2>
+      <h2><i>></i> Big caps top 50</h2>
       <span class="hint">market cap terbesar (stablecoin & token wrap dibuang) — pembanding arah vs sinyal alt</span>
       <select id="bc-sort" aria-label="Sort big caps">
         <option value="mcap">mcap terbesar</option>
         <option value="g1">1h % terbaik</option>
+        <option value="1h">1h % terburuk</option>
         <option value="g24">24h % terbaik</option>
+        <option value="24h">24h % terburuk</option>
         <option value="g7">7d % terbaik</option>
+        <option value="7d">7d % terburuk</option>
         <option value="pos24">posisi range 24j</option>
         <option value="corr">korelasi BTC</option>
         <option value="vol">volume terbesar</option>
@@ -267,6 +270,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=202610c27" defer></script>
+<script src="app.js?v=20261101a" defer></script>
 </body>
 </html>

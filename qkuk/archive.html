@@ -69,7 +69,12 @@ function load(){
         host.appendChild(b);
       });
       return fetch("archive/" + pilih + ".json?t=" + Date.now(), {cache:"no-store"})
-        .then(function(r){ return r.json(); });
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          /* bersihkan jalur SWING "4h" dari snapshot lama sebelum render. */
+          if (d && d.live) { delete d.live["4h"]; }
+          return d;
+        });
     })
     .then(render)
     .catch(function(e){
@@ -87,7 +92,9 @@ function render(d){
         + (d.altdir && d.altdir.btc_chg != null ? ((d.altdir.btc_chg >= 0 ? "+" : "") + d.altdir.btc_chg.toFixed(2) + "%") : "—") + "</b></div>"
     + "<div><span>onchain alert</span><b class='gy'>" + ((d.onchain || {}).alerts || []).length + "</b></div>"
     + "</div></div>";
-  var eng = { "ob": "BRICK", "2h": "HARVEST", "4h": "SWING", "ob4h": "BASTION 4H", "ob2h": "SCALP 2H", "whale": "WHALE" };
+  /* 1 Nov — kanal "4h" (SWING) mati → tak digambar lagi dari snapshot mana pun;
+     snapshot lama yang masih menyimpannya tetap utuh di file arsip. */
+  var eng = { "ob": "BRICK", "2h": "HARVEST", "ob4h": "BASTION 4H", "ob2h": "SCALP 2H", "whale": "WHALE" };
   var lv = d.live || {};
   Object.keys(eng).forEach(function (tf) {
     if (!lv[tf]) return;   // snapshot baru tak punya whale; snapshot lama tak punya ob4h
