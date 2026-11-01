@@ -1074,6 +1074,9 @@ html:not(.authed),html:not(.authed) body{overflow:hidden!important;height:100%!i
 .bt-badge .bt-tf.t2h{color:#FF6B6B;border-color:rgba(255,107,107,.4)}
   .bt-badge .bt-tf.tob{color:#F2A65A;border-color:rgba(242,166,90,.4)}
 .bt-badge .bt-tf.tob4h{color:#E8B04B;border-color:rgba(232,176,75,.4)}
+/* 27 Okt — kanal ⭐ SCALP 2H (emas bintang) + chip strip "SCALP". */
+.bt-badge .bt-tf.tob2h{color:#F5C542;border-color:rgba(245,197,66,.4)}
+.bt-badge .bt-tf.tscalp{color:#F5C542;border-color:rgba(245,197,66,.4)}
 .bt-badge .bt-tf.t1h{color:#4DC9F6;border-color:rgba(77,201,246,.4)}
 .bt-badge .bt-tf.t4h{color:#7CE38B;border-color:rgba(124,227,139,.4)}
 .bt-badge .bt-angka{display:flex;gap:16px;margin-top:9px}
@@ -1347,11 +1350,4 @@ td.bc-sp{padding:3px 6px}
 .bc-xmark{margin-left:5px;font-size:10px}
 tr.bc-x td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
 tr.bc-x td{background:rgba(216,200,154,.05)}
-/* 28 Okt — PICK big caps (admin): bintang kuning ★ + sorotan baris, 7 hari */
-.bc-pstar{margin-left:5px;color:#ffd54f;font-size:11px}
-tr.bc-pick td:first-child{box-shadow:inset 3px 0 0 #ffd54f}
-tr.bc-pick td{background:rgba(255,213,84,.055)}
-button.bc-pick{cursor:pointer;background:none;border:1px solid var(--line);border-radius:6px;color:var(--fg-3);font:600 11px/1 inherit;padding:4px 9px}
-button.bc-pick:hover{border-color:#ffd54f;color:#ffd54f}
-button.bc-pick.on{background:rgba(255,213,84,.14);border-color:#ffd54f;color:#ffd54f}
 td.bcw{color:var(--gold)}

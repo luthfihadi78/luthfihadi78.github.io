@@ -8,7 +8,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      ini. Tanpa "2h", tab & winrate HARVEST lenyap diam-diam walau data.json
      sudah membawanya. "30m" dibiarkan (REVERSAL mati) — ord() menyaring
      otomatis kalau datanya tak ada. */
-  var DATA = null, ORDER = ["ob", "2h", "4h", "ob4h"], LEFT = 60;   // 20 Okt: BASTION 4H ganti WHALE
+  /* 27 Okt — WYCKOFF & SWING 4h DIMATIKAN (permintaan user) → kanal "4h"
+     (label SWING) keluar dari ORDER; kanal baru "ob2h" = ⭐ SCALP 2H
+     (engine ob_premium_watch_2h.py: OB premium 2h + gate BTC b24>1%). */
+  var DATA = null, ORDER = ["ob", "2h", "ob4h", "ob2h"], LEFT = 60;   // 20 Okt: BASTION 4H ganti WHALE
   /* ⚠️ GitHub Pages menyajikan index.html dgn cache-control 600 dtk, dan tab
      yang dibiarkan terbuka TIDAK PERNAH mengambil ulang HTML-nya sama sekali —
      ia hanya menarik data.json. Akibatnya pembaruan tampilan tak terlihat
@@ -17,15 +20,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bigcap3-20261028a";
+  var BUILD = "qkuk-scalp2h-202610a";
   /* 4 engine aktif (20 Okt): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · 🧵 SWING 4h = hijau (Sweep+Reclaim 4h, TVI 240) ·
      🏰 BASTION 4H = amber (OB 4h, TVI 240). Reversal 30m = ungu (mati).
      TVI = interval TradingView — tanpa entri tf-nya link chart jatuh ke
      fallback "240", interval salah. */
-  var COLOR = { "30m": "#C792EA", "2h": "#FF6B6B", "ob": "#E8965A", "4h": "#7CE38B", "ob4h": "#E8B04B" };
-  var TVI = { "30m": "30", "1d": "1440", "2h": "120", "ob": "60", "4h": "240", "ob4h": "240" };
+  var COLOR = { "30m": "#C792EA", "2h": "#FF6B6B", "ob": "#E8965A", "4h": "#7CE38B", "ob4h": "#E8B04B", "ob2h": "#F5C542" };
+  var TVI = { "30m": "30", "1d": "1440", "2h": "120", "ob": "60", "4h": "240", "ob4h": "240", "ob2h": "120" };
 
   function $(s) { return document.querySelector(s); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
@@ -1385,7 +1388,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* 8 Okt (permintaan user): label tab pakai NAMA ENGINE — BRICK/HARVEST/SWING
      bukan kode TF "OB"/"2H"/"4H", biar konsisten dgn grup WA & strip riset. */
   var TAB_NAME = { "30m": "REA", "2h": "HARVEST", "4h": "SWING",
-                   "ob": "BRICK", "ob4h": "BASTION 4H", "1h": "SNIPER", "15m": "DART" };
+                   "ob": "BRICK", "ob4h": "BASTION 4H", "ob2h": "SCALP 2H", "1h": "SNIPER", "15m": "DART" };
   function tabs(host, active, pick, withAll) {
     host.innerHTML = "";
     if (withAll) {
@@ -1624,6 +1627,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     ob4h: {
       w: "🏰 Watchlist BASTION 4H kosong — hanya tier premium yang ditampilkan.",
       s: "🏰 Belum ada sinyal BASTION 4H — kanal ini hanya mengirim tier premium."
+    },
+    /* 27 Okt — kanal ⭐ SCALP 2H: juga premium-only, pola sama dgn BASTION. */
+    ob2h: {
+      w: "⭐ Watchlist SCALP 2H kosong — hanya tier premium yang ditampilkan.",
+      s: "⭐ Belum ada sinyal SCALP 2H — kanal ini hanya mengirim tier premium."
     }
   };
   function kosong(tf, jenis) {
@@ -1826,29 +1834,6 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     td.title = "funding rate per 8 jam — positif = long bayar short (caution)";
     return td;
   }
-  /* 28 Okt — PICK BIG CAPS (khusus admin): tandai koin yang sedang
-     dipantau — bintang kuning ★ + sorotan baris, bertahan 7 HARI
-     (localStorage per perangkat admin; lewat masa pantau → otomatis
-     terhapus). Tombol pick hanya tampil saat login admin. */
-  var BCPICK_KEY = "qkuk_bcpick_v1";
-  function bcPickMap() {
-    var out = {};
-    try {
-      var m = JSON.parse(localStorage.getItem(BCPICK_KEY) || "{}");
-      var now = Date.now(), prune = false;
-      Object.keys(m).forEach(function (k) {
-        if (now - m[k] < 7 * 864e5) out[k] = m[k]; else prune = true;
-      });
-      if (prune) localStorage.setItem(BCPICK_KEY, JSON.stringify(out));
-    } catch (e) {}
-    return out;
-  }
-  function bcPickToggle(sym) {
-    var m = bcPickMap();
-    if (m[sym]) delete m[sym]; else m[sym] = Date.now();
-    try { localStorage.setItem(BCPICK_KEY, JSON.stringify(m)); } catch (e) {}
-    bigcaps();
-  }
   function bigcaps() {
     var host = $("#bc-table"); if (!host) return;
     var B = DATA.bigcaps, sum = $("#bc-sum");
@@ -1908,35 +1893,26 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       sum.appendChild(chip("vs sinyal alt", btxt, bcls));
       if (B.ts) sum.appendChild(chip("update", B.ts, "mut"));
     }
-    var bcp = bcPickMap();   /* 28 Okt — koin yang sedang dipantau admin (bertahan 7 hari) */
     var kolom = [
-      /* 28 Okt — tombol chart kiri = TradingView (sama seperti Signals).
-         big caps sym = "BTC" → TV pakai "BTCUSDT" (BINANCE:BTCUSDT.P). */
+      /* 25 Okt — tombol TradingView di ujung kiri, persis gaya Signals. */
       { h: "", c: function (r) {
           if (!r.binance) { var td0 = el("td", "dim"); td0.textContent = "—"; return td0; }
-          return tvCell(r.sym + "USDT", "1h"); } },
+          return tvCell(r.sym, "1h"); } },
       { h: "#", n: true, c: function (r) { return txt(r.rank, "n dim"); } },
       { h: "coin", c: function (r) {
           var td = el("td", "sym");
           var a = document.createElement("a");
           a.className = "bc-link";
-          /* 28 Okt — nama koin buka Bybit USDT perp (candle live, pasangan
-             lengkap {SYM}USDT); koin non-Binance tetap ke CoinGecko. */
-          a.href = r.binance ? "https://www.bybit.com/trade/usdt/" + r.sym + "USDT"
+          a.href = r.binance ? tvUrl(r.sym + "USDT", "1d")
                              : ("https://www.coingecko.com/en/coins/" + (r.cg || r.sym));
           a.target = "_blank"; a.rel = "noopener noreferrer";
           a.textContent = r.sym;
-          a.title = r.nama + (r.binance ? " — buka di Bybit (USDT perp, candle live)" : " — CoinGecko");
+          a.title = r.nama + (r.binance ? " — perp TradingView (chart 1d)" : " — CoinGecko");
           td.appendChild(a);
           if (xsig[r.sym]) {
             var x = el("span", "bc-xmark", "🟡");
             x.title = "ada sinyal engine hari ini (" + xsig[r.sym] + " engine)";
             td.appendChild(x);
-          }
-          if (bcp[r.sym]) {
-            var st = el("span", "bc-pstar", "★");
-            st.title = "dipantau admin — tanda bertahan 7 hari (lepas lewat kolom pick)";
-            td.appendChild(st);
           }
           td.appendChild(el("span", "bc-nama", r.nama));
           return td; } },
@@ -1952,29 +1928,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       { h: "OI", n: true, c: function (r) { return txt(r.oi != null ? fdu(r.oi) : null, "n"); } },
       { h: "vol 24j", n: true, c: function (r) { return txt(fdu(r.vol), "n"); } },
       { h: "mcap", n: true, c: function (r) { return txt(fdu(r.mcap), "n"); } },
-      { h: "vs ATH", n: true, c: function (r) { return bcpct(r.ath); } },
-      /* 28 Okt — PICK (khusus admin): tandai koin yang sedang dipantau;
-         bintang kuning ★ + sorot baris, otomatis lepas setelah 7 hari. */
-      { h: "pick", c: function (r) {
-          if (!isLogged()) return txt("—", "st dim");
-          var td = el("td", "st");
-          var b = el("button", "bc-pick" + (bcp[r.sym] ? " on" : ""), bcp[r.sym] ? "★" : "+");
-          b.type = "button";
-          b.title = bcp[r.sym] ? "lepas pantauan " + r.sym : "pantau " + r.sym + " — tanda kuning bertahan 7 hari";
-          b.addEventListener("click", function () { bcPickToggle(r.sym); });
-          td.appendChild(b);
-          return td; } }
+      { h: "vs ATH", n: true, c: function (r) { return bcpct(r.ath); } }
     ];
     table(host, kolom, coins, "Belum ada data big caps.");
     /* 25 Okt — highlight crossover: garis emas kiri utk koin yang juga
-       di-sinyal engine hari ini (urutan tr = urutan coins setelah sort).
-       28 Okt — koin yang di-PICK admin dapat sorotan kuning (bc-pick). */
+       di-sinyal engine hari ini (urutan tr = urutan coins setelah sort). */
     var trs = host.querySelectorAll("tbody tr");
     coins.forEach(function (c, i) {
       var tr = trs[i];
-      if (!tr) return;
-      if (bcp[c.sym]) tr.classList.add("bc-pick");
-      if (!xsig[c.sym]) return;
+      if (!tr || !xsig[c.sym]) return;
       tr.classList.add("bc-x");
       tr.title = "🟡 ada sinyal engine hari ini (" + xsig[c.sym] + " engine)";
     });
@@ -2180,7 +2142,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
             makin bingung dgn 3 garis bersilangan)
      Sumber sama dengan heat table & kartu live resolve: picks admin. */
   /* 20 Okt — BASTION 4H = order block 4h tier premium. */
-  var HR_NAME = { "ob": "Engine OB", "30m": "Reversal 30m", "2h": "Harvest 2h", "4h": "Swing 4h", "ob4h": "Bastion 4h" };
+  var HR_NAME = { "ob": "Engine OB", "30m": "Reversal 30m", "2h": "Harvest 2h", "4h": "Swing 4h", "ob4h": "Bastion 4h", "ob2h": "Scalp 2h" };
   /* 25 Sep — tinggi ter-akhir tiap batang histogram (urut h×kanal), buat
      tween antar segaran: batang MELUNCUR dari tinggi lama ke baru, persis
      histogram divergen di tab Whale. Bentuk array mengikuti urutan render. */
@@ -3300,11 +3262,20 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       d: { wr: ek.wr, ev: ek.ev, totr: ek.totr, n: ek.n,
            ci: ek.ci, significant: ek.significant, per_arah: ek.per_arah },
       w: ek });
-    var sw = DATA && DATA.bt_swing;
+    /* 27 Okt — SWING (Sweep+Reclaim 4h) DIHAPUS dari strip riset (permintaan
+       user: matikan engine SWING & WYCKOFF di mana pun). */
+    /* var sw = DATA && DATA.bt_swing;
     if (sw && sw.n) list.push({ nama: "🧵 SWING", chip: "4h",
       d: { wr: sw.wr, ev: sw.ev, totr: sw.totr, n: sw.n,
            ci: sw.ci, significant: sw.significant, per_arah: sw.per_arah },
-      w: sw });
+      w: sw }); */
+    /* 27 Okt — kartu ⭐ SCALP 2H belum punya backtest riset di data.json;
+       diberi slot dari DATA.bt_brick2h supaya riset menyusul tampil otomatis. */
+    var sc = DATA && DATA.bt_brick2h;
+    if (sc && sc.n) list.push({ nama: "⭐ SCALP 2H", chip: "SCALP",
+      d: { wr: sc.wr, ev: sc.ev, totr: sc.totr, n: sc.n,
+           ci: sc.ci, significant: sc.significant, per_arah: sc.per_arah },
+      w: sc });
     list.sort(function (a, b) { return (b.d.ev || 0) - (a.d.ev || 0); });
     list.forEach(function (it, i) {
       var d = it.d;
@@ -3977,7 +3948,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         b.classList.toggle("on", nn(b.dataset.tf));
       });
     }
-    ["ob", "2h", "4h", "ob4h"].forEach(function (tf) {
+    ["ob", "2h", "ob4h", "ob2h"].forEach(function (tf) {
       var b = el("button", "nk-t"); b.type = "button"; b.dataset.tf = tf;
       b.textContent = NN_ENG[tf] || tf;
       b.title = "Klik untuk hidup/matikan notifikasi engine ini";
@@ -4041,7 +4012,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* 20 Okt — NOTIFIKASI PER ENGINE: BRICK/HARVEST/SWING/BASTION 4H.
      Default SEMUA ON; preferensi di localStorage "qkuk_nkanal" (JSON tf→0/1).
      Judul notifikasi memakai emoji engine = beda visual di lock screen. */
-  var NN_ENG = { "ob": "🧱 BRICK", "2h": "🩸 HARVEST", "4h": "🧵 SWING", "ob4h": "🏰 BASTION 4H" };
+  var NN_ENG = { "ob": "🧱 BRICK", "2h": "🩸 HARVEST", "4h": "🧵 SWING", "ob4h": "🏰 BASTION 4H", "ob2h": "⭐ SCALP 2H" };
   var NNOTE = {};
   try { NNOTE = JSON.parse(localStorage.getItem("qkuk_nkanal") || "{}") || {}; } catch (e) {}
   function nn(tf) { return NNOTE[tf] !== 0; }   // default ON dgn nn(tf)
@@ -5708,7 +5679,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (lg && lg.parentNode === kamu) kamu.insertBefore(host, lg.nextSibling);
       else kamu.appendChild(host);
     }
-    var TFH = [["ob", "BRICK"], ["2h", "HARVEST"], ["4h", "SWING"], ["ob4h", "BASTION 4H"]];
+    var TFH = [["ob", "BRICK"], ["2h", "HARVEST"], ["ob4h", "BASTION 4H"], ["ob2h", "SCALP 2H"]];
     var per = {}, j;                       // per[jam][tf] = [n, w, sum%]
     if (typeof HH_FILTER === "undefined") window.HH_FILTER = null;   // jam terpilih (klik sel)
     for (j = 0; j < 24; j++) { per[j] = {}; TFH.forEach(function (t) { per[j][t[0]] = [0, 0, 0]; }); }
