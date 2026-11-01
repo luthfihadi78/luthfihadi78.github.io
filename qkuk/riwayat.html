@@ -50,8 +50,8 @@ fetch("picks-data.json?t=" + Date.now(), { cache: "no-store" })
   /* 1 Nov — engine SWING (tf "4h") & WYCKOFF dimatikan (permintaan user) →
      pick mereka dibuang dari riwayat; kurva bulanan dihitung ulang dari
      baris tersisa supaya angkanya tidak membawa jejak engine yang mati. */
-  var eng = { "ob": "BRICK", "2h": "HARVEST", "ob4h": "BASTION 4H", "ob2h": "SCALP 2H", "whale": "WHALE", "15m": "DART", "30m": "REA", "1h": "SNIPER" };
-  var MATI = { "4h": 1, "wyckoff": 1, "wyk": 1, "tell": 1 };   /* pick engine mati = tak ditampilkan */
+  var eng = { "ob": "BRICK", "2h": "HARVEST", "ob4h": "BASTION 4H", "ob2h": "SCALP 2H", "15m": "DART", "30m": "REA", "1h": "SNIPER" };
+  var MATI = { "4h": 1, "wyckoff": 1, "wyk": 1, "tell": 1, "whale": 1 };   /* pick engine mati = tak ditampilkan */
   var rows = (d.rows || []).filter(function (r) { return !MATI[r.tf]; });
   /* ── kurva bar per bulan (dihitung ulang dari baris bersih) ── */
   var pbulan = {};

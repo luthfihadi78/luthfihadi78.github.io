@@ -71,8 +71,8 @@ function load(){
       return fetch("archive/" + pilih + ".json?t=" + Date.now(), {cache:"no-store"})
         .then(function(r){ return r.json(); })
         .then(function(d){
-          /* bersihkan jalur SWING "4h" dari snapshot lama sebelum render. */
-          if (d && d.live) { delete d.live["4h"]; }
+          /* bersihkan kanal mati (SWING "4h", WHALE) dari snapshot lama. */
+          if (d && d.live) { delete d.live["4h"]; delete d.live["whale"]; }
           return d;
         });
     })
@@ -93,8 +93,9 @@ function render(d){
     + "<div><span>onchain alert</span><b class='gy'>" + ((d.onchain || {}).alerts || []).length + "</b></div>"
     + "</div></div>";
   /* 1 Nov — kanal "4h" (SWING) mati → tak digambar lagi dari snapshot mana pun;
-     snapshot lama yang masih menyimpannya tetap utuh di file arsip. */
-  var eng = { "ob": "BRICK", "2h": "HARVEST", "ob4h": "BASTION 4H", "ob2h": "SCALP 2H", "whale": "WHALE" };
+     snapshot lama yang masih menyimpannya tetap utuh di file arsip.
+     1 Nov sis: 🐳 WHALE juga dimatikan (permintaan user) → ikut keluar. */
+  var eng = { "ob": "BRICK", "2h": "HARVEST", "ob4h": "BASTION 4H", "ob2h": "SCALP 2H" };
   var lv = d.live || {};
   Object.keys(eng).forEach(function (tf) {
     if (!lv[tf]) return;   // snapshot baru tak punya whale; snapshot lama tak punya ob4h
