@@ -1351,3 +1351,14 @@ td.bc-sp{padding:3px 6px}
 tr.bc-x td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
 tr.bc-x td{background:rgba(216,200,154,.05)}
 td.bcw{color:var(--gold)}
+
+/* ── 28 Okt — PICK big caps (admin): bintang kuning ★ + garis cahaya baris, 7 hari
+   2 Nov — dipulihkan (versi server 1 Nov menghapusnya) + rapatkan coin↔price ── */
+.bc-pstar{margin-left:5px;color:#ffd54f;font-size:11px}
+tr.bc-pick td:first-child{box-shadow:inset 3px 0 0 #ffd54f}
+tr.bc-pick td{background:rgba(255,213,84,.055)}
+button.bc-pick{cursor:pointer;background:none;border:1px solid var(--line);border-radius:6px;color:var(--fg-3);font:600 11px/1 inherit;padding:4px 9px}
+button.bc-pick:hover{border-color:#ffd54f;color:#ffd54f}
+button.bc-pick.on{background:rgba(255,213,84,.14);border-color:#ffd54f;color:#ffd54f}
+#bc-table td.sym{max-width:200px}
+#bc-table .bc-nama{max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
