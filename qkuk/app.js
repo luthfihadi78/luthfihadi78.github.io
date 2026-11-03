@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bcwide-20261103a";
+  var BUILD = "qkuk-bcpick2-20261103b";
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · ⭐ SCALP 2H = kuning emas (OB 2h, TVI 120) ·
@@ -1950,6 +1950,30 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (B.ts) sum.appendChild(chip("update", B.ts, "mut"));
     }
     var bcp = bcPickMap();   /* koin yang sedang dipantau admin (7 hari) */
+    /* 3 Nov — DAFTAR PANTAUAN ADMIN selalu terlihat di atas tabel:
+       chip ★ per koin yang di-pick (klik chip = lepas). Tanpa slide
+       horizontal & tanpa cari baris — jawaban "pick list kemana?". */
+    var pkHost = document.getElementById("bc-picks");
+    if (!pkHost && sum) {
+      pkHost = el("div", "bc-picks");
+      pkHost.id = "bc-picks";
+      sum.parentNode.insertBefore(pkHost, sum.nextSibling);
+    }
+    if (pkHost) {
+      pkHost.innerHTML = "";
+      var pkKeys = Object.keys(bcp);
+      if (pkKeys.length && isLogged()) {
+        pkHost.appendChild(el("span", "bc-picks-h",
+          "pantauan admin (" + pkKeys.length + " · 7 hari):"));
+        pkKeys.forEach(function (k) {
+          var c = el("button", "bc-pick-chip", "★ " + k + " ✕");
+          c.type = "button";
+          c.title = "lepas pantauan " + k;
+          c.addEventListener("click", function () { bcPickToggle(k); });
+          pkHost.appendChild(c);
+        });
+      }
+    }
     var kolom = [
       /* 25 Okt — tombol TradingView di ujung kiri, persis gaya Signals. */
       { h: "", c: function (r) {

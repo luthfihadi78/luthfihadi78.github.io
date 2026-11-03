@@ -1369,3 +1369,9 @@ button.bc-pick.on{background:rgba(255,213,84,.14);border-color:#ffd54f;color:#ff
 #bc-table .bc-nama{max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #bc-table .bc-spark{width:56px;height:20px}
 #bc-table td.bc-sp{padding:3px 4px}
+
+/* ── 3 Nov — daftar pantauan admin (chip ★ di atas tabel big caps) ── */
+.bc-picks{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0 0}
+.bc-picks-h{font-size:10px;color:var(--fg-3);letter-spacing:.06em;text-transform:uppercase}
+.bc-pick-chip{cursor:pointer;background:rgba(255,213,84,.10);border:1px solid #ffd54f;color:#ffd54f;border-radius:999px;font:600 11px/1 inherit;padding:4px 10px}
+.bc-pick-chip:hover{background:rgba(255,213,84,.22)}
