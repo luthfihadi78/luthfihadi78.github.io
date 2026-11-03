@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bcpick2-20261103b";
+  var BUILD = "qkuk-api2-20261103c";
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · ⭐ SCALP 2H = kuning emas (OB 2h, TVI 120) ·
@@ -242,16 +242,19 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
              k: { next: 0, t0: -9, pts: null } };   // k = kilat (short)
   var NU_REDUCED = false;
   try { NU_REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
-  var NU_KEDALIM = { snow: 96, driz: 140, bara: 210, api: 5, debu: 32,
+  /* 3 Nov — CRASH = KEBAKARAN BESAR (permintaan user): bara lebih deras
+     (210→320), lidah api 5→12 dan lebih besar — layar terasa membara penuh */
+  var NU_KEDALIM = { snow: 96, driz: 140, bara: 320, api: 12, debu: 32,
                      pulsa: 46, debuneon: 62 };
   function nuSprite() {   // 1 sprite api pra-render — murah tiap gambarkan
     if (NU.sp) return NU.sp;
     var s = document.createElement("canvas"); s.width = s.height = 128;
     var g = s.getContext("2d");
     var gr = g.createRadialGradient(64, 64, 3, 64, 64, 63);
-    gr.addColorStop(0, "rgba(255,192,112,1)");
-    gr.addColorStop(.3, "rgba(255,109,94,.6)");
-    gr.addColorStop(.66, "rgba(202,38,52,.15)");
+    gr.addColorStop(0, "rgba(255,244,196,1)");
+    gr.addColorStop(.22, "rgba(255,198,112,.88)");
+    gr.addColorStop(.5, "rgba(255,116,52,.46)");
+    gr.addColorStop(.76, "rgba(206,46,40,.18)");
     gr.addColorStop(1, "rgba(202,38,52,0)");
     g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
     NU.sp = s; return s;
@@ -306,22 +309,27 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       p.ln = 9 + r() * 9; p.a = .22 + r() * .26;
     } else if (kind === "bara") {           // bara api memenuhi sisi
       var e = r();
-      if (e < .58) { p.x = r() * NU.W; p.y = NU.H + 6;
-        p.vy = -(46 + r() * 120); p.vx = (r() - .5) * 44; }
-      else if (e < .88) { var kiri = r() < .5;            // dinding sisi
+      if (e < .66) { p.x = r() * NU.W; p.y = NU.H + 6;
+        p.vy = -(60 + r() * 150); p.vx = (r() - .5) * 52; }
+      else if (e < .9) { var kiri = r() < .5;             // dinding sisi
         p.x = kiri ? -6 : NU.W + 6; p.y = NU.H * (.2 + r() * .78);
-        p.vx = kiri ? 14 + r() * 40 : -(14 + r() * 40);
-        p.vy = -(30 + r() * 90); }
+        p.vx = kiri ? 18 + r() * 48 : -(18 + r() * 48);
+        p.vy = -(36 + r() * 110); }
       else { p.x = r() * NU.W; p.y = -6;                  // bunga api turun dari atas
-        p.vy = 24 + r() * 40; p.vx = (r() - .5) * 22; }
+        p.vy = 30 + r() * 52; p.vx = (r() - .5) * 26; }
       if (isi) { p.x = r() * NU.W; p.y = r() * NU.H; }
-      p.c = coba(["255,109,94", "255,148,52", "255,226,90"]);
-      p.r = 1 + r() * 2.1; p.a = .5 + r() * .5;
+      p.c = coba(["255,226,90", "255,180,70", "255,148,52", "255,109,94"]);
+      p.r = 1.2 + r() * 2.6; p.a = .55 + r() * .45;
     } else if (kind === "api") {            // lidah api besar di akar sisi
+      /* 3 Nov — kebakaran besar: 12 lidah rapat sepanjang dasar + dinding,
+         radius lebih besar & opasitas lebih tinggi */
       var slot = NU.parts.filter(function (q) { return q.k === "api"; }).length;
-      var s5 = [[.18, 1.0], [.5, 1.0], [.82, 1.0], [-.04, .62], [1.04, .62]];
-      p.x = NU.W * s5[slot % 5][0]; p.y = NU.H * s5[slot % 5][1];
-      p.r = 52 + r() * 48; p.a = .34 + r() * .2;
+      var s5 = [[.06, 1.02], [.18, 1.05], [.3, 1.0], [.42, 1.06], [.54, 1.0],
+                [.66, 1.05], [.78, 1.0], [.9, 1.04], [-.03, .72], [1.03, .72],
+                [-.03, 1.02], [1.03, 1.02]];
+      p.x = NU.W * s5[slot % s5.length][0];
+      p.y = NU.H * s5[slot % s5.length][1];
+      p.r = 70 + r() * 70; p.a = .42 + r() * .26;
     } else {                                // debu amber (deg)
       p.x = r() * NU.W; p.y = r() * NU.H;
       p.vy = 6 + r() * 10; p.sw = 6 + r() * 10; p.r = .6 + r() * 1.4;
