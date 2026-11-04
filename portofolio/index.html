@@ -284,7 +284,7 @@
                 <div class="shot">
           <div class="shot-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i>
             <span class="shot-url">luthfihadi78.github.io/qkuk · #bubbles</span></div>
-          <img src="img/bubbles.png" width="1800" height="876" alt="Tangkapan layar asli bagian Bubbles di Qkuk Terminal: puluhan gelembung koin hijau dan merah dengan ukuran berbeda, tab engine di atas, kotak pencarian dan legenda up/down 24 jam."
+          <img src="img/bubbles.png" width="1900" height="925" alt="Tangkapan layar asli bagian Bubbles di Qkuk Terminal: puluhan gelembung koin hijau dan merah dengan ukuran berbeda, tab engine di atas, kotak pencarian dan legenda up/down 24 jam."
                loading="eager" decoding="async">
         </div>
         <figcaption>Screenshot of the running terminal, not a mock-up: 60+ bubbles, each one a coin the
@@ -325,15 +325,57 @@
         </ul>
       </div>
       <figure class="figure panel">
-        <div class="fig-head"><span>Figure 3</span><h4>Six states, one needle</h4></div>
-                <div class="shot">
+        <div class="fig-head"><span>Figure 3</span><h4>Live reading — captured while the gauge said SHORT</h4></div>
+        <div class="shot">
           <div class="shot-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i>
             <span class="shot-url">luthfihadi78.github.io/qkuk · gauge</span></div>
-          <img src="img/gauge-live.png" width="1800" height="608" alt="Tangkapan layar asli panel gauge Qkuk Terminal: jarum menunjuk ke sisi short, label SHORT · LIVE, kolom status, USDT.D dominan, mayoritas grup 6L·2S, BTC 1h dan riwayat 48 jam."
+          <img src="img/gauge-live.png" width="712" height="796" alt="Tangkapan layar asli gauge Qkuk Terminal: jarum di sisi kiri menunjuk SHORT, label SHORT · LIVE, api merah di sepanjang busur."
                loading="lazy" decoding="async">
         </div>
-        <figcaption>Real panel, live reading at capture time. The needle is the damped score; the panel
-        spells out which input produced it, so a direction can always be argued with.</figcaption>
+        <figcaption>Real gauge, live reading at capture time — not a redraw. The needle is the damped
+        score, the label names the state, and the flame colour is the same palette the page uses behind
+        it. The panel that sits beside this gauge in the terminal is broken down line by line
+        directly below.</figcaption>
+      </figure>
+
+      <div class="panel-shot">
+        <div class="fig-head"><span>Panel</span><h4>What the gauge spells out, line by line</h4></div>
+        <div class="shot">
+          <div class="shot-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i>
+            <span class="shot-url">luthfihadi78.github.io/qkuk · #dir → panel</span></div>
+          <img src="img/gauge-panel.png" width="1644" height="796" alt="Tangkapan layar asli panel rincian gauge: STATUS, KONDISI, ALTCOIN, USDT.D dominan, HARVEST 2H, MAYORITAS GRUP 3L·10S, BTC 1H, BTC.D, USDT.D, UMUR DATA, RIWAYAT 48 JAM, RECLAIM TERAKHIR, MOMENTUM BTC."
+               loading="lazy" decoding="async">
+        </div>
+        <dl class="panel-legend">
+          <div class="leg"><dt>Status</dt><dd>One of the six states, in the colour of that state. This is the
+            only line a glance needs.</dd></div>
+          <div class="leg"><dt>Kondisi</dt><dd>The engine's own sentence about why that state won, score
+            included — so a disagreement can start from the engine's wording, not from a guess.</dd></div>
+          <div class="leg"><dt>Altcoin</dt><dd>Rotation check: whether alts are confirming the move, are still
+            neutral, or are diverging from BTC.</dd></div>
+          <div class="leg"><dt>USDT.D (dominan)</dt><dd>Direction of stablecoin dominance from the 2h reclaim
+            engine — the heaviest single input, and the one that separates long from altseason.</dd></div>
+          <div class="leg"><dt>Harvest 2h</dt><dd>Whether the harvest 2h watchlist agrees, and the bias it is
+            holding while it waits for confirmation.</dd></div>
+          <div class="leg"><dt>Mayoritas grup</dt><dd>How many pairs of the reclaim group lean long against
+            short, and the net, e.g. <code>3L · 10S → −7</code>.</dd></div>
+          <div class="leg"><dt>BTC 1h</dt><dd>BTC's 1h direction with the 24h percentage behind it.</dd></div>
+          <div class="leg"><dt>BTC.D · USDT.D</dt><dd>Dominance change over the last 3 hours and the absolute
+            level, so a fresh flip is distinguishable from a level that has been sitting there all day.</dd></div>
+          <div class="leg"><dt>Umur data</dt><dd>Age of each input. This is what the freshness gate reads
+            before it hides a state behind DEGRADED.</dd></div>
+          <div class="leg"><dt>Riwayat 48 jam</dt><dd>Sparkline of the score across 48 hours, so one reading
+            can be put in context instead of read as a verdict.</dd></div>
+          <div class="leg"><dt>Reclaim terakhir</dt><dd>The last reclaim verdict spelled out as the four
+            inputs it was built from — majority, BTC, BTC.D, USDT.D — plus the score.</dd></div>
+          <div class="leg"><dt>Momentum BTC</dt><dd>BTC momentum, used as the tie-breaker when the group and
+            dominance disagree.</dd></div>
+        </dl>
+        <p class="moods-note">Nothing on this panel is written by hand: every line is read from the state file
+          the terminal publishes, which is why the numbers here can be re-checked against the live page at
+          the same minute.</p>
+      </div>
+
       <div class="moods">
         <p class="moods-h">The same gauge, four other states — real captures from the built-in ◀ ▶ preview</p>
         <div class="moods-grid">
@@ -369,8 +411,6 @@
         <div class="states-row"><span class="st-crash">CRASH</span><span>Strong short, and it requires BTC falling hard — or a fresh sweep-crash read straight from klines.</span><span>Fire burning from below, oversized aura, flames at 0.5×.</span></div>
         <div class="states-row"><span class="st-deg">DEGRADED</span><span>An input is stale: BTC older than 15 minutes, or the group wave older than 8 hours.</span><span>Needle forced to neutral, amber palette, label says DEGRADED and the reason is one hover away.</span></div>
       </div>
-
-      </figure>
     </article>
 
     <!-- 3.3 SIGNALS -->
