@@ -315,3 +315,47 @@ figure svg{width:100%;height:auto}
   .rv{opacity:1;transform:none}
   html{scroll-behavior:auto}
 }
+
+/* ── tangkapan layar asli ─────────────────────────────────────────── */
+.shot{background:#060B08;border-bottom:1px solid var(--line)}
+.shot-bar{display:flex;align-items:center;gap:5px;padding:9px 12px;border-bottom:1px solid var(--line);
+  background:rgba(16,25,21,.75)}
+.shot-bar .dot{display:block;width:7px;height:7px;border-radius:50%;background:#2C3D34}
+.shot-bar .dot:first-child{background:#3B4F44}
+.shot-url{margin-left:9px;font-family:var(--mono);font-size:10.5px;color:var(--fg-3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shot img{display:block;width:100%;height:auto}
+
+/* galeri nuansa gauge */
+.moods{grid-column:1/-1;margin-top:4px;padding:18px;border:1px solid var(--line);
+  border-radius:var(--r);background:var(--panel)}
+.moods-h{margin:0 0 14px;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--fg-3)}
+.moods-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.mood{margin:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#070C0A}
+.mood img{display:block;width:100%;height:auto}
+.mood figcaption{padding:9px 10px 10px;border-top:1px solid var(--line);display:flex;
+  flex-direction:column;gap:3px}
+.mood b{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--fg)}
+.mood span{font-size:11px;line-height:1.45;color:var(--fg-3)}
+.moods-note{margin:13px 0 0;font-family:var(--mono);font-size:11.5px;line-height:1.65;color:var(--fg-3)}
+.moods-note code{font-size:11px}
+
+/* tabel enam kondisi gauge */
+.states{grid-column:1/-1;margin-top:4px;border:1px solid var(--line);border-radius:var(--r);
+  overflow:hidden;background:var(--panel)}
+.states-row{display:grid;grid-template-columns:104px 1.35fr 1fr;gap:14px;padding:10px 15px;
+  border-top:1px solid rgba(26,38,32,.75);font-size:12.5px;line-height:1.55;color:var(--fg-2)}
+.states-row span:first-child{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em}
+.states-head{border-top:0;background:rgba(16,25,21,.7);font-family:var(--mono);font-size:9.5px;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--fg-3)}
+.states-row i{font-style:italic;color:var(--fg)}
+.st-long{color:var(--up)} .st-alt{color:#B6F36B} .st-mut{color:var(--fg)}
+.st-short{color:var(--dn)} .st-crash{color:#FF6D5E} .st-deg{color:#EEB44C}
+
+@media (max-width:980px){ .moods-grid{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:720px){
+  .states-row{grid-template-columns:1fr;gap:3px}
+  .states-head{display:none}
+  .moods{padding:13px}
+}

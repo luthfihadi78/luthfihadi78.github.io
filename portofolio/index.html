@@ -156,8 +156,8 @@
           <div class="chip">Riwayat / archive</div>
         </div>
       </div>
-      <figcaption>The browser never talks to an exchange. It polls a JSON file the engines publish, which is
-        also why the terminal can be opened on a phone with no key, no login and no API secret.</figcaption>
+      <figcaption>The browser never talks to an exchange. It polls a static JSON file the engines publish, so no API
+        secret ever reaches the client; the terminal itself sits behind a session gate.</figcaption>
     </figure>
   </div>
 </section>
@@ -281,78 +281,15 @@
       </div>
       <figure class="figure panel">
         <div class="fig-head"><span>Figure 2</span><h4>Bubbles — colour is direction, size is the move</h4></div>
-        <svg class="bubbles" viewBox="0 0 640 400" role="img" aria-label="Illustration of the bubbles canvas: green and red circles of different sizes, one large red bubble, two bubbles ringed in gold with a star, and one bubble with a fire aura.">
-          <defs>
-            <radialGradient id="gUp" cx="35%" cy="30%">
-              <stop offset="0%" stop-color="#6EE7B7" stop-opacity=".36"/>
-              <stop offset="100%" stop-color="#6EE7B7" stop-opacity=".06"/>
-            </radialGradient>
-            <radialGradient id="gDn" cx="35%" cy="30%">
-              <stop offset="0%" stop-color="#FF7A6E" stop-opacity=".36"/>
-              <stop offset="100%" stop-color="#FF7A6E" stop-opacity=".06"/>
-            </radialGradient>
-            <radialGradient id="gId" cx="35%" cy="30%">
-              <stop offset="0%" stop-color="#E4D6AE" stop-opacity=".28"/>
-              <stop offset="100%" stop-color="#E4D6AE" stop-opacity=".05"/>
-            </radialGradient>
-            <filter id="soft"><feGaussianBlur stdDeviation="7"/></filter>
-          </defs>
-          <rect width="640" height="400" fill="#080D0B"/>
-          <!-- grid -->
-          <g stroke="#16211C" stroke-width="1">
-            <path d="M0 100h640M0 200h640M0 300h640M160 0v400M320 0v400M480 0v400"/>
-          </g>
-          <!-- aura -->
-          <circle cx="470" cy="250" r="66" fill="rgba(255,213,84,.10)" filter="url(#soft)"/>
-          <!-- big red -->
-          <circle cx="470" cy="250" r="58" fill="url(#gDn)" stroke="#FF7A6E" stroke-opacity=".85" stroke-width="1.6"/>
-          <text x="470" y="246" class="bub-sym">SOL</text>
-          <text x="470" y="266" class="bub-dn">−18.4%</text>
-          <!-- gold picked -->
-          <circle cx="212" cy="132" r="40" fill="url(#gUp)" stroke="#FFD54F" stroke-width="2"/>
-          <text x="212" y="128" class="bub-sym">AVAX</text>
-          <text x="212" y="146" class="bub-up">+12.1%</text>
-          <text x="252" y="124" class="bub-star">★</text>
-          <text x="212" y="184" class="bub-note">long · in position</text>
-          <!-- picked short -->
-          <circle cx="150" cy="300" r="34" fill="url(#gDn)" stroke="#FFD54F" stroke-width="2"/>
-          <text x="150" y="296" class="bub-sym">OP</text>
-          <text x="150" y="312" class="bub-dn">−7.2%</text>
-          <text x="184" y="288" class="bub-star">★</text>
-          <text x="150" y="348" class="bub-note">short · waiting</text>
-          <!-- neutral cluster -->
-          <circle cx="360" cy="96" r="24" fill="url(#gUp)" stroke="#6EE7B7" stroke-opacity=".7"/>
-          <text x="360" y="100" class="bub-sym sm">LINK</text>
-          <circle cx="430" cy="140" r="18" fill="url(#gDn)" stroke="#FF7A6E" stroke-opacity=".7"/>
-          <text x="430" y="144" class="bub-sym sm">ARB</text>
-          <circle cx="332" cy="215" r="30" fill="url(#gUp)" stroke="#6EE7B7" stroke-opacity=".7"/>
-          <text x="332" y="212" class="bub-sym">ETH</text>
-          <text x="332" y="228" class="bub-up">+3.8%</text>
-          <circle cx="250" cy="252" r="22" fill="url(#gId)" stroke="#E4D6AE" stroke-opacity=".7"/>
-          <text x="250" y="256" class="bub-id">SUI</text>
-          <circle cx="404" cy="330" r="26" fill="url(#gDn)" stroke="#FF7A6E" stroke-opacity=".7"/>
-          <text x="404" y="334" class="bub-sym sm">WIF</text>
-          <circle cx="540" cy="112" r="20" fill="url(#gUp)" stroke="#6EE7B7" stroke-opacity=".7"/>
-          <text x="540" y="116" class="bub-sym sm">DOGE</text>
-          <circle cx="566" cy="330" r="16" fill="url(#gUp)" stroke="#6EE7B7" stroke-opacity=".7"/>
-          <text x="566" y="334" class="bub-sym sm">XRP</text>
-          <circle cx="92" cy="196" r="18" fill="url(#gDn)" stroke="#FF7A6E" stroke-opacity=".7"/>
-          <text x="92" y="200" class="bub-sym sm">TIA</text>
-          <!-- legend -->
-          <g transform="translate(24,356)">
-            <circle cx="6" cy="0" r="5" fill="#6EE7B7" fill-opacity=".5" stroke="#6EE7B7"/>
-            <text x="18" y="4" class="bub-leg">up 24h</text>
-            <circle cx="86" cy="0" r="5" fill="#FF7A6E" fill-opacity=".5" stroke="#FF7A6E"/>
-            <text x="98" y="4" class="bub-leg">down 24h</text>
-            <circle cx="176" cy="0" r="5" fill="#E4D6AE" fill-opacity=".4" stroke="#E4D6AE"/>
-            <text x="188" y="4" class="bub-leg">no 24h data</text>
-            <circle cx="290" cy="0" r="5" fill="none" stroke="#FFD54F" stroke-width="2"/>
-            <text x="302" y="4" class="bub-leg">picked by admin</text>
-          </g>
-        </svg>
-        <figcaption>Illustration of the canvas. A giant red bubble beside mostly green ones is the difference
-          between "the market is falling" and "one coin is being sold" — a distinction a sorted table makes
-          you work for.</figcaption>
+                <div class="shot">
+          <div class="shot-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i>
+            <span class="shot-url">luthfihadi78.github.io/qkuk · #bubbles</span></div>
+          <img src="img/bubbles.png" width="1700" height="921" alt="Tangkapan layar asli bagian Bubbles di Qkuk Terminal: puluhan gelembung koin hijau dan merah dengan ukuran berbeda, tab engine di atas, kotak pencarian dan legenda up/down 24 jam."
+               loading="eager" decoding="async">
+        </div>
+        <figcaption>Screenshot of the running terminal, not a mock-up: 60+ bubbles, each one a coin the
+        engines have on record in the last seven days. The colour is direction, the diameter is the absolute
+        24h move, and the number inside is the live Binance reading.</figcaption>
       </figure>
     </article>
 
@@ -361,46 +298,78 @@
       <div class="feat-copy">
         <p class="eyebrow">3.2 · composite gauge</p>
         <h3>One needle, three inputs, and an honest way to say "I don't know"</h3>
-        <p class="feat-what"><b>What it is.</b> A direction gauge for altcoins built from three factors:
-          BTC's own direction, the breadth of the reclaim group (how many pairs are actually being
-          reclaimed, not just how loud the movers are), and stablecoin-dominance behaviour.</p>
+        <p class="feat-what"><b>What it is.</b> A direction gauge for altcoins built from three factors, all visible in the panel:
+          dominant USDT.D, the reclaim group's majority, and BTC's 1h direction. It answers the question an
+          engine cannot: should I be aggressive at all right now?</p>
         <p class="feat-why"><b>What it is for.</b> Engines fire per pair; a trader still has to decide whether
-          to be aggressive. The gauge is that decision compressed into six states — long, strong long
-          (altseason), neutral, short, strong short (crash) and a degraded state.</p>
+          to be aggressive. The gauge compresses that decision into six named states — long, altseason,
+          neutral, short, crash and degraded — and shows its working underneath.</p>
         <ul class="facts">
-          <li>When a factor is missing, the gauge says <b>degraded</b> and explains which input is gone.
-            It never fills the gap with a guess.</li>
-          <li>Values are deliberately damped: it was rebuilt after the first version was too twitchy to be
-            useful, and the damping rule lives in one place shared with the Python side.</li>
-          <li>Old signals stop counting after a fixed window, so yesterday's winner cannot hold the needle
-            forever.</li>
-          <li>The page background follows the gauge state — calm, altseason, or crash — because the first
-            thing you look at should be the regime.</li>
+          <li><b>Three inputs, named in the panel:</b> dominant USDT.D (from the 2h reclaim engine), the
+            reclaim group's majority (e.g. 6L · 2S → +4), and BTC's 1h direction. The needle is the damped
+            score, scaled so a practical extreme (±6) reaches the end of the arc.</li>
+          <li><b>Altseason and crash are not "long and short, but more".</b> Altseason requires dominance to
+            fall; crash requires BTC to fall hard. Different dominant factor, therefore a different colour —
+            otherwise the two would read as the same call at different volume.</li>
+          <li><b>A freshness gate instead of a guess.</b> If BTC is more than 15 minutes old or the group wave
+            is more than 8 hours old, the needle drops to neutral and the label reads DEGRADED with the reason
+            attached. The one exception is a sweep-crash computed from fresh klines: that alarm is real, so it
+            is shown rather than hidden behind "degraded".</li>
+          <li><b>The background is part of the reading.</b> Each state owns a palette, a particle layer and an
+            aura: jade for long, cyber-lime aurora for altseason, ember for short, fire from the floor for
+            crash, amber for degraded. Flames run 0.62× in altseason and 0.5× in crash — you can tell the
+            regime from across the room.</li>
+          <li><b>Inspectable without waiting.</b> ◀ ▶ cycles the five demo states, and a nuansa chip row
+            repaints the background only, so the mood can be reviewed at any hour. Neither control touches an
+            engine value; both are stamped as preview on the panel.</li>
         </ul>
       </div>
       <figure class="figure panel">
         <div class="fig-head"><span>Figure 3</span><h4>Six states, one needle</h4></div>
-        <svg class="gaugefig" viewBox="0 0 400 270" role="img" aria-label="Gauge illustration: an arc divided into short, neutral and long zones with the needle pointing into the long zone.">
-          <rect width="400" height="270" fill="#080D0B"/>
-          <path d="M60 210 A140 140 0 0 1 340 210" fill="none" stroke="#1D2A24" stroke-width="10" stroke-linecap="round"/>
-          <path d="M60 210 A140 140 0 0 1 128 97" fill="none" stroke="#FF7A6E" stroke-opacity=".55" stroke-width="10" stroke-linecap="round"/>
-          <path d="M145 86 A140 140 0 0 1 255 86" fill="none" stroke="#8FA098" stroke-opacity=".45" stroke-width="10" stroke-linecap="round"/>
-          <path d="M272 97 A140 140 0 0 1 340 210" fill="none" stroke="#6EE7B7" stroke-opacity=".6" stroke-width="10" stroke-linecap="round"/>
-          <g stroke="#2A3A32" stroke-width="2">
-            <path d="M200 70v10M138 88l6 8M262 88l-6 8M92 140l9 5M308 140l-9 5M200 70v0"/>
-          </g>
-          <g class="gauge-ticks">
-            <text x="70" y="238">SHORT</text>
-            <text x="176" y="238">NEUTRAL</text>
-            <text x="300" y="238">LONG</text>
-          </g>
-          <line x1="200" y1="210" x2="286" y2="120" stroke="#F5F1E4" stroke-width="3" stroke-linecap="round"/>
-          <circle cx="200" cy="210" r="9" fill="#0C1310" stroke="#F5F1E4" stroke-width="3"/>
-          <text x="200" y="166" class="gauge-val">ALTSEASON</text>
-          <text x="200" y="252" class="gauge-sub">BTC ↑ · breadth ↑ · USDT.D ↓</text>
-        </svg>
-        <figcaption>Illustration. The label under the needle is a regime, not a score — the point is to know
-          whether to trust the engines' long bias at all.</figcaption>
+                <div class="shot">
+          <div class="shot-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i>
+            <span class="shot-url">luthfihadi78.github.io/qkuk · gauge</span></div>
+          <img src="img/gauge-live.png" width="1400" height="595" alt="Tangkapan layar asli panel gauge Qkuk Terminal: jarum menunjuk ke sisi short, label SHORT · LIVE, kolom status, USDT.D dominan, mayoritas grup 6L·2S, BTC 1h dan riwayat 48 jam."
+               loading="lazy" decoding="async">
+        </div>
+        <figcaption>Real panel, live reading at capture time. The needle is the damped score; the panel
+        spells out which input produced it, so a direction can always be argued with.</figcaption>
+      <div class="moods">
+        <p class="moods-h">The same panel, four other states — captured with the built-in ◀ ▶ preview</p>
+        <div class="moods-grid">
+          <figure class="mood">
+            <img src="img/gauge-long.png" width="1200" alt="Gauge dalam kondisi LONG" loading="lazy" decoding="async">
+            <figcaption><b>LONG</b><span>Jade and gold, calm flame — score positive, group leaning long.</span></figcaption>
+          </figure>
+          <figure class="mood">
+            <img src="img/gauge-short.png" width="1200" alt="Gauge dalam kondisi SHORT" loading="lazy" decoding="async">
+            <figcaption><b>SHORT</b><span>Ember red and drizzle — the needle sits left of centre.</span></figcaption>
+          </figure>
+          <figure class="mood">
+            <img src="img/gauge-altseason.png" width="1200" alt="Gauge dalam kondisi ALTSEASON" loading="lazy" decoding="async">
+            <figcaption><b>ALTSEASON</b><span>Cyber lime with cyan — only when dominance is falling; flames run 0.62×.</span></figcaption>
+          </figure>
+          <figure class="mood">
+            <img src="img/gauge-crash.png" width="1200" alt="Gauge dalam kondisi CRASH" loading="lazy" decoding="async">
+            <figcaption><b>CRASH</b><span>Fire from the floor, oversized aura, flames at 0.5× — the loudest state.</span></figcaption>
+          </figure>
+        </div>
+        <p class="moods-note">These are demo states: the ◀ ▶ control repaints the needle, the label and the
+          background without touching a single engine value — that is why every preview is stamped
+          <code>MODE PREVIEW</code>. NEUTRAL and DEGRADED have no preview, because they are answers the data
+          has to give, not moods you can pick.</p>
+      </div>
+
+      <div class="states">
+        <div class="states-row states-head"><span>state</span><span>what it means</span><span>what the page does</span></div>
+        <div class="states-row"><span class="st-long">LONG</span><span>Score positive: BTC up and the reclaim group leaning long.</span><span>Jade-green palette, pulse particles, needle in the upper half.</span></div>
+        <div class="states-row"><span class="st-alt">ALTSEASON</span><span>Strong long, but only when BTC dominance is <i>falling</i> — that is the condition, not the size of the score.</span><span>Cyber-lime and cyan aurora, digital grid, flames 0.62× faster.</span></div>
+        <div class="states-row"><span class="st-mut">NEUTRAL</span><span>Inputs disagree, or the damped score sits near zero.</span><span>Default background, soft snow, needle centred.</span></div>
+        <div class="states-row"><span class="st-short">SHORT</span><span>Score negative: the majority of the reclaim group is leaning short.</span><span>Ember red and drizzle.</span></div>
+        <div class="states-row"><span class="st-crash">CRASH</span><span>Strong short, and it requires BTC falling hard — or a fresh sweep-crash read straight from klines.</span><span>Fire burning from below, oversized aura, flames at 0.5×.</span></div>
+        <div class="states-row"><span class="st-deg">DEGRADED</span><span>An input is stale: BTC older than 15 minutes, or the group wave older than 8 hours.</span><span>Needle forced to neutral, amber palette, label says DEGRADED and the reason is one hover away.</span></div>
+      </div>
+
       </figure>
     </article>
 
