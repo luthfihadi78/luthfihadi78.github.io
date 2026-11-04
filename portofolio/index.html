@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Qkuk Terminal — Portfolio · Moch. Luthfi Hadiwidjaja</title>
+<meta name="description" content="A detailed tour of Qkuk Terminal: four live crypto signal engines, an ICT/SMC detection model, a web terminal with bubbles, a composite gauge and live-resolved statistics, plus the Pine Script indicator that shadows it." />
+<meta name="theme-color" content="#070B09" />
+<meta property="og:title" content="Qkuk Terminal — a trading system that keeps its own receipts" />
+<meta property="og:description" content="Portfolio of Moch. Luthfi Hadiwidjaja: four live engines, ICT concepts, a hand-built terminal UI and, more importantly, the numbers that were thrown away." />
+<meta property="og:type" content="website" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23070B09'/><circle cx='11' cy='13' r='5' fill='%236EE7B7' opacity='.9'/><circle cx='21' cy='19' r='7' fill='%23FFD54F' opacity='.75'/></svg>" />
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+<div class="bg" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top"><span class="blk" aria-hidden="true"></span>qkuk<span class="dim">/terminal</span></a>
+    <nav class="links" aria-label="Sections">
+      <a href="#system">System</a>
+      <a href="#engines">Engines</a>
+      <a href="#terminal">Terminal</a>
+      <a href="#indicator">Indicator</a>
+      <a href="#ops">Ops</a>
+      <a class="cta" href="https://luthfihadi78.github.io/qkuk/" target="_blank" rel="noopener">Live terminal ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ══════════════ HERO ══════════════ -->
+<section class="hero" id="top">
+  <div class="wrap">
+    <p class="eyebrow">Portfolio · case study · built and operated by one person</p>
+    <h1>Qkuk Terminal</h1>
+    <p class="lede">
+      A crypto trading system that decides on its own, publishes what it decides, and then scores itself
+      against reality in public. Four signal engines on Binance USD-M futures, an ICT/SMC detection model,
+      a hand-written web terminal, and a Pine Script indicator that has to agree with the engine before I
+      trust either of them.
+    </p>
+    <div class="hero-actions">
+      <a class="btn primary" href="https://luthfihadi78.github.io/qkuk/" target="_blank" rel="noopener">Open the live terminal</a>
+      <a class="btn" href="Moch-Luthfi-Hadiwidjaja-CV.pdf" download>Download CV (PDF)</a>
+      <a class="btn ghost" href="https://luthfihadi78.github.io/" target="_blank" rel="noopener">Main site</a>
+    </div>
+
+    <dl class="stats">
+      <div><dt>Years in Web3</dt><dd>7</dd></div>
+      <div><dt>Testnets touched</dt><dd>500+</dd></div>
+      <div><dt>Live engines</dt><dd>4</dd></div>
+      <div><dt>Pairs polled</dt><dd>≈470</dd></div>
+      <div><dt>Days backtested</dt><dd>700+</dd></div>
+      <div><dt>Uptime model</dt><dd>24/7</dd></div>
+    </dl>
+  </div>
+</section>
+
+<!-- ══════════════ SYSTEM ══════════════ -->
+<section id="system" class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">01 · the system</p>
+      <h2>One pipeline, from a websocket tick to a number I have to defend</h2>
+      <p class="sec-lede">
+        Qkuk is not a screener with a Telegram bot attached. It is a loop: ingest market data, detect a
+        setup, publish a signal whose entry, stop and target are frozen at publication, resolve it against
+        the price that actually printed, then feed the result back into the statistics that decide whether
+        the engine keeps running.
+      </p>
+    </div>
+
+    <ol class="flow">
+      <li>
+        <span class="n">01</span>
+        <h3>Ingest</h3>
+        <p>Binance USD-M futures for ≈470 pairs, plus spot, funding, open interest, long/short ratio and
+          CoinGecko market caps. Requests are throttled across processes and cached.</p>
+        <code>REST · klines · ticker/24h</code>
+      </li>
+      <li>
+        <span class="n">02</span>
+        <h3>Detect</h3>
+        <p>Four engines read different timeframes with different concepts — sweep-and-reclaim, premium
+          order blocks, BTC-relative gates. Each returns a setup, or nothing.</p>
+        <code>Python · pandas · NumPy</code>
+      </li>
+      <li>
+        <span class="n">03</span>
+        <h3>Gate</h3>
+        <p>Before a strategy is allowed to trade, it has to survive deflated Sharpe, probability of
+          backtest overfitting and combinatorial purged cross-validation on 700+ days.</p>
+        <code>SciPy · walk-forward OOS</code>
+      </li>
+      <li>
+        <span class="n">04</span>
+        <h3>Publish</h3>
+        <p>Signal text to the group, state to <code>data.json</code>, digest at 18:00 WIB. The web layer
+          only ever reads that file — no credentials in the browser.</p>
+        <code>Node · JSON · GitHub Pages</code>
+      </li>
+      <li>
+        <span class="n">05</span>
+        <h3>Resolve</h3>
+        <p>Every signal is scored when it hits TP or SL. Live win rate comes from resolved picks only, never
+          from the backtest, and the history page is generated from that record.</p>
+        <code>CSV → JSON → HTML</code>
+      </li>
+      <li>
+        <span class="n">06</span>
+        <h3>Supervise</h3>
+        <p>A supervisor daemon restarts anything that dies, and a DoH fallback keeps the exchange reachable
+          when the local resolver stops answering.</p>
+        <code>respawn · throttle · DoH</code>
+      </li>
+    </ol>
+
+    <figure class="figure panel">
+      <div class="fig-head"><span>Figure 1</span><h4>Terminal architecture</h4></div>
+      <div class="arch" role="img" aria-label="Data sources feed engines, engines feed the statistical gate and the publish layer, which feeds the web terminal and the digest; a supervisor watches every process.">
+        <div class="arch-col">
+          <p class="arch-cap">Sources</p>
+          <div class="chip">Binance futures</div>
+          <div class="chip">Binance spot</div>
+          <div class="chip">CoinGecko</div>
+          <div class="chip">Economic calendar</div>
+        </div>
+        <div class="arch-arrow" aria-hidden="true">→</div>
+        <div class="arch-col wide">
+          <p class="arch-cap">Engines · Python</p>
+          <div class="chip accent">BRICK · 1h → 30m</div>
+          <div class="chip accent">HARVEST · 2h</div>
+          <div class="chip accent">SCALP 2H</div>
+          <div class="chip accent">BASTION · 4h</div>
+        </div>
+        <div class="arch-arrow" aria-hidden="true">→</div>
+        <div class="arch-col">
+          <p class="arch-cap">Gate &amp; resolve</p>
+          <div class="chip">DSR / PBO / CSCV</div>
+          <div class="chip">TP · SL · R multiple</div>
+          <div class="chip">Live win rate</div>
+        </div>
+        <div class="arch-arrow" aria-hidden="true">→</div>
+        <div class="arch-col">
+          <p class="arch-cap">Output</p>
+          <div class="chip">Web terminal</div>
+          <div class="chip">Daily digest</div>
+          <div class="chip">Riwayat / archive</div>
+        </div>
+      </div>
+      <figcaption>The browser never talks to an exchange. It polls a JSON file the engines publish, which is
+        also why the terminal can be opened on a phone with no key, no login and no API secret.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ══════════════ ENGINES ══════════════ -->
+<section id="engines" class="sec alt">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">02 · engines</p>
+      <h2>Four engines that are allowed to disagree</h2>
+      <p class="sec-lede">
+        Each engine is a separate hypothesis about where liquidity sits. They run on different timeframes,
+        publish into separate channels, and are scored separately — so a bad month in one cannot hide
+        inside the average of four.
+      </p>
+    </div>
+
+    <div class="cards">
+      <article class="card eng" data-c="brick">
+        <header><span class="tag">BRICK</span><span class="tf">1h → 30m</span></header>
+        <h3>Order block, taken only in the direction of the trend</h3>
+        <p>A premium order block is only a signal if price touches it while EMA200 agrees. The 1h block
+          defines the zone; the 30m structure decides whether the touch is worth taking.</p>
+        <ul>
+          <li>Concept: premium OB + EMA200 filter</li>
+          <li>Gate: none beyond structure — the honest one</li>
+          <li>Output: entry, stop, 2R target, tier</li>
+        </ul>
+      </article>
+
+      <article class="card eng" data-c="harvest">
+        <header><span class="tag">HARVEST</span><span class="tf">2h</span></header>
+        <h3>Liquidity sweep, reclaim, then short</h3>
+        <p>Short-only by construction. Price sweeps a swing high, fails to hold it, and closes back inside
+          the range — the engine sells the failed auction, not the breakout.</p>
+        <ul>
+          <li>Concept: sweep + reclaim + imbalance</li>
+          <li>Bias: short only</li>
+          <li>Why short-only: the mirror long variant did not survive the gate</li>
+        </ul>
+      </article>
+
+      <article class="card eng hero-eng" data-c="scalp">
+        <header><span class="tag">SCALP 2H</span><span class="tf">2h</span><span class="pill">promoted</span></header>
+        <h3>The engine that replaced SWING 4H</h3>
+        <p>Premium order blocks on the 2h, confirmed by structure rather than by a moving average. It took
+          over when SWING 4H's out-of-sample expectancy decayed below the cost of trading it.</p>
+        <ul>
+          <li>OOS expectancy: <b>+0.197R</b></li>
+          <li>Sample: <b>3,637</b> trades over 12 months</li>
+          <li>Positive months: <b>10 of 13</b></li>
+          <li>Deterministic: same input, same signal</li>
+        </ul>
+      </article>
+
+      <article class="card eng" data-c="bastion">
+        <header><span class="tag">BASTION</span><span class="tf">4h</span></header>
+        <h3>Order block with a market-wide permission slip</h3>
+        <p>The 4h block is the zone, but the trade only exists when BTC has moved more than 1% in the last
+          24 hours. Without that, the block is a drawing.</p>
+        <ul>
+          <li>Concept: premium OB + BTC 24h gate &gt; 1%</li>
+          <li>Bias: follows BTC direction</li>
+          <li>Purpose: fewer, larger, market-aligned trades</li>
+        </ul>
+      </article>
+    </div>
+
+    <div class="note">
+      <p><b>Two engines are switched off on purpose.</b> SWING 4H was retired when its out-of-sample
+        expectancy fell to +0.044R — still positive, but no longer worth the risk it consumes. Wyckoff was
+        retired after failing the gate. Both are still visible in the archive so the record cannot be
+        rewritten, but neither produces signals any more. A system that never kills an engine is not being
+        measured; it is being defended.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ TERMINAL FEATURES ══════════════ -->
+<section id="terminal" class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">03 · the terminal</p>
+      <h2>Every screen answers one question, and none of them hide the answer</h2>
+      <p class="sec-lede">
+        The terminal is plain HTML, CSS and JavaScript — no framework, no chart library, no build step. It
+        polls one JSON file, draws its own canvas and SVG, and is designed to stay readable on a phone in a
+        café. Below is what each part actually does.
+      </p>
+    </div>
+
+    <!-- 3.1 BUBBLES -->
+    <article class="feature" id="bubbles">
+      <div class="feat-copy">
+        <p class="eyebrow">3.1 · bubbles</p>
+        <h3>A market map that only shows the coins the engines care about</h3>
+        <p class="feat-what"><b>What it is.</b> A physics canvas of floating bubbles. Each bubble is one
+          coin that appears in the engines' record — not the whole market. The number inside is the live
+          24-hour change pulled from Binance, not an R multiple.</p>
+        <p class="feat-why"><b>What it is for.</b> A table tells you what happened. Bubbles tell you where
+          the attention is: a screen of green means the whole book is running; one red giant on an otherwise
+          green field is a single coin being dumped while everything else is fine. That distinction changes
+          whether a setup is a market call or an idiosyncratic one.</p>
+        <ul class="facts">
+          <li><b>Size</b> is the absolute 24h move — a −30% coin is as big as a +30% coin, so panic and
+            euphoria are equally visible.</li>
+          <li><b>Colour</b> is direction: green up, red down, sand when Binance has no 24h data. The
+            fallback chain is futures → spot → CoinGecko → CoinPaprika, and the source is labelled on
+            screen.</li>
+          <li><b>Fire aura</b> marks a coin the engine has on record today, so a big mover that no engine
+            flagged is visibly different from one that was already in the book.</li>
+          <li><b>Gold ring and ★</b> mark a coin an admin actually picked, with the chosen side and status
+            (waiting / in position / took profit) written inside the bubble. When two admins pick the same
+            coin with opposite sides, the bubble shows both with a ⚔ badge instead of silently overwriting
+            one.</li>
+          <li><b>Drag and collide</b>: press and hold to move a bubble, release and it floats again. Bubbles
+            collide elastically, so clusters are stable enough to read.</li>
+          <li><b>Search</b> highlights a symbol with a pulsing ring; <b>tap</b> opens its TradingView chart.
+          </li>
+        </ul>
+      </div>
+      <figure class="figure panel">
+        <div class="fig-head"><span>Figure 2</span><h4>Bubbles — colour is direction, size is the move</h4></div>
+        <svg class="bubbles" viewBox="0 0 640 400" role="img" aria-label="Illustration of the bubbles canvas: green and red circles of different sizes, one large red bubble, two bubbles ringed in gold with a star, and one bubble with a fire aura.">
+          <defs>
+            <radialGradient id="gUp" cx="35%" cy="30%">
+              <stop offset="0%" stop-color="#6EE7B7" stop-opacity=".36"/>
+              <stop offset="100%" stop-color="#6EE7B7" stop-opacity=".06"/>
+            </radialGradient>
+            <radialGradient id="gDn" cx="35%" cy="30%">
+              <stop offset="0%" stop-color="#FF7A6E" stop-opacity=".36"/>
+              <stop offset="100%" stop-color="#FF7A6E" stop-opacity=".06"/>
+            </radialGradient>
+            <radialGradient id="gId" cx="35%" cy="30%">
+              <stop offset="0%" stop-color="#E4D6AE" stop-opacity=".28"/>
+              <stop offset="100%" stop-color="#E4D6AE" stop-opacity=".05"/>
+            </radialGradient>
+            <filter id="soft"><feGaussianBlur stdDeviation="7"/></filter>
+          </defs>
+          <rect width="640" height="400" fill="#080D0B"/>
+          <!-- grid -->
+          <g stroke="#16211C" stroke-width="1">
+            <path d="M0 100h640M0 200h640M0 300h640M160 0v400M320 0v400M480 0v400"/>
+          </g>
+          <!-- aura -->
+          <circle cx="470" cy="250" r="66" fill="rgba(255,213,84,.10)" filter="url(#soft)"/>
+          <!-- big red -->
+          <circle cx="470" cy="250" r="58" fill="url(#gDn)" stroke="#FF7A6E" stroke-opacity=".85" stroke-width="1.6"/>
+          <text x="470" y="246" class="bub-sym">SOL</text>
+          <text x="470" y="266" class="bub-dn">−18.4%</text>
+          <!-- gold picked -->
+          <circle cx="212" cy="132" r="40" fill="url(#gUp)" stroke="#FFD54F" stroke-width="2"/>
+          <text x="212" y="128" class="bub-sym">AVAX</text>
+          <text x="212" y="146" class="bub-up">+12.1%</text>
+          <text x="252" y="124" class="bub-star">★</text>
+          <text x="212" y="184" class="bub-note">long · in position</text>
+          <!-- picked short -->
+          <circle cx="150" cy="300" r="34" fill="url(#gDn)" stroke="#FFD54F" stroke-width="2"/>
+          <text x="150" y="296" class="bub-sym">OP</text>
+          <text x="150" y="312" class="bub-dn">−7.2%</text>
+          <text x="184" y="288" class="bub-star">★</text>
+          <text x="150" y="348" class="bub-note">short · waiting</text>
+          <!-- neutral cluster -->
+          <circle cx="360" cy="96" r="24" fill="url(#gUp)" stroke="#6EE7B7" stroke-opacity=".7"/>
+          <text x="360" y="100" class="bub-sym sm">LINK</text>
+          <circle cx="430" cy="140" r="18" fill="url(#gDn)" stroke="#FF7A6E" stroke-opacity=".7"/>
+          <text x="430" y="144" class="bub-sym sm">ARB</text>
+          <circle cx="332" cy="215" r="30" fill="url(#gUp)" stroke="#6EE7B7" stroke-opacity=".7"/>
+          <text x="332" y="212" class="bub-sym">ETH</text>
+          <text x="332" y="228" class="bub-up">+3.8%</text>
+          <circle cx="250" cy="252" r="22" fill="url(#gId)" stroke="#E4D6AE" stroke-opacity=".7"/>
+          <text x="250" y="256" class="bub-id">SUI</text>
+          <circle cx="404" cy="330" r="26" fill="url(#gDn)" stroke="#FF7A6E" stroke-opacity=".7"/>
+          <text x="404" y="334" class="bub-sym sm">WIF</text>
+          <circle cx="540" cy="112" r="20" fill="url(#gUp)" stroke="#6EE7B7" stroke-opacity=".7"/>
+          <text x="540" y="116" class="bub-sym sm">DOGE</text>
+          <circle cx="566" cy="330" r="16" fill="url(#gUp)" stroke="#6EE7B7" stroke-opacity=".7"/>
+          <text x="566" y="334" class="bub-sym sm">XRP</text>
+          <circle cx="92" cy="196" r="18" fill="url(#gDn)" stroke="#FF7A6E" stroke-opacity=".7"/>
+          <text x="92" y="200" class="bub-sym sm">TIA</text>
+          <!-- legend -->
+          <g transform="translate(24,356)">
+            <circle cx="6" cy="0" r="5" fill="#6EE7B7" fill-opacity=".5" stroke="#6EE7B7"/>
+            <text x="18" y="4" class="bub-leg">up 24h</text>
+            <circle cx="86" cy="0" r="5" fill="#FF7A6E" fill-opacity=".5" stroke="#FF7A6E"/>
+            <text x="98" y="4" class="bub-leg">down 24h</text>
+            <circle cx="176" cy="0" r="5" fill="#E4D6AE" fill-opacity=".4" stroke="#E4D6AE"/>
+            <text x="188" y="4" class="bub-leg">no 24h data</text>
+            <circle cx="290" cy="0" r="5" fill="none" stroke="#FFD54F" stroke-width="2"/>
+            <text x="302" y="4" class="bub-leg">picked by admin</text>
+          </g>
+        </svg>
+        <figcaption>Illustration of the canvas. A giant red bubble beside mostly green ones is the difference
+          between "the market is falling" and "one coin is being sold" — a distinction a sorted table makes
+          you work for.</figcaption>
+      </figure>
+    </article>
+
+    <!-- 3.2 GAUGE -->
+    <article class="feature flip" id="gauge">
+      <div class="feat-copy">
+        <p class="eyebrow">3.2 · composite gauge</p>
+        <h3>One needle, three inputs, and an honest way to say "I don't know"</h3>
+        <p class="feat-what"><b>What it is.</b> A direction gauge for altcoins built from three factors:
+          BTC's own direction, the breadth of the reclaim group (how many pairs are actually being
+          reclaimed, not just how loud the movers are), and stablecoin-dominance behaviour.</p>
+        <p class="feat-why"><b>What it is for.</b> Engines fire per pair; a trader still has to decide whether
+          to be aggressive. The gauge is that decision compressed into six states — long, strong long
+          (altseason), neutral, short, strong short (crash) and a degraded state.</p>
+        <ul class="facts">
+          <li>When a factor is missing, the gauge says <b>degraded</b> and explains which input is gone.
+            It never fills the gap with a guess.</li>
+          <li>Values are deliberately damped: it was rebuilt after the first version was too twitchy to be
+            useful, and the damping rule lives in one place shared with the Python side.</li>
+          <li>Old signals stop counting after a fixed window, so yesterday's winner cannot hold the needle
+            forever.</li>
+          <li>The page background follows the gauge state — calm, altseason, or crash — because the first
+            thing you look at should be the regime.</li>
+        </ul>
+      </div>
+      <figure class="figure panel">
+        <div class="fig-head"><span>Figure 3</span><h4>Six states, one needle</h4></div>
+        <svg class="gaugefig" viewBox="0 0 400 270" role="img" aria-label="Gauge illustration: an arc divided into short, neutral and long zones with the needle pointing into the long zone.">
+          <rect width="400" height="270" fill="#080D0B"/>
+          <path d="M60 210 A140 140 0 0 1 340 210" fill="none" stroke="#1D2A24" stroke-width="10" stroke-linecap="round"/>
+          <path d="M60 210 A140 140 0 0 1 128 97" fill="none" stroke="#FF7A6E" stroke-opacity=".55" stroke-width="10" stroke-linecap="round"/>
+          <path d="M145 86 A140 140 0 0 1 255 86" fill="none" stroke="#8FA098" stroke-opacity=".45" stroke-width="10" stroke-linecap="round"/>
+          <path d="M272 97 A140 140 0 0 1 340 210" fill="none" stroke="#6EE7B7" stroke-opacity=".6" stroke-width="10" stroke-linecap="round"/>
+          <g stroke="#2A3A32" stroke-width="2">
+            <path d="M200 70v10M138 88l6 8M262 88l-6 8M92 140l9 5M308 140l-9 5M200 70v0"/>
+          </g>
+          <g class="gauge-ticks">
+            <text x="70" y="238">SHORT</text>
+            <text x="176" y="238">NEUTRAL</text>
+            <text x="300" y="238">LONG</text>
+          </g>
+          <line x1="200" y1="210" x2="286" y2="120" stroke="#F5F1E4" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="200" cy="210" r="9" fill="#0C1310" stroke="#F5F1E4" stroke-width="3"/>
+          <text x="200" y="166" class="gauge-val">ALTSEASON</text>
+          <text x="200" y="252" class="gauge-sub">BTC ↑ · breadth ↑ · USDT.D ↓</text>
+        </svg>
+        <figcaption>Illustration. The label under the needle is a regime, not a score — the point is to know
+          whether to trust the engines' long bias at all.</figcaption>
+      </figure>
+    </article>
+
+    <!-- 3.3 SIGNALS -->
+    <article class="feature" id="signals">
+      <div class="feat-copy">
+        <p class="eyebrow">3.3 · signals &amp; watchlist</p>
+        <h3>The whole lifecycle of a trade, in one table</h3>
+        <p class="feat-what"><b>What it is.</b> A live feed of every signal from every engine, plus the
+          watchlist — setups that were detected but have not triggered an entry yet.</p>
+        <p class="feat-why"><b>What it is for.</b> A signal is a claim about the next few hours; the table is
+          where the claim is either confirmed or quietly falsified. Entry, stop and 2R target are set at
+          publication and never re-drawn afterwards, so a signal cannot be "fixed" after the fact.</p>
+        <ul class="facts">
+          <li>Sort by newest, picked first, best or worst R, or pair name. Filter by long or short. Search
+            by symbol.</li>
+          <li><b>🔥N</b> marks a pair that several engines flagged independently — consensus is measured,
+            not assumed.</li>
+          <li>Each row carries engine tag, timeframe, entry, stop, target, live R, and the admin's decision
+            where one was made.</li>
+          <li>Watchlist sits in the same feed rather than a separate page: a setup that is being watched is
+            part of the record too.</li>
+        </ul>
+      </div>
+      <figure class="figure panel">
+        <div class="fig-head"><span>Figure 4</span><h4>Signal rows, frozen at publication</h4></div>
+        <div class="mocktable">
+          <div class="mrow mhead"><span>pair</span><span>engine</span><span>side</span><span>entry</span><span>stop</span><span>2R</span><span>live</span></div>
+          <div class="mrow"><span><b>SOLUSDT</b> 🔥2</span><span class="c-sc">SCALP 2H</span><span class="up">long</span><span>142.18</span><span>138.90</span><span>148.74</span><span class="up">+1.4R</span></div>
+          <div class="mrow"><span><b>AVAXUSDT</b></span><span class="c-br">BRICK</span><span class="up">long</span><span>24.06</span><span>23.41</span><span>25.36</span><span class="up">+0.8R</span></div>
+          <div class="mrow"><span><b>WIFUSDT</b></span><span class="c-hv">HARVEST</span><span class="dn">short</span><span>2.184</span><span>2.263</span><span>2.026</span><span class="dn">−0.6R</span></div>
+          <div class="mrow"><span><b>ETHUSDT</b></span><span class="c-bs">BASTION</span><span class="up">long</span><span>3,412</span><span>3,361</span><span>3,514</span><span class="mut">open</span></div>
+          <div class="mrow"><span><b>OPUSDT</b> <em>watch</em></span><span class="c-sc">SCALP 2H</span><span class="mut">—</span><span>2.081</span><span>2.042</span><span>2.159</span><span class="mut">waiting</span></div>
+        </div>
+        <figcaption>Illustrative rows. Consensus, side, and the frozen levels are visible without opening
+          another tab.</figcaption>
+      </figure>
+    </article>
+
+    <!-- 3.4 STATS -->
+    <article class="feature flip" id="stats">
+      <div class="feat-copy">
+        <p class="eyebrow">3.4 · live statistics</p>
+        <h3>Win rate measured from resolved picks, not from the backtest</h3>
+        <p class="feat-what"><b>What it is.</b> Four views of the same record: cumulative equity per
+          channel, win rate by hour of the day (WIB), a head-to-head leaderboard between the two people who
+          pick from the feed, and a what-if equity curve that asks "if every engine signal had been taken
+          with fixed risk, where would the account be?"</p>
+        <p class="feat-why"><b>What it is for.</b> Backtests flatter you; resolutions do not. The hour-of-day
+          chart exists because the same engine is not equally good at 03:00 and 20:00, and the leaderboard
+          exists because two humans picking from the same feed is a natural experiment about discretion.</p>
+        <ul class="facts">
+          <li>Only resolved picks count. Open positions are carried as open, never scored as wins.</li>
+          <li>The what-if curve is labelled as a simulation over the last ≈100 signals per channel — it is
+            not presented as a track record.</li>
+          <li>A statistics reset date is applied deliberately, and the archive keeps the older data, so
+            "starting fresh" cannot erase history.</li>
+        </ul>
+      </div>
+      <figure class="figure panel">
+        <div class="fig-head"><span>Figure 5</span><h4>Where the edge actually lives</h4></div>
+        <svg class="bars" viewBox="0 0 520 260" role="img" aria-label="Bar chart illustration of win rate by hour of day, higher in the evening hours.">
+          <rect width="520" height="260" fill="#080D0B"/>
+          <g stroke="#16211C"><path d="M44 30h452M44 80h452M44 130h452M44 180h452"/></g>
+          <g class="bar">
+            <rect x="52" y="150" width="14" height="40" fill="#6EE7B7" fill-opacity=".35"/>
+            <rect x="72" y="128" width="14" height="62" fill="#6EE7B7" fill-opacity=".35"/>
+            <rect x="92" y="160" width="14" height="30" fill="#6EE7B7" fill-opacity=".35"/>
+            <rect x="112" y="140" width="14" height="50" fill="#6EE7B7" fill-opacity=".35"/>
+            <rect x="132" y="118" width="14" height="72" fill="#6EE7B7" fill-opacity=".35"/>
+            <rect x="152" y="134" width="14" height="56" fill="#6EE7B7" fill-opacity=".35"/>
+            <rect x="172" y="104" width="14" height="86" fill="#6EE7B7" fill-opacity=".35"/>
+            <rect x="192" y="122" width="14" height="68" fill="#6EE7B7" fill-opacity=".35"/>
+            <rect x="212" y="92" width="14" height="98" fill="#6EE7B7" fill-opacity=".35"/>
+            <rect x="232" y="110" width="14" height="80" fill="#6EE7B7" fill-opacity=".35"/>
+            <rect x="252" y="84" width="14" height="106" fill="#6EE7B7" fill-opacity=".5"/>
+            <rect x="272" y="96" width="14" height="94" fill="#6EE7B7" fill-opacity=".35"/>
+            <rect x="292" y="72" width="14" height="118" fill="#6EE7B7" fill-opacity=".5"/>
+            <rect x="312" y="88" width="14" height="102" fill="#6EE7B7" fill-opacity=".35"/>
+            <rect x="332" y="64" width="14" height="126" fill="#6EE7B7" fill-opacity=".5"/>
+            <rect x="352" y="80" width="14" height="110" fill="#6EE7B7" fill-opacity=".35"/>
+            <rect x="372" y="58" width="14" height="132" fill="#6EE7B7" fill-opacity=".7"/>
+            <rect x="392" y="74" width="14" height="116" fill="#6EE7B7" fill-opacity=".5"/>
+            <rect x="412" y="46" width="14" height="144" fill="#6EE7B7" fill-opacity=".7"/>
+            <rect x="432" y="62" width="14" height="128" fill="#6EE7B7" fill-opacity=".5"/>
+            <rect x="452" y="90" width="14" height="100" fill="#6EE7B7" fill-opacity=".35"/>
+          </g>
+          <line x1="44" y1="190" x2="496" y2="190" stroke="#2A3A32"/>
+          <g class="axis"><text x="44" y="212">00</text><text x="200" y="212">08</text><text x="352" y="212">16</text><text x="470" y="212">23</text></g>
+          <g class="axis"><text x="14" y="34">60%</text><text x="14" y="134">40%</text><text x="14" y="194">30%</text></g>
+          <text x="44" y="242" class="fig-note">win rate by WIB hour · illustration</text>
+        </svg>
+        <figcaption>Illustration. The shape is the finding: the same engine, a different edge depending on
+          which session is awake.</figcaption>
+      </figure>
+    </article>
+
+    <!-- 3.5 HISTORY -->
+    <article class="feature" id="history">
+      <div class="feat-copy">
+        <p class="eyebrow">3.5 · riwayat &amp; archive</p>
+        <h3>History that is pre-rendered, so it cannot quietly change</h3>
+        <p class="feat-what"><b>What it is.</b> A monthly net-percentage bar chart and a table of every
+          resolved pick, generated from a daily snapshot of the picks database. Next to it, a raw daily
+          archive.</p>
+        <p class="feat-why"><b>What it is for.</b> The live page is optimistic by nature — it shows what is
+          open. The history page shows what closed, which is the number that decides whether the system is
+          worth running.</p>
+        <ul class="facts">
+          <li>Pages are rebuilt from a snapshot rather than queried live: zero APIs, zero credentials, and
+            a page that still loads when the exchange is down.</li>
+          <li>When an engine is retired, its picks are filtered out of the view and the monthly curve is
+            recalculated from the remaining rows — so the chart never mixes a dead engine's results into a
+            live one's.</li>
+          <li>Each row is one decision: timestamp, engine, symbol, side (including admin corrections),
+            result, and who picked it.</li>
+        </ul>
+      </div>
+      <figure class="figure panel">
+        <div class="fig-head"><span>Figure 6</span><h4>Net % per month, resolved picks only</h4></div>
+        <div class="mockhist">
+          <div class="hrow"><span>2026-08</span><i style="--w:62%"></i><b>+41.2% · 68 picks · WR 57%</b></div>
+          <div class="hrow"><span>2026-09</span><i style="--w:34%"></i><b>+22.6% · 71 picks · WR 52%</b></div>
+          <div class="hrow"><span>2026-10</span><i style="--w:81%"></i><b>+53.9% · 96 picks · WR 56%</b></div>
+          <div class="hrow neg"><span>2026-11</span><i style="--w:18%"></i><b>−11.4% · 23 picks · WR 43%</b></div>
+        </div>
+        <figcaption>Illustrative shape. The negative month stays on the page; that is the entire point of
+          keeping it.</figcaption>
+      </figure>
+    </article>
+
+    <!-- 3.6 MARKET CONTEXT -->
+    <article class="feature flip" id="context">
+      <div class="feat-copy">
+        <p class="eyebrow">3.6 · market context</p>
+        <h3>Big caps top 50 and the derivatives backdrop</h3>
+        <p class="feat-what"><b>What it is.</b> A table of the 50 largest crypto assets — stablecoins and
+          wrapped tokens removed, because they do not move and would distort every average — plus a strip of
+          funding rate, open interest, long/short ratio and fear &amp; greed.</p>
+        <p class="feat-why"><b>What it is for.</b> An alt signal is a relative call. If the top 50 are all
+          down 4% and an engine flags a long, that is a different trade from the same signal on a green day.
+          The sorts — including <b>worst 1h / 24h / 7d</b>, not just best — make rotation visible in both
+          directions.</p>
+        <ul class="facts">
+          <li>Sorts: market cap, best and worst 1h/24h/7d, position in the 24h range, BTC correlation,
+            volume, open interest, distance from all-time high.</li>
+          <li>A yellow dot marks a coin the engines flagged today, so market context and signal list line up
+            by symbol.</li>
+          <li>An alert fires when at least 16 coins move 1% or more within an hour — breadth, not a single
+            headline.</li>
+        </ul>
+      </div>
+      <figure class="figure panel">
+        <div class="fig-head"><span>Figure 7</span><h4>Context table, both directions</h4></div>
+        <div class="mocktable tight">
+          <div class="mrow mhead"><span>asset</span><span>mcap</span><span>1h</span><span>24h</span><span>7d</span><span>vs ATH</span></div>
+          <div class="mrow"><span><b>BTC</b></span><span>—</span><span class="up">+0.4</span><span class="up">+1.9</span><span class="up">+6.2</span><span class="mut">−12%</span></div>
+          <div class="mrow"><span><b>ETH</b> ●</span><span>—</span><span class="up">+0.6</span><span class="up">+3.8</span><span class="dn">−2.1</span><span class="mut">−31%</span></div>
+          <div class="mrow"><span><b>SOL</b></span><span>—</span><span class="dn">−1.2</span><span class="dn">−18.4</span><span class="dn">−24.0</span><span class="mut">−58%</span></div>
+          <div class="mrow"><span><b>AVAX</b> ●</span><span>—</span><span class="up">+2.0</span><span class="up">+12.1</span><span class="up">+18.4</span><span class="mut">−71%</span></div>
+        </div>
+        <figcaption>Illustrative rows. "Worst" sorts matter as much as "best" — a market rotating down needs
+          the same instrument as one rotating up.</figcaption>
+      </figure>
+    </article>
+
+    <!-- 3.7 DIGEST -->
+    <article class="feature" id="digest">
+      <div class="feat-copy">
+        <p class="eyebrow">3.7 · daily digest &amp; delivery</p>
+        <h3>One message at 18:00 that a human can act on</h3>
+        <p class="feat-what"><b>What it is.</b> A daily digest assembled from the same state the terminal
+          reads: every live channel with its signals, a dedicated block per high-conviction engine, and a
+          short summary of what resolved.</p>
+        <p class="feat-why"><b>What it is for.</b> Not everyone keeps a browser tab open. The digest is the
+          product for people who want one readable message a day instead of a stream of alerts.</p>
+        <ul class="facts">
+          <li>When an engine is retired it disappears from the digest <i>and</i> from the state file, so an
+            old channel cannot keep posting because a cached file still remembers it.</li>
+          <li>A separate news engine watches for market-moving headlines and an economic calendar warns
+            before scheduled volatility; both are opt-in context, never entry signals.</li>
+        </ul>
+      </div>
+      <figure class="figure panel">
+        <div class="fig-head"><span>Figure 8</span><h4>Digest skeleton</h4></div>
+        <pre class="mockmsg"><code>QKUK · DAILY DIGEST — 18:00 WIB
+──────────────────────────────
+LIVE   BRICK · HARVEST 2h · SCALP 2H · BASTION 4H
+SCALP 2H  SOLUSDT long 142.18 · SL 138.90 · 2R 148.74
+BRICK     AVAXUSDT long 24.06 · SL 23.41 · 2R 25.36
+RESOLVED  6 picks · 4 win · net +18.4%
+NEXT      CPI 20:30 WIB — reduce size before release</code></pre>
+        <figcaption>Structure only; numbers illustrative.</figcaption>
+      </figure>
+    </article>
+  </div>
+</section>
+
+<!-- ══════════════ INDICATOR ══════════════ -->
+<section id="indicator" class="sec alt">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">04 · the indicator</p>
+      <h2>My own ICT indicator, because the engine should be checkable by eye</h2>
+      <p class="sec-lede">
+        <code>Qkuk ICT Concepts</code> is a Pine Script v6 indicator I wrote for TradingView. It is not a
+        signal generator — it is the chart version of the same vocabulary the engines speak: market
+        structure, order blocks, imbalances, liquidity and inducement. If the bot says "sweep and reclaim" and
+        the chart does not show a sweep, one of the two is wrong, and that disagreement has caught real bugs.
+      </p>
+    </div>
+
+    <figure class="figure panel wide">
+      <div class="fig-head"><span>Figure 9</span><h4>The chart vocabulary</h4></div>
+      <svg class="chartfig" id="chartfig" viewBox="0 0 760 380" role="img" aria-label="Illustration of the indicator on a candlestick chart: a bullish order block, a fair value gap, a liquidity sweep below a swing low, an MSS line, an inducement level and a killzone band.">
+        <rect width="760" height="380" fill="#080D0B"/>
+        <g stroke="#141F1A"><path d="M0 80h760M0 160h760M0 240h760M0 320h760"/></g>
+        <rect x="0" y="30" width="120" height="60" fill="#FF5D00" fill-opacity=".05"/>
+        <text x="8" y="44" class="kz">NEW YORK</text>
+        <g id="candles"></g>
+        <!-- order block -->
+        <rect x="212" y="236" width="210" height="34" fill="#26A69A" fill-opacity=".14" stroke="#26A69A" stroke-opacity=".6"/>
+        <text x="216" y="230" class="lbl up">OB · bullish</text>
+        <!-- fvg -->
+        <rect x="300" y="150" width="150" height="26" fill="#00E676" fill-opacity=".10" stroke="#00E676" stroke-opacity=".45" stroke-dasharray="4 4"/>
+        <text x="304" y="146" class="lbl up">FVG</text>
+        <!-- sweep -->
+        <line x1="150" y1="300" x2="300" y2="300" stroke="#FF7A6E" stroke-width="1.4" stroke-dasharray="5 4"/>
+        <circle cx="264" cy="308" r="4" fill="#FF7A6E"/>
+        <text x="156" y="294" class="lbl dn">sell-side liquidity · swept</text>
+        <!-- mss -->
+        <line x1="330" y1="120" x2="620" y2="120" stroke="#00E6A1" stroke-width="1.2"/>
+        <text x="560" y="114" class="lbl up">MSS</text>
+        <!-- IDM -->
+        <line x1="430" y1="196" x2="600" y2="196" stroke="#FFD54F" stroke-width="1.2" stroke-dasharray="5 4"/>
+        <text x="604" y="200" class="lbl idm">IDM</text>
+        <circle cx="520" cy="196" r="4" fill="#FFB300"/>
+        <!-- trend / ema -->
+        <path d="M0 300 C120 292 180 268 240 252 S360 220 430 196 S560 150 760 132" fill="none" stroke="#B0BEC5" stroke-opacity=".45" stroke-width="1.4"/>
+        <text x="700" y="126" class="lbl mut">EMA200</text>
+        <!-- footer -->
+        <text x="16" y="364" class="fig-note">illustration · not live data</text>
+      </svg>
+      <figcaption>Illustration of the modules working together: a swept low, a bullish order block, an
+        imbalance above it, a market-structure shift, and the inducement level that has to be touched before
+        the setup is complete.</figcaption>
+    </figure>
+
+    <div class="mods">
+      <div class="mod"><h4>Market structure</h4><p>MSS and BOS with configurable pivot length; MSS is a
+        shift, BOS is continuation. Drawn as lines with labels, not arrows stacked on every candle.</p></div>
+      <div class="mod"><h4>Displacement</h4><p>Body-dominant candles measured against the mean body, with an
+        optional marker. Displacement is what makes an imbalance worth respecting.</p></div>
+      <div class="mod"><h4>Volume imbalance</h4><p>Bodies that do not overlap while wicks do — the quiet gap
+        that price tends to revisit. Capped to the last N so the chart stays readable.</p></div>
+      <div class="mod"><h4>FVG &amp; BPR</h4><p>Fair value gaps with break styling, plus balance price range
+        (the overlap of the newest bullish and bearish gap) and implied FVG afterward.</p></div>
+      <div class="mod"><h4>Order blocks</h4><p>ATR-impulse engine: impulsive candle ≥ 1.5× ATR, small base,
+        close through the base. Zones are mitigated when price closes through them, and kept grey instead of
+        deleted if you want the history.</p></div>
+      <div class="mod"><h4>Buyside / sellside liquidity</h4><p>Clustered swing levels with breach zones — the
+        levels where stops sit, and what happens after they are taken.</p></div>
+      <div class="mod"><h4>Liquidity sweep</h4><p>Wick through the last swing by a configurable ATR buffer,
+        with an optional reclaim requirement. This is the same trigger the HARVEST engine uses.</p></div>
+      <div class="mod"><h4>CISD</h4><p>Change in state of delivery: the open of the first candle in the
+        current delivery run, and the close that breaks it. One line at a time, because that is all it is.</p></div>
+      <div class="mod"><h4>Inducement (IDM)</h4><p>A small state machine: lead leg → MSS with a penetration
+        floor in ATR → the minor opposing swing after the MSS → the touch that completes the setup. The
+        research engine's sequence, made visible.</p></div>
+      <div class="mod"><h4>EMA, VWAP, volume profile</h4><p>Three configurable EMAs; session VWAP with ±1σ
+        and ±2σ bands; POC and 70% value area over the last N bars. Context, not entries.</p></div>
+      <div class="mod"><h4>MACD, Fibonacci, killzones</h4><p>MACD in its own lower panel (not overlaid on
+        price), Fibonacci between the last two structures of your choice, and New York / London / Asian
+        session shading.</p></div>
+      <div class="mod"><h4>IFVG sniper</h4><p>Inverted fair value gaps with a quality filter (gap size in
+        ATR, body ratio, range), theme packages, and invalidation — kept separate from the structural
+        modules rather than welded into them.</p></div>
+    </div>
+
+    <div class="note">
+      <p><b>Why an indicator at all?</b> Because a black box you cannot look at is a black box you cannot
+        debug. Building the same concepts twice — once in Python for the engine, once in Pine for the chart —
+        forces every definition to be explicit: what counts as a sweep, how far a close must penetrate to be
+        an MSS, which swing is "the last one". Half the engine fixes in this project started as a
+        disagreement between the two implementations.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ OPS ══════════════ -->
+<section id="ops" class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">05 · operations</p>
+      <h2>The unglamorous half: keeping it alive, and keeping it honest</h2>
+      <p class="sec-lede">
+        A trading system that only works on the machine where it was written is a demo. Most of the work in
+        Qkuk is not the strategy — it is the supervision, the failure handling, and the rule that the
+        published number is the one that actually happened.
+      </p>
+    </div>
+
+    <div class="ops-grid">
+      <div class="op">
+        <h4>Supervisor, not hope</h4>
+        <p>Every long-running process is registered with a supervisor daemon that restarts it on exit and
+          logs the restart. Data publishers, pick backups and the watcher all come back on their own.</p>
+      </div>
+      <div class="op">
+        <h4>Throttle across processes</h4>
+        <p>Engines, watchers and the dashboard all hit the same exchange. A shared token-bucket state file
+          means parallel processes cannot collectively exceed the rate limit.</p>
+      </div>
+      <div class="op">
+        <h4>Fallback when DNS lies</h4>
+        <p>When the local resolver stopped answering for the exchange host, a DNS-over-HTTPS path with a
+          cached answer kept the engines running instead of failing every request.</p>
+      </div>
+      <div class="op">
+        <h4>Publishing that cannot clobber</h4>
+        <p>The publish job fetches and resets before writing, stages only the files it owns, and refuses to
+          commit if anything else got staged. It has never deleted another person's work — after an earlier
+          version did.</p>
+      </div>
+      <div class="op">
+        <h4>State that does not resurrect</h4>
+        <p>Retiring an engine removes it from the state file and the digest, not just from the UI. A cached
+          channel cannot keep posting after the code that produced it is gone.</p>
+      </div>
+      <div class="op">
+        <h4>Numbers with a date on them</h4>
+        <p>Backtest figures, live figures and simulations are labelled separately, every time. When a
+          backtest bug was found (the resolver scored a window before the signal existed), the results were
+          re-run and the engine's status changed — not quietly re-tuned.</p>
+      </div>
+    </div>
+
+    <div class="stack">
+      <p class="eyebrow">Stack</p>
+      <div class="stack-row">
+        <span>Python</span><span>pandas</span><span>NumPy</span><span>SciPy</span>
+        <span>Node.js</span><span>JavaScript (ES6)</span><span>Canvas / SVG</span>
+        <span>Pine Script v6</span><span>Binance Futures API</span><span>CoinGecko</span>
+        <span>GitHub Pages</span><span>Bash</span><span>Linux</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ CLOSING ══════════════ -->
+<section class="closing" id="contact">
+  <div class="wrap">
+    <p class="eyebrow">What this is for</p>
+    <h2>I would rather show you the receipts than the résumé line</h2>
+    <p class="closing-p">
+      Qkuk Terminal is one person's answer to a simple question: if a system is going to tell people where
+      to put money, what should it be willing to show them? My answer was everything — the frozen entry, the
+      losing month, the engine that got switched off, and the code that had to be rewritten when it was
+      wrong. That instinct is what I would bring to an exchange: money movement is a domain where the
+      reconciliation either closes or it does not.
+    </p>
+    <div class="hero-actions">
+      <a class="btn primary" href="https://luthfihadi78.github.io/qkuk/" target="_blank" rel="noopener">Open Qkuk Terminal</a>
+      <a class="btn" href="Moch-Luthfi-Hadiwidjaja-CV.pdf" download>Download CV (PDF)</a>
+      <a class="btn ghost" href="mailto:luthfihadi78@gmail.com">luthfihadi78@gmail.com</a>
+    </div>
+    <p class="fine">Built and maintained by Moch. Luthfi Hadiwidjaja · <a href="https://github.com/luthfihadi78" target="_blank" rel="noopener">GitHub</a> · <a href="https://luthfihadi78.github.io/" target="_blank" rel="noopener">luthfihadi78.github.io</a></p>
+  </div>
+</section>
+
+</main>
+
+<script src="portfolio.js" defer></script>
+</body>
+</html>
