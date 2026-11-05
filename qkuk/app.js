@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-scalp2h-20261101a";
+  var BUILD = "qkuk-api2-20261105d";
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · ⭐ SCALP 2H = kuning emas (OB 2h, TVI 120) ·
@@ -242,20 +242,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
              k: { next: 0, t0: -9, pts: null } };   // k = kilat (short)
   var NU_REDUCED = false;
   try { NU_REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
-  var NU_KEDALIM = { snow: 96, driz: 140, bara: 210, api: 5, debu: 32,
+  /* 4 Nov (PILIHAN USER): CRASH = HUJAN METEOR API + BARA.
+     Dinding api dibuang (jelek). Kini: bara titik lebih banyak naik dari
+     dasar + banyak meteor api jatuh miring dengan ekor menyala, lalu
+     MELEDAK saat menghantam horizon (kilat inti + cincin kejut + serpihan). */
+  var NU_KEDALIM = { snow: 96, driz: 140, bara: 560, meteor: 26, debu: 32,
                      pulsa: 46, debuneon: 62 };
-  function nuSprite() {   // 1 sprite api pra-render — murah tiap gambarkan
-    if (NU.sp) return NU.sp;
-    var s = document.createElement("canvas"); s.width = s.height = 128;
-    var g = s.getContext("2d");
-    var gr = g.createRadialGradient(64, 64, 3, 64, 64, 63);
-    gr.addColorStop(0, "rgba(255,192,112,1)");
-    gr.addColorStop(.3, "rgba(255,109,94,.6)");
-    gr.addColorStop(.66, "rgba(202,38,52,.15)");
-    gr.addColorStop(1, "rgba(202,38,52,0)");
-    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
-    NU.sp = s; return s;
-  }
   function nuResize() {
     if (!NU.cv) return;
     var d = Math.min(window.devicePixelRatio || 1, 2);
@@ -304,30 +296,46 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       p.x = r() * (NU.W + 40) - 20; p.y = isi ? r() * NU.H : -14;
       p.vx = -12 - r() * 12; p.vy = 320 + r() * 150;
       p.ln = 9 + r() * 9; p.a = .22 + r() * .26;
-    } else if (kind === "bara") {           // bara api memenuhi sisi
-      var e = r();
-      if (e < .58) { p.x = r() * NU.W; p.y = NU.H + 6;
-        p.vy = -(46 + r() * 120); p.vx = (r() - .5) * 44; }
-      else if (e < .88) { var kiri = r() < .5;            // dinding sisi
-        p.x = kiri ? -6 : NU.W + 6; p.y = NU.H * (.2 + r() * .78);
-        p.vx = kiri ? 14 + r() * 40 : -(14 + r() * 40);
-        p.vy = -(30 + r() * 90); }
-      else { p.x = r() * NU.W; p.y = -6;                  // bunga api turun dari atas
-        p.vy = 24 + r() * 40; p.vx = (r() - .5) * 22; }
-      if (isi) { p.x = r() * NU.W; p.y = r() * NU.H; }
-      p.c = coba(["255,109,94", "255,148,52", "255,226,90"]);
-      p.r = 1 + r() * 2.1; p.a = .5 + r() * .5;
-    } else if (kind === "api") {            // lidah api besar di akar sisi
-      var slot = NU.parts.filter(function (q) { return q.k === "api"; }).length;
-      var s5 = [[.18, 1.0], [.5, 1.0], [.82, 1.0], [-.04, .62], [1.04, .62]];
-      p.x = NU.W * s5[slot % 5][0]; p.y = NU.H * s5[slot % 5][1];
-      p.r = 52 + r() * 48; p.a = .34 + r() * .2;
+    } else if (kind === "bara") {           // bara titik naik dari dasar
+      p.x = r() * NU.W; p.y = isi ? r() * NU.H : NU.H + 6;
+      p.vy = -(40 + r() * 110); p.vx = (r() - .5) * 34;
+      p.c = coba(["255,226,120", "255,180,80", "255,148,52", "255,109,94"]);
+      p.r = 1.1 + r() * 2.3; p.a = .34 + r() * .4;
+    } else if (kind === "meteor") {         // meteor api jatuh miring
+      /* 4 Nov — diperbesar & diperlambat biar JELAS terlihat: bola r 3.5-7.5,
+         ekor panjang, jatuh 220-440px/dtk (dulu kecil & sekilas lewat). */
+      p.x = r() * (NU.W + 260) - 130;
+      p.y = isi ? r() * NU.H * .45 : -40 - r() * 200;
+      p.vx = -30 - r() * 90;
+      p.vy = 220 + r() * 220;
+      p.r = 3.5 + r() * 4;
+      p.impY = NU.H * (.52 + r() * .42);     // titik hantam → meledak
+      if (p.y > p.impY - 40) p.y = Math.max(-40, p.impY - 80);
+      p.c = coba(["255,220,140", "255,170,80", "255,120,60"]);
+      p.a = .8 + r() * .2;
     } else {                                // debu amber (deg)
       p.x = r() * NU.W; p.y = r() * NU.H;
       p.vy = 6 + r() * 10; p.sw = 6 + r() * 10; p.r = .6 + r() * 1.4;
       p.a = .14 + r() * .18;
     }
     NU.parts.push(p);
+  }
+  /* ledakan meteor: kilat inti + cincin kejut mengembang + serpihan percikan
+     dgn gravitasi. once:true → sekali pakai, tidak lahir ulang saat mati.
+     4 Nov — diperbesar (rmax 90-210, ttl .7-1.2s) biar jelas terlihat. */
+  function nuLedak(x, y) {
+    var r = Math.random;
+    NU.parts.push({ k: "ledak", x: x, y: y, age: 0, ttl: .7 + r() * .5,
+                    rmax: 90 + r() * 120, once: true });
+    var ns = 14 + (r() * 14 | 0);
+    for (var i = 0; i < ns; i++) {
+      var ang = r() * 6.283, sp = 90 + r() * 280;
+      NU.parts.push({ k: "percik", x: x, y: y,
+        vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 30,
+        r: .8 + r() * 1.8, age: 0, ttl: .5 + r() * .6,
+        c: ["255,225,150", "255,160,70", "255,110,60"][i % 3],
+        a: .7 + r() * .3, once: true });
+    }
   }
   function nuTick(dt, t) {
     var W = NU.W, H = NU.H, r = Math.random, i, p, x, alive;
@@ -378,12 +386,24 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         if (p.y < -10 || p.y > H + 12 || p.x < -12 || p.x > W + 12) {
           NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false;
         }
-      } else if (p.k === "api") {
-        /* lidah api: hidup di tempat, naik-turun & menghembus pelan —
-           posisi dasarnya permanen, ukuran & opasitas berkedip */
-        p.off = Math.sin(t * p.fs + p.ph);
+      } else if (p.k === "meteor") {
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        if (p.y >= p.impY) {                       // hantam → MELEDAK
+          nuLedak(p.x, p.y);
+          NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false;
+        } else if (p.x < -170 || p.x > W + 170) {
+          NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false;
+        }
+      } else if (p.k === "ledak") {
+        p.age += dt;
+        if (p.age >= p.ttl) { NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false; }
+      } else if (p.k === "percik") {
+        p.vx *= .985; p.vy += 300 * dt;            // gravitasi serpihan
+        p.x += p.vx * dt; p.y += p.vy * dt; p.age += dt;
+        if (p.age >= p.ttl || p.y > H + 20) { NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false; }
       }
       if (alive) continue;
+      if (p.once) continue;   // ledak/percik sekali pakai — jangan lahir ulang
       // ganti yang mati dgn yang baru — jumlah tiap jenis tetap
       nuSpawn(p.k, false);
     }
@@ -431,13 +451,44 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         cx.fillStyle = "rgba(" + p.c + "," + (p.a * (0.55 + 0.45 * Math.sin(t * p.fs + p.ph))).toFixed(3) + ")";
         cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.283); cx.fill();
         cx.restore();
-      } else if (p.k === "api") {
-        var sp = nuSprite();
-        var sz = p.r * (1 + .09 * (p.off || 0)), dy = (p.off || 0) * 14;
+      } else if (p.k === "meteor") {
+        /* meteor api: ekor menyala 2 lapis (lebar redup + inti) + kepala
+           putih-kuning terang; TANPA radial gradient (tak ada matahari). */
+        cx.save(); cx.globalCompositeOperation = "lighter"; cx.lineCap = "round";
+        var tx = p.x - p.vx * .12, ty = p.y - p.vy * .12;
+        cx.strokeStyle = "rgba(255,100,45,.32)"; cx.lineWidth = p.r * 4;
+        cx.beginPath(); cx.moveTo(p.x, p.y); cx.lineTo(tx, ty); cx.stroke();
+        cx.strokeStyle = "rgba(" + p.c + "," + (.6 * p.a).toFixed(3) + ")";
+        cx.lineWidth = p.r * 1.6;
+        cx.beginPath(); cx.moveTo(p.x, p.y); cx.lineTo(tx, ty); cx.stroke();
+        cx.fillStyle = "rgba(255,246,214,.95)";
+        cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.283); cx.fill();
+        cx.restore();
+      } else if (p.k === "ledak") {
+        /* ledakan: kilat inti singkat (45% awal) + cincin kejut mengembang
+           dgn alpha memudar + cincin dalam merah. */
+        var pr = p.age / p.ttl, ee = 1 - Math.pow(1 - pr, 2), rad = p.rmax * ee;
         cx.save(); cx.globalCompositeOperation = "lighter";
-        cx.globalAlpha = Math.max(.12, p.a * (0.75 + .25 * (p.off || 0)));
-        cx.drawImage(sp, p.x - sz, p.y - sz + dy, sz * 2, sz * 2);
-        cx.restore(); cx.globalAlpha = 1;
+        if (pr < .45) {
+          cx.fillStyle = "rgba(255,232,160," + ((1 - pr / .45) * .9).toFixed(3) + ")";
+          cx.beginPath(); cx.arc(p.x, p.y, p.rmax * .34 * (1 - pr), 0, 6.283); cx.fill();
+        }
+        cx.strokeStyle = "rgba(255,170,80," + ((1 - pr) * .9).toFixed(3) + ")";
+        cx.lineWidth = 2 + 3.5 * (1 - pr);
+        cx.beginPath(); cx.arc(p.x, p.y, rad, 0, 6.283); cx.stroke();
+        cx.strokeStyle = "rgba(255,90,50," + ((1 - pr) * .45).toFixed(3) + ")";
+        cx.lineWidth = 1.5;
+        cx.beginPath(); cx.arc(p.x, p.y, rad * .6, 0, 6.283); cx.stroke();
+        cx.restore();
+      } else if (p.k === "percik") {
+        /* serpihan ledakan: goresan pendek mengikuti arah lemparan */
+        var pa = p.a * (1 - p.age / p.ttl);
+        cx.save(); cx.globalCompositeOperation = "lighter"; cx.lineCap = "round";
+        cx.strokeStyle = "rgba(" + p.c + "," + pa.toFixed(3) + ")";
+        cx.lineWidth = 1.3;
+        cx.beginPath(); cx.moveTo(p.x, p.y);
+        cx.lineTo(p.x - p.vx * .02, p.y - p.vy * .02); cx.stroke();
+        cx.restore();
       } else {
         cx.fillStyle = "rgba(238,180,76," + p.a.toFixed(3) + ")";
         cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.283); cx.fill();
@@ -494,12 +545,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var m = NU.mode;
     var jenis = m === "netral" ? ["snow"] : m === "long" ? ["pulsa"] :
                 m === "altseason" ? ["debuneon"] : m === "short" ? ["driz"] :
-                m === "crash" ? ["bara", "api"] : ["debu"];
+                m === "crash" ? ["bara", "meteor"] : ["debu"];
     jenis.forEach(function (k) {
       var c = NU_KEDALIM[k] || 24;
       // prefill separuh dgn posisi menyebar biar layar langsung penuh;
-      // sisanya lahir di pinggir pelan-pelan — animasi mulai penuh, tak kosong dulu
-      var pre = k === "api" ? c : Math.round(c * .55);
+      // sisanya lahir di pinggir pelan-pelan — animasi mulai penuh, tak kosong dulu.
+      // 4 Nov — CRASH prefill PENUH: 26 meteor + 560 bara harus langsung ada,
+      // bukan 55% (dulu meteor cuma 11 aktif → user bilang "meteor ga ada").
+      var pre = m === "crash" ? c : Math.round(c * .55);
       for (var q = 0; q < pre; q++) nuSpawn(k, true);
     });
     if (!NU.raf && !document.hidden && NU.cx) { NU.last = 0; NU.raf = requestAnimationFrame(nuLoop); }
@@ -718,13 +771,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       /* 23 Sep v31 — baris utama = MAYORITAS grup gelombang terakhir (sumber
          sama dgn pesan yang masuk grup WA), lalu BTC 1h. BTC.D/USDT.D DIHAPUS
          total (permintaan user): gauge = BTC + mayoritas reclaim, titik. */
-      /* 5 Nov — gelombang kosong bukan data rusak: engine hidup, gate yang
-         membuang semua kandidat (HARVEST short-only + gate rezim). Sebabnya
-         disebut di baris ini, angkanya tetap 0 (tidak ikut skor). */
       r("mayoritas grup",
         V.nMaj > 0
           ? V.nLong + "L · " + V.nShort + "S → " + sgn(V.maj, 0)
-          : (V.majKosong && V.majNote) ? V.majNote
           : "— belum ada gelombang tercatat",
         V.maj > 0 ? "pos" : V.maj < 0 ? "neg" : "mut");
       r("BTC 1h", ar(V.dirBtc) + "  " + sgn(bp, 2) + "%" + (V.btc24h != null ? " (24 jam)" : ""), bp < 0 ? "neg" : "pos");
@@ -743,9 +792,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
          (BTC 15 mnt, gelombang grup 8 jam — batas sama dgn engine v32). */
       if (V.ageBtc != null && V.ageMaj != null) {
         var ub = +V.ageBtc || 0, ug = +V.ageMaj || 0;
-        r("umur data", "BTC " + umur(ub) + " lalu · gelombang grup "
-          + (V.majKosong ? umur(ug) + " lalu (kosong, engine hidup)" : umur(ug) + " lalu"),
-          V.majKosong ? "mut" : (ub > 540 || ug > 17280) ? "warn" : "pos");
+        r("umur data", "BTC " + umur(ub) + " lalu · gelombang grup " + umur(ug) + " lalu",
+          (ub > 540 || ug > 17280) ? "warn" : "pos");
       }
       /* sparkline riwayat arah per jam (48 jam terakhir, dari engine) */
       (function () {
@@ -835,7 +883,6 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
               nMaj: pub.nMaj || 0,
               pubTs: pub.ts, btc24h: pub.btc24h,
               degraded: !!pub.degraded, degrade_reason: pub.degrade_reason || "",
-              majKosong: !!pub.majKosong, majNote: pub.majNote || "",
               ageBtc: pub.age_btc_s, ageMaj: pub.age_maj_s };
       /* v33: dominan diambil browser (CoinGecko, cache 15 mnt) — bila gagal,
          gauge tetap jalan 3 faktor dgn keterangan "tanpa data dominan". */
@@ -865,7 +912,6 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
                    tak boleh menyembunyikan gate (BTC segar di browser ≠ gelombang
                    grup segar di engine) */
                 degraded: !!pub2.degraded, degrade_reason: pub2.degrade_reason || "",
-                majKosong: !!pub2.majKosong, majNote: pub2.majNote || "",
                 ageBtc: pub2.age_btc_s, ageMaj: pub2.age_maj_s };
       if (rows && rows.length > 30) {
         V.dirBtc = rclSweep(rows.map(function (r) { return r.h; }),
@@ -1844,6 +1890,30 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     td.title = "funding rate per 8 jam — positif = long bayar short (caution)";
     return td;
   }
+  /* 28 Okt — PICK BIG CAPS (khusus admin): tandai koin yang sedang
+     dipantau — bintang kuning ★ + garis cahaya di baris, bertahan 7 HARI
+     (localStorage per perangkat admin; lewat masa pantau → otomatis
+     terhapus). Tombol pick hanya tampil saat login admin.
+     2 Nov — DIPULIHKAN: versi server 1 Nov menghilangkan fitur ini. */
+  var BCPICK_KEY = "qkuk_bcpick_v1";
+  function bcPickMap() {
+    var out = {};
+    try {
+      var m = JSON.parse(localStorage.getItem(BCPICK_KEY) || "{}");
+      var now = Date.now(), prune = false;
+      Object.keys(m).forEach(function (k) {
+        if (now - m[k] < 7 * 864e5) out[k] = m[k]; else prune = true;
+      });
+      if (prune) localStorage.setItem(BCPICK_KEY, JSON.stringify(out));
+    } catch (e) {}
+    return out;
+  }
+  function bcPickToggle(sym) {
+    var m = bcPickMap();
+    if (m[sym]) delete m[sym]; else m[sym] = Date.now();
+    try { localStorage.setItem(BCPICK_KEY, JSON.stringify(m)); } catch (e) {}
+    bigcaps();
+  }
   function bigcaps() {
     var host = $("#bc-table"); if (!host) return;
     var B = DATA.bigcaps, sum = $("#bc-sum");
@@ -1852,7 +1922,30 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       table(host, [], [], "Data big caps belum tersedia — CoinGecko gagal saat penerbitan, coba lagi nanti.");
       return;
     }
-    var R = B.ringkas || {}, coins = B.coins.slice();
+    var R = B.ringkas || {};
+    /* 2 Nov — token dana RWA (bukan crypto yang bisa diperdagangkan arah)
+       dibuang dari tabel: BUIDL (BlackRock dana likuiditas) & EURSAFO
+       (Spiko Amundi overnight swap fund). Engine server masih mengirim —
+       saring di browser supaya tabel 100% crypto. */
+    var BC_EXCL = { BUIDL: 1, EURSAFO: 1 };
+    var coins = B.coins.filter(function (c) { return !BC_EXCL[c.sym]; });
+    /* 2 Nov — ringkasan dihitung ulang dari list yang TAMPIL supaya
+       pembilang & penyebut chip konsisten dgn tabel (bukan angka engine
+       sebelum filter dana RWA). */
+    var up1 = 0, up24 = 0, dn24 = 0, s24 = 0, s7 = 0, n7 = 0, mc = 0, vl = 0, mcb = 0;
+    coins.forEach(function (c) {
+      if (num(c.h1) > 0) up1++;
+      if (num(c.h24) > 0) up24++;
+      else if (num(c.h24) < 0) dn24++;
+      if (num(c.h24) != null) s24 += c.h24;
+      if (num(c.d7) != null) { s7 += c.d7; n7++; }
+      if (num(c.mcap) != null) mc += c.mcap;
+      if (num(c.vol) != null) vl += c.vol;
+      if (c.sym === "BTC") mcb = num(c.mcap) || 0;
+    });
+    var avg24 = coins.length ? s24 / coins.length : 0;
+    var avg7 = n7 ? s7 / n7 : null;
+    var bcShare = mc > 0 && mcb > 0 ? Math.round(mcb / mc * 1000) / 10 : null;
     if (bSort === "g1") coins.sort(function (a, b) {
       return (num(b.h1) == null ? -1e9 : b.h1) - (num(a.h1) == null ? -1e9 : a.h1); });
     else if (bSort === "1h") coins.sort(function (a, b) {          /* 1 Nov: terburuk 1h */
@@ -1884,7 +1977,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         if (r.sym) xsig[r.sym] = (xsig[r.sym] || 0) + 1;
       });
     });
-    var dB = num(R.avg24) || 0, dA = L - S, bcls = "mut", btxt;
+    var dB = avg24, dA = L - S, bcls = "mut", btxt;
     if (!L && !S) btxt = "alt: belum ada sinyal hari ini";
     else if (dB > 0.05 && dA > 0) { bcls = "pos"; btxt = "SEARAH — bigcaps naik · alt LONG " + L + "/" + (L + S); }
     else if (dB < -0.05 && dA < 0) { bcls = "pos"; btxt = "SEARAH — bigcaps turun · alt SHORT " + S + "/" + (L + S); }
@@ -1897,17 +1990,42 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         s.appendChild(el("span", null, v));
         return s;
       };
-      sum.appendChild(chip("naik 1j", (num(R.up1) || 0) + "/" + (B.n || coins.length), "pos"));
-      sum.appendChild(chip("naik 24j", (num(R.up24) || 0) + "/" + (B.n || coins.length), "pos"));
-      sum.appendChild(chip("turun 24j", (num(R.down24) || 0) + "/" + (B.n || coins.length), "neg"));
-      sum.appendChild(chip("avg 24j", pctf(R.avg24), dB > 0 ? "pos" : dB < 0 ? "neg" : "mut"));
-      sum.appendChild(chip("avg 7d", pctf(R.avg7), (num(R.avg7) || 0) > 0 ? "pos" : (num(R.avg7) || 0) < 0 ? "neg" : "mut"));
-      sum.appendChild(chip("vol 24j", fdu(R.vol)));
-      sum.appendChild(chip("total mcap", fdu(R.mcap)));
-      if (R.btc_share != null) sum.appendChild(chip("BTC share", R.btc_share + "%"));
+      sum.appendChild(chip("naik 1j", up1 + "/" + coins.length, "pos"));
+      sum.appendChild(chip("naik 24j", up24 + "/" + coins.length, "pos"));
+      sum.appendChild(chip("turun 24j", dn24 + "/" + coins.length, "neg"));
+      sum.appendChild(chip("avg 24j", pctf(avg24), dB > 0 ? "pos" : dB < 0 ? "neg" : "mut"));
+      sum.appendChild(chip("avg 7d", pctf(avg7), (num(avg7) || 0) > 0 ? "pos" : (num(avg7) || 0) < 0 ? "neg" : "mut"));
+      sum.appendChild(chip("vol 24j", fdu(vl)));
+      sum.appendChild(chip("total mcap", fdu(mc)));
+      if (bcShare != null) sum.appendChild(chip("BTC share", bcShare + "%"));
       if (B.stale) sum.appendChild(chip("cache basi", "+" + (num(B.usia_menit) || 0) + " mnt", "warn"));
       sum.appendChild(chip("vs sinyal alt", btxt, bcls));
       if (B.ts) sum.appendChild(chip("update", B.ts, "mut"));
+    }
+    var bcp = bcPickMap();   /* koin yang sedang dipantau admin (7 hari) */
+    /* 3 Nov — DAFTAR PANTAUAN ADMIN selalu terlihat di atas tabel:
+       chip ★ per koin yang di-pick (klik chip = lepas). Tanpa slide
+       horizontal & tanpa cari baris — jawaban "pick list kemana?". */
+    var pkHost = document.getElementById("bc-picks");
+    if (!pkHost && sum) {
+      pkHost = el("div", "bc-picks");
+      pkHost.id = "bc-picks";
+      sum.parentNode.insertBefore(pkHost, sum.nextSibling);
+    }
+    if (pkHost) {
+      pkHost.innerHTML = "";
+      var pkKeys = Object.keys(bcp);
+      if (pkKeys.length && isLogged()) {
+        pkHost.appendChild(el("span", "bc-picks-h",
+          "pantauan admin (" + pkKeys.length + " · 7 hari):"));
+        pkKeys.forEach(function (k) {
+          var c = el("button", "bc-pick-chip", "★ " + k + " ✕");
+          c.type = "button";
+          c.title = "lepas pantauan " + k;
+          c.addEventListener("click", function () { bcPickToggle(k); });
+          pkHost.appendChild(c);
+        });
+      }
     }
     var kolom = [
       /* 25 Okt — tombol TradingView di ujung kiri, persis gaya Signals. */
@@ -1930,7 +2048,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
             x.title = "ada sinyal engine hari ini (" + xsig[r.sym] + " engine)";
             td.appendChild(x);
           }
-          td.appendChild(el("span", "bc-nama", r.nama));
+          if (bcp[r.sym]) {
+            var st = el("span", "bc-pstar", "★");
+            st.title = "dipantau admin — garis cahaya bertahan 7 hari (lepas lewat kolom pick)";
+            td.appendChild(st);
+          }
+          var nm = el("span", "bc-nama", r.nama);
+          nm.title = r.nama;
+          td.appendChild(nm);
           return td; } },
       { h: "price", n: true, c: function (r) { return txt("$" + fp(r.harga), "n"); } },
       { h: "1j", n: true, c: function (r) { return bcpct(r.h1, true); } },
@@ -1944,15 +2069,29 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       { h: "OI", n: true, c: function (r) { return txt(r.oi != null ? fdu(r.oi) : null, "n"); } },
       { h: "vol 24j", n: true, c: function (r) { return txt(fdu(r.vol), "n"); } },
       { h: "mcap", n: true, c: function (r) { return txt(fdu(r.mcap), "n"); } },
-      { h: "vs ATH", n: true, c: function (r) { return bcpct(r.ath); } }
+      { h: "vs ATH", n: true, c: function (r) { return bcpct(r.ath); } },
+      /* 28 Okt — PICK (khusus admin): tandai koin yang sedang dipantau;
+         bintang kuning ★ + garis cahaya di baris, otomatis lepas 7 hari. */
+      { h: "pick", c: function (r) {
+          if (!isLogged()) return txt("—", "st dim");
+          var td = el("td", "st");
+          var b = el("button", "bc-pick" + (bcp[r.sym] ? " on" : ""), bcp[r.sym] ? "★" : "+");
+          b.type = "button";
+          b.title = bcp[r.sym] ? "lepas pantauan " + r.sym : "pantau " + r.sym + " — garis cahaya bertahan 7 hari";
+          b.addEventListener("click", function () { bcPickToggle(r.sym); });
+          td.appendChild(b);
+          return td; } }
     ];
     table(host, kolom, coins, "Belum ada data big caps.");
     /* 25 Okt — highlight crossover: garis emas kiri utk koin yang juga
-       di-sinyal engine hari ini (urutan tr = urutan coins setelah sort). */
+       di-sinyal engine hari ini (urutan tr = urutan coins setelah sort).
+       28 Okt — koin yang di-PICK admin dapat garis cahaya kuning. */
     var trs = host.querySelectorAll("tbody tr");
     coins.forEach(function (c, i) {
       var tr = trs[i];
-      if (!tr || !xsig[c.sym]) return;
+      if (!tr) return;
+      if (bcp[c.sym]) tr.classList.add("bc-pick");
+      if (!xsig[c.sym]) return;
       tr.classList.add("bc-x");
       tr.title = "🟡 ada sinyal engine hari ini (" + xsig[c.sym] + " engine)";
     });
