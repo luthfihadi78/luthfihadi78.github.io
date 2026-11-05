@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-api2-20261105b";
+  var BUILD = "qkuk-api2-20261105c";
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · ⭐ SCALP 2H = kuning emas (OB 2h, TVI 120) ·
@@ -242,46 +242,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
              k: { next: 0, t0: -9, pts: null } };   // k = kilat (short)
   var NU_REDUCED = false;
   try { NU_REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
-  /* 4 Nov (PILIHAN USER): CRASH = A · DINDING API + B · BADAI BARA.
-     Dinding api: siluet lidah api dari noise (2 lapis parallax) naik dari
-     bawah, bergelombang lambat — seperti kebakaran sungguhan, bukan blob
-     radial/matahari dobel. Badai bara: ratusan percikan bergaris tertiup
-     angin yang berubah arah, cepat & hidup. */
-  var NU_KEDALIM = { snow: 96, driz: 140, bara: 55, streak: 200, debu: 32,
+  /* 4 Nov (PILIHAN USER): CRASH = HUJAN METEOR API + BARA.
+     Dinding api dibuang (jelek). Kini: bara titik lebih banyak naik dari
+     dasar + banyak meteor api jatuh miring dengan ekor menyala, lalu
+     MELEDAK saat menghantam horizon (kilat inti + cincin kejut + serpihan). */
+  var NU_KEDALIM = { snow: 96, driz: 140, bara: 560, meteor: 20, debu: 32,
                      pulsa: 46, debuneon: 62 };
-  /* 4 Nov — dinding api: 2 lapis siluet lidah api dari superposisi sinus
-     (noise murah), digambar penuh tiap frame. Lapis belakang lebih tinggi &
-     redup (parallax), lapis depan lebih rendah & terang (inti kuning-putih). */
-  function nuDindingApi(cx, t) {
-    var W = NU.W, H = NU.H;
-    function lidah(back) {
-      var amp = H * (back ? .34 : .25), sp = back ? .8 : 1.25;
-      var g = cx.createLinearGradient(0, H - amp * 1.5, 0, H);
-      if (back) {
-        g.addColorStop(0, "rgba(160,28,18,0)");
-        g.addColorStop(.55, "rgba(190,40,22,.5)");
-        g.addColorStop(1, "rgba(255,120,40,.75)");
-      } else {
-        g.addColorStop(0, "rgba(255,60,30,0)");
-        g.addColorStop(.45, "rgba(255,110,40,.7)");
-        g.addColorStop(.8, "rgba(255,190,80,.92)");
-        g.addColorStop(1, "rgba(255,236,170,1)");
-      }
-      cx.fillStyle = g;
-      cx.beginPath(); cx.moveTo(0, H);
-      var step = W > 2200 ? 6 : 3;
-      for (var x = 0; x <= W; x += step) {
-        var n = Math.sin(x * .021 + t * 2 * sp + (back ? 5 : 0)) * .5
-              + Math.sin(x * .047 - t * 3.1 * sp) * .3
-              + Math.sin(x * .013 + t * 1.1 * sp + 2) * .55
-              + Math.sin(x * .085 + t * 5.3 * sp) * .16;
-        var k = Math.max(0, Math.min(1, (n + .9) / 1.8));
-        cx.lineTo(x, H - amp * (.22 + .78 * k) - (back ? 8 : 0));
-      }
-      cx.lineTo(W, H); cx.closePath(); cx.fill();
-    }
-    lidah(true); lidah(false);
-  }
   function nuResize() {
     if (!NU.cv) return;
     var d = Math.min(window.devicePixelRatio || 1, 2);
@@ -334,13 +300,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       p.x = r() * NU.W; p.y = isi ? r() * NU.H : NU.H + 6;
       p.vy = -(40 + r() * 110); p.vx = (r() - .5) * 34;
       p.c = coba(["255,226,120", "255,180,80", "255,148,52", "255,109,94"]);
-      p.r = .9 + r() * 2.0; p.a = .32 + r() * .38;
-    } else if (kind === "streak") {         // BADAI BARA: percikan bergaris
-      p.x = r() * NU.W; p.y = isi ? r() * NU.H : NU.H + 6;
-      p.vy = -(20 + r() * 95);
-      p.ln = 5 + r() * 8; p.spd = .4 + r() * .6;
-      p.c = coba(["255,120,50", "255,170,60", "255,220,120"]);
-      p.a = .25 + r() * .55;
+      p.r = 1.1 + r() * 2.3; p.a = .34 + r() * .4;
+    } else if (kind === "meteor") {         // meteor api jatuh miring
+      p.x = r() * (NU.W + 240) - 120;
+      p.y = isi ? r() * NU.H * .5 : -30 - r() * 160;
+      p.vx = -40 - r() * 90;                 // melayang ke kiri
+      p.vy = 300 + r() * 300;
+      p.r = 2 + r() * 3.2;
+      p.impY = NU.H * (.55 + r() * .4);      // titik hantam → meledak
+      if (p.y > p.impY - 30) p.y = p.impY - 60;
+      p.c = coba(["255,220,140", "255,170,80", "255,120,60"]);
+      p.a = .75 + r() * .25;
     } else {                                // debu amber (deg)
       p.x = r() * NU.W; p.y = r() * NU.H;
       p.vy = 6 + r() * 10; p.sw = 6 + r() * 10; p.r = .6 + r() * 1.4;
@@ -348,14 +318,26 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
     NU.parts.push(p);
   }
+  /* ledakan meteor: kilat inti + cincin kejut mengembang + serpihan percikan
+     dgn gravitasi. once:true → sekali pakai, tidak lahir ulang saat mati. */
+  function nuLedak(x, y) {
+    var r = Math.random;
+    NU.parts.push({ k: "ledak", x: x, y: y, age: 0, ttl: .5 + r() * .4,
+                    rmax: 55 + r() * 85, once: true });
+    var ns = 10 + (r() * 12 | 0);
+    for (var i = 0; i < ns; i++) {
+      var ang = r() * 6.283, sp = 70 + r() * 240;
+      NU.parts.push({ k: "percik", x: x, y: y,
+        vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 30,
+        r: .8 + r() * 1.8, age: 0, ttl: .35 + r() * .55,
+        c: ["255,225,150", "255,160,70", "255,110,60"][i % 3],
+        a: .7 + r() * .3, once: true });
+    }
+  }
   function nuTick(dt, t) {
     var W = NU.W, H = NU.H, r = Math.random, i, p, x, alive;
-    /* BADAI BARA (crash): angin berubah arah pelan + hembusan, sama seperti
-       pratinjau — percikan tertiup kiri-kanan, bukan naik lurus. */
     NU.wind = NU.mode === "altseason"
-      ? 96 + 64 * Math.sin(t * .55) + 120 * Math.max(0, Math.sin(t * 1.9))
-      : NU.mode === "crash"
-      ? Math.sin(t * .5) * 70 + Math.sin(t * 1.7) * 30 : 0;
+      ? 96 + 64 * Math.sin(t * .55) + 120 * Math.max(0, Math.sin(t * 1.9)) : 0;
     /* 16 Okt — KILAT HALUS (short): sesekali, bukan hujan kilat. Sambaran
        pertama ~1–3 dtk setelah masuk short biar terlihat, lalu tiap 4–11 dtk.
        Subjek: garis jagged dari langit (~65% layar) + kedip kabur dua-nadi
@@ -401,22 +383,30 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         if (p.y < -10 || p.y > H + 12 || p.x < -12 || p.x > W + 12) {
           NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false;
         }
-      } else if (p.k === "streak") {
-        p.x += NU.wind * p.spd * dt; p.y += p.vy * dt;
-        if (p.y < -14 || p.x < -26 || p.x > W + 26) {
+      } else if (p.k === "meteor") {
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        if (p.y >= p.impY) {                       // hantam → MELEDAK
+          nuLedak(p.x, p.y);
+          NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false;
+        } else if (p.x < -170 || p.x > W + 170) {
           NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false;
         }
+      } else if (p.k === "ledak") {
+        p.age += dt;
+        if (p.age >= p.ttl) { NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false; }
+      } else if (p.k === "percik") {
+        p.vx *= .985; p.vy += 300 * dt;            // gravitasi serpihan
+        p.x += p.vx * dt; p.y += p.vy * dt; p.age += dt;
+        if (p.age >= p.ttl || p.y > H + 20) { NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false; }
       }
       if (alive) continue;
+      if (p.once) continue;   // ledak/percik sekali pakai — jangan lahir ulang
       // ganti yang mati dgn yang baru — jumlah tiap jenis tetap
       nuSpawn(p.k, false);
     }
   }
   function nuPaint() {   // draw semua partikel dalam 1 pass
     var cx = NU.cx, t = performance.now() / 1000;
-    /* CRASH — dinding api (A) digambar DULU sebagai dasar, lalu badai bara
-       (B) sebagai layer percikan di atasnya. */
-    if (NU.mode === "crash") nuDindingApi(cx, t);
     NU.parts.forEach(function (p) {
       if (p.k === "snow") {
         cx.fillStyle = "rgba(" + p.c + "," + (p.a * (0.6 + 0.4 * Math.sin(t * p.fs + p.ph))).toFixed(3) + ")";
@@ -458,14 +448,43 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         cx.fillStyle = "rgba(" + p.c + "," + (p.a * (0.55 + 0.45 * Math.sin(t * p.fs + p.ph))).toFixed(3) + ")";
         cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.283); cx.fill();
         cx.restore();
-      } else if (p.k === "streak") {
-        /* BADAI BARA: garis pendek miring mengikuti arah angin (ekor ke
-           bawah), composite lighter supaya berpijar di latar gelap. */
+      } else if (p.k === "meteor") {
+        /* meteor api: ekor menyala 2 lapis (lebar redup + inti) + kepala
+           putih-kuning terang; TANPA radial gradient (tak ada matahari). */
+        cx.save(); cx.globalCompositeOperation = "lighter"; cx.lineCap = "round";
+        var tx = p.x - p.vx * .06, ty = p.y - p.vy * .06;
+        cx.strokeStyle = "rgba(255,100,45,.30)"; cx.lineWidth = p.r * 3.2;
+        cx.beginPath(); cx.moveTo(p.x, p.y); cx.lineTo(tx, ty); cx.stroke();
+        cx.strokeStyle = "rgba(" + p.c + "," + (.55 * p.a).toFixed(3) + ")";
+        cx.lineWidth = p.r * 1.2;
+        cx.beginPath(); cx.moveTo(p.x, p.y); cx.lineTo(tx, ty); cx.stroke();
+        cx.fillStyle = "rgba(255,244,210,.95)";
+        cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.283); cx.fill();
+        cx.restore();
+      } else if (p.k === "ledak") {
+        /* ledakan: kilat inti singkat (40% awal) + cincin kejut mengembang
+           dgn alpha memudar + cincin dalam merah. */
+        var pr = p.age / p.ttl, ee = 1 - Math.pow(1 - pr, 2), rad = p.rmax * ee;
         cx.save(); cx.globalCompositeOperation = "lighter";
-        cx.lineWidth = 1.4; cx.lineCap = "round";
-        cx.strokeStyle = "rgba(" + p.c + "," + p.a.toFixed(3) + ")";
+        if (pr < .45) {
+          cx.fillStyle = "rgba(255,232,160," + ((1 - pr / .45) * .85).toFixed(3) + ")";
+          cx.beginPath(); cx.arc(p.x, p.y, p.rmax * .26 * (1 - pr), 0, 6.283); cx.fill();
+        }
+        cx.strokeStyle = "rgba(255,170,80," + ((1 - pr) * .85).toFixed(3) + ")";
+        cx.lineWidth = 1 + 2.4 * (1 - pr);
+        cx.beginPath(); cx.arc(p.x, p.y, rad, 0, 6.283); cx.stroke();
+        cx.strokeStyle = "rgba(255,90,50," + ((1 - pr) * .35).toFixed(3) + ")";
+        cx.lineWidth = 1;
+        cx.beginPath(); cx.arc(p.x, p.y, rad * .62, 0, 6.283); cx.stroke();
+        cx.restore();
+      } else if (p.k === "percik") {
+        /* serpihan ledakan: goresan pendek mengikuti arah lemparan */
+        var pa = p.a * (1 - p.age / p.ttl);
+        cx.save(); cx.globalCompositeOperation = "lighter"; cx.lineCap = "round";
+        cx.strokeStyle = "rgba(" + p.c + "," + pa.toFixed(3) + ")";
+        cx.lineWidth = 1.3;
         cx.beginPath(); cx.moveTo(p.x, p.y);
-        cx.lineTo(p.x - NU.wind * .05 * p.spd, p.y + p.ln); cx.stroke();
+        cx.lineTo(p.x - p.vx * .02, p.y - p.vy * .02); cx.stroke();
         cx.restore();
       } else {
         cx.fillStyle = "rgba(238,180,76," + p.a.toFixed(3) + ")";
@@ -523,7 +542,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var m = NU.mode;
     var jenis = m === "netral" ? ["snow"] : m === "long" ? ["pulsa"] :
                 m === "altseason" ? ["debuneon"] : m === "short" ? ["driz"] :
-                m === "crash" ? ["bara", "streak"] : ["debu"];
+                m === "crash" ? ["bara", "meteor"] : ["debu"];
     jenis.forEach(function (k) {
       var c = NU_KEDALIM[k] || 24;
       // prefill separuh dgn posisi menyebar biar layar langsung penuh;
