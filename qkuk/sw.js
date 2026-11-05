@@ -1,14 +1,14 @@
-/* Qkuk Terminal â€” service worker (13 Okt, permintaan user: PWA + push).
+/* Qkuk Terminal — service worker (13 Okt, permintaan user: PWA + push).
    Strategi cache:
    - app-shell (HTML/CSS/JS/manifest/icon): cache-first dgn stale-while-revalidate
      supaya buka instan walau jaringan lambat, tapi tiap buka ambil versi baru dr
      network utk disimpan di cache inset. Situs sudah memakai cache-buster ?v=
-     di URL asset â€” versi baru otomatis melewati cache lama.
-   - data.json & picks.json & textdb: BYPASS cache selalu (network-only) â€” data
+     di URL asset — versi baru otomatis melewati cache lama.
+   - data.json & picks.json & textdb: BYPASS cache selalu (network-only) — data
      live tak boleh basi; kalau network fail, biarkan error (tapi dgn offline
      fallback opsi halaman masih terbuka dgn data terakhir).
-   - Notifikasi: SW menerima push/ klik notifikasi â†’ fokus tab yang ada. */
-/* 25 Okt: bump cache â€” kolom big caps baru (posisi/korelasi/funding/OI) + alert. */
+   - Notifikasi: SW menerima push/ klik notifikasi → fokus tab yang ada. */
+/* 25 Okt: bump cache — kolom big caps baru (posisi/korelasi/funding/OI) + alert. */
 const CACHE = "qkuk-v20261105a";
 const SHELL = [
   "./", "./index.html", "./app.js", "./style.css", "./manifest.json",
@@ -52,7 +52,7 @@ self.addEventListener("fetch", function (e) {
   );
 });
 
-// klik notifikasi â†’ fokuskan/jembatan tab pengirim
+// klik notifikasi → fokuskan/jembatan tab pengirim
 self.addEventListener("notificationclick", function (e) {
   e.notification.close();
   var tujuan = (e.notification.data && e.notification.data.url) || "./";
