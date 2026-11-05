@@ -312,10 +312,12 @@
           <li><b>Altseason and crash are not "long and short, but more".</b> Altseason requires dominance to
             fall; crash requires BTC to fall hard. Different dominant factor, therefore a different colour —
             otherwise the two would read as the same call at different volume.</li>
-          <li><b>A freshness gate instead of a guess.</b> If BTC is more than 15 minutes old or the group wave
-            is more than 8 hours old, the needle drops to neutral and the label reads DEGRADED with the reason
-            attached. The one exception is a sweep-crash computed from fresh klines: that alarm is real, so it
-            is shown rather than hidden behind "degraded".</li>
+          <li><b>A freshness gate instead of a guess.</b> If BTC is more than 15 minutes old, or the group
+            wave is older than a day <i>and</i> the engines behind it stopped writing heartbeats, the needle
+            drops to neutral and the label reads DEGRADED with the reason attached. A wave that is empty while
+            the engines still scan is not stale — the panel says the wave is empty. The other exception is a
+            sweep-crash computed from fresh klines: that alarm is real, so it is shown rather than hidden
+            behind "degraded".</li>
           <li><b>The background is part of the reading.</b> Each state owns a palette, a particle layer and an
             aura: jade for long, cyber-lime aurora for altseason, ember for short, fire from the floor for
             crash, amber for degraded. Flames run 0.62× in altseason and 0.5× in crash — you can tell the
@@ -410,7 +412,8 @@
         <div class="states-row"><span class="st-mut">NEUTRAL</span><span>Inputs disagree, or the damped score sits near zero.</span><span>Default background, soft snow, needle centred.</span></div>
         <div class="states-row"><span class="st-short">SHORT</span><span>Score negative: the majority of the reclaim group is leaning short.</span><span>Ember red and drizzle.</span></div>
         <div class="states-row"><span class="st-crash">CRASH</span><span>Strong short, and it requires BTC falling hard — or a fresh sweep-crash read straight from klines.</span><span>Fire burning from below, oversized aura, flames at 0.5×.</span></div>
-        <div class="states-row"><span class="st-deg">DEGRADED</span><span>An input is stale: BTC older than 15 minutes, or the group wave older than 8 hours.</span><span>Needle forced to neutral, amber palette, label says DEGRADED and the reason is one hover away.</span></div>
+        <div class="states-row"><span class="st-deg">DEGRADED</span><span>An input is stale: BTC older than 15 minutes, or the group wave older than a day with no
+          engine heartbeat. An empty wave on live engines is not degraded — the panel says it is empty.</span><span>Needle forced to neutral, amber palette, label says DEGRADED and the reason is one hover away.</span></div>
       </div>
     </article>
 
