@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-<title>QKUK Terminal — live signal feed</title>
-<meta name="description" content="Live crypto signal terminal. Watchlist, signals and accuracy — Harvest, Engine OB, Swing and Bastion 4H — written straight from the engine.">
+<title>QKUK Terminal â€” live signal feed</title>
+<meta name="description" content="Live crypto signal terminal. Watchlist, signals and accuracy â€” Harvest, Engine OB, Swing and Bastion 4H â€” written straight from the engine.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23070B09'/%3E%3Cg stroke='%236EE7B7' fill='none' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M27.4 16 L21.7 25.9 L10.3 25.9 L4.6 16 L10.3 6.1 L21.7 6.1 Z' stroke-width='2.3'/%3E%3Cpath d='M12 12.2 L15.5 16 L12 19.8' stroke-width='2.3'/%3E%3C/g%3E%3Crect x='17.4' y='15.1' width='4.2' height='1.9' rx='.95' fill='%236EE7B7'/%3E%3C/svg%3E">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-LXAUy0kvUSjxAz/fkXLmBF15ezkgQYHRQhirnM4uq2Y='; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://fapi.binance.com https://api.binance.com https://textdb.dev https://api.coingecko.com https://api.coinpaprika.com https://stablecoins.llama.fi https://api.alternative.me; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=20261103c">
+<link rel="stylesheet" href="style.css?v=20261105a">
 </head>
 <body>
 
@@ -54,8 +54,8 @@
       <div class="glink">
         <span class="gnode"></span><i></i><span class="gnode"></span><i></i><span class="gnode"></span><i></i><span class="gnode"></span><i></i><span class="gnode"></span>
       </div>
-      <div class="ghash" id="gate-hash">0x…</div>
-      <div class="ggrant">✓ AKSES DIBERIKAN — MENAUTKAN BLOK</div>
+      <div class="ghash" id="gate-hash">0xâ€¦</div>
+      <div class="ggrant">âœ“ AKSES DIBERIKAN â€” MENAUTKAN BLOK</div>
     </div>
   </div>
 </div>
@@ -64,8 +64,8 @@
   <div class="bar-in">
     <span class="logo">
       <svg class="mark" viewBox="0 0 32 32" role="img" aria-label="Qkuk Terminal">
-        <!-- ⚠️ Versi pertama memakai kotak bulat + ekor diagonal (niatnya huruf Q).
-             Di ukuran 23px itu terbaca sebagai IKON KACA PEMBESAR — kotak bulat
+        <!-- âš ï¸ Versi pertama memakai kotak bulat + ekor diagonal (niatnya huruf Q).
+             Di ukuran 23px itu terbaca sebagai IKON KACA PEMBESAR â€” kotak bulat
              mirip lensa, ekornya mirip gagang. Diganti HEKSAGON: bentuk blok /
              node yang sudah baku di kripto dan tidak punya tabrakan makna itu.
              Isinya prompt ">" + kursor berkedip = terminal yang hidup, sejalan
@@ -82,19 +82,19 @@
     </span>
     <span class="pill"><span class="dot" id="dot"></span><span id="state">connecting</span></span>
     <span class="kv sp">WIB <b id="clock">--:--:--</b></span>
-    <span class="kv">engine <b id="stamp">—</b></span>
-    <span class="kv btc">BTC <b id="btcpx">—</b></span>
+    <span class="kv">engine <b id="stamp">â€”</b></span>
+    <span class="kv btc">BTC <b id="btcpx">â€”</b></span>
     <span class="kv">refresh <b id="cd">60s</b></span>
     <button id="mute" class="mute" type="button" aria-pressed="false"
-      title="Suara notifikasi: NYALA — klik untuk mati">🔊</button>
+      title="Suara notifikasi: NYALA â€” klik untuk mati">ðŸ”Š</button>
     <button id="sndset" class="mute" type="button" aria-label="Pengaturan suara notifikasi"
-      title="Pengaturan suara notifikasi — pilih 1 dari 20 jenis & atur volume">⚙</button>
+      title="Pengaturan suara notifikasi â€” pilih 1 dari 20 jenis & atur volume">âš™</button>
     <a id="whale-link" class="mute" href="whale.html" draggable="false"
-      title="Tab Whale on-chain — arus whale BTC & ETH ala Lookonchain">🐋</a>
+      title="Tab Whale on-chain â€” arus whale BTC & ETH ala Lookonchain">ðŸ‹</a>
     <a id="riwayat-link" class="mute" href="riwayat.html" draggable="false"
-      title="Riwayat pilihan admin — kurva nett % per bulan + semua trade lama">📜</a>
+      title="Riwayat pilihan admin â€” kurva nett % per bulan + semua trade lama">ðŸ“œ</a>
     <a id="archive-link" class="mute" href="archive.html" draggable="false"
-      title="Arsip data harian — lihat data.json lama lewat tombol tanggal">🗄</a>
+      title="Arsip data harian â€” lihat data.json lama lewat tombol tanggal">ðŸ—„</a>
   </div>
 </div>
 
@@ -104,9 +104,9 @@
 
   <section id="btstrip">
     <div class="card">
-      <div class="card-h"><h3>Backtest kanal aktif — riset per kanal · TP 2R · detail jendela &amp; resep di tooltip</h3><span class="lg" id="bt-lg"></span></div>
+      <div class="card-h"><h3>Backtest kanal aktif â€” riset per kanal Â· TP 2R Â· detail jendela &amp; resep di tooltip</h3><span class="lg" id="bt-lg"></span></div>
       <div id="bt-badges"></div>
-      <p class="cap">Angka riset backtest · gate &amp; jendela tiap kanal ada di tooltip.</p>
+      <p class="cap">Angka riset backtest Â· gate &amp; jendela tiap kanal ada di tooltip.</p>
     </div>
   </section>
 
@@ -128,16 +128,16 @@
   <section id="mctx">
     <div class="sec-h">
       <h2><i>></i> Market context</h2>
-      <span class="hint" id="mctx-src">funding · open interest · long/short · fear & greed</span>
+      <span class="hint" id="mctx-src">funding Â· open interest Â· long/short Â· fear & greed</span>
     </div>
     <div class="mc-grid" id="mctx-grid"></div>
-    <p class="cap">Funding positif = long bayar short · OI naik = posisi baru masuk · segar tiap 5 menit.</p>
+    <p class="cap">Funding positif = long bayar short Â· OI naik = posisi baru masuk Â· segar tiap 5 menit.</p>
   </section>
 
   <section id="bubbles">
     <div class="sec-h">
       <h2><i>&gt;</i> Bubbles</h2>
-      <span class="hint">SEMUA = sinyal entry hari ini · tab engine = 7 hari — % change live 24h from Binance</span>
+      <span class="hint">SEMUA = sinyal entry hari ini Â· tab engine = 7 hari â€” % change live 24h from Binance</span>
       <div class="tabs" id="b-tabs" role="tablist"></div>
     </div>
     <div class="bb-stage">
@@ -147,7 +147,7 @@
           <span><i class="lg-dn"></i>down 24h</span>
           <span><i class="lg-id"></i>no 24h data</span>
         </div>
-        <input id="b-q" type="search" placeholder="sorot koin… (e.g. AVAX)" aria-label="Highlight bubbles by coin">
+        <input id="b-q" type="search" placeholder="sorot koinâ€¦ (e.g. AVAX)" aria-label="Highlight bubbles by coin">
         <span class="bb-found" id="b-found" role="status" aria-live="polite"></span>
       </div>
       <div class="b-chips" id="b-chips"></div>
@@ -155,32 +155,32 @@
       <div class="bb-tip" id="bb-tip"></div>
     </div>
 
-    <p class="cap">Hold = geser · tap = buka grafik TradingView · angka = %24 jam.</p>
+    <p class="cap">Hold = geser Â· tap = buka grafik TradingView Â· angka = %24 jam.</p>
   </section>
 
   <section id="analisa">
     <div class="sec-h">
       <h2><i>&gt;</i> Kotak analisis</h2>
-      <span class="hint">kombinasi alasan × timeframe dengan winrate live tertinggi — berubah otomatis</span>
+      <span class="hint">kombinasi alasan Ã— timeframe dengan winrate live tertinggi â€” berubah otomatis</span>
     </div>
     <div class="an-box" id="analisa-box"></div>
-    <p class="cap">Winrate live dari pick yang sudah di-resolve — kombinasi terbaik tampil di sini.</p>
+    <p class="cap">Winrate live dari pick yang sudah di-resolve â€” kombinasi terbaik tampil di sini.</p>
   </section>
 
   <section id="signals">
     <div class="sec-h">
       <h2><i>&gt;</i> Signals</h2>
-      <span class="hint">SEMUA = entry hari ini · 🔥N = konsensus N engine; tab engine = entries &amp; watchlist</span>
+      <span class="hint">SEMUA = entry hari ini Â· ðŸ”¥N = konsensus N engine; tab engine = entries &amp; watchlist</span>
       <div class="tabs" id="s-tabs" role="tablist"></div>
     </div>
     <div class="s-tools">
-      <input id="s-q" type="search" placeholder="search pair… (e.g. BTC)" aria-label="Search signals by pair">
+      <input id="s-q" type="search" placeholder="search pairâ€¦ (e.g. BTC)" aria-label="Search signals by pair">
       <select id="s-sort" aria-label="Sort signals">
         <option value="ts">newest first</option>
         <option value="pick">picked first</option>
         <option value="pnl">best R first</option>
         <option value="loss">worst R first</option>
-        <option value="sym">pair A–Z</option>
+        <option value="sym">pair Aâ€“Z</option>
       </select>
       <select id="s-side" aria-label="Filter signals by side">
         <option value="">all sides</option>
@@ -194,7 +194,7 @@
   <section id="bigcaps">
     <div class="sec-h">
       <h2><i>></i> Big caps top 50</h2>
-      <span class="hint">market cap terbesar (stablecoin & token wrap dibuang) — pembanding arah vs sinyal alt</span>
+      <span class="hint">market cap terbesar (stablecoin & token wrap dibuang) â€” pembanding arah vs sinyal alt</span>
       <select id="bc-sort" aria-label="Sort big caps">
         <option value="mcap">mcap terbesar</option>
         <option value="g1">1h % terbaik</option>
@@ -212,29 +212,29 @@
     </div>
     <div class="bc-sum" id="bc-sum"></div>
     <div class="tw" id="bc-table"></div>
-    <p class="cap">CoinGecko + Binance via engine (cache 15 mnt) · 🟡 = ada sinyal engine hari ini · alert WA otomatis saat ≥16 koin bergerak ≥1%/1j</p>
+    <p class="cap">CoinGecko + Binance via engine (cache 15 mnt) Â· ðŸŸ¡ = ada sinyal engine hari ini Â· alert WA otomatis saat â‰¥16 koin bergerak â‰¥1%/1j</p>
   </section>
 
   <section id="kamu">
     <div class="sec-h">
       <h2><i>&gt;</i> Picked by you</h2>
-      <span class="hint">winrate LIVE dari pilihanmu — bukan backtest</span>
+      <span class="hint">winrate LIVE dari pilihanmu â€” bukan backtest</span>
     </div>
     <div class="ak-grid" id="kamu-grid"></div>
-    <p class="cap">Tandai &amp; resolve koin langsung di tabel Signals — winrate di sini murni hasil live-mu.</p>
+    <p class="cap">Tandai &amp; resolve koin langsung di tabel Signals â€” winrate di sini murni hasil live-mu.</p>
   </section>
 
   <section id="charts">
     <div class="grid2">
       <div class="card">
-        <div class="card-h"><h3>Winrate live — Brick, Harvest 2h, Swing 4h &amp; Bastion 4H</h3><div class="lg" id="eq-lg"></div></div>
+        <div class="card-h"><h3>Winrate live â€” Brick, Harvest 2h, Swing 4h &amp; Bastion 4H</h3><div class="lg" id="eq-lg"></div></div>
         <svg class="ch" id="eq" role="img" aria-label="Kurva kumulatif hasil live per kanal"></svg>
         <p class="cap">Kurva kumulatif hasil live resolve admin.</p>
       </div>
       <div class="card">
-        <div class="card-h"><h3>Win rate by WIB hour — 00:00 to 23:00</h3><div class="lg" id="hr-lg"></div></div>
+        <div class="card-h"><h3>Win rate by WIB hour â€” 00:00 to 23:00</h3><div class="lg" id="hr-lg"></div></div>
         <svg class="ch" id="hr" role="img" aria-label="Winrate per jam WIB, empat kanal live"></svg>
-        <p class="cap">Winrate per jam WIB · 4 kanal · hover untuk rincian.</p>
+        <p class="cap">Winrate per jam WIB Â· 4 kanal Â· hover untuk rincian.</p>
       </div>
     </div>
   </section>
@@ -242,23 +242,23 @@
   <section id="leaderboard">
     <div class="sec-h">
       <h2><i>></i> Leaderboard admin</h2>
-      <span class="hint">head-to-head Qkuk vs Gerry — winrate & net R live resolve</span>
+      <span class="hint">head-to-head Qkuk vs Gerry â€” winrate & net R live resolve</span>
       <div class="tabs" id="lb-tabs" role="tablist"></div>
     </div>
     <div class="tw" id="lb-table"></div>
-    <p class="cap">Pick yang di-resolve admin (sinyal + watchlist digabung) · bukan backtest.</p>
+    <p class="cap">Pick yang di-resolve admin (sinyal + watchlist digabung) Â· bukan backtest.</p>
   </section>
 
   <section id="whatif">
     <div class="sec-h">
       <h2><i>></i> Simulasi what-if</h2>
-      <span class="hint">“kalau ambil semua sinyal engine dgn risk tetap — equity sekarang?”</span>
+      <span class="hint">â€œkalau ambil semua sinyal engine dgn risk tetap â€” equity sekarang?â€</span>
     </div>
     <div class="card">
-      <div class="card-h"><h3>Equity curve — mulai 100</h3><div class="lg" id="wi-ctl"></div></div>
+      <div class="card-h"><h3>Equity curve â€” mulai 100</h3><div class="lg" id="wi-ctl"></div></div>
       <svg class="ch" id="wi-svg" role="img" aria-label="Kurva simulasi equity"></svg>
       <div class="rows" id="wi-stats"></div>
-      <p class="cap">Sumber: hasil R sinyal engine pada jendela data.json (±100 sinyal terakhir per kanal) — bukan pick admin, bukan backtest penuh.</p>
+      <p class="cap">Sumber: hasil R sinyal engine pada jendela data.json (Â±100 sinyal terakhir per kanal) â€” bukan pick admin, bukan backtest penuh.</p>
     </div>
   </section>
 
@@ -266,10 +266,10 @@
 
   <footer id="footer">
     <span>Built and operated by <a href="https://luthfihadi78.github.io">Moch. Luthfi Hadiwidjaja</a></span>
-    <span id="foot">—</span>
+    <span id="foot">â€”</span>
   </footer>
 </div>
 
-<script src="app.js?v=20261103c" defer></script>
+<script src="app.js?v=20261105a" defer></script>
 </body>
 </html>
