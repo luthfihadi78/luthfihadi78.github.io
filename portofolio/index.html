@@ -27,6 +27,7 @@
       <a href="#system">System</a>
       <a href="#engines">Engines</a>
       <a href="#terminal">Terminal</a>
+      <a href="#onchain">On-chain</a>
       <a href="#indicator">Indicator</a>
       <a href="#ops">Ops</a>
       <a class="cta" href="https://luthfihadi78.github.io/qkuk/" target="_blank" rel="noopener">Live terminal ↗</a>
@@ -608,11 +609,120 @@ NEXT      CPI 20:30 WIB — reduce size before release</code></pre>
   </div>
 </section>
 
-<!-- ══════════════ INDICATOR ══════════════ -->
-<section id="indicator" class="sec alt">
+<!-- ══════════════ ON-CHAIN (WHALE) ══════════════ -->
+<section id="onchain" class="sec alt">
   <div class="wrap">
     <div class="sec-head">
-      <p class="eyebrow">04 · the indicator</p>
+      <p class="eyebrow">04 · on-chain</p>
+      <h2>A second opinion that does not come from a chart</h2>
+      <p class="sec-lede">
+        <code>whale.html</code> is the second page of the terminal. It watches large on-chain transfers and
+        perpetual fills, so a signal can be confirmed — or refused — by money that actually moved. Direction
+        is never inferred by a model: a deposit into a known exchange address is a sell indication, a
+        withdrawal from one is a buy indication, and that rule is printed on the page itself.
+      </p>
+    </div>
+
+    <!-- 4.1 WHALE FEED -->
+    <article class="feature" id="whale">
+      <div class="feat-copy">
+        <p class="eyebrow">4.1 · whale feed</p>
+        <h3>Large transfers, each row labelled with the reason it was counted</h3>
+        <p class="feat-what"><b>What it is.</b> A live table of whale-sized transfers and perp fills across
+          BTC, ETH, BSC, SUI and Hyperliquid. Every row carries the time, the chain, the side
+          (JUAL / BELI / TRANSFER), the amount in token units and in dollars, the reason it was classified
+          that way, and a link to the transaction on a block explorer.</p>
+        <p class="feat-why"><b>What it is for.</b> A signal tells me a coin is set up. The feed tells me
+          whether the money behind it agrees. A cluster of deposits into exchanges while an engine is long
+          is a reason to size down, not a reason to add.</p>
+        <ul class="facts">
+          <li><b>Thresholds scale with the asset</b>: BTC and ETH count from $20 m; everything else from
+            <i>max(1% of 24h volume, $2 m)</i> — so $3 m in a small cap is a whale while the same $3 m in
+            BTC is noise. Anything at or above $100 m is tagged <b>MEGA</b>.</li>
+          <li><b>Filters</b>: SEMUA, JUAL, BELI, TRANSFER, MEGA, plus a search box that matches symbol,
+            exchange or reason and is remembered per device.</li>
+          <li><b>Dormancy chip</b>: when the sending wallet had been asleep, the row says for how long — an
+            old whale waking up is a different event from routine flow.</li>
+          <li><b>MEGA alert</b>: an optional desktop notification and a distinct sound for prints at or
+            above $100 m, including when the tab is in the background.</li>
+          <li><b>Wallets watched</b> lists only addresses with a measurable balance ($50 k and up), with
+            Hyperliquid perp positions and explorer links, so the feed can be traced back to an owner.</li>
+        </ul>
+      </div>
+      <figure class="figure panel">
+        <div class="fig-head"><span>Figure 10</span><h4>Whale feed — direction taken from the counterparty</h4></div>
+        <div class="shot">
+          <div class="shot-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i>
+            <span class="shot-url">luthfihadi78.github.io/qkuk/whale.html · #feed</span></div>
+          <img src="img/whale-feed.png" width="2440" height="1272" loading="eager" decoding="async"
+               alt="Tangkapan layar asli Whale Feed di Qkuk Terminal: tabel transaksi besar on-chain dengan kolom waktu, chain, arah JUAL/BELI, nominal token, nilai dolar, alasan (deposit/withdrawal dari exchange) dan tautan tx, plus tab filter SEMUA/JUAL/BELI/TRANSFER/MEGA dan kotak cari.">
+        </div>
+        <figcaption>Real capture of the running page. The two $USDC rows are the same size and the same
+          minute, but one is a deposit and one is a withdrawal — opposite sides, and the column on the right
+          is what makes that visible without opening the explorer.</figcaption>
+      </figure>
+
+      <figure class="figure panel panel-shot">
+        <div class="fig-head"><span>Figure 11</span><h4>The summary states its own rules</h4></div>
+        <div class="shot">
+          <div class="shot-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i>
+            <span class="shot-url">luthfihadi78.github.io/qkuk/whale.html · #ringkas</span></div>
+          <img src="img/whale-ringkas.png" width="2440" height="556" loading="eager" decoding="async"
+               alt="Tangkapan layar asli ringkasan whale: label TEKANAN JUAL dengan 2 indikasi jual lawan 1 beli, empat angka 24 jam (alert, indikasi jual, indikasi beli, MEGA), serta baris sumber, threshold, arah dibaca dan total tercatat.">
+        </div>
+        <figcaption>The strip above the feed. The bias is read from the 24-hour counts, but the four lines
+          beside it are printed rather than hidden: where the rows come from, what had to be true to be
+          counted, how direction is derived, and how many alerts exist in total. A bearish label with no
+          visible rule is just an opinion.</figcaption>
+      </figure>
+    </article>
+
+    <!-- 4.2 CEK ARAH KOIN -->
+    <article class="feature flip" id="whale-cek">
+      <div class="feat-copy">
+        <p class="eyebrow">4.2 · cek arah koin</p>
+        <h3>Before an entry: who is actually taking liquidity right now</h3>
+        <p class="feat-what"><b>What it is.</b> Type a symbol and the page pulls the last 30 minutes of
+          Binance USDⓈ-M aggregated trades straight from the browser, splits them per minute into
+          aggressive buys and aggressive sells, and draws one bar per minute. Four cards sit above the
+          chart: buy dominance, futures volume, active minutes and the current price. The DEX side is
+          cross-checked separately through GeckoTerminal.</p>
+        <p class="feat-why"><b>What it is for.</b> A reclaim signal and sellers hitting the bid are
+          contradictory information, and the chart alone cannot tell them apart. This check is the tie
+          breaker: green bars mean buyers are lifting offers, red bars mean sellers are hitting bids, and
+          the verdict only claims a majority when futures and DEX agree.</p>
+        <ul class="facts">
+          <li><b>Coverage is active minutes, not a 30-minute average</b> — a quiet coin shows 8 of 30
+            minutes rather than pretending the empty minutes were balanced flow.</li>
+          <li><b>Disagreement is a result</b>: when futures and DEX point different ways the page says so
+            instead of averaging them into a fake consensus.</li>
+          <li><b>Trade threshold chips</b> ($100 to $5 m) recompute the window locally, so a thin coin's
+            dust cannot dominate the picture.</li>
+          <li><b>Hover a bar</b> for that minute's buy/sell split; the whole check runs client-side, so no
+            API key sits on the server and nothing is stored.</li>
+        </ul>
+      </div>
+      <figure class="figure panel">
+        <div class="fig-head"><span>Figure 12</span><h4>Per-minute taker flow, futures and DEX side by side</h4></div>
+        <div class="shot">
+          <div class="shot-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i>
+            <span class="shot-url">luthfihadi78.github.io/qkuk/whale.html · #cek</span></div>
+          <img src="img/whale-cek.png" width="2440" height="1202" loading="eager" decoding="async"
+               alt="Tangkapan layar asli Cek Arah Koin untuk BTC: verdict MAYORITAS JUAL dengan keterangan futures dan DEX sepakat, kartu dominasi beli 32.7 persen, volume futures 121.8 juta dolar, cakupan 8 menit, harga sekarang, lalu grafik batang per menit hijau dan merah.">
+        </div>
+        <figcaption>Real capture for BTC. Buy dominance at 32.7% over 8 active minutes, and the bar that
+          dwarfs the window is one minute of aggressive selling — the kind of asymmetry a 24-hour change
+          number averages away.</figcaption>
+      </figure>
+    </article>
+  </div>
+</section>
+
+<!-- ══════════════ INDICATOR ══════════════ -->
+<section id="indicator" class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">05 · the indicator</p>
       <h2>My own ICT indicator, because the engine should be checkable by eye</h2>
       <p class="sec-lede">
         <code>Qkuk ICT Concepts</code> is a Pine Script v6 indicator I wrote for TradingView. It is not a
@@ -623,7 +733,7 @@ NEXT      CPI 20:30 WIB — reduce size before release</code></pre>
     </div>
 
     <figure class="figure panel wide">
-      <div class="fig-head"><span>Figure 9</span><h4>The chart vocabulary</h4></div>
+      <div class="fig-head"><span>Figure 13</span><h4>The chart vocabulary</h4></div>
       <svg class="chartfig" id="chartfig" viewBox="0 0 760 380" role="img" aria-label="Illustration of the indicator on a candlestick chart: a bullish order block, a fair value gap, a liquidity sweep below a swing low, an MSS line, an inducement level and a killzone band.">
         <rect width="760" height="380" fill="#080D0B"/>
         <g stroke="#141F1A"><path d="M0 80h760M0 160h760M0 240h760M0 320h760"/></g>
@@ -700,10 +810,10 @@ NEXT      CPI 20:30 WIB — reduce size before release</code></pre>
 </section>
 
 <!-- ══════════════ OPS ══════════════ -->
-<section id="ops" class="sec">
+<section id="ops" class="sec alt">
   <div class="wrap">
     <div class="sec-head">
-      <p class="eyebrow">05 · operations</p>
+      <p class="eyebrow">06 · operations</p>
       <h2>The unglamorous half: keeping it alive, and keeping it honest</h2>
       <p class="sec-lede">
         A trading system that only works on the machine where it was written is a demo. Most of the work in
