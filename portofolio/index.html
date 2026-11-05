@@ -628,8 +628,7 @@ NEXT      CPI 20:30 WIB — reduce size before release</code></pre>
       <div class="feat-copy">
         <p class="eyebrow">4.1 · whale feed</p>
         <h3>Large transfers, each row labelled with the reason it was counted</h3>
-        <p class="feat-what"><b>What it is.</b> A live table of whale-sized transfers and perp fills across
-          BTC, ETH, BSC, SUI and Hyperliquid. Every row carries the time, the chain, the side
+        <p class="feat-what"><b>What it is.</b> A live table of whale-sized transfers and perp fills. Every row carries the time, the chain, the side
           (JUAL / BELI / TRANSFER), the amount in token units and in dollars, the reason it was classified
           that way, and a link to the transaction on a block explorer.</p>
         <p class="feat-why"><b>What it is for.</b> A signal tells me a coin is set up. The feed tells me
@@ -657,9 +656,9 @@ NEXT      CPI 20:30 WIB — reduce size before release</code></pre>
           <img src="img/whale-feed.png" width="2440" height="1272" loading="eager" decoding="async"
                alt="Tangkapan layar asli Whale Feed di Qkuk Terminal: tabel transaksi besar on-chain dengan kolom waktu, chain, arah JUAL/BELI, nominal token, nilai dolar, alasan (deposit/withdrawal dari exchange) dan tautan tx, plus tab filter SEMUA/JUAL/BELI/TRANSFER/MEGA dan kotak cari.">
         </div>
-        <figcaption>Real capture of the running page. The two $USDC rows are the same size and the same
-          minute, but one is a deposit and one is a withdrawal — opposite sides, and the column on the right
-          is what makes that visible without opening the explorer.</figcaption>
+        <figcaption>Real capture of the running page. Two $USDC rows land in the same minute with opposite
+          sides — 11 m moving in as a sell indication, 8.5 m moving out as a buy — and the reason column on
+          the right is what tells them apart without opening the explorer.</figcaption>
       </figure>
 
       <figure class="figure panel panel-shot">
@@ -698,8 +697,8 @@ NEXT      CPI 20:30 WIB — reduce size before release</code></pre>
             instead of averaging them into a fake consensus.</li>
           <li><b>Trade threshold chips</b> ($100 to $5 m) recompute the window locally, so a thin coin's
             dust cannot dominate the picture.</li>
-          <li><b>Hover a bar</b> for that minute's buy/sell split; the whole check runs client-side, so no
-            API key sits on the server and nothing is stored.</li>
+          <li><b>Hover a bar</b> for that minute's buy/sell split. The whole check runs client-side: no
+            API key, no stored trade history — only the chosen threshold is remembered.</li>
         </ul>
       </div>
       <figure class="figure panel">
