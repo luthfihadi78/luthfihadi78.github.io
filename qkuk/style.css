@@ -1195,15 +1195,13 @@ select.lg-sel{margin-left:auto}
    bull, altseason aurora, deg amber, netral tanpa lapisan. */
 #tema{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;
   transition:opacity 1.4s ease}
-/* 4 Nov (PILIHAN USER): CRASH = KABUT API & ASAP — horizon panas ramping di
-   dasar, asap gelap bergulung menutup kaki layar (lapisan asap digambar di
-   canvas #nuansa, lihat nuAsap), bara naik menembusnya. Gelap, megah,
-   berbahaya — tanpa blob/matahari dobel. */
+/* 4 Nov (PILIHAN USER): CRASH = A · DINDING API + B · BADAI BARA.
+   Latar gelap hangat; siluet lidah api (2 lapis parallax) + percikan bara
+   bergaris digambar di canvas #nuansa (lihat nuDindingApi & spawn streak).
+   Tanpa blob radial/matahari dobel. */
 body.tema-crash #tema{opacity:1;background:
-  linear-gradient(0deg,rgba(255,206,126,.60) 0,rgba(255,136,50,.44) 9px,rgba(120,30,14,.30) 32px,rgba(24,7,6,0) 82px),
-  radial-gradient(140% 58% at 50% 118%,rgba(255,96,40,.20),transparent 66%),
-  linear-gradient(180deg,#0b0404 0%,#150505 58%,#1c0606 100%);
-  animation:tema-kabut 5.5s ease-in-out infinite}
+  linear-gradient(180deg,#0d0503 0%,#1a0604 62%,#2b0a05 100%);
+  animation:tema-api 3.6s ease-in-out infinite}
 body.tema-short #tema{opacity:1;background:
   radial-gradient(110% 50% at 50% 116%,rgba(232,135,124,.16),transparent 62%),
   radial-gradient(70% 34% at 20% 110%,rgba(232,135,124,.10),transparent 60%)}
@@ -1222,7 +1220,9 @@ body.tema-altseason #tema{opacity:1;background:
   background-size:auto,auto,auto,44px 44px,44px 44px}
 body.tema-deg #tema{opacity:1;background:
   radial-gradient(100% 48% at 50% 116%,rgba(238,180,76,.16),transparent 62%)}
-@keyframes tema-kabut{0%,100%{filter:brightness(1)}50%{filter:brightness(1.12)}}
+/* kedip pelan napas api — tidak agresif, cukup terasa hidup */
+@keyframes tema-api{0%,100%{filter:brightness(1)}35%{filter:brightness(1.16)}
+  70%{filter:brightness(.97)}}
 @media (prefers-reduced-motion:reduce){body.tema-crash #tema{animation:none}}
 
 /* ── 16 Okt: lapisan partikel nuansa (#nuansa) — pasar jadi "hidup" ──

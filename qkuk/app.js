@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-api2-20261105a";
+  var BUILD = "qkuk-api2-20261105b";
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · ⭐ SCALP 2H = kuning emas (OB 2h, TVI 120) ·
@@ -242,31 +242,45 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
              k: { next: 0, t0: -9, pts: null } };   // k = kilat (short)
   var NU_REDUCED = false;
   try { NU_REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
-  /* 4 Nov (PILIHAN USER): CRASH = KABUT API & ASAP — bukan lagi kebakaran
-     blob radial (yang tampak seperti matahari dobel). Kini: horizon panas
-     ramping + 3 lapis asap gelap bergulung (nuAsap) + bara tipis naik
-     menembus asap. Gelap, megah, berbahaya. */
-  var NU_KEDALIM = { snow: 96, driz: 140, bara: 150, debu: 32,
+  /* 4 Nov (PILIHAN USER): CRASH = A · DINDING API + B · BADAI BARA.
+     Dinding api: siluet lidah api dari noise (2 lapis parallax) naik dari
+     bawah, bergelombang lambat — seperti kebakaran sungguhan, bukan blob
+     radial/matahari dobel. Badai bara: ratusan percikan bergaris tertiup
+     angin yang berubah arah, cepat & hidup. */
+  var NU_KEDALIM = { snow: 96, driz: 140, bara: 55, streak: 200, debu: 32,
                      pulsa: 46, debuneon: 62 };
-  /* 4 Nov — asap gelap bergulung: 3 lapis pita bergelombang menutup kaki
-     layar. Digambar penuh tiap frame (bukan sprite) supaya bergulung halus
-     dan TIDAK berbentuk lingkaran/matahari. */
-  function nuAsap(cx, t) {
+  /* 4 Nov — dinding api: 2 lapis siluet lidah api dari superposisi sinus
+     (noise murah), digambar penuh tiap frame. Lapis belakang lebih tinggi &
+     redup (parallax), lapis depan lebih rendah & terang (inti kuning-putih). */
+  function nuDindingApi(cx, t) {
     var W = NU.W, H = NU.H;
-    for (var L = 0; L < 3; L++) {
-      var amp = H * .10 + L * H * .05, yb = H - L * H * .12 - 6, al = .26 + L * .12;
-      var g = cx.createLinearGradient(0, yb - amp, 0, H);
-      g.addColorStop(0, "rgba(70,14,10,0)");
-      g.addColorStop(1, "rgba(28,6,5," + al + ")");
+    function lidah(back) {
+      var amp = H * (back ? .34 : .25), sp = back ? .8 : 1.25;
+      var g = cx.createLinearGradient(0, H - amp * 1.5, 0, H);
+      if (back) {
+        g.addColorStop(0, "rgba(160,28,18,0)");
+        g.addColorStop(.55, "rgba(190,40,22,.5)");
+        g.addColorStop(1, "rgba(255,120,40,.75)");
+      } else {
+        g.addColorStop(0, "rgba(255,60,30,0)");
+        g.addColorStop(.45, "rgba(255,110,40,.7)");
+        g.addColorStop(.8, "rgba(255,190,80,.92)");
+        g.addColorStop(1, "rgba(255,236,170,1)");
+      }
       cx.fillStyle = g;
       cx.beginPath(); cx.moveTo(0, H);
-      for (var x = 0; x <= W; x += 10) {
-        var y = yb - amp * (.5 + .5 * Math.sin(x * .016 + t * .9 * (L % 2 ? 1 : -1) + L * 3))
-                    * (.6 + .4 * Math.sin(x * .05 - t * 1.7 + L));
-        cx.lineTo(x, y);
+      var step = W > 2200 ? 6 : 3;
+      for (var x = 0; x <= W; x += step) {
+        var n = Math.sin(x * .021 + t * 2 * sp + (back ? 5 : 0)) * .5
+              + Math.sin(x * .047 - t * 3.1 * sp) * .3
+              + Math.sin(x * .013 + t * 1.1 * sp + 2) * .55
+              + Math.sin(x * .085 + t * 5.3 * sp) * .16;
+        var k = Math.max(0, Math.min(1, (n + .9) / 1.8));
+        cx.lineTo(x, H - amp * (.22 + .78 * k) - (back ? 8 : 0));
       }
       cx.lineTo(W, H); cx.closePath(); cx.fill();
     }
+    lidah(true); lidah(false);
   }
   function nuResize() {
     if (!NU.cv) return;
@@ -316,11 +330,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       p.x = r() * (NU.W + 40) - 20; p.y = isi ? r() * NU.H : -14;
       p.vx = -12 - r() * 12; p.vy = 320 + r() * 150;
       p.ln = 9 + r() * 9; p.a = .22 + r() * .26;
-    } else if (kind === "bara") {           // bara tipis naik menembus asap
+    } else if (kind === "bara") {           // bara titik naik dari dasar
       p.x = r() * NU.W; p.y = isi ? r() * NU.H : NU.H + 6;
-      p.vy = -(26 + r() * 92); p.vx = (r() - .5) * 30;
+      p.vy = -(40 + r() * 110); p.vx = (r() - .5) * 34;
       p.c = coba(["255,226,120", "255,180,80", "255,148,52", "255,109,94"]);
       p.r = .9 + r() * 2.0; p.a = .32 + r() * .38;
+    } else if (kind === "streak") {         // BADAI BARA: percikan bergaris
+      p.x = r() * NU.W; p.y = isi ? r() * NU.H : NU.H + 6;
+      p.vy = -(20 + r() * 95);
+      p.ln = 5 + r() * 8; p.spd = .4 + r() * .6;
+      p.c = coba(["255,120,50", "255,170,60", "255,220,120"]);
+      p.a = .25 + r() * .55;
     } else {                                // debu amber (deg)
       p.x = r() * NU.W; p.y = r() * NU.H;
       p.vy = 6 + r() * 10; p.sw = 6 + r() * 10; p.r = .6 + r() * 1.4;
@@ -330,8 +350,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   function nuTick(dt, t) {
     var W = NU.W, H = NU.H, r = Math.random, i, p, x, alive;
+    /* BADAI BARA (crash): angin berubah arah pelan + hembusan, sama seperti
+       pratinjau — percikan tertiup kiri-kanan, bukan naik lurus. */
     NU.wind = NU.mode === "altseason"
-      ? 96 + 64 * Math.sin(t * .55) + 120 * Math.max(0, Math.sin(t * 1.9)) : 0;
+      ? 96 + 64 * Math.sin(t * .55) + 120 * Math.max(0, Math.sin(t * 1.9))
+      : NU.mode === "crash"
+      ? Math.sin(t * .5) * 70 + Math.sin(t * 1.7) * 30 : 0;
     /* 16 Okt — KILAT HALUS (short): sesekali, bukan hujan kilat. Sambaran
        pertama ~1–3 dtk setelah masuk short biar terlihat, lalu tiap 4–11 dtk.
        Subjek: garis jagged dari langit (~65% layar) + kedip kabur dua-nadi
@@ -377,6 +401,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         if (p.y < -10 || p.y > H + 12 || p.x < -12 || p.x > W + 12) {
           NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false;
         }
+      } else if (p.k === "streak") {
+        p.x += NU.wind * p.spd * dt; p.y += p.vy * dt;
+        if (p.y < -14 || p.x < -26 || p.x > W + 26) {
+          NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false;
+        }
       }
       if (alive) continue;
       // ganti yang mati dgn yang baru — jumlah tiap jenis tetap
@@ -385,9 +414,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   function nuPaint() {   // draw semua partikel dalam 1 pass
     var cx = NU.cx, t = performance.now() / 1000;
-    /* CRASH — asap gelap bergulung digambar DULU (paling bawah) supaya bara
-       tampak naik menembusnya. Horizon panas ada di CSS #tema. */
-    if (NU.mode === "crash") nuAsap(cx, t);
+    /* CRASH — dinding api (A) digambar DULU sebagai dasar, lalu badai bara
+       (B) sebagai layer percikan di atasnya. */
+    if (NU.mode === "crash") nuDindingApi(cx, t);
     NU.parts.forEach(function (p) {
       if (p.k === "snow") {
         cx.fillStyle = "rgba(" + p.c + "," + (p.a * (0.6 + 0.4 * Math.sin(t * p.fs + p.ph))).toFixed(3) + ")";
@@ -428,6 +457,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         cx.save(); cx.globalCompositeOperation = "lighter";
         cx.fillStyle = "rgba(" + p.c + "," + (p.a * (0.55 + 0.45 * Math.sin(t * p.fs + p.ph))).toFixed(3) + ")";
         cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.283); cx.fill();
+        cx.restore();
+      } else if (p.k === "streak") {
+        /* BADAI BARA: garis pendek miring mengikuti arah angin (ekor ke
+           bawah), composite lighter supaya berpijar di latar gelap. */
+        cx.save(); cx.globalCompositeOperation = "lighter";
+        cx.lineWidth = 1.4; cx.lineCap = "round";
+        cx.strokeStyle = "rgba(" + p.c + "," + p.a.toFixed(3) + ")";
+        cx.beginPath(); cx.moveTo(p.x, p.y);
+        cx.lineTo(p.x - NU.wind * .05 * p.spd, p.y + p.ln); cx.stroke();
         cx.restore();
       } else {
         cx.fillStyle = "rgba(238,180,76," + p.a.toFixed(3) + ")";
@@ -485,7 +523,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var m = NU.mode;
     var jenis = m === "netral" ? ["snow"] : m === "long" ? ["pulsa"] :
                 m === "altseason" ? ["debuneon"] : m === "short" ? ["driz"] :
-                m === "crash" ? ["bara"] : ["debu"];
+                m === "crash" ? ["bara", "streak"] : ["debu"];
     jenis.forEach(function (k) {
       var c = NU_KEDALIM[k] || 24;
       // prefill separuh dgn posisi menyebar biar layar langsung penuh;
