@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-api2-20261105f";
+  var BUILD = "qkuk-api2-20261106a";
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · ⭐ SCALP 2H = kuning emas (OB 2h, TVI 120) ·
@@ -358,6 +358,26 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         a: .6 + r() * .4, once: true });
     }
   }
+  /* ekor pita meruncing (teardrop) — dari kepala melebar lalu meruncing ke
+     ujung ekor, bergelombang pelan. 2 lapis dipanggil: luar merah, dalam kuning. */
+  function nuEkor(cx, x, y, nx2, ny2, px2, py2, len, w0, c0, c1, al, t, ph) {
+    if (w0 < .5) return;
+    var ex = x - nx2 * len + px2 * Math.sin(t * 7 + ph) * w0 * .5;
+    var ey = y - ny2 * len + py2 * Math.sin(t * 7 + ph) * w0 * .5;
+    var g = cx.createLinearGradient(x, y, ex, ey);
+    g.addColorStop(0, "rgba(" + c0 + "," + al.toFixed(3) + ")");
+    g.addColorStop(.55, "rgba(" + c1 + "," + (al * .45).toFixed(3) + ")");
+    g.addColorStop(1, "rgba(" + c1 + ",0)");
+    cx.fillStyle = g;
+    cx.beginPath();
+    cx.moveTo(x + px2 * w0 * .3, y + py2 * w0 * .3);
+    cx.quadraticCurveTo(x + px2 * w0 * .55 - nx2 * len * .45,
+                        y + py2 * w0 * .55 - ny2 * len * .45, ex, ey);
+    cx.quadraticCurveTo(x - px2 * w0 * .55 - nx2 * len * .45,
+                        y - py2 * w0 * .55 - ny2 * len * .45,
+                        x - px2 * w0 * .3, y - py2 * w0 * .3);
+    cx.closePath(); cx.fill();
+  }
   function nuTick(dt, t) {
     var W = NU.W, H = NU.H, r = Math.random, i, p, x, alive;
     NU.wind = NU.mode === "altseason"
@@ -409,6 +429,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         }
       } else if (p.k === "meteor") {
         p.x += p.vx * dt; p.y += p.vy * dt;
+        if (r() < .05) {                           // serpihan mengelupas dari kepala
+          NU.parts.push({ k: "percik", x: p.x, y: p.y,
+            vx: -p.vx * .15 + (r() - .5) * 50, vy: -p.vy * .1 + (r() - .5) * 50,
+            r: .6 + r() * 1.3, age: 0, ttl: .3 + r() * .4,
+            c: "255,170,80", a: .7 + r() * .3, once: true });
+        }
         if (p.y >= p.impY) {                       // hantam → MELEDAK
           nuLedak(p.x, p.y, p.z);
           NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false;
@@ -473,30 +499,53 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.283); cx.fill();
         cx.restore();
       } else if (p.k === "meteor") {
-        /* BOLID 3D: ekor komet volumetrik (rangkaian bola mengecil memudar di
-           belakang kepala — teardrop 3D, bukan garis) + kepala bola api dari
-           sprite radial + inti putih. Kedip halus biar hidup. */
+        /* BOLIDE BATU API: batu gelap berputar (kawah ikut muter) dgn pantulan
+           api menyala di sisi depan (arah gerak), dibungkus sheath bola api +
+           ekor pita meruncing 2 lapis yang bergelombang — seperti bolid asli. */
+        var mag = Math.hypot(p.vx, p.vy) || 1;
+        var nx2 = p.vx / mag, ny2 = p.vy / mag;      // arah gerak (depan)
+        var px2 = -ny2, py2 = nx2;                    // tegak lurus arah gerak
+        var rB = p.r;
+        var lenF = .55 + .45 * (mag / 480);           // makin deras makin panjang ekor
         cx.save(); cx.globalCompositeOperation = "lighter";
-        var n9 = 9, tvx = p.vx / 60, tvy = p.vy / 60;
-        for (var i9 = 1; i9 <= n9; i9++) {
-          var f9 = i9 / n9;
-          var rr9 = p.r * (1.5 - 1.15 * f9);
-          if (rr9 < .3) continue;
-          var al9 = p.a * Math.pow(1 - f9, 1.6) * (.5 + .5 * Math.sin(t * 9 + p.tw - i9));
-          var col9 = f9 < .3 ? "255,200,110" : f9 < .65 ? "255,130,55" : "220,70,40";
-          cx.fillStyle = "rgba(" + col9 + "," + (al9 * .5).toFixed(3) + ")";
-          cx.beginPath();
-          cx.arc(p.x - tvx * i9 * (1 + f9 * .35), p.y - tvy * i9 * (1 + f9 * .35),
-                 rr9, 0, 6.283);
-          cx.fill();
-        }
+        // 1) sheath bola api mengelilingi batu
         var spB = nuBola();
-        var szB = p.r * 3.1 * (1 + .06 * Math.sin(t * 11 + p.tw));
-        cx.globalAlpha = p.a;
+        var szB = rB * 3.4 * (1 + .05 * Math.sin(t * 10 + p.tw));
+        cx.globalAlpha = p.a * .85;
         cx.drawImage(spB, p.x - szB, p.y - szB, szB * 2, szB * 2);
         cx.globalAlpha = 1;
-        cx.fillStyle = "rgba(255,252,238," + (p.a * .9).toFixed(3) + ")";
-        cx.beginPath(); cx.arc(p.x, p.y, p.r * .55, 0, 6.283); cx.fill();
+        // 2) ekor: luar merah-oranye + dalam kuning — pita meruncing bergelombang
+        nuEkor(cx, p.x, p.y, nx2, ny2, px2, py2, rB * 4.6 * lenF, rB * 1.5,
+               "255,120,50", "230,60,30", p.a * .5, t, p.tw);
+        nuEkor(cx, p.x, p.y, nx2, ny2, px2, py2, rB * 2.7 * lenF, rB * .85,
+               "255,205,110", "255,120,50", p.a * .8, t, p.tw + 2);
+        // 3) batu gelap (sumber-over, bukan additive — biar gelap nyata)
+        cx.globalCompositeOperation = "source-over";
+        cx.fillStyle = "rgba(32,17,12,.96)";
+        cx.beginPath(); cx.arc(p.x, p.y, rB, 0, 6.283); cx.fill();
+        cx.save();
+        cx.beginPath(); cx.arc(p.x, p.y, rB, 0, 6.283); cx.clip();
+        cx.fillStyle = "rgba(74,42,30,.9)";
+        for (var c9 = 0; c9 < 3; c9++) {              // kawah berputar pelan
+          var a9 = p.tw + t * .6 + c9 * 2.1;
+          cx.beginPath();
+          cx.arc(p.x + Math.cos(a9) * rB * .45, p.y + Math.sin(a9) * rB * .45,
+                 rB * (.16 + .1 * ((c9 * 7 % 5) / 5)), 0, 6.283);
+          cx.fill();
+        }
+        // pantulan api di sisi depan batu — cahaya datang dari arah gerak
+        cx.fillStyle = "rgba(255,140,55,.8)";
+        cx.beginPath(); cx.arc(p.x + nx2 * rB * .55, p.y + ny2 * rB * .55,
+                               rB * .7, 0, 6.283); cx.fill();
+        cx.fillStyle = "rgba(255,224,140,.95)";
+        cx.beginPath(); cx.arc(p.x + nx2 * rB * .78, p.y + ny2 * rB * .78,
+                               rB * .42, 0, 6.283); cx.fill();
+        cx.restore();
+        // 4) titik pijar paling depan
+        cx.globalCompositeOperation = "lighter";
+        cx.fillStyle = "rgba(255,250,225,.9)";
+        cx.beginPath(); cx.arc(p.x + nx2 * rB * .85, p.y + ny2 * rB * .85,
+                               rB * .3, 0, 6.283); cx.fill();
         cx.restore();
       } else if (p.k === "ledak") {
         /* LEDAKAN 3D: kilat bola (sprite membesar-memudar, agak pipih biar
