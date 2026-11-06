@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-api2-20261106a";
+  var BUILD = "qkuk-api2-20261106b";
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · ⭐ SCALP 2H = kuning emas (OB 2h, TVI 120) ·
@@ -242,14 +242,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
              k: { next: 0, t0: -9, pts: null } };   // k = kilat (short)
   var NU_REDUCED = false;
   try { NU_REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
-  /* 4 Nov (PILIHAN USER): CRASH = HUJAN BOLID 3D + BARA.
-     Dinding api dibuang (jelek), meteor garis lurus dibuang (jelek).
-     Kini: BOLID 3D — bola api bersinar (sprite radial = kesan bola), ekor
-     komet volumetrik mengecil di belakangnya, dan KEDALAMAN: meteor jauh
-     kecil/redup/lambat, meteor dekat besar/terang/deras (parallax nyata).
-     Saat hantam: kilat bola membesar + cincin kejut PERSPEKTIF (elips,
-     seperti gelombang di tanah) + serpihan bergravitasi. */
-  var NU_KEDALIM = { snow: 96, driz: 140, bara: 560, meteor: 44, debu: 32,
+  /* 6 Nov (PILIHAN USER): CRASH = PERANG NUKLIR + BARA.
+     Meteor/bolid dibuang semua. Kini: LEDAKAN NUKLIR di horizon — siklus
+     lengkap tiap detonasi: kilat silau seluruh layar → bola api membesar &
+     naik → batang api → AWAN JAMUR mengembang lalu mendingin jadi asap gelap
+     → cincin kejut elips di tanah → hujan abu & bara dari puncak jamur.
+     4 detonasi simultan dgn kedalaman berbeda, baru meledak tiap ±2 dtk.
+     Bara titik tetap naik sebagai atmosfer. */
+  var NU_KEDALIM = { snow: 96, driz: 140, bara: 560, nuklir: 4, debu: 32,
                      pulsa: 46, debuneon: 62 };
   /* sprite bola api 3D: inti putih → kuning → oranye → bibir merah gelap.
      Pra-render 1× lalu drawImage skala — murah dan terlihat seperti bola. */
@@ -320,63 +320,21 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       p.vy = -(40 + r() * 110); p.vx = (r() - .5) * 34;
       p.c = coba(["255,226,120", "255,180,80", "255,148,52", "255,109,94"]);
       p.r = 1.1 + r() * 2.3; p.a = .34 + r() * .4;
-    } else if (kind === "meteor") {         // BOLID 3D: jatuh miring, ada kedalaman
-      /* 6 Nov (PILIHAN USER): menyebar PENUH kiri→kanan (dulu condong kiri
-         semua), lebih banyak, dan hantam sampai BAWAH layar. */
-      p.z = .35 + r() * .65;                 // 0.35 = jauh (kecil/redup), 1 = dekat
-      p.x = r() * (NU.W + 120) - 60;         // sebar penuh selebar layar
-      p.y = isi ? r() * NU.H * .5 : -60 - r() * 220;
-      p.vx = (r() - .5) * 130 * p.z;         // miring acak kiri/kanan — rata
-      p.vy = (230 + r() * 250) * p.z;        // jauh = lambat, dekat = deras
-      p.r = (3.2 + r() * 4.2) * p.z;
-      p.impY = NU.H * (.58 + r() * .47);     // hantam s.d. 1.05H — sampai bawah
-      if (p.y > p.impY - 40) p.y = Math.max(-60, p.impY - 90);
-      p.a = .45 + .55 * p.z;
-      p.tw = r() * 6.283;                    // fase kedip kepala
+    } else if (kind === "nuklir") {         // LEDAKAN PERANG NUKLIR
+      p.z = .55 + r() * .65;                 // kedalaman: jauh kecil, dekat raksasa
+      p.x = r() * NU.W;                      // kenaikan penuh kiri→kanan
+      p.gy = NU.H * (.72 + r() * .32);       // ground zero s.d. bawah layar
+      p.rmax = (95 + r() * 85) * p.z;        // skala awan jamur
+      p.age = 0;
+      p.ttl = 7 + r() * 2;                   // siklus 7-9 dtk (flash→jamur→asap)
+      if (isi) p.age = r() * p.ttl * .7;     // prefill: mulai di tengah siklus
+      p.tw = r() * 6.283;
     } else {                                // debu amber (deg)
       p.x = r() * NU.W; p.y = r() * NU.H;
       p.vy = 6 + r() * 10; p.sw = 6 + r() * 10; p.r = .6 + r() * 1.4;
       p.a = .14 + r() * .18;
     }
     NU.parts.push(p);
-  }
-  /* ledakan bolid 3D: kilat bola membesar + cincin kejut PERSPEKTIF (elips
-     di bidang "tanah") + serpihan bergravitasi. Skala ikut kedalaman z.
-     once:true → sekali pakai, tidak lahir ulang saat mati. */
-  function nuLedak(x, y, z) {
-    var r = Math.random;
-    z = z || .7;
-    NU.parts.push({ k: "ledak", x: x, y: y, age: 0, ttl: .55 + r() * .45,
-                    rmax: (80 + r() * 110) * (.55 + .45 * z), once: true });
-    var ns = 12 + (r() * 14 | 0);
-    for (var i = 0; i < ns; i++) {
-      var ang = r() * 6.283, sp = (80 + r() * 270) * (.5 + .5 * z);
-      NU.parts.push({ k: "percik", x: x, y: y,
-        vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp * .8 - 40,
-        r: .8 + r() * 1.8, age: 0, ttl: .45 + r() * .6,
-        c: ["255,225,150", "255,160,70", "255,110,60"][i % 3],
-        a: .6 + r() * .4, once: true });
-    }
-  }
-  /* ekor pita meruncing (teardrop) — dari kepala melebar lalu meruncing ke
-     ujung ekor, bergelombang pelan. 2 lapis dipanggil: luar merah, dalam kuning. */
-  function nuEkor(cx, x, y, nx2, ny2, px2, py2, len, w0, c0, c1, al, t, ph) {
-    if (w0 < .5) return;
-    var ex = x - nx2 * len + px2 * Math.sin(t * 7 + ph) * w0 * .5;
-    var ey = y - ny2 * len + py2 * Math.sin(t * 7 + ph) * w0 * .5;
-    var g = cx.createLinearGradient(x, y, ex, ey);
-    g.addColorStop(0, "rgba(" + c0 + "," + al.toFixed(3) + ")");
-    g.addColorStop(.55, "rgba(" + c1 + "," + (al * .45).toFixed(3) + ")");
-    g.addColorStop(1, "rgba(" + c1 + ",0)");
-    cx.fillStyle = g;
-    cx.beginPath();
-    cx.moveTo(x + px2 * w0 * .3, y + py2 * w0 * .3);
-    cx.quadraticCurveTo(x + px2 * w0 * .55 - nx2 * len * .45,
-                        y + py2 * w0 * .55 - ny2 * len * .45, ex, ey);
-    cx.quadraticCurveTo(x - px2 * w0 * .55 - nx2 * len * .45,
-                        y - py2 * w0 * .55 - ny2 * len * .45,
-                        x - px2 * w0 * .3, y - py2 * w0 * .3);
-    cx.closePath(); cx.fill();
   }
   function nuTick(dt, t) {
     var W = NU.W, H = NU.H, r = Math.random, i, p, x, alive;
@@ -427,23 +385,21 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         if (p.y < -10 || p.y > H + 12 || p.x < -12 || p.x > W + 12) {
           NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false;
         }
-      } else if (p.k === "meteor") {
-        p.x += p.vx * dt; p.y += p.vy * dt;
-        if (r() < .05) {                           // serpihan mengelupas dari kepala
-          NU.parts.push({ k: "percik", x: p.x, y: p.y,
-            vx: -p.vx * .15 + (r() - .5) * 50, vy: -p.vy * .1 + (r() - .5) * 50,
-            r: .6 + r() * 1.3, age: 0, ttl: .3 + r() * .4,
-            c: "255,170,80", a: .7 + r() * .3, once: true });
-        }
-        if (p.y >= p.impY) {                       // hantam → MELEDAK
-          nuLedak(p.x, p.y, p.z);
-          NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false;
-        } else if (p.x < -170 || p.x > W + 170) {
-          NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false;
-        }
-      } else if (p.k === "ledak") {
+      } else if (p.k === "nuklir") {
         p.age += dt;
-        if (p.age >= p.ttl) { NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false; }
+        /* hujan abu & bara dari puncak jamur — fase matang */
+        if (p.age > 2 && p.age < p.ttl - 1 && r() < .12) {
+          var capR = p.rmax * (.35 + .75 * Math.min(1, (p.age - 1) / 2.2));
+          var capY = p.gy - p.rmax * .95;
+          NU.parts.push({ k: "percik", x: p.x + (r() - .5) * capR * 1.5,
+            y: capY + (r() - .5) * capR * .3,
+            vx: (r() - .5) * 30, vy: 30 + r() * 90,
+            r: .7 + r() * 1.6, age: 0, ttl: .8 + r() * 1,
+            c: r() < .5 ? "255,150,70" : "200,120,90", a: .5 + r() * .4, once: true });
+        }
+        if (p.age >= p.ttl) {
+          NU.parts[i] = NU.parts[NU.parts.length - 1]; NU.parts.pop(); alive = false;
+        }
       } else if (p.k === "percik") {
         p.vx *= .985; p.vy += 300 * dt;            // gravitasi serpihan
         p.x += p.vx * dt; p.y += p.vy * dt; p.age += dt;
@@ -498,78 +454,86 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         cx.fillStyle = "rgba(" + p.c + "," + (p.a * (0.55 + 0.45 * Math.sin(t * p.fs + p.ph))).toFixed(3) + ")";
         cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.283); cx.fill();
         cx.restore();
-      } else if (p.k === "meteor") {
-        /* BOLIDE BATU API: batu gelap berputar (kawah ikut muter) dgn pantulan
-           api menyala di sisi depan (arah gerak), dibungkus sheath bola api +
-           ekor pita meruncing 2 lapis yang bergelombang — seperti bolid asli. */
-        var mag = Math.hypot(p.vx, p.vy) || 1;
-        var nx2 = p.vx / mag, ny2 = p.vy / mag;      // arah gerak (depan)
-        var px2 = -ny2, py2 = nx2;                    // tegak lurus arah gerak
-        var rB = p.r;
-        var lenF = .55 + .45 * (mag / 480);           // makin deras makin panjang ekor
-        cx.save(); cx.globalCompositeOperation = "lighter";
-        // 1) sheath bola api mengelilingi batu
-        var spB = nuBola();
-        var szB = rB * 3.4 * (1 + .05 * Math.sin(t * 10 + p.tw));
-        cx.globalAlpha = p.a * .85;
-        cx.drawImage(spB, p.x - szB, p.y - szB, szB * 2, szB * 2);
-        cx.globalAlpha = 1;
-        // 2) ekor: luar merah-oranye + dalam kuning — pita meruncing bergelombang
-        nuEkor(cx, p.x, p.y, nx2, ny2, px2, py2, rB * 4.6 * lenF, rB * 1.5,
-               "255,120,50", "230,60,30", p.a * .5, t, p.tw);
-        nuEkor(cx, p.x, p.y, nx2, ny2, px2, py2, rB * 2.7 * lenF, rB * .85,
-               "255,205,110", "255,120,50", p.a * .8, t, p.tw + 2);
-        // 3) batu gelap (sumber-over, bukan additive — biar gelap nyata)
-        cx.globalCompositeOperation = "source-over";
-        cx.fillStyle = "rgba(32,17,12,.96)";
-        cx.beginPath(); cx.arc(p.x, p.y, rB, 0, 6.283); cx.fill();
+      } else if (p.k === "nuklir") {
+        /* LEDAKAN NUKLIR: kilat silau seluruh layar → bola api membesar & naik
+           → batang api dari tanah → AWAN JAMUR (asap gelap source-over + bibir
+           api lighter) mengembang & mendingin → cincin kejut elips di tanah →
+           hujan abu (percik, di nuTick). */
+        var a = p.age, tt = Math.min(1, a / p.ttl), R = p.rmax;
+        var cool = 1 - tt * .55;                        // mendingin seiring umur
+        var rise = Math.min(1, a / 1.7);                // kenaikan bola api
+        var fy = p.gy - R * .95 * rise;                 // pusat bola api/awan
+        var flash = a < .45 ? 1 - a / .45 : 0;
+        var spN = nuBola();
         cx.save();
-        cx.beginPath(); cx.arc(p.x, p.y, rB, 0, 6.283); cx.clip();
-        cx.fillStyle = "rgba(74,42,30,.9)";
-        for (var c9 = 0; c9 < 3; c9++) {              // kawah berputar pelan
-          var a9 = p.tw + t * .6 + c9 * 2.1;
-          cx.beginPath();
-          cx.arc(p.x + Math.cos(a9) * rB * .45, p.y + Math.sin(a9) * rB * .45,
-                 rB * (.16 + .1 * ((c9 * 7 % 5) / 5)), 0, 6.283);
-          cx.fill();
+        /* kilat silau seluruh layar */
+        if (flash > 0) {
+          cx.fillStyle = "rgba(255,242,214," + (flash * .16).toFixed(3) + ")";
+          cx.fillRect(0, 0, NU.W, NU.H);
         }
-        // pantulan api di sisi depan batu — cahaya datang dari arah gerak
-        cx.fillStyle = "rgba(255,140,55,.8)";
-        cx.beginPath(); cx.arc(p.x + nx2 * rB * .55, p.y + ny2 * rB * .55,
-                               rB * .7, 0, 6.283); cx.fill();
-        cx.fillStyle = "rgba(255,224,140,.95)";
-        cx.beginPath(); cx.arc(p.x + nx2 * rB * .78, p.y + ny2 * rB * .78,
-                               rB * .42, 0, 6.283); cx.fill();
-        cx.restore();
-        // 4) titik pijar paling depan
         cx.globalCompositeOperation = "lighter";
-        cx.fillStyle = "rgba(255,250,225,.9)";
-        cx.beginPath(); cx.arc(p.x + nx2 * rB * .85, p.y + ny2 * rB * .85,
-                               rB * .3, 0, 6.283); cx.fill();
-        cx.restore();
-      } else if (p.k === "ledak") {
-        /* LEDAKAN 3D: kilat bola (sprite membesar-memudar, agak pipih biar
-           terasa volume) + cincin kejut PERSPEKTIF elips di "tanah" +
-           gelombang udara membulat + cincin dalam merah. */
-        var pr = p.age / p.ttl, ee = 1 - Math.pow(1 - pr, 2), rad = p.rmax * ee;
-        cx.save(); cx.globalCompositeOperation = "lighter";
-        if (pr < .5) {
-          var spF = nuBola();
-          var fs = p.rmax * (.35 + .45 * ee);
-          cx.globalAlpha = (1 - pr / .5) * .9;
-          cx.drawImage(spF, p.x - fs, p.y - fs * .85, fs * 2, fs * 1.7);
+        /* bola api awal: membesar, naik, putih-kuning lalu memudar ke jamur */
+        if (a < 1.9) {
+          var fb = R * (.28 + .5 * Math.min(1, a / 1.4));
+          cx.globalAlpha = (1 - Math.max(0, (a - 1.2) / .7)) * .95;
+          cx.drawImage(spN, p.x - fb, fy - fb, fb * 2, fb * 2);
           cx.globalAlpha = 1;
         }
-        cx.strokeStyle = "rgba(255,170,80," + ((1 - pr) * .8).toFixed(3) + ")";
-        cx.lineWidth = 2 + 3 * (1 - pr);
-        cx.beginPath(); cx.ellipse(p.x, p.y, rad, rad * .38, 0, 0, 6.283); cx.stroke();
-        cx.strokeStyle = "rgba(255,140,70," + ((1 - pr) * .3).toFixed(3) + ")";
-        cx.lineWidth = 1;
-        cx.beginPath(); cx.arc(p.x, p.y, rad * .8, 0, 6.283); cx.stroke();
-        cx.strokeStyle = "rgba(255,90,50," + ((1 - pr) * .4).toFixed(3) + ")";
-        cx.lineWidth = 1.4;
-        cx.beginPath(); cx.ellipse(p.x, p.y, rad * .6, rad * .23, 0, 0, 6.283); cx.stroke();
+        /* batang api: dari tanah ke bola, tepi flicker */
+        if (a > .4 && a < 3.4) {
+          var sw = R * .14 * (1 + .25 * Math.sin(t * 9 + p.tw));
+          var gS = cx.createLinearGradient(p.x, p.gy, p.x, fy);
+          gS.addColorStop(0, "rgba(255,150,60," + (.5 * cool).toFixed(3) + ")");
+          gS.addColorStop(1, "rgba(255,90,45," + (.12 * cool).toFixed(3) + ")");
+          cx.fillStyle = gS;
+          cx.beginPath();
+          cx.moveTo(p.x - sw * .7, p.gy);
+          cx.quadraticCurveTo(p.x - sw * 1.25, (p.gy + fy) / 2, p.x - sw * .35, fy);
+          cx.quadraticCurveTo(p.x, fy + sw * .5, p.x + sw * .35, fy);
+          cx.quadraticCurveTo(p.x + sw * 1.25, (p.gy + fy) / 2, p.x + sw * .7, p.gy);
+          cx.closePath(); cx.fill();
+        }
+        /* cincin kejut di tanah (elips perspektif) */
+        if (a > .25 && a < 2.8) {
+          var pr9 = (a - .25) / 2.55, ee9 = 1 - Math.pow(1 - pr9, 2);
+          var rx9 = R * (.4 + 2.6 * ee9);
+          cx.strokeStyle = "rgba(255,170,90," + ((1 - pr9) * .55).toFixed(3) + ")";
+          cx.lineWidth = 2 + 3 * (1 - pr9);
+          cx.beginPath(); cx.ellipse(p.x, p.gy, rx9, rx9 * .3, 0, 0, 6.283); cx.stroke();
+        }
         cx.restore();
+        /* awan jamur: asap gelap + bibir api + nyala ground zero */
+        if (a > 1) {
+          var cap9 = R * (.35 + .75 * Math.min(1, (a - 1) / 2.2));
+          var cy9 = fy - R * .12;
+          cx.save();
+          cx.fillStyle = "rgba(46,18,13," + (.5 * cool + .1).toFixed(3) + ")";
+          for (var m9 = 0; m9 < 4; m9++) {
+            cx.beginPath();
+            cx.ellipse(p.x + Math.sin(t * 1.3 + p.tw + m9) * cap9 * .1,
+                       cy9 - m9 * cap9 * .17, cap9 * (1 - m9 * .13),
+                       cap9 * .40 * (1 - m9 * .1), 0, 0, 6.283);
+            cx.fill();
+          }
+          cx.globalCompositeOperation = "lighter";
+          cx.strokeStyle = "rgba(255,130,55," + (.4 * cool).toFixed(3) + ")";
+          cx.lineWidth = 2.2;
+          cx.beginPath();
+          cx.ellipse(p.x + Math.sin(t * 1.3 + p.tw) * cap9 * .1,
+                     cy9, cap9, cap9 * .4, 0, 0, 6.283);
+          cx.stroke();
+          cx.strokeStyle = "rgba(255,200,110," + (.3 * cool).toFixed(3) + ")";
+          cx.lineWidth = 1.2;
+          cx.beginPath();
+          cx.ellipse(p.x + Math.sin(t * 1.1 + p.tw + 2) * cap9 * .12,
+                     cy9 - cap9 * .17, cap9 * .74, cap9 * .28, 0, 0, 6.283);
+          cx.stroke();
+          var gb = R * .55;
+          cx.globalAlpha = .5 * cool;
+          cx.drawImage(spN, p.x - gb, p.gy - gb * .6, gb * 2, gb * 1.2);
+          cx.globalAlpha = 1;
+          cx.restore();
+        }
       } else if (p.k === "percik") {
         /* serpihan ledakan: goresan pendek mengikuti arah lemparan */
         var pa = p.a * (1 - p.age / p.ttl);
@@ -635,7 +599,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var m = NU.mode;
     var jenis = m === "netral" ? ["snow"] : m === "long" ? ["pulsa"] :
                 m === "altseason" ? ["debuneon"] : m === "short" ? ["driz"] :
-                m === "crash" ? ["bara", "meteor"] : ["debu"];
+                m === "crash" ? ["bara", "nuklir"] : ["debu"];
     jenis.forEach(function (k) {
       var c = NU_KEDALIM[k] || 24;
       // prefill separuh dgn posisi menyebar biar layar langsung penuh;
