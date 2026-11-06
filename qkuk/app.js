@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-api2-20261105e";
+  var BUILD = "qkuk-api2-20261105f";
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · ⭐ SCALP 2H = kuning emas (OB 2h, TVI 120) ·
@@ -249,7 +249,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kecil/redup/lambat, meteor dekat besar/terang/deras (parallax nyata).
      Saat hantam: kilat bola membesar + cincin kejut PERSPEKTIF (elips,
      seperti gelombang di tanah) + serpihan bergravitasi. */
-  var NU_KEDALIM = { snow: 96, driz: 140, bara: 560, meteor: 26, debu: 32,
+  var NU_KEDALIM = { snow: 96, driz: 140, bara: 560, meteor: 44, debu: 32,
                      pulsa: 46, debuneon: 62 };
   /* sprite bola api 3D: inti putih → kuning → oranye → bibir merah gelap.
      Pra-render 1× lalu drawImage skala — murah dan terlihat seperti bola. */
@@ -321,13 +321,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       p.c = coba(["255,226,120", "255,180,80", "255,148,52", "255,109,94"]);
       p.r = 1.1 + r() * 2.3; p.a = .34 + r() * .4;
     } else if (kind === "meteor") {         // BOLID 3D: jatuh miring, ada kedalaman
+      /* 6 Nov (PILIHAN USER): menyebar PENUH kiri→kanan (dulu condong kiri
+         semua), lebih banyak, dan hantam sampai BAWAH layar. */
       p.z = .35 + r() * .65;                 // 0.35 = jauh (kecil/redup), 1 = dekat
-      p.x = r() * (NU.W + 280) - 140;
-      p.y = isi ? r() * NU.H * .45 : -60 - r() * 220;
-      p.vx = (-30 - r() * 100) * p.z;
+      p.x = r() * (NU.W + 120) - 60;         // sebar penuh selebar layar
+      p.y = isi ? r() * NU.H * .5 : -60 - r() * 220;
+      p.vx = (r() - .5) * 130 * p.z;         // miring acak kiri/kanan — rata
       p.vy = (230 + r() * 250) * p.z;        // jauh = lambat, dekat = deras
       p.r = (3.2 + r() * 4.2) * p.z;
-      p.impY = NU.H * (.52 + r() * .42);     // titik hantam → meledak
+      p.impY = NU.H * (.58 + r() * .47);     // hantam s.d. 1.05H — sampai bawah
       if (p.y > p.impY - 40) p.y = Math.max(-60, p.impY - 90);
       p.a = .45 + .55 * p.z;
       p.tw = r() * 6.283;                    // fase kedip kepala
