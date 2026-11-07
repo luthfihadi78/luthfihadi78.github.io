@@ -1195,14 +1195,13 @@ select.lg-sel{margin-left:auto}
    bull, altseason aurora, deg amber, netral tanpa lapisan. */
 #tema{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;
   transition:opacity 1.4s ease}
-/* 4 Nov (PILIHAN USER): CRASH = HUJAN METEOR API + BARA.
-   Dinding api dibuang. Latar cuma gelap hangat + glow merah ambient tipis
-   di dasar; meteor jatuh, bara naik, dan ledakan semuanya di canvas
-   #nuansa (lihat spawn meteor/nuLedak). */
+/* 6 Nov (PILIHAN USER): CRASH = HUTAN TERBAKAR — langit merah gelap + glow
+   horizon. Pinus 2 lapis, asap, nyala dasar, dan bara digambar di canvas
+   #nuansa (lihat nuHutan). Tanpa meteor/nuklir/blob besar. */
 body.tema-crash #tema{opacity:1;background:
-  radial-gradient(120% 45% at 50% 112%,rgba(190,45,22,.20),transparent 64%),
-  linear-gradient(180deg,#0a0505 0%,#140505 60%,#1d0606 100%);
-  animation:tema-api 4s ease-in-out infinite}
+  radial-gradient(130% 52% at 50% 114%,rgba(255,105,45,.30),transparent 62%),
+  linear-gradient(180deg,#120505 0%,#1d0706 55%,#2b0906 100%);
+  animation:tema-api 4.5s ease-in-out infinite}
 body.tema-short #tema{opacity:1;background:
   radial-gradient(110% 50% at 50% 116%,rgba(232,135,124,.16),transparent 62%),
   radial-gradient(70% 34% at 20% 110%,rgba(232,135,124,.10),transparent 60%)}
