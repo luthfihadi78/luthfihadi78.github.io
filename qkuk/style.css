@@ -1167,6 +1167,34 @@ select.lg-sel{margin-left:auto}
 .plog-akk td.neg{color:var(--dn)}
 .plog-akk td.mut{color:var(--fg-2)}
 
+/* 7 Nov — PERAPIAN RIWAYAT KOREKSI ADMIN: dulu .pn-h & .rk-* tanpa CSS
+   sama sekali (grafik rekap jadi teks bertumpuk, toolbar berantakan). */
+.pn-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0 8px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--fg-3)}
+.pn-h .hh-fchip{margin-left:0;text-transform:none;letter-spacing:0}
+select.plog-bln{margin-left:auto}
+#plog .pn-h:first-child{margin-top:2px}
+.plog-akk .pn-h,.rk-wrap .pn-h{margin:0 0 10px}
+
+/* grafik rekap antar-bulan: kartu + kolom batang rapi */
+.rk-wrap{margin:10px 0 18px;border:1px solid var(--line);border-radius:12px;
+  background:var(--s1);padding:14px 16px 12px;overflow-x:auto}
+.rk-bar{display:flex;align-items:stretch;gap:12px;height:168px;min-width:280px}
+.rk-col{flex:1;min-width:56px;display:flex;flex-direction:column;align-items:center;gap:5px}
+.rk-v{font-family:var(--mono);font-size:11.5px;font-weight:700;line-height:1}
+.rk-col.pos .rk-v{color:var(--up)}
+.rk-col.neg .rk-v{color:var(--dn)}
+.rk-track{width:100%;flex:1;display:flex;align-items:flex-end;justify-content:center;
+  background:rgba(255,255,255,.03);border-radius:6px 6px 0 0;min-height:44px}
+.rk-bat{width:min(44px,68%);border-radius:5px 5px 0 0;
+  transition:height .5s cubic-bezier(.2,.8,.3,1)}
+.rk-col.pos .rk-bat{background:linear-gradient(180deg,var(--up),rgba(110,231,183,.22));
+  box-shadow:0 0 14px rgba(110,231,183,.14)}
+.rk-col.neg .rk-bat{background:linear-gradient(180deg,var(--dn),rgba(232,135,124,.2))}
+.rk-wr{font-family:var(--mono);font-size:10px;color:var(--fg-2);line-height:1}
+.rk-b{font-family:var(--mono);font-size:10.5px;color:var(--fg-3);letter-spacing:.04em}
+
 /* 20 Okt — notifikasi per engine (BRICK/HARVEST/SWING/BASTION 4H) */
 .nk-row{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
 .nk-h{flex:100%;font-family:var(--mono);font-size:10.5px;color:var(--fg-3);letter-spacing:.06em;text-transform:uppercase}
@@ -1195,12 +1223,13 @@ select.lg-sel{margin-left:auto}
    bull, altseason aurora, deg amber, netral tanpa lapisan. */
 #tema{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;
   transition:opacity 1.4s ease}
-/* 6 Nov (PILIHAN USER): CRASH = HUTAN TERBAKAR — langit merah gelap + glow
-   horizon. Pinus 2 lapis, asap, nyala dasar, dan bara digambar di canvas
-   #nuansa (lihat nuHutan). Tanpa meteor/nuklir/blob besar. */
+/* 7 Nov (PILIHAN USER): CRASH = BADAI BARA + PETIR MERAH — langit badai
+   gelap + glow merah horizon. Awan asap, petir, dan bara digambar di canvas
+   #nuansa (lihat nuBadai + sistem kilat K di nuTick). Tanpa objek. */
 body.tema-crash #tema{opacity:1;background:
-  radial-gradient(130% 52% at 50% 114%,rgba(255,105,45,.30),transparent 62%),
-  linear-gradient(180deg,#120505 0%,#1d0706 55%,#2b0906 100%);
+  linear-gradient(180deg,rgba(18,5,8,.85) 0%,rgba(26,7,8,.45) 26%,transparent 58%),
+  radial-gradient(135% 55% at 50% 116%,rgba(255,98,42,.32),transparent 62%),
+  linear-gradient(180deg,#0c0405 0%,#170606 55%,#210705 100%);
   animation:tema-api 4.5s ease-in-out infinite}
 body.tema-short #tema{opacity:1;background:
   radial-gradient(110% 50% at 50% 116%,rgba(232,135,124,.16),transparent 62%),

@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-api2-20261106c";
+  var BUILD = "qkuk-api2-20261106d";
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · ⭐ SCALP 2H = kuning emas (OB 2h, TVI 120) ·
@@ -242,85 +242,44 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
              k: { next: 0, t0: -9, pts: null } };   // k = kilat (short)
   var NU_REDUCED = false;
   try { NU_REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
-  /* 6 Nov (PILIHAN USER): CRASH = HUTAN TERBAKAR (nuansa alam).
-     Nuklir/meteor dibuang semua. Kini: hutan pinus siluet 2 lapis (jauh
-     kecil berkabut merah, dekat besar nyaris hitam = parallax), asap gelap
-     bergulung di belakangnya, nyala api merambat di dasar antara batang,
-     dan bara naik menembus tajuk. Langit merah gelap di CSS #tema. */
+  /* 7 Nov (PILIHAN USER): CRASH = BADAI BARA + PETIR MERAH (nuansa alam).
+     Pinus/nuklir/meteor dibuang semua. Murni atmosfer: awan asap tebal
+     bergulung (2 pita atas + 3 lapis dasar), petir merah menyambar berkala
+     (sistem kilat K — dipakai bareng tema short), bara tertiup angin kencang
+     yang berubah arah (NU.wind). Tanpa objek — hampir mustahil jelek. */
   var NU_KEDALIM = { snow: 96, driz: 140, bara: 560, debu: 32,
                      pulsa: 46, debuneon: 62 };
-  /* hash deterministik utk posisi pohon/nyala — stabil saat resize */
-  function nuHash(n) {
-    var s = Math.sin(n * 127.1) * 43758.5453;
-    return s - Math.floor(s);
-  }
-  /* sprite bola api 3D: inti putih → kuning → oranye → bibir merah gelap.
-     Pra-render 1× lalu drawImage skala — murah dan terlihat seperti bola. */
-  function nuBola() {
-    if (NU.sp) return NU.sp;
-    var s = document.createElement("canvas"); s.width = s.height = 128;
-    var g = s.getContext("2d");
-    var gr = g.createRadialGradient(64, 64, 2, 64, 64, 62);
-    gr.addColorStop(0, "rgba(255,255,244,1)");
-    gr.addColorStop(.18, "rgba(255,240,180,.98)");
-    gr.addColorStop(.38, "rgba(255,180,84,.85)");
-    gr.addColorStop(.62, "rgba(255,110,48,.5)");
-    gr.addColorStop(.82, "rgba(210,52,32,.2)");
-    gr.addColorStop(1, "rgba(190,40,40,0)");
-    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
-    NU.sp = s; return s;
-  }
-  /* satu pinus siluet: batang + 3 tingkat tajuk segitiga */
-  function nuPohon(cx, x, base, h, w) {
-    cx.fillRect(x - w * .06, base - h * .18, w * .12, h * .18);
-    for (var k = 0; k < 3; k++) {
-      var ty = base - h * (.14 + k * .27), tw = w * (1 - k * .26), th = h * .34;
-      cx.beginPath();
-      cx.moveTo(x - tw / 2, ty);
-      cx.lineTo(x, ty - th);
-      cx.lineTo(x + tw / 2, ty);
-      cx.closePath(); cx.fill();
-    }
-  }
-  /* HUTAN TERBAKAR: asap bergulung → nyala dasar → pinus belakang (berkabut
-     merah) → pinus depan (siluet gelap). Semua posisi deterministik (hash)
-     supaya tidak kedip saat resize; cuma nyala & asap yang animatif. */
-  function nuHutan(cx, t) {
-    var W = NU.W, H = NU.H, L, i;
+  /* BADAI BARA: pita awan gelap di atas + asap tebal bergulung di dasar.
+     Digambar penuh tiap frame — bergelombang halus, tanpa bentuk objek. */
+  function nuBadai(cx, t) {
+    var W = NU.W, H = NU.H, L, x, y;
     for (L = 0; L < 2; L++) {
-      var amp = H * .06, yb = H * (.60 + L * .12), al = .14 + L * .1;
+      var yA = H * (.02 + L * .09), ampA = H * (.045 + L * .025);
+      var gA = cx.createLinearGradient(0, 0, 0, yA + ampA * 2);
+      gA.addColorStop(0, "rgba(14,5,7," + (.5 + L * .15) + ")");
+      gA.addColorStop(1, "rgba(14,5,7,0)");
+      cx.fillStyle = gA;
+      cx.beginPath(); cx.moveTo(0, 0);
+      for (x = 0; x <= W; x += 14) {
+        y = yA + ampA * (.5 + .5 * Math.sin(x * .012 + t * .4 * (L ? -1 : 1) + L * 2.4))
+                * (.55 + .45 * Math.sin(x * .05 - t * .7 + L));
+        cx.lineTo(x, y);
+      }
+      cx.lineTo(W, 0); cx.closePath(); cx.fill();
+    }
+    for (L = 0; L < 3; L++) {
+      var amp = H * (.07 + L * .05), yb = H * (.52 + L * .13), al = .22 + L * .14;
       var g = cx.createLinearGradient(0, yb - amp, 0, H);
-      g.addColorStop(0, "rgba(64,18,12,0)");
-      g.addColorStop(1, "rgba(30,10,8," + al + ")");
+      g.addColorStop(0, "rgba(26,8,8,0)");
+      g.addColorStop(1, "rgba(20,6,7," + al + ")");
       cx.fillStyle = g;
       cx.beginPath(); cx.moveTo(0, H);
-      for (var x = 0; x <= W; x += 12) {
-        var y = yb - amp * (.5 + .5 * Math.sin(x * .01 + t * .5 * (L ? -1 : 1) + L * 3))
-                    * (.6 + .4 * Math.sin(x * .043 - t * .9 + L));
+      for (x = 0; x <= W; x += 12) {
+        y = yb - amp * (.5 + .5 * Math.sin(x * .011 + t * .55 * (L % 2 ? -1 : 1) + L * 3))
+                * (.55 + .45 * Math.sin(x * .047 - t * 1.1 + L));
         cx.lineTo(x, y);
       }
       cx.lineTo(W, H); cx.closePath(); cx.fill();
-    }
-    var sp = nuBola();
-    for (i = 0; i < 6; i++) {
-      var gx = W * ((i + .5) / 6 + (nuHash(i * 7 + 3) - .5) * .06);
-      var flick = .6 + .4 * Math.sin(t * (2 + nuHash(i) * 2) + i * 2.3);
-      var gr = (38 + nuHash(i + 9) * 46) * (1 + .08 * Math.sin(t * 7 + i));
-      cx.globalAlpha = .11 + .13 * flick;
-      cx.drawImage(sp, gx - gr, H * .97 - gr, gr * 2, gr * 2);
-    }
-    cx.globalAlpha = 1;
-    cx.fillStyle = "rgba(76,22,14,.58)";
-    for (i = 0; i < 16; i++) {
-      var x2 = W * ((i + .5) / 16 + (nuHash(i) - .5) * .05);
-      var h2 = H * (.20 + nuHash(i + 5) * .12);
-      nuPohon(cx, x2, H * .9, h2, h2 * .52);
-    }
-    cx.fillStyle = "rgba(13,5,5,.94)";
-    for (i = 0; i < 11; i++) {
-      var x3 = W * ((i + .5) / 11 + (nuHash(i + 2) - .5) * .06);
-      var h3 = H * (.34 + nuHash(i + 8) * .16);
-      nuPohon(cx, x3, H, h3, h3 * .5);
     }
   }
   function nuResize() {
@@ -385,24 +344,31 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   function nuTick(dt, t) {
     var W = NU.W, H = NU.H, r = Math.random, i, p, x, alive;
+    /* BADAI BARA (crash): angin kencang berubah arah — bara tertiup deras. */
     NU.wind = NU.mode === "altseason"
-      ? 96 + 64 * Math.sin(t * .55) + 120 * Math.max(0, Math.sin(t * 1.9)) : 0;
+      ? 96 + 64 * Math.sin(t * .55) + 120 * Math.max(0, Math.sin(t * 1.9))
+      : NU.mode === "crash"
+      ? Math.sin(t * .5) * 110 + Math.sin(t * 1.7) * 50 : 0;
     /* 16 Okt — KILAT HALUS (short): sesekali, bukan hujan kilat. Sambaran
        pertama ~1–3 dtk setelah masuk short biar terlihat, lalu tiap 4–11 dtk.
        Subjek: garis jagged dari langit (~65% layar) + kedip kabur dua-nadi
-       (0–90ms terang, jeda, 130–240ms susulan) — seperti petang nyata. */
+       (0–90ms terang, jeda, 130–240ms susulan) — seperti petang nyata.
+       7 Nov — crash ikut memakai sistem ini: petir merah lebih sering
+       (2,5–7,5 dtk) dan boleh menyambar lebih dalam (s.d. 80% layar). */
     var K = NU.k;
-    if (NU.mode === "short") {
-      if (!K.next) K.next = t + 1.2 + r() * 2;
+    if (NU.mode === "short" || NU.mode === "crash") {
+      if (!K.next) K.next = t + (NU.mode === "crash" ? 1.2 : 1.2) + r() * 2;
       if (t >= K.next) {
-        K.t0 = t; K.next = t + 4 + r() * 7;
+        K.t0 = t;
+        K.next = t + (NU.mode === "crash" ? 2.5 + r() * 5 : 4 + r() * 7);
         var bp = [], bx = NU.W * (.12 + r() * .76), by = -8;
         var seg = 6 + (r() * 4 | 0);
+        var maxBy = NU.mode === "crash" ? NU.H * .8 : NU.H * .68;
         for (var q = 0; q < seg; q++) {
           bp.push([bx, by]);
           bx += (r() - .5) * NU.W * .07;
           by += NU.H * (.05 + r() * .06);
-          if (by > NU.H * .68) break;
+          if (by > maxBy) break;
         }
         K.pts = bp;
       }
@@ -445,8 +411,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   function nuPaint() {   // draw semua partikel dalam 1 pass
     var cx = NU.cx, t = performance.now() / 1000;
-    /* CRASH — hutan terbakar digambar DULU (paling bawah), bara naik di atasnya */
-    if (NU.mode === "crash") nuHutan(cx, t);
+    /* CRASH — badai bara (asap + awan) digambar DULU; petir & bara di atasnya */
+    if (NU.mode === "crash") nuBadai(cx, t);
     NU.parts.forEach(function (p) {
       if (p.k === "snow") {
         cx.fillStyle = "rgba(" + p.c + "," + (p.a * (0.6 + 0.4 * Math.sin(t * p.fs + p.ph))).toFixed(3) + ")";
