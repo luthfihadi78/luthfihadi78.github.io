@@ -21,7 +21,7 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opa
   background-size:52px 52px;
   -webkit-mask-image:radial-gradient(80rem 50rem at 50% 0,#000,transparent 78%);
           mask-image:radial-gradient(80rem 50rem at 50% 0,#000,transparent 78%)}
-.wrap{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:0 18px}
+.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 18px}
 /* 15 Okt — tombol kembali di halaman anak (whale) — PWA standalone tanpa tombol back */
 .wkembali{display:inline-flex;align-items:center;gap:6px;margin:10px 0 0;padding:6px 12px;
   border:1px solid var(--line);border-radius:8px;background:rgba(13,20,17,.85);
@@ -35,7 +35,7 @@ a:hover{color:#9CF2CE}
 .bar{position:sticky;top:0;z-index:20;background:rgba(7,11,9,.9);
   -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
   border-bottom:1px solid var(--line)}
-.bar-in{max-width:1400px;margin:0 auto;padding:11px 18px;display:flex;align-items:center;
+.bar-in{max-width:1240px;margin:0 auto;padding:11px 18px;display:flex;align-items:center;
   gap:18px;flex-wrap:wrap}
 .logo{display:inline-flex;align-items:center;gap:9px;white-space:nowrap;user-select:none}
 .mark{width:23px;height:23px;flex:none;color:var(--ac);overflow:visible;
@@ -1167,34 +1167,6 @@ select.lg-sel{margin-left:auto}
 .plog-akk td.neg{color:var(--dn)}
 .plog-akk td.mut{color:var(--fg-2)}
 
-/* 7 Nov — PERAPIAN RIWAYAT KOREKSI ADMIN: dulu .pn-h & .rk-* tanpa CSS
-   sama sekali (grafik rekap jadi teks bertumpuk, toolbar berantakan). */
-.pn-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0 8px;
-  font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;
-  text-transform:uppercase;color:var(--fg-3)}
-.pn-h .hh-fchip{margin-left:0;text-transform:none;letter-spacing:0}
-select.plog-bln{margin-left:auto}
-#plog .pn-h:first-child{margin-top:2px}
-.plog-akk .pn-h,.rk-wrap .pn-h{margin:0 0 10px}
-
-/* grafik rekap antar-bulan: kartu + kolom batang rapi */
-.rk-wrap{margin:10px 0 18px;border:1px solid var(--line);border-radius:12px;
-  background:var(--s1);padding:14px 16px 12px;overflow-x:auto}
-.rk-bar{display:flex;align-items:stretch;gap:12px;height:168px;min-width:280px}
-.rk-col{flex:1;min-width:56px;display:flex;flex-direction:column;align-items:center;gap:5px}
-.rk-v{font-family:var(--mono);font-size:11.5px;font-weight:700;line-height:1}
-.rk-col.pos .rk-v{color:var(--up)}
-.rk-col.neg .rk-v{color:var(--dn)}
-.rk-track{width:100%;flex:1;display:flex;align-items:flex-end;justify-content:center;
-  background:rgba(255,255,255,.03);border-radius:6px 6px 0 0;min-height:44px}
-.rk-bat{width:min(44px,68%);border-radius:5px 5px 0 0;
-  transition:height .5s cubic-bezier(.2,.8,.3,1)}
-.rk-col.pos .rk-bat{background:linear-gradient(180deg,var(--up),rgba(110,231,183,.22));
-  box-shadow:0 0 14px rgba(110,231,183,.14)}
-.rk-col.neg .rk-bat{background:linear-gradient(180deg,var(--dn),rgba(232,135,124,.2))}
-.rk-wr{font-family:var(--mono);font-size:10px;color:var(--fg-2);line-height:1}
-.rk-b{font-family:var(--mono);font-size:10.5px;color:var(--fg-3);letter-spacing:.04em}
-
 /* 20 Okt — notifikasi per engine (BRICK/HARVEST/SWING/BASTION 4H) */
 .nk-row{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
 .nk-h{flex:100%;font-family:var(--mono);font-size:10.5px;color:var(--fg-3);letter-spacing:.06em;text-transform:uppercase}
@@ -1223,14 +1195,12 @@ select.plog-bln{margin-left:auto}
    bull, altseason aurora, deg amber, netral tanpa lapisan. */
 #tema{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;
   transition:opacity 1.4s ease}
-/* 7 Nov (PILIHAN USER): CRASH = BADAI BARA + PETIR MERAH — langit badai
-   gelap + glow merah horizon. Awan asap, petir, dan bara digambar di canvas
-   #nuansa (lihat nuBadai + sistem kilat K di nuTick). Tanpa objek. */
 body.tema-crash #tema{opacity:1;background:
-  linear-gradient(180deg,rgba(18,5,8,.85) 0%,rgba(26,7,8,.45) 26%,transparent 58%),
-  radial-gradient(135% 55% at 50% 116%,rgba(255,98,42,.32),transparent 62%),
-  linear-gradient(180deg,#0c0405 0%,#170606 55%,#210705 100%);
-  animation:tema-api 4.5s ease-in-out infinite}
+  radial-gradient(120% 62% at 50% 118%,rgba(255,109,94,.38),transparent 62%),
+  radial-gradient(85% 42% at 16% 112%,rgba(255,148,52,.26),transparent 60%),
+  radial-gradient(85% 42% at 84% 112%,rgba(202,38,52,.32),transparent 60%),
+  linear-gradient(180deg,transparent 64%,rgba(26,9,7,.45) 100%);
+  animation:tema-api 3.8s ease-in-out infinite}
 body.tema-short #tema{opacity:1;background:
   radial-gradient(110% 50% at 50% 116%,rgba(232,135,124,.16),transparent 62%),
   radial-gradient(70% 34% at 20% 110%,rgba(232,135,124,.10),transparent 60%)}
@@ -1249,9 +1219,8 @@ body.tema-altseason #tema{opacity:1;background:
   background-size:auto,auto,auto,44px 44px,44px 44px}
 body.tema-deg #tema{opacity:1;background:
   radial-gradient(100% 48% at 50% 116%,rgba(238,180,76,.16),transparent 62%)}
-/* kedip pelan napas api — tidak agresif, cukup terasa hidup */
-@keyframes tema-api{0%,100%{filter:brightness(1)}35%{filter:brightness(1.16)}
-  70%{filter:brightness(.97)}}
+@keyframes tema-api{0%,100%{filter:brightness(1)}18%{filter:brightness(1.22)}
+  37%{filter:brightness(.88)}55%{filter:brightness(1.14)}74%{filter:brightness(.95)}}
 @media (prefers-reduced-motion:reduce){body.tema-crash #tema{animation:none}}
 
 /* ── 16 Okt: lapisan partikel nuansa (#nuansa) — pasar jadi "hidup" ──
@@ -1382,27 +1351,3 @@ td.bc-sp{padding:3px 6px}
 tr.bc-x td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
 tr.bc-x td{background:rgba(216,200,154,.05)}
 td.bcw{color:var(--gold)}
-
-/* ── 28 Okt — PICK big caps (admin): bintang kuning ★ + garis cahaya baris, 7 hari
-   2 Nov — dipulihkan (versi server 1 Nov menghapusnya) + rapatkan coin↔price
-   3 Nov — big caps TANPA slide horizontal: sel dipadatkan agar semua kolom
-   (s.d. pick) muat dalam lebar content (1400px); content halaman dilebarkan ── */
-.bc-pstar{margin-left:5px;color:#ffd54f;font-size:11px}
-tr.bc-pick td:first-child{box-shadow:inset 3px 0 0 #ffd54f}
-tr.bc-pick td{background:rgba(255,213,84,.055)}
-button.bc-pick{cursor:pointer;background:none;border:1px solid var(--line);border-radius:6px;color:var(--fg-3);font:600 11px/1 inherit;padding:4px 9px}
-button.bc-pick:hover{border-color:#ffd54f;color:#ffd54f}
-button.bc-pick.on{background:rgba(255,213,84,.14);border-color:#ffd54f;color:#ffd54f}
-#bc-table table{min-width:0}
-#bc-table th{padding:7px 6px;letter-spacing:.05em}
-#bc-table td{padding:6px 6px;font-size:11.5px}
-#bc-table td.sym{max-width:150px}
-#bc-table .bc-nama{max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#bc-table .bc-spark{width:56px;height:20px}
-#bc-table td.bc-sp{padding:3px 4px}
-
-/* ── 3 Nov — daftar pantauan admin (chip ★ di atas tabel big caps) ── */
-.bc-picks{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0 0}
-.bc-picks-h{font-size:10px;color:var(--fg-3);letter-spacing:.06em;text-transform:uppercase}
-.bc-pick-chip{cursor:pointer;background:rgba(255,213,84,.10);border:1px solid #ffd54f;color:#ffd54f;border-radius:999px;font:600 11px/1 inherit;padding:4px 10px}
-.bc-pick-chip:hover{background:rgba(255,213,84,.22)}
