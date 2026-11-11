@@ -11,10 +11,12 @@
 /* 25 Okt: bump cache — kolom big caps baru (posisi/korelasi/funding/OI) + alert. */
 /* 11 Nov: bump cache — perbaikan login admin (hash password cloud) + gembok
    anti-timpang cloudWrite, supaya app.js baru benar-benar terpakai. */
-const CACHE = "qkuk-v20261112n";
+const CACHE = "qkuk-v20261112o";
 const SHELL = [
   "./", "./index.html", "./app.js", "./style.css", "./manifest.json",
-  "./whale.html", "./whale.js", "./riwayat.html", "./archive.html", "./icon-192.png", "./icon-512.png"
+  "./whale.html", "./whale.js", "./riwayat.html", "./archive.html",
+  "./riwayat-posisi.html", "./riwayat-posisi.js",
+  "./icon-192.png", "./icon-512.png"
 ];
 
 self.addEventListener("install", function (e) {
@@ -41,6 +43,24 @@ self.addEventListener("fetch", function (e) {
     return;   // biarkan default network (tidak di-cache SW)
   }
   if (e.request.method !== "GET") return;
+  /* 12 Nov — HTML/navigasi jadi NETWORK-FIRST. Dulu cache-first: halaman lama
+     terus tampil (mis. urutan section lama) walau versi baru sudah terbit,
+     karena SW menyajikan cache dulu dan baru memperbaruinya di belakang.
+     Sekarang: ambil dari jaringan, simpan ke cache, cache hanya dipakai saat
+     offline. Aset berat (css/js bergaya ?v=) tetap cache-first. */
+  var html = e.request.mode === "navigate" || /\.html?$/.test(url.pathname) || url.pathname.slice(-1) === "/";
+  if (html) {
+    e.respondWith(
+      fetch(e.request).then(function (resp) {
+        if (resp && resp.status === 200) {
+          var salin = resp.clone();
+          caches.open(CACHE).then(function (c) { try { c.put(e.request, salin); } catch (x) {} });
+        }
+        return resp;
+      }).catch(function () { return caches.match(e.request); })
+    );
+    return;
+  }
   e.respondWith(
     caches.open(CACHE).then(function (cache) {
       return cache.match(e.request).then(function (hit) {

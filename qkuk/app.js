@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112n";
+  var BUILD = "qkuk-bot-20261112o";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -2131,6 +2131,23 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         ? (H.m + "W / " + H.l + "L · " + (H.r > 0 ? "+" : "") + H.r + "R · "
            + (H.usd > 0 ? "+" : H.usd < 0 ? "−" : "") + "$" + Math.abs(H.usd || 0).toFixed(2))
         : "belum ada trade", H.n ? (H.r >= 0 ? "pos" : "neg") : "mut"));
+      /* 12 Nov (permintaan user) — ringkasan putusan agent HARI INI: berapa
+         sinyal disetujui, dikecilkan, ditolak. Dihitung dari baris `buka`
+         journal (keputusan saat sinyal masuk), jadi hari berjalan tetap
+         terlihat walau belum ada trade yang tertutup. */
+      var AH = B.agent_hari || {};
+      if (AH.n) {
+        var cA = chip("agent hari ini",
+          "setuju " + (AH.setuju || 0) + " · tolak " + (AH.tolak || 0),
+          (AH.setuju || 0) > (AH.tolak || 0) ? "pos" : (AH.tolak || 0) > (AH.setuju || 0) ? "neg" : "mut");
+        cA.title = AH.n + " sinyal hari ini — setuju " + (AH.setuju || 0)
+          + ", kecilkan " + (AH.kecilkan || 0) + ", tolak " + (AH.tolak || 0)
+          + (AH.tanpa ? ", tanpa agent " + AH.tanpa : "")
+          + ". Mode bayangan: agent hanya mencatat, eksekusi tetap jalan.";
+        sum.appendChild(cA);
+      } else {
+        sum.appendChild(chip("agent hari ini", "belum ada sinyal", "mut"));
+      }
       sum.appendChild(chip("WR live bot", A.n ? (A.m + "W / " + A.l + "L · " + A.wr + "%") : "belum ada",
         A.n ? (A.wr >= 50 ? "pos" : "neg") : "mut"));
       sum.appendChild(chip("total R", (A.r == null ? "—" : (A.r > 0 ? "+" : "") + A.r),
