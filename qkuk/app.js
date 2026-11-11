@@ -20,8 +20,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112f";
+  var BUILD = "qkuk-bot-20261112g";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
+  var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · ⭐ SCALP 2H = kuning emas (OB 2h, TVI 120) ·
@@ -2049,6 +2050,38 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     svg.appendChild(lab);
   }
 
+  /* 12 Nov (permintaan user) — satu-satunya notifikasi yang berbunyi: saat
+     BOT MEMBUKA POSISI. Isinya entry/SL/TP/margin supaya user bisa ikut open
+     manual, dan klik = chart TradingView. Baseline diambil pada muatan pertama
+     agar posisi lama tidak memicu bunyi. */
+  var BOT_SEEN = null;
+  try { BOT_SEEN = JSON.parse(localStorage.getItem("qkuk_bot_seen") || "null"); }
+  catch (e) { BOT_SEEN = null; }
+  function botNotifBaru(B) {
+    var rows = (B && B.terbuka) || [];
+    var ids = rows.map(function (r) { return String(r.id || (r.sym + "|" + (r.dibuka || ""))); });
+    function simpan() {
+      BOT_SEEN = ids;
+      try { localStorage.setItem("qkuk_bot_seen", JSON.stringify(ids)); } catch (e) {}
+    }
+    if (BOT_SEEN == null) { simpan(); return; }
+    var baru = rows.filter(function (r, i) { return BOT_SEEN.indexOf(ids[i]) < 0; });
+    simpan();
+    baru.forEach(function (r) {
+      var jam = String(r.dibuka || "").slice(11, 16);
+      toast("sinyal", r.sym, r.kanal, jam, r.dir);
+      var body = (r.dir === "long" ? "LONG" : "SHORT") + " " + r.sym
+        + " · entry " + fp(r.entry) + " · SL " + fp(r.sl)
+        + " · TP " + (r.tp == null ? "—" : fp(r.tp))
+        + (r.margin_usd == null ? "" : " · margin $" + (+r.margin_usd).toFixed(2));
+      notifikasiKirim("🤖 BOT BUKA POSISI — " + r.sym,
+        { body: body, tag: "bot-open-" + r.sym + "-" + (r.dibuka || ""),
+          icon: QKUK_ICON, badge: QKUK_ICON, renotify: true,
+          data: { url: tvUrl(r.sym, r.kanal) } });
+      try { ding(); } catch (e) {}
+    });
+  }
+
   function botCard() {
     var openHost = $("#bot-open"), accHost = $("#bot-acc"), sum = $("#bot-sum");
     if (!openHost) return;
@@ -2058,6 +2091,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        sampai server mengirim blok baru. */
     var B = DATA.bot || BOT_LAST;
     if (B) BOT_LAST = B;
+    if (B) botNotifBaru(B);
     if (!B) {
       table(openHost, [], [], "Bot auto-trade belum menjalankan siklus — jalankan: python3 zenbnb/autotrade/run.py once");
       if (accHost) accHost.innerHTML = "";
@@ -6621,12 +6655,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
     var fresh = items.filter(function (it) { return !NOTE.seen[it.key]; });
     items.forEach(function (it) { NOTE.seen[it.key] = 1; });
+    /* 12 Nov (permintaan user) — SEMUA notifikasi sinyal di situs DIMATIKAN.
+       Yang boleh berbunyi hanya "bot buka posisi" (lihat botNotifBaru), supaya
+       user bisa ikut open manual. Sinyal tetap muncul di tabel seperti biasa. */
     fresh.forEach(function (it) {
+      if (!NOTIF_SINYAL_ON) return;
       toast(it.k, it.sym, it.tf, it.ts, it.dir);
       deskNotify(it.k, it.sym, it.tf, it.ts, it.dir);   // native OS saat tab tidak aktif
       NOTE.n++;
     });
-    if (fresh.length) { ding(); sndIcon(); }
+    if (fresh.length && NOTIF_SINYAL_ON) { ding(); sndIcon(); }
   }
   /* ── 20 Sep: tata letak dipindah ke sini (runtime) ──
      Keluhan "masih sama kaya sebelumnya" terbukti dari cache HTML: GitHub Pages
