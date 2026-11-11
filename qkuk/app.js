@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112h";
+  var BUILD = "qkuk-bot-20261112i";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -4520,7 +4520,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      panggung ("Qkuk"/"Gerry") dipakai sbg penanda di pick, bubbles,
      live score & kotak analisis — KONSTAN, tidak boleh diganti. */
   var ADMINS = {
-    "admin":  { who: "Qkuk",  hash: "d78f6114b477459dfaacf645a3d5453b33437cce560a016ffbc2051408d3caa0" },
+    "admin":  { who: "Qkuk",  hash: "19286fe99591231d536271f80ee9e5301e5c5747e20b777927ef041d1459e67d" },
     "Admin2": { who: "Gerry", hash: "b12039778e31e421be674d6b5f02b126b95f5fcd7fd506b142a56062bbf3e313" }
   };
   /* 26 Sep — CHECKLIST ALASAN AMBIL POSISI: setiap pick bisa dicatat alasannya
