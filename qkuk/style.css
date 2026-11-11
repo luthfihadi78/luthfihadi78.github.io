@@ -1357,3 +1357,7 @@ td.bc-sp{padding:3px 6px}
 tr.bc-x td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
 tr.bc-x td{background:rgba(216,200,154,.05)}
 td.bcw{color:var(--gold)}
+
+/* 12 Nov — PnL BERJALAN di tabel bot: angka hijau/merah */
+#bot-open td.pos,#bot-riwayat td.pos{color:var(--up)}
+#bot-open td.neg,#bot-riwayat td.neg{color:var(--dn)}

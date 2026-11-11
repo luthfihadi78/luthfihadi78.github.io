@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112d";
+  var BUILD = "qkuk-bot-20261112e";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
@@ -2077,6 +2077,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       sum.appendChild(chip("leverage", "x" + (B.leverage == null ? "—" : B.leverage)));
       sum.appendChild(chip("margin", B.margin || "—"));
       sum.appendChild(chip("posisi", posOpen + "/" + (B.maks_posisi || "—"), posOpen ? "pos" : "mut"));
+      /* 12 Nov — total untung/rugi posisi yang MASIH jalan (belum terealisasi). */
+      var UP = B.upnl || {};
+      if (UP.usd != null) {
+        sum.appendChild(chip("PnL mengambang",
+          (UP.usd < 0 ? "−$" : "+$") + Math.abs(UP.usd).toFixed(2)
+          + (UP.pct == null ? "" : " · " + (UP.pct < 0 ? "" : "+") + UP.pct.toFixed(2) + "%"),
+          UP.usd < 0 ? "neg" : "pos"));
+      }
       /* 12 Nov — ringkasan HARI INI: trade, W/L, R, dan dolarnya. */
       var H = B.harian || {};
       sum.appendChild(chip("hari ini", H.n
@@ -2107,6 +2115,18 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       { h: "entry", n: true, c: function (r) { return txt(fp(r.entry), "n"); } },
       { h: "stop", n: true, c: function (r) { return txt(fp(r.sl), "n"); } },
       { h: "target", n: true, c: function (r) { return txt(r.tp == null ? null : fp(r.tp), "n"); } },
+      /* 12 Nov — PnL BERJALAN: harga mark + untung/rugi mengambang. */
+      { h: "mark", n: true, c: function (r) { return txt(r.mark == null ? null : fp(r.mark), "n"); } },
+      { h: "PnL $", n: true, c: function (r) {
+          var v = num(r.upnl_usd);
+          if (v == null) return txt(null);
+          return txt((v < 0 ? "−$" : "+$") + Math.abs(v).toFixed(2), "n " + (v < 0 ? "neg" : "pos"));
+        } },
+      { h: "PnL %", n: true, c: function (r) {
+          var p = num(r.upnl_pct);
+          if (p == null) return txt(null);
+          return txt((p < 0 ? "" : "+") + p.toFixed(2) + "%", "n " + (p < 0 ? "neg" : "pos"));
+        } },
       { h: "margin $", n: true, c: function (r) { return usd(r.margin_usd); } },
       { h: "risiko $", n: true, c: function (r) { return usd(r.risiko_usd); } },
       { h: "TP $", n: true, c: function (r) { return usd(r.tp_usd); } },
@@ -3511,124 +3531,6 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      BTC dipasang. Karena itu tiap kartu kini menampilkan CI bootstrap + label
      "belum terbukti" bila rentang 95% memotong nol — menampilkan totalR
      positif tanpa itu akan terbaca seperti edge yang tak terbukti. */
-  function btBadges() {
-    var host = $("#bt-badges");
-    if (!host) return;
-    var bt = DATA && DATA.bt;
-    var wh = DATA && DATA.bt_brick4h;
-    /* 6 Okt malam (permintaan user): REVERSAL 30m dihapus dari strip (kanal
-       mati), dan kartu riset terpisah DILEBUR ke sini — semua kanal
-       satu desain badge; detail riset BASTION 4H (jendela, populasi, resep,
-       IS→OOS) pindah ke tooltip badge-nya.
-     7 Okt — kartu lain dimatikan & DIHAPUS dari strip (EV-nya negatif) dan
-       penggantinya 🧱 BRICK masuk: kanal 30m MSS→IDM→zona OB+mantul,
-       gerbang searah BTC 24 jam, TP 3R (data.json.bt_engine_ob).
-     7 Okt (kemudian) — 🧵 SWING (Sweep+Reclaim 4h) masuk strip lagi; strip
-       kini 4 engine = HARVEST · BRICK · SWING · BASTION 4H
-       (data.json.bt_swing & bt_brick4h).
-     8 Okt — rebrand "🧷 ENGINE OB" DIBATALKAN (hasil live buruk, keputusan
-       user) → label kembali 🧱 BRICK. */
-    if (!bt || !bt["2h"]) {
-      var s = document.getElementById("btstrip"); if (s) s.style.display = "none";
-      return;
-    }
-    host.innerHTML = "";
-    var list = [];
-    if (bt["2h"]) list.push({ nama: bt["2h"].nama || "🩸 HARVEST", chip: "2H",
-                              d: bt["2h"], w: bt["2h"] });
-    if (wh && wh.n) list.push({ nama: "🏰 BASTION 4H", chip: "OB4H",
-      d: { wr: wh.wr, ev: wh.ev, totr: wh.totr, n: wh.n,
-           ci: wh.ci, significant: wh.significant, per_arah: wh.per_arah },
-      w: wh });
-    var ek = DATA && DATA.bt_engine_ob;
-    if (ek && ek.n) list.push({ nama: "🧱 BRICK", chip: "BRICK",
-      d: { wr: ek.wr, ev: ek.ev, totr: ek.totr, n: ek.n,
-           ci: ek.ci, significant: ek.significant, per_arah: ek.per_arah },
-      w: ek });
-    /* 27 Okt — SWING (Sweep+Reclaim 4h) DIHAPUS dari strip riset (permintaan
-       user: matikan engine SWING & WYCKOFF di mana pun). */
-    /* var sw = DATA && DATA.bt_swing;
-    if (sw && sw.n) list.push({ nama: "🧵 SWING", chip: "4h",
-      d: { wr: sw.wr, ev: sw.ev, totr: sw.totr, n: sw.n,
-           ci: sw.ci, significant: sw.significant, per_arah: sw.per_arah },
-      w: sw }); */
-    /* 27 Okt — kartu ⭐ SCALP 2H belum punya backtest riset di data.json;
-       data dari DATA.bt_scalp_2h (riset 28 Okt 2026). */
-    var sc = DATA && DATA.bt_scalp_2h;
-    if (sc && sc.n) list.push({ nama: "⭐ SCALP 2H", chip: "SCALP",
-      d: { wr: sc.wr, ev: sc.ev, totr: sc.totr, n: sc.n,
-           ci: sc.ci, significant: sc.significant, per_arah: sc.per_arah },
-      w: sc });
-    list.sort(function (a, b) { return (b.d.ev || 0) - (a.d.ev || 0); });
-    list.forEach(function (it, i) {
-      var d = it.d;
-      var b = el("div", "bt-badge" + (i === 0 ? " is-1" : ""));
-      b.appendChild(el("span", "bt-rank", "#" + (i + 1)));
-      var nm = el("div", "bt-nama");
-      nm.appendChild(document.createTextNode(it.nama));
-      nm.appendChild(el("span", "bt-tf t" + it.chip.toLowerCase(), it.chip));
-      b.appendChild(nm);
-      if (it.w) {
-        var w = it.w;
-        b.title = "Riset " + it.nama + ": " + (w.jendela || "?") + " · " + (w.populasi || "?")
-          + " · resep " + (w.resep || "?")
-          + (w.is && w.oos && w.is.n && w.oos.n
-              ? " · IS WR " + w.is.wr.toFixed(1) + "% (EV " + sgn(w.is.ev, 3) + ", n=" + w.is.n + ")"
-                + " → OOS WR " + w.oos.wr.toFixed(1) + "% (EV " + sgn(w.oos.ev, 3) + ", n=" + w.oos.n + ")"
-              : "");
-      }
-      var an = el("div", "bt-angka");
-      [["winrate", (d.wr != null ? d.wr.toFixed(1) : "—") + "%", d.wr >= 50 ? "pos" : "neg"],
-       ["totR", (d.totr >= 0 ? "+" : "") + d.totr + "R", d.totr >= 0 ? "pos" : "neg"],
-       ["EV/R", (d.ev >= 0 ? "+" : "") + d.ev.toFixed(3), d.ev >= 0 ? "pos" : "neg"],
-       ["n", d.n.toLocaleString("id-ID"), ""]].forEach(function (q) {
-        var c = el("div");
-        c.appendChild(el("span", "k", q[0]));
-        var v = el("span", "v " + q[2], String(q[1]));
-        c.appendChild(v); an.appendChild(c);
-      });
-      b.appendChild(an);
-      /* bukti, bukan kosmetik: rentang CI + status per arah. Tanpa ini
-         totalR +125R akan terbaca sama bobotnya dengan +543R padahal yang
-         pertama CI-nya memotong nol. */
-      if (d.ci) {
-        var ci = el("div", "bt-ci");
-        ci.appendChild(el("span", "k", "EV 95% CI"));
-        var sci = d.significant;
-        ci.appendChild(el("span", "v " + (sci ? "pos" : "warn"),
-          (d.ci[0] >= 0 ? "+" : "") + d.ci[0].toFixed(3) + " … " +
-          (d.ci[1] >= 0 ? "+" : "") + d.ci[1].toFixed(3) +
-          (sci ? "" : d.ci[1] < 0 ? "  ❌ terbukti negatif" : "  ⚠️ belum terbukti")));
-        b.appendChild(ci);
-      }
-      if (d.per_arah) {
-        var pa = el("div", "bt-arah");
-        ["long", "short"].forEach(function (a) {
-          var x = d.per_arah[a];
-          if (!x) return;
-          var s2 = el("span", "bt-a " + (x.ev >= 0 ? "pos" : "neg") +
-                               (x.significant ? "" : " warn"));
-          s2.textContent = a + " " + x.wr.toFixed(1) + "% · " +
-                           (x.ev >= 0 ? "+" : "") + x.ev.toFixed(3) + "R" +
-                           (x.significant ? "" : " ⚠");
-          s2.title = a + ": n=" + x.n.toLocaleString("id-ID") +
-                     " · EV " + (x.ev >= 0 ? "+" : "") + x.ev.toFixed(3) +
-                     "R · " + (x.significant
-                       ? "bootstrap 95% seluruhnya di atas nol"
-                       : "bootstrap 95% memotong nol — belum terbukti unggul");
-          pa.appendChild(s2);
-        });
-        b.appendChild(pa);
-      }
-      host.appendChild(b);
-    });
-    var lg = $("#bt-lg");
-    if (lg && bt.jendela) {
-      lg.textContent = (bt.total_setup || 0).toLocaleString("id-ID") +
-                       " setup · " + bt.jendela +
-                       (bt.gate ? " · " + bt.gate : "");
-    }
-  }
 
   /* ══ 23 Okt — LEADERBOARD ADMIN (Qkuk vs Gerry, head-to-head) ════════
      Tabel per engine + TOTAL: trade, winrate, net R dari pick yang
@@ -3939,7 +3841,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      risetnya di tooltip. */
   function render(first) {
     liveScoreMount();       // 11 Okt: live score klasemen — PALING ATAS halaman
-    stamp(); gauge(); strip(); bigcaps(); botCard(); kamu(); applyPicks(); btBadges();
+    stamp(); gauge(); strip(); bigcaps(); botCard(); kamu(); applyPicks();
     leaderboard(); whatif();   // 23 Okt: leaderboard admin + simulasi what-if
     scanNotif();
     if (!DATA || !DATA.live) return;
@@ -6601,7 +6503,6 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      persis keluhan "kotak analisis kembali ke atas, harusnya di bawah
      bubbles". #footer ikut dicantumkan supaya tidak nyangkut di tengah
      halaman saat section di atasnya dipindah.
-     ⚠️ 5 Okt — strip riset #btstrip juga HARUS ada di daftar ini.
      Section yang tidak tercantum tidak cuma tertinggal di tempat
      lama: begitu section lain di bawahnya dipindah dengan appendChild, ia
      tertinggal di ATAS. Dua strip riset ada di paling atas wrap, jadi
@@ -6610,7 +6511,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     /* 11 Okt — #kor-bx (riwayat koreksi) dipindah ke bawah #signals
        1 Nov — #bigcaps (Big caps top 50) tepat di bawah #signals: section
        baru WAJIB dicantumkan di sini, kalau tidak ia tertinggal di ATAS wrap. */
-    var ids  = ["btstrip", "dir", "mctx", "bubbles", "analisa", "watch", "signals", "bigcaps", "kor-bx", "kamu", "charts", "leaderboard", "whatif", "akurasi", "strip", "footer"];
+    var ids  = ["dir", "mctx", "bubbles", "analisa", "watch", "signals", "bigcaps", "kor-bx", "kamu", "charts", "leaderboard", "whatif", "akurasi", "strip", "footer"];
     var host = document.querySelector(".wrap") || document.body;
     ids.forEach(function (id) {
       var s = document.getElementById(id);
