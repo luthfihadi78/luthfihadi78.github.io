@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112l";
+  var BUILD = "qkuk-bot-20261112m";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -2453,39 +2453,6 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           ul.appendChild(row);
         });
         wrapLog.appendChild(ul);
-      }
-    }
-
-    /* 12 Nov — ARSIP posisi kertas: 10 posisi dry_run dikosongkan saat bot
-       dipindah ke mode demo (uang virtual sungguhan). Ditampilkan terpisah
-       supaya tabel tidak kosong tanpa penjelasan — dan TIDAK pernah dihitung
-       sebagai posisi hidup. */
-    var wrapArsip = $("#bot-arsip-wrap");
-    if (wrapArsip) {
-      wrapArsip.innerHTML = "";
-      var AK = B.arsip_kertas || {}, AP = AK.posisi || [];
-      if (AP.length) {
-        var hA = el("div", "bot-eq-h");
-        hA.appendChild(el("span", null, "arsip posisi kertas · " + (AK.tanggal || "—")
-          + " · mode dry_run, bukan posisi bursa"));
-        hA.appendChild(el("b", null, AP.length + " posisi"));
-        wrapArsip.appendChild(hA);
-        var twA = el("div", "tw");
-        wrapArsip.appendChild(twA);
-        table(twA, [
-          { h: "engine", c: function (r) {
-              var ks = (r.kanal_ikut && r.kanal_ikut.length) ? r.kanal_ikut : [r.kanal];
-              return txt(ks.map(function (k) { return String(k || "").toUpperCase(); }).join(" + "), "st");
-            } },
-          { h: "pair", c: function (r) { return txt(r.sym); } },
-          { h: "side", c: function (r) { return side(r.dir); } },
-          { h: "entry", n: true, c: function (r) { return txt(fp(r.entry), "n"); } },
-          { h: "stop", n: true, c: function (r) { return txt(fp(r.sl), "n"); } },
-          { h: "target", n: true, c: function (r) { return txt(r.tp == null ? null : fp(r.tp), "n"); } },
-          { h: "margin $", n: true, c: function (r) { return usd(r.margin_usd); } },
-          { h: "risiko $", n: true, c: function (r) { return usd(r.risiko_usd); } },
-          { h: "TP $", n: true, c: function (r) { return usd(r.tp_usd); } }
-        ], AP, "");
       }
     }
 
