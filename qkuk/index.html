@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=20261112m">
+<link rel="stylesheet" href="style.css?v=20261112n">
 </head>
 <body>
 
@@ -152,13 +152,32 @@
     <p class="cap">Hold = geser · tap = buka grafik TradingView · angka = %24 jam.</p>
   </section>
 
-  <section id="analisa">
+
+  <section id="bot">
     <div class="sec-h">
-      <h2><i>&gt;</i> Kotak analisis</h2>
-      <span class="hint">kombinasi alasan × timeframe dengan winrate live tertinggi — berubah otomatis</span>
+      <h2><i>&gt;</i> Bot auto-trade</h2>
+      <span class="hint">akun demo Binance · posisi yang sedang dipegang &amp; akurasi live per engine</span>
     </div>
-    <div class="an-box" id="analisa-box"></div>
-    <p class="cap">Winrate live dari pick yang sudah di-resolve — kombinasi terbaik tampil di sini.</p>
+    <div class="bc-sum" id="bot-sum"></div>
+    <div class="tw" id="bot-open"></div>
+    <div class="bot-eq">
+      <div class="bot-eq-h"><span>equity harian · kumulatif $</span><b id="bot-eq-val">—</b></div>
+      <svg class="ch" id="bot-eq" role="img" aria-label="Kurva kumulatif untung/rugi bot dalam dolar"></svg>
+    </div>
+    <div class="bot-eq">
+      <div class="bot-eq-h"><span>equity per trade · kumulatif R</span><b id="bot-eqr-val">—</b></div>
+      <svg class="ch" id="bot-eqr" role="img" aria-label="Kurva kumulatif bot dalam R"></svg>
+    </div>
+    <div id="bot-risiko"></div>
+    <div id="bot-riwayat"></div>
+    <div id="bot-jam"></div>
+    <div id="bot-sim"></div>
+    <div id="bot-agent"></div>
+    <div id="bot-bukti"></div>
+    <div id="bot-koreksi"></div>
+    <div id="bot-log"></div>
+    <div class="tw" id="bot-acc"></div>
+    <p class="cap">Sumber: journal bot (zenbnb/autotrade) — bukan backtest. Mode demo = uang virtual; R dihitung dari entry→SL/TP.</p>
   </section>
 
   <section id="signals">
@@ -210,31 +229,14 @@
     <p class="cap">CoinGecko + Binance via engine (cache 15 mnt) · 🟡 = ada sinyal engine hari ini · alert WA otomatis saat ≥16 koin bergerak ≥1%/1j</p>
   </section>
 
-  <section id="bot">
+
+  <section id="analisa">
     <div class="sec-h">
-      <h2><i>&gt;</i> Bot auto-trade</h2>
-      <span class="hint">akun demo Binance · posisi yang sedang dipegang &amp; akurasi live per engine</span>
+      <h2><i>&gt;</i> Kotak analisis</h2>
+      <span class="hint">kombinasi alasan × timeframe dengan winrate live tertinggi — berubah otomatis</span>
     </div>
-    <div class="bc-sum" id="bot-sum"></div>
-    <div class="tw" id="bot-open"></div>
-    <div class="bot-eq">
-      <div class="bot-eq-h"><span>equity harian · kumulatif $</span><b id="bot-eq-val">—</b></div>
-      <svg class="ch" id="bot-eq" role="img" aria-label="Kurva kumulatif untung/rugi bot dalam dolar"></svg>
-    </div>
-    <div class="bot-eq">
-      <div class="bot-eq-h"><span>equity per trade · kumulatif R</span><b id="bot-eqr-val">—</b></div>
-      <svg class="ch" id="bot-eqr" role="img" aria-label="Kurva kumulatif bot dalam R"></svg>
-    </div>
-    <div id="bot-risiko"></div>
-    <div id="bot-riwayat"></div>
-    <div id="bot-jam"></div>
-    <div id="bot-sim"></div>
-    <div id="bot-agent"></div>
-    <div id="bot-bukti"></div>
-    <div id="bot-koreksi"></div>
-    <div id="bot-log"></div>
-    <div class="tw" id="bot-acc"></div>
-    <p class="cap">Sumber: journal bot (zenbnb/autotrade) — bukan backtest. Mode demo = uang virtual; R dihitung dari entry→SL/TP.</p>
+    <div class="an-box" id="analisa-box"></div>
+    <p class="cap">Winrate live dari pick yang sudah di-resolve — kombinasi terbaik tampil di sini.</p>
   </section>
 
   <section id="kamu">
@@ -292,6 +294,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20261112m" defer></script>
+<script src="app.js?v=20261112n" defer></script>
 </body>
 </html>
