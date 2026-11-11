@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261111c";
+  var BUILD = "qkuk-bot-20261112a";
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · ⭐ SCALP 2H = kuning emas (OB 2h, TVI 120) ·
@@ -1984,19 +1984,36 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       sum.appendChild(chip("leverage", "x" + (B.leverage == null ? "—" : B.leverage)));
       sum.appendChild(chip("margin", B.margin || "—"));
       sum.appendChild(chip("posisi", posOpen + "/" + (B.maks_posisi || "—"), posOpen ? "pos" : "mut"));
+      /* 12 Nov — ringkasan HARI INI: trade, W/L, R, dan dolarnya. */
+      var H = B.harian || {};
+      sum.appendChild(chip("hari ini", H.n
+        ? (H.m + "W / " + H.l + "L · " + (H.r > 0 ? "+" : "") + H.r + "R · "
+           + (H.usd > 0 ? "+" : H.usd < 0 ? "−" : "") + "$" + Math.abs(H.usd || 0).toFixed(2))
+        : "belum ada trade", H.n ? (H.r >= 0 ? "pos" : "neg") : "mut"));
       sum.appendChild(chip("WR live bot", A.n ? (A.m + "W / " + A.l + "L · " + A.wr + "%") : "belum ada",
         A.n ? (A.wr >= 50 ? "pos" : "neg") : "mut"));
       sum.appendChild(chip("total R", (A.r == null ? "—" : (A.r > 0 ? "+" : "") + A.r),
         (A.r || 0) >= 0 ? "pos" : "neg"));
       if (B.ts) sum.appendChild(chip("update", B.ts, "mut"));
     }
+    /* 12 Nov — nominal uang: margin terpakai, risiko (1R), dan target TP. */
+    var usd = function (v) {
+      var n = num(v);
+      return txt(n == null ? null : "$" + n.toFixed(2), "n");
+    };
     table(openHost, [
-      { h: "engine", c: function (r) { return txt(String(r.kanal || "").toUpperCase(), "st"); } },
+      { h: "engine", c: function (r) {
+          var ks = (r.kanal_ikut && r.kanal_ikut.length) ? r.kanal_ikut : [r.kanal];
+          return txt(ks.map(function (k) { return String(k || "").toUpperCase(); }).join(" + "), "st");
+        } },
       { h: "pair", c: function (r) { return txt(r.sym); } },
       { h: "side", c: function (r) { return side(r.dir); } },
       { h: "entry", n: true, c: function (r) { return txt(fp(r.entry), "n"); } },
       { h: "stop", n: true, c: function (r) { return txt(fp(r.sl), "n"); } },
       { h: "target", n: true, c: function (r) { return txt(r.tp == null ? null : fp(r.tp), "n"); } },
+      { h: "margin $", n: true, c: function (r) { return usd(r.margin_usd); } },
+      { h: "risiko $", n: true, c: function (r) { return usd(r.risiko_usd); } },
+      { h: "TP $", n: true, c: function (r) { return usd(r.tp_usd); } },
       { h: "skor", n: true, c: function (r) { return txt(r.skor == null ? null : (+r.skor).toFixed(0), "n"); } },
       { h: "umur", n: true, c: function (r) {
           var m = num(r.umur_menit);
@@ -2012,7 +2029,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     Object.keys(PE).forEach(function (k) {
       var s = PE[k] || {};
       barisAcc.push({ kanal: k, n: s.n || 0, m: s.m || 0, l: s.l || 0,
-                      wr: s.wr, ev: s.ev, r: s.r, open: s.terbuka || 0 });
+                      wr: s.wr, ev: s.ev, r: s.r, usd: s.usd, open: s.terbuka || 0 });
     });
     if (accHost) table(accHost, [
       { h: "engine", c: function (r) { return txt(String(r.kanal).toUpperCase(), "st"); } },
@@ -2022,6 +2039,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       { h: "winrate", n: true, c: function (r) { return txt(r.wr == null ? null : r.wr + "%", "n"); } },
       { h: "EV (R)", n: true, c: function (r) { return txt(r.ev == null ? null : r.ev, "n"); } },
       { h: "total R", n: true, c: function (r) { return txt(r.r == null ? null : (r.r > 0 ? "+" : "") + r.r, "n"); } },
+      { h: "total $", n: true, c: function (r) { return usd(r.usd); } },
       { h: "terbuka", n: true, c: function (r) { return txt(r.open, "n dim"); } }
     ], barisAcc, "Belum ada trade bot yang tertutup — akurasi muncul setelah TP/SL pertama.");
   }
