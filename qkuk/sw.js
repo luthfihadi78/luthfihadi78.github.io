@@ -9,7 +9,9 @@
      fallback opsi halaman masih terbuka dgn data terakhir).
    - Notifikasi: SW menerima push/ klik notifikasi → fokus tab yang ada. */
 /* 25 Okt: bump cache — kolom big caps baru (posisi/korelasi/funding/OI) + alert. */
-const CACHE = "qkuk-v20261101a";
+/* 11 Nov: bump cache — perbaikan login admin (hash password cloud) + gembok
+   anti-timpang cloudWrite, supaya app.js baru benar-benar terpakai. */
+const CACHE = "qkuk-v20261111a";
 const SHELL = [
   "./", "./index.html", "./app.js", "./style.css", "./manifest.json",
   "./whale.html", "./whale.js", "./riwayat.html", "./archive.html", "./icon-192.png", "./icon-512.png"

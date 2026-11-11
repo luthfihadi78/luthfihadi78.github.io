@@ -4270,7 +4270,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   var AUTH_HASHES = {};   // 11 Okt — hash per-akun dari cloud {"admin":…, "Admin2":…} (hasil ganti password)
   /* hash efektif akun k: hasil "ganti password" di cloud (jika ada),
      kalau tidak pakai bawaan di kode. */
-  function $hashOke(k) { return AUTH_HASHES[k] || ADMINS[k].hash; }
+  /* 11 Nov — BUG LOGIN ADMIN: sesudah "ganti password", hash baru hanya
+     tersimpan di cloud sebagai `auth.hash` (AUTHCLOUD) + `hashes`. Kalau
+     `hashes` hilang (pernah tertimpa klien lain), AUTH_HASHES kosong dan
+     login tetap membandingkan dgn hash BAWAAN di kode → password baru selalu
+     ditolak, isAdmin() selalu false, semua tombol "ambil"/koreksi di Signals
+     lenyap. Kini hash cloud ikut dihormati utk akun utama. */
+  function $hashOke(k) {
+    if (AUTH_HASHES[k]) return AUTH_HASHES[k];
+    if (k === AUTH.user && AUTHCLOUD) return AUTHCLOUD;
+    return ADMINS[k].hash;
+  }
   function curHash() { return AUTHCLOUD || AUTH.hash; }
   function wibStr(iso) {
     if (!iso) return "—";
@@ -4956,12 +4966,20 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         .then(function (r) { return r.ok ? r.text() : ""; })
         .catch(function () { return ""; })
         .then(function (t) {
-          var lamas = null;
+          var lamas = null, kosong = !t || !String(t).trim();
           try {
             var env = JSON.parse(t);
             var j = typeof (env && env.value) === "string" ? JSON.parse(env.value) : null;
             if (j && j.picks && typeof j.picks === "object") lamas = j;
           } catch (e) {}
+          /* 11 Nov — GEMBOK ANTI-TIMPANG: dulu, bila baca cloud gagal/timeout,
+             `lamas` null → tulisan baru = PICKS lokal saja, dan `hashes`/`auth`
+             ditulis ulang dari cache kosong → hash password per-akun MUSNAH
+             (itu sebabnya cloud sekarang `hashes: null`). Kalau payload ada
+             tapi tak terbaca, BATALKAN penyimpanan: lebih baik gagal terang-
+             terangan daripada menghapus data admin lain. */
+          if (!kosong && !lamas)
+            throw new Error("cloud tidak terbaca — penyimpanan dibatalkan agar data lama tidak tertimpa");
           var picks2 = Object.assign({}, (lamas && lamas.picks) || {}, PICKS);
           var kd = function (e) { return (e.t || "") + "|" + (e.act || "") + "|" + (e.jenis || "") + "|" + (e.sym || "") + "|" + (e.win == null ? "" : e.win); };
           var kunci = {}, plog2 = [];
