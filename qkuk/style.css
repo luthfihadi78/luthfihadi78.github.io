@@ -1363,6 +1363,12 @@ td.bcw{color:var(--gold)}
 #bot-open td.neg,#bot-riwayat td.neg{color:var(--dn)}
 
 /* 12 Nov — panel risiko & log kejadian bot (pengganti notifikasi grup) */
+/* 12 Nov — koreksi engine: teks monospace apa adanya (kolom angka harus lurus). */
+.bot-koreksi{margin:6px 0 2px;padding:8px 10px;border:1px solid var(--line);
+  border-radius:6px;background:rgba(255,255,255,.02);overflow-x:auto;
+  font-family:var(--mono);font-size:11px;line-height:1.55;color:var(--fg-2);
+  white-space:pre;tab-size:2}
+.bot-koreksi::selection{background:rgba(120,200,255,.25)}
 .bot-log{display:flex;flex-direction:column;gap:2px;margin:6px 0 2px;
   font-family:var(--mono);font-size:11px}
 .bot-logi{display:flex;gap:8px;align-items:baseline;border-bottom:1px solid var(--line);

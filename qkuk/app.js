@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112i";
+  var BUILD = "qkuk-bot-20261112k";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -2333,11 +2333,26 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       wrapAg.innerHTML = "";
       var AG = B.agent || {};
       var agKeys = Object.keys(AG);
-      if (agKeys.length) {
+      /* 12 Nov — nilai VETO ditaruh di judul, bukan di tabel: yang dicari user
+         bukan jumlah baris, tapi "agent menyelamatkan atau membuang R?". */
+      var V = B.agent_veto || {};
+      if (agKeys.length || V.n_tolak != null) {
         var hA2 = el("div", "bot-eq-h");
-        hA2.appendChild(el("span", null, "keputusan agent (bayangan) · akurasi per aksi"));
-        hA2.appendChild(el("b", null, agKeys.length + " jenis putusan"));
+        hA2.appendChild(el("span", null, "agent (bayangan) · nilai veto vs akurasi"));
+        var nTolak = num(V.n_tolak) || 0;
+        var nilai = num(V.r_net_dihindari) || 0;
+        hA2.appendChild(el("b", "n " + (nilai > 0 ? "pos" : nilai < 0 ? "neg" : "mut"),
+          nTolak ? ("veto " + (nilai > 0 ? "+" : "") + nilai.toFixed(2) + "R · " + nTolak + " penolakan")
+                 : (agKeys.length + " jenis putusan")));
         wrapAg.appendChild(hA2);
+        /* vonis: <5 penolakan = sampel terlalu tipis untuk menaikkan otoritas */
+        var vonis, clsV;
+        if (nTolak < 5) { vonis = "sampel " + nTolak + "/5 penolakan — otoritas tetap bayangan"; clsV = "mut"; }
+        else if (nilai >= 0.5) { vonis = "agent menyelamatkan " + nilai.toFixed(2) + "R — layak naik ke mode penuh"; clsV = "pos"; }
+        else if (nilai <= -0.5) { vonis = "agent membuang " + Math.abs(nilai).toFixed(2) + "R — jangan naikkan otoritas"; clsV = "neg"; }
+        else { vonis = "netral (" + (nilai > 0 ? "+" : "") + nilai.toFixed(2) + "R) — tetap bayangan"; clsV = "mut"; }
+        var vn = el("div", "cap"); vn.appendChild(el("span", "n " + clsV, vonis));
+        wrapAg.appendChild(vn);
         var boxAg = el("div", "tw");
         wrapAg.appendChild(boxAg);
         table(boxAg, [
@@ -2347,6 +2362,57 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           { h: "totR", n: true, c: function (r) { return txt((r.r > 0 ? "+" : "") + r.r.toFixed(2), "n " + (r.r < 0 ? "neg" : "pos")); } },
           { h: "EV", n: true, c: function (r) { return txt(r.ev == null ? null : (r.ev > 0 ? "+" : "") + r.ev.toFixed(3), "n " + (r.ev < 0 ? "neg" : "pos")); } }
         ], agKeys.map(function (k) { return AG[k]; }), "—");
+      }
+    }
+
+    /* BUKTI historis — angka mentah yang dipakai agent untuk memutuskan.
+       12 Nov: tabel ini sengaja terbuka untuk umum; kalau bot salah, user bisa
+       melihat irisan mana yang menyesatkan. `cukup` = n ≥ 8. */
+    var wrapBk = $("#bot-bukti");
+    if (wrapBk) {
+      wrapBk.innerHTML = "";
+      var BK = B.bukti || {};
+      var TOT = BK.total || {};
+      var hB = el("div", "bot-eq-h");
+      hB.appendChild(el("span", null, "bukti historis · EV bersih per irisan (fee & funding sudah dipotong)"));
+      hB.appendChild(el("b", null, TOT.n ? (TOT.n + " trade · WR " + TOT.wr + "% · EV " + sgn(TOT.ev_net, 2) + "R") : "belum ada trade"));
+      wrapBk.appendChild(hB);
+      var kolomBk = [
+        { h: "irisan", c: function (r) { return txt(r.label); } },
+        { h: "n", n: true, c: function (r) { return txt(r.n, "n"); } },
+        { h: "WR", n: true, c: function (r) { return txt(r.wr == null ? null : r.wr.toFixed(1) + "%", "n"); } },
+        { h: "EV bersih", n: true, c: function (r) { return txt(sgn(r.ev, 3), "n " + (r.ev < 0 ? "neg" : "pos")); } },
+        { h: "data", c: function (r) { return pill(r.cukup ? "cukup" : "tipis", r.cukup ? "pos" : "mut"); } }
+      ];
+      function bkRows(arr, field, prefix) {
+        return (arr || []).map(function (r) {
+          return { label: prefix + " " + r[field], n: r.n, wr: num(r.wr), ev: num(r.ev_net), cukup: !!r.cukup };
+        });
+      }
+      var barisBk = bkRows(BK.per_kanal, "kanal", "kanal")
+        .concat(bkRows(BK.per_skor, "bucket", "skor"));
+      if (barisBk.length) {
+        var boxBk = el("div", "tw");
+        wrapBk.appendChild(boxBk);
+        table(boxBk, kolomBk, barisBk, "—");
+      } else {
+        wrapBk.appendChild(el("div", "empty", "belum ada irisan dengan sampel"));
+      }
+    }
+
+    /* 12 Nov — KOREKSI: kelemahan tiap engine + saran, dihitung dari journal
+       yang sama dengan tabel bukti. Sengaja apa adanya (teks monospace) supaya
+       angka & vonis bisa dibandingkan baris per baris; bukan ringkasan model. */
+    var wrapKor = $("#bot-koreksi");
+    if (wrapKor) {
+      wrapKor.innerHTML = "";
+      var KR = String(B.koreksi || "").trim();
+      if (KR) {
+        var hK = el("div", "bot-eq-h");
+        hK.appendChild(el("span", null, "koreksi engine · kelemahan & saran (diperbarui tiap hari)"));
+        hK.appendChild(el("b", null, "deterministik, 0 token"));
+        wrapKor.appendChild(hK);
+        wrapKor.appendChild(el("pre", "bot-koreksi", KR));
       }
     }
 
