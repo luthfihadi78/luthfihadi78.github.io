@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112o";
+  var BUILD = "qkuk-bot-20261112p";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -6757,12 +6757,18 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      Section yang tidak tercantum tidak cuma tertinggal di tempat
      lama: begitu section lain di bawahnya dipindah dengan appendChild, ia
      tertinggal di ATAS. Dua strip riset ada di paling atas wrap, jadi
-     dicantumkan paling depan agar posisinya pasti. */
+     dicantumkan paling depan agar posisinya pasti.
+     12 Nov (permintaan user) — urutan final: gauge + nuansa dulu, bubbles,
+     lalu bot auto-trade, signals, big caps, dan kotak analisis. #bot WAJIB
+     ada di daftar ini: sebelumnya ia tidak tercantum dan justru nyangkut di
+     PALING ATAS wrap, sementara section lain di-append setelahnya. */
   (function reOrder() {
     /* 11 Okt — #kor-bx (riwayat koreksi) dipindah ke bawah #signals
        1 Nov — #bigcaps (Big caps top 50) tepat di bawah #signals: section
        baru WAJIB dicantumkan di sini, kalau tidak ia tertinggal di ATAS wrap. */
-    var ids  = ["dir", "mctx", "bubbles", "analisa", "watch", "signals", "bigcaps", "kor-bx", "kamu", "charts", "leaderboard", "whatif", "akurasi", "strip", "footer"];
+    var ids  = ["dir", "mctx", "bubbles", "bot", "signals", "bigcaps",
+                "analisa", "watch", "kor-bx", "kamu", "charts",
+                "leaderboard", "whatif", "akurasi", "strip", "footer"];
     var host = document.querySelector(".wrap") || document.body;
     ids.forEach(function (id) {
       var s = document.getElementById(id);
