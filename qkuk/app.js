@@ -20,7 +20,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112c";
+  var BUILD = "qkuk-bot-20261112d";
+  var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · ⭐ SCALP 2H = kuning emas (OB 2h, TVI 120) ·
@@ -1439,6 +1440,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     return td;
   }
   function txt(v, c) { var td = el("td", c); td.textContent = (v == null || v === "") ? "—" : v; return td; }
+  /* 12 Nov — label status di dalam sel tabel (OPEN / TP / SL / CLOSE). */
+  function pill(label, cls) {
+    var td = el("td");
+    td.appendChild(el("span", "bc-chip " + (cls || "mut"), label));
+    return td;
+  }
   /* sel pair dengan highlight kata pencarian (watchlist & signals).
      23 Okt — konsTfs = daftar engine yang men-sinyal koin yang sama hari
      ini; ≥2 → badge 🔥N "konsensus" (setup terkuat: lebih dari satu engine
@@ -2046,7 +2053,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var openHost = $("#bot-open"), accHost = $("#bot-acc"), sum = $("#bot-sum");
     if (!openHost) return;
     if (sum) sum.innerHTML = "";
-    var B = DATA.bot;
+    /* 12 Nov — data.json sesekali terbit tanpa blok `bot` (mis. siklus bursa
+       gagal). Jangan kosongkan kartu: pakai salinan terakhir yang sudah tampil
+       sampai server mengirim blok baru. */
+    var B = DATA.bot || BOT_LAST;
+    if (B) BOT_LAST = B;
     if (!B) {
       table(openHost, [], [], "Bot auto-trade belum menjalankan siklus — jalankan: python3 zenbnb/autotrade/run.py once");
       if (accHost) accHost.innerHTML = "";
@@ -2077,6 +2088,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       sum.appendChild(chip("total R", (A.r == null ? "—" : (A.r > 0 ? "+" : "") + A.r),
         (A.r || 0) >= 0 ? "pos" : "neg"));
       if (B.ts) sum.appendChild(chip("update", B.ts, "mut"));
+      /* 12 Nov — siklus terbit gagal baca bursa: kartu menampilkan salinan
+         terakhir yang sah (ditandai server), bukan posisi live. */
+      if (B.basi) sum.appendChild(chip("data basi", "salinan terakhir", "warn"));
     }
     /* 12 Nov — nominal uang: margin terpakai, risiko (1R), dan target TP. */
     var usd = function (v) {
@@ -2104,10 +2118,60 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       { h: "ukuran agent", n: true, c: function (r) {
           var f = num(r.faktor_agent);
           return txt(f == null ? "100%" : Math.round(f * 100) + "%", "n dim");
-        } }
+        } },
+      /* 12 Nov — status tegas tiap baris: masih OPEN. */
+      { h: "status", c: function () { return pill("OPEN", "pos"); } }
     ], B.terbuka || [], "Bot tidak sedang memegang posisi.");
 
     botEquity(B.equity || []);
+
+    /* 12 Nov (permintaan user) — RIWAYAT TRADE TERTUTUP: "sedang open, sudah
+       close, take profit, atau rugi" kelihatan per trade. Status dikirim
+       server (TP / SL / CLOSE) supaya tak ditebak dari warna. */
+    var wrapRW = $("#bot-riwayat");
+    if (wrapRW) {
+      wrapRW.innerHTML = "";
+      var RW = B.riwayat || [];
+      var totR = 0, totU = 0;
+      RW.forEach(function (r) { totR += num(r.r) || 0; totU += num(r.usd) || 0; });
+      var hR = el("div", "bot-eq-h");
+      hR.appendChild(el("span", null, "riwayat trade tertutup · terbaru di atas"));
+      hR.appendChild(el("b", null, RW.length
+        ? RW.length + " trade · " + (totR > 0 ? "+" : "") + totR.toFixed(2) + "R · "
+          + (totU < 0 ? "−" : "+") + "$" + Math.abs(totU).toFixed(2)
+        : "belum ada trade tertutup"));
+      wrapRW.appendChild(hR);
+      var boxRW = el("div", "tw");
+      wrapRW.appendChild(boxRW);
+      var dur = function (m) {
+        var n = num(m);
+        if (n == null) return txt(null);
+        return txt(n < 90 ? Math.round(n) + " mnt" : (n / 60).toFixed(1) + " jam", "n dim");
+      };
+      var uang = function (v) {
+        var n = num(v);
+        return txt(n == null ? null : (n < 0 ? "−$" + Math.abs(n).toFixed(2) : "+$" + n.toFixed(2)),
+                   "n " + (n == null ? "" : n < 0 ? "neg" : "pos"));
+      };
+      table(boxRW, [
+        { h: "waktu", c: function (r) { return txt(r.waktu || r.t, "dim"); } },
+        { h: "engine", c: function (r) {
+            var ks = (r.kanal_ikut && r.kanal_ikut.length) ? r.kanal_ikut : [r.kanal];
+            return txt(ks.map(function (k) { return String(k || "").toUpperCase(); }).join(" + "), "st");
+          } },
+        { h: "pair", c: function (r) { return txt(r.sym); } },
+        { h: "side", c: function (r) { return side(r.dir); } },
+        { h: "entry", n: true, c: function (r) { return txt(fp(r.entry), "n"); } },
+        { h: "keluar", n: true, c: function (r) { return txt(r.exit == null ? null : fp(r.exit), "n"); } },
+        { h: "hasil", c: function (r) { return pill(r.status || "—", r.status_kelas || "mut"); } },
+        { h: "R", n: true, c: function (r) {
+            var v = num(r.r);
+            return txt(v == null ? null : (v > 0 ? "+" : "") + v.toFixed(2), "n " + (v == null ? "" : v < 0 ? "neg" : "pos"));
+          } },
+        { h: "$", n: true, c: function (r) { return uang(r.usd); } },
+        { h: "durasi", n: true, c: function (r) { return dur(r.umur_menit); } }
+      ], RW, "Belum ada trade yang ditutup — posisi yang sedang jalan ada di tabel atas.");
+    }
 
     /* 12 Nov — ARSIP posisi kertas: 10 posisi dry_run dikosongkan saat bot
        dipindah ke mode demo (uang virtual sungguhan). Ditampilkan terpisah
