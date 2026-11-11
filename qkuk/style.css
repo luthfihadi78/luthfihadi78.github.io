@@ -1326,6 +1326,12 @@ body.mode-desktop .tchip{display:block}
 
 /* ── 24 Okt — Big caps top 20 (pembanding arah vs sinyal alt) ── */
 .bc-sum{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+/* 12 Nov — kurva equity harian bot (permintaan user): judul + nilai akhir. */
+.bot-eq{margin:16px 0 6px}
+.bot-eq-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--fg-2);margin-bottom:2px}
+.bot-eq-h b{font-size:12px;letter-spacing:0;font-weight:700;color:var(--fg)}
 .bc-chip{display:inline-flex;gap:6px;align-items:baseline;border:1px solid var(--line);
   border-radius:999px;padding:4px 10px;font-size:11px;background:var(--s1)}
 .bc-chip b{color:var(--fg-3);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:10px}

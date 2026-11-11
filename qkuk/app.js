@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112a";
+  var BUILD = "qkuk-bot-20261112b";
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
      oranye bata) · ⭐ SCALP 2H = kuning emas (OB 2h, TVI 120) ·
@@ -1961,6 +1961,87 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* ═══ 11 Nov — BOT AUTO-TRADE (permintaan user): posisi & akurasi live ═══
      Blok DATA.bot diisi engine dari journal bot (zenbnb/autotrade), bukan
      backtest: posisi yang SEDANG dipegang + hasil TP/lose per engine. */
+  /* ═══ 12 Nov — EQUITY HARIAN BOT (permintaan user) ════════════════════
+     Kurva kumulatif DOLAR dari trade bot yang sudah tertutup, satu titik per
+     hari (WIB). Sumber: journal autotrade (bukan backtest) — tiap titik =
+     Σ (R × risiko$) hari itu, dijumlah berantai. Hari tanpa trade tertutup
+     tidak dibuat, jadi kurva hanya bergerak saat benar-benar ada hasil. */
+  function botEquity(seri) {
+    var svg = $("#bot-eq"), val = $("#bot-eq-val");
+    if (!svg) return;
+    svg.innerHTML = "";
+    var W = 620, H = 170, P = { t: 16, r: 58, b: 24, l: 50 };
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("preserveAspectRatio", "none");
+    var fd = function (v) {
+      return (v > 0 ? "+" : v < 0 ? "−" : "") + "$" + Math.abs(v).toFixed(2);
+    };
+    if (val) { val.textContent = "—"; val.style.color = ""; }
+    if (!seri.length) {
+      var kosong = mk("text", { x: W / 2, y: H / 2, "text-anchor": "middle" });
+      kosong.textContent = "belum ada trade tertutup — kurva muncul setelah TP/SL pertama";
+      svg.appendChild(kosong);
+      return;
+    }
+    var ys = seri.map(function (r) { return num(r.kum) || 0; });
+    var hi = Math.max.apply(null, ys.concat([0]));
+    var lo = Math.min.apply(null, ys.concat([0]));
+    if (hi === lo) { hi += 1; lo -= 1; }
+    var pd = (hi - lo) * .15; hi += pd; lo -= pd;
+    var X = function (i) {
+      return seri.length === 1 ? (P.l + W - P.r) / 2
+        : P.l + i / (seri.length - 1) * (W - P.l - P.r);
+    };
+    var Y = function (v) { return P.t + (1 - (v - lo) / (hi - lo)) * (H - P.t - P.b); };
+    var akhir = ys[ys.length - 1];
+    var warna = akhir >= 0 ? "#6EE7B7" : "#E8877C";
+    if (val) { val.textContent = fd(akhir); val.style.color = warna; }
+    for (var g = 0; g <= 3; g++) {
+      var yy = P.t + g / 3 * (H - P.t - P.b);
+      svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: yy, y2: yy, "class": "g" }));
+      var lb = mk("text", { x: P.l - 6, y: yy + 3, "text-anchor": "end" });
+      lb.textContent = fd(hi - g / 3 * (hi - lo));
+      svg.appendChild(lb);
+    }
+    svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: Y(0), y2: Y(0), "class": "z" }));
+    /* label tanggal: awal, tengah (kalau muat), akhir — ringkas tapi terbaca */
+    var xt = [0, seri.length - 1];
+    if (seri.length > 6) xt.splice(1, 0, Math.floor((seri.length - 1) / 2));
+    xt.forEach(function (i) {
+      var t = mk("text", { x: X(i), y: H - 7, "text-anchor": "middle" });
+      t.textContent = String(seri[i].t || "").slice(5);   // MM-DD
+      svg.appendChild(t);
+    });
+    var pts = seri.map(function (r, i) { return [X(i), Y(num(r.kum) || 0)]; });
+    var dLine = "M" + pts[0][0] + "," + pts[0][1];
+    pts.slice(1).forEach(function (p) { dLine += "L" + p[0] + "," + p[1]; });
+    if (pts.length > 1) {
+      var gid = "boteq";
+      var defs = mk("defs"); svg.appendChild(defs);
+      var gr = mk("linearGradient", { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 });
+      gr.appendChild(mk("stop", { offset: "0%", "stop-color": warna, "stop-opacity": .18 }));
+      gr.appendChild(mk("stop", { offset: "100%", "stop-color": warna, "stop-opacity": 0 }));
+      defs.appendChild(gr);
+      svg.appendChild(mk("path", { d: dLine + "L" + pts[pts.length - 1][0] + "," + Y(0)
+        + "L" + pts[0][0] + "," + Y(0) + "Z", fill: "url(#" + gid + ")", stroke: "none" }));
+      svg.appendChild(mk("path", { d: dLine, fill: "none", stroke: warna, "stroke-width": 2,
+        "stroke-linecap": "round", "stroke-linejoin": "round" }));
+    }
+    /* titik per hari + tooltip (tanggal · Σ hari itu · kumulatif) */
+    seri.forEach(function (r, i) {
+      var c = mk("circle", { cx: pts[i][0], cy: pts[i][1], r: 2.8, fill: warna });
+      var tt = mk("title");
+      tt.textContent = r.t + " · " + (r.n || 0) + " trade · hari " + fd(num(r.usd) || 0)
+        + " · kumulatif " + fd(num(r.kum) || 0);
+      c.appendChild(tt);
+      svg.appendChild(c);
+    });
+    var lab = mk("text", { x: pts[pts.length - 1][0] + 8, y: pts[pts.length - 1][1] + 3,
+      "class": "eq-end", fill: warna });
+    lab.textContent = fd(akhir);
+    svg.appendChild(lab);
+  }
+
   function botCard() {
     var openHost = $("#bot-open"), accHost = $("#bot-acc"), sum = $("#bot-sum");
     if (!openHost) return;
@@ -1969,6 +2050,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (!B) {
       table(openHost, [], [], "Bot auto-trade belum menjalankan siklus — jalankan: python3 zenbnb/autotrade/run.py once");
       if (accHost) accHost.innerHTML = "";
+      botEquity([]);
       return;
     }
     if (sum) {
@@ -2024,6 +2106,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           return txt(f == null ? "100%" : Math.round(f * 100) + "%", "n dim");
         } }
     ], B.terbuka || [], "Bot tidak sedang memegang posisi.");
+
+    botEquity(B.equity || []);
 
     var PE = B.per_engine || {}, barisAcc = [];
     Object.keys(PE).forEach(function (k) {
