@@ -1361,3 +1361,14 @@ td.bcw{color:var(--gold)}
 /* 12 Nov — PnL BERJALAN di tabel bot: angka hijau/merah */
 #bot-open td.pos,#bot-riwayat td.pos{color:var(--up)}
 #bot-open td.neg,#bot-riwayat td.neg{color:var(--dn)}
+
+/* 12 Nov — panel risiko & log kejadian bot (pengganti notifikasi grup) */
+.bot-log{display:flex;flex-direction:column;gap:2px;margin:6px 0 2px;
+  font-family:var(--mono);font-size:11px}
+.bot-logi{display:flex;gap:8px;align-items:baseline;border-bottom:1px solid var(--line);
+  padding:4px 2px}
+.bot-logi .bi{width:12px;color:var(--fg-3)}
+.bot-logi .bt{flex:1;color:var(--fg-2)}
+.bot-logi .bs{color:var(--fg-3);white-space:nowrap}
+.bot-logi.pos .bt{color:var(--up)} .bot-logi.neg .bt{color:var(--dn)}
+.bot-logi.warn .bt{color:var(--gold)}

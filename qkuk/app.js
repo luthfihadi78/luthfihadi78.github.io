@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112e";
+  var BUILD = "qkuk-bot-20261112f";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
      (kanal "ob", bukan TF — engine ob_premium_watch.py, setup bar 1h → TVI 60;
@@ -2191,6 +2191,147 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         { h: "$", n: true, c: function (r) { return uang(r.usd); } },
         { h: "durasi", n: true, c: function (r) { return dur(r.umur_menit); } }
       ], RW, "Belum ada trade yang ditutup — posisi yang sedang jalan ada di tabel atas.");
+    }
+
+    /* ── 12 Nov — PANEL RISET PERFORMA ──────────────────────────────────────
+       R bersih (fee+funding+slippage), drawdown, streak, sebaran per jam &
+       simbol, guard engine, dan keputusan agent. Semua angka dari server. */
+    var RS = B.riset || {};
+    var wrapRisk = $("#bot-risiko");
+    if (wrapRisk) {
+      wrapRisk.innerHTML = "";
+      if (RS.n) {
+        var hK = el("div", "bot-eq-h");
+        hK.appendChild(el("span", null, "risiko & biaya nyata"));
+        hK.appendChild(el("b", null, RS.n + " trade tertutup"));
+        wrapRisk.appendChild(hK);
+        var cs = el("div", "bc-sum");
+        var chip2 = function (l, v, cls) {
+          var s = el("span", "bc-chip " + (cls || "mut"));
+          s.appendChild(el("b", null, l));
+          s.appendChild(el("span", null, v));
+          return s;
+        };
+        var sg = function (v, d, suf) {
+          if (v == null) return "—";
+          return (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(d == null ? 2 : d) + (suf || "");
+        };
+        var clsOf = function (v) { return v == null ? "mut" : v > 0 ? "pos" : v < 0 ? "neg" : "mut"; };
+        cs.appendChild(chip2("R bersih", sg(RS.tot_net) + "R", clsOf(RS.tot_net)));
+        cs.appendChild(chip2("EV bersih", sg(RS.ev_net, 3) + "R", clsOf(RS.ev_net)));
+        cs.appendChild(chip2("$ bersih", (RS.usd_net == null ? "—" : (RS.usd_net < 0 ? "−$" : "+$") + Math.abs(RS.usd_net).toFixed(2)), clsOf(RS.usd_net)));
+        cs.appendChild(chip2("DD maks", sg(RS.dd_r) + "R" + (RS.dd_usd == null ? "" : " · " + sg(RS.dd_usd) + "$"), "neg"));
+        cs.appendChild(chip2("streak", RS.streak == null ? "—" : (RS.streak > 0 ? RS.streak + " menang" : RS.streak < 0 ? Math.abs(RS.streak) + " kalah" : "flat"), clsOf(RS.streak)));
+        cs.appendChild(chip2("rekor streak", (RS.streak_win_maks || 0) + "W / " + (RS.streak_loss_maks || 0) + "L"));
+        var BI = RS.biaya || {};
+        cs.appendChild(chip2("fee+funding", (BI.total_usd == null ? "—" : (BI.total_usd < 0 ? "−$" : "+$") + Math.abs(BI.total_usd).toFixed(2)), clsOf(BI.total_usd)));
+        cs.appendChild(chip2("slippage", BI.slip_bps_avg == null ? "—" : sg(BI.slip_bps_avg) + " bps", clsOf(BI.slip_bps_avg)));
+        var MM = RS.mae_mfe || {};
+        if (MM.n) {
+          cs.appendChild(chip2("MAE rata²", sg(MM.mae_avg) + "R", "neg"));
+          cs.appendChild(chip2("MFE rata²", sg(MM.mfe_avg) + "R", "pos"));
+        }
+        var G = B.guard || {};
+        var matiG = Object.keys(G).filter(function (k) { return G[k].mati; });
+        cs.appendChild(chip2("guard engine", matiG.length ? "mati: " + matiG.join(", ") : "semua aktif", matiG.length ? "warn" : "pos"));
+        wrapRisk.appendChild(cs);
+      }
+    }
+
+    /* per jam WIB */
+    var hostJam = $("#bot-jam");
+    if (hostJam) {
+      hostJam.innerHTML = "";
+      var JM = RS.per_jam || [];
+      if (JM.length) {
+        var hJ = el("div", "bot-eq-h");
+        hJ.appendChild(el("span", null, "performa per jam WIB"));
+        hJ.appendChild(el("b", null, JM.length + " jam aktif"));
+        hostJam.appendChild(hJ);
+        var boxJ = el("div", "tw");
+        hostJam.appendChild(boxJ);
+        table(boxJ, [
+          { h: "jam", c: function (r) { return txt(('0' + r.jam).slice(-2) + ":00", "dim"); } },
+          { h: "n", n: true, c: function (r) { return txt(r.n, "n"); } },
+          { h: "W/L", n: true, c: function (r) { return txt(r.m + "/" + r.l, "n"); } },
+          { h: "WR", n: true, c: function (r) { return txt(r.wr == null ? null : r.wr.toFixed(1) + "%", "n"); } },
+          { h: "R", n: true, c: function (r) { return txt((r.r > 0 ? "+" : "") + r.r.toFixed(2), "n " + (r.r < 0 ? "neg" : "pos")); } },
+          { h: "$", n: true, c: function (r) { return txt((r.usd < 0 ? "−$" : "+$") + Math.abs(r.usd).toFixed(2), "n " + (r.usd < 0 ? "neg" : "pos")); } }
+        ], JM, "—");
+      }
+    }
+
+    /* per simbol */
+    var hostSim = $("#bot-sim");
+    if (hostSim) {
+      hostSim.innerHTML = "";
+      var SM = RS.per_sim || [];
+      if (SM.length) {
+        var hS = el("div", "bot-eq-h");
+        hS.appendChild(el("span", null, "performa per simbol"));
+        hS.appendChild(el("b", null, SM.length + " simbol"));
+        hostSim.appendChild(hS);
+        var boxS = el("div", "tw");
+        hostSim.appendChild(boxS);
+        table(boxS, [
+          { h: "pair", c: function (r) { return txt(r.sym); } },
+          { h: "n", n: true, c: function (r) { return txt(r.n, "n"); } },
+          { h: "W/L", n: true, c: function (r) { return txt(r.m + "/" + r.l, "n"); } },
+          { h: "R", n: true, c: function (r) { return txt((r.r > 0 ? "+" : "") + r.r.toFixed(2), "n " + (r.r < 0 ? "neg" : "pos")); } },
+          { h: "$", n: true, c: function (r) { return txt((r.usd < 0 ? "−$" : "+$") + Math.abs(r.usd).toFixed(2), "n " + (r.usd < 0 ? "neg" : "pos")); } }
+        ], SM, "—");
+      }
+    }
+
+    /* keputusan agent */
+    var wrapAg = $("#bot-agent");
+    if (wrapAg) {
+      wrapAg.innerHTML = "";
+      var AG = B.agent || {};
+      var agKeys = Object.keys(AG);
+      if (agKeys.length) {
+        var hA2 = el("div", "bot-eq-h");
+        hA2.appendChild(el("span", null, "keputusan agent (bayangan) · akurasi per aksi"));
+        hA2.appendChild(el("b", null, agKeys.length + " jenis putusan"));
+        wrapAg.appendChild(hA2);
+        var boxAg = el("div", "tw");
+        wrapAg.appendChild(boxAg);
+        table(boxAg, [
+          { h: "aksi", c: function (r) { return pill(r.aksi, r.ev > 0 ? "pos" : r.ev < 0 ? "neg" : "mut"); } },
+          { h: "n", n: true, c: function (r) { return txt(r.n, "n"); } },
+          { h: "WR", n: true, c: function (r) { return txt(r.wr == null ? null : r.wr.toFixed(1) + "%", "n"); } },
+          { h: "totR", n: true, c: function (r) { return txt((r.r > 0 ? "+" : "") + r.r.toFixed(2), "n " + (r.r < 0 ? "neg" : "pos")); } },
+          { h: "EV", n: true, c: function (r) { return txt(r.ev == null ? null : (r.ev > 0 ? "+" : "") + r.ev.toFixed(3), "n " + (r.ev < 0 ? "neg" : "pos")); } }
+        ], agKeys.map(function (k) { return AG[k]; }), "—");
+      }
+    }
+
+    /* log kejadian (pengganti notifikasi grup — sinyal tetap privat) */
+    var wrapLog = $("#bot-log");
+    if (wrapLog) {
+      wrapLog.innerHTML = "";
+      var LG = B.log || [];
+      if (LG.length) {
+        var hL = el("div", "bot-eq-h");
+        hL.appendChild(el("span", null, "kejadian terakhir · di halaman ini saja, tidak dikirim ke WhatsApp"));
+        wrapLog.appendChild(hL);
+        var ul = el("div", "bot-log");
+        LG.forEach(function (e) {
+          var cls = e.jenis === "tutup" ? ((e.hasil === "tp" || (e.r || 0) > 0) ? "pos" : "neg")
+                  : e.jenis === "guard" || e.jenis === "tolak" ? "warn" : "mut";
+          var ic = e.jenis === "buka" ? "▲" : e.jenis === "tutup" ? "■" : e.jenis === "guard" ? "⛔" : "✋";
+          var txt_ = (e.jenis === "buka" ? "BUKA " : e.jenis === "tutup" ? "TUTUP " : e.jenis === "guard" ? "GUARD " : "TOLAK ")
+            + (e.sym || "") + (e.kanal ? " · " + String(e.kanal).toUpperCase() : "")
+            + (e.jenis === "tutup" && e.r != null ? " · " + (e.r > 0 ? "+" : "") + (+e.r).toFixed(2) + "R" : "")
+            + (e.alasan ? " — " + e.alasan : "");
+          var row = el("div", "bot-logi " + cls);
+          row.appendChild(el("span", "bi", ic));
+          row.appendChild(el("span", "bt", txt_));
+          row.appendChild(el("span", "bs", (e.t || "").replace("T", " ").slice(0, 16)));
+          ul.appendChild(row);
+        });
+        wrapLog.appendChild(ul);
+      }
     }
 
     /* 12 Nov — ARSIP posisi kertas: 10 posisi dry_run dikosongkan saat bot
