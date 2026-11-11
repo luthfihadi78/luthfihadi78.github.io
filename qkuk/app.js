@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112g";
+  var BUILD = "qkuk-bot-20261112h";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -1974,15 +1974,21 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      hari (WIB). Sumber: journal autotrade (bukan backtest) — tiap titik =
      Σ (R × risiko$) hari itu, dijumlah berantai. Hari tanpa trade tertutup
      tidak dibuat, jadi kurva hanya bergerak saat benar-benar ada hasil. */
-  function botEquity(seri) {
-    var svg = $("#bot-eq"), val = $("#bot-eq-val");
+  /* 12 Nov — kurva equity dipakai dua kali: harian dalam $ (#bot-eq) dan
+     per-trade dalam R (#bot-eqr). `o` memilih host, satuan, dan id gradient
+     supaya dua SVG di halaman yang sama tidak saling menimpa. */
+  function botEquity(seri, o) {
+    o = o || {};
+    var svg = $(o.host || "#bot-eq"), val = $(o.val || "#bot-eq-val");
     if (!svg) return;
     svg.innerHTML = "";
     var W = 620, H = 170, P = { t: 16, r: 58, b: 24, l: 50 };
     svg.setAttribute("viewBox", "0 0 " + W + " " + H);
     svg.setAttribute("preserveAspectRatio", "none");
+    var isR = o.unit === "R";
     var fd = function (v) {
-      return (v > 0 ? "+" : v < 0 ? "−" : "") + "$" + Math.abs(v).toFixed(2);
+      return (v > 0 ? "+" : v < 0 ? "−" : "")
+        + (isR ? Math.abs(v).toFixed(2) + "R" : "$" + Math.abs(v).toFixed(2));
     };
     if (val) { val.textContent = "—"; val.style.color = ""; }
     if (!seri.length) {
@@ -2024,7 +2030,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var dLine = "M" + pts[0][0] + "," + pts[0][1];
     pts.slice(1).forEach(function (p) { dLine += "L" + p[0] + "," + p[1]; });
     if (pts.length > 1) {
-      var gid = "boteq";
+      var gid = o.gid || "boteq";
       var defs = mk("defs"); svg.appendChild(defs);
       var gr = mk("linearGradient", { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 });
       gr.appendChild(mk("stop", { offset: "0%", "stop-color": warna, "stop-opacity": .18 }));
@@ -2039,8 +2045,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     seri.forEach(function (r, i) {
       var c = mk("circle", { cx: pts[i][0], cy: pts[i][1], r: 2.8, fill: warna });
       var tt = mk("title");
-      tt.textContent = r.t + " · " + (r.n || 0) + " trade · hari " + fd(num(r.usd) || 0)
-        + " · kumulatif " + fd(num(r.kum) || 0);
+      tt.textContent = r.t + " · " + (isR ? "trade " : (r.n || 0) + " trade · hari ")
+        + fd(num(r.usd) || 0) + " · kumulatif " + fd(num(r.kum) || 0);
       c.appendChild(tt);
       svg.appendChild(c);
     });
@@ -2178,6 +2184,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     ], B.terbuka || [], "Bot tidak sedang memegang posisi.");
 
     botEquity(B.equity || []);
+    /* 12 Nov — kurva kedua: kumulatif R per trade (dari blok riset). */
+    botEquity((((B.riset || {}).equity_r) || []).map(function (r) {
+      return { t: String(r.t || "").slice(5, 10), kum: r.kum_r, usd: r.r, n: 1 };
+    }), { host: "#bot-eqr", val: "#bot-eqr-val", unit: "R", gid: "boteqr" });
 
     /* 12 Nov (permintaan user) — RIWAYAT TRADE TERTUTUP: "sedang open, sudah
        close, take profit, atau rugi" kelihatan per trade. Status dikirim
