@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112k";
+  var BUILD = "qkuk-bot-20261112l";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -2178,6 +2178,18 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       { h: "ukuran agent", n: true, c: function (r) {
           var f = num(r.faktor_agent);
           return txt(f == null ? "100%" : Math.round(f * 100) + "%", "n dim");
+        } },
+      /* 12 Nov (permintaan user) — putusan agent untuk posisi ini: setuju,
+         tolak, atau kecilkan. Arahkan kursor ke lencana untuk alasannya. */
+      { h: "agent", c: function (r) {
+          var a = r.agent || {};
+          if (!a.aksi) return txt("—", "dim");
+          var ak = String(a.aksi).toLowerCase();
+          var cls = ak === "setuju" ? "pos" : ak === "tolak" ? "neg" : "warn";
+          var y = num(a.yakin);
+          var n = pill(y == null ? ak : ak + " " + Math.round(y), cls);
+          if (a.alasan) n.title = a.alasan;
+          return n;
         } },
       /* 12 Nov — status tegas tiap baris: masih OPEN. */
       { h: "status", c: function () { return pill("OPEN", "pos"); } }
