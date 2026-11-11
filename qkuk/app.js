@@ -1958,6 +1958,74 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     });
   }
 
+  /* ═══ 11 Nov — BOT AUTO-TRADE (permintaan user): posisi & akurasi live ═══
+     Blok DATA.bot diisi engine dari journal bot (zenbnb/autotrade), bukan
+     backtest: posisi yang SEDANG dipegang + hasil TP/lose per engine. */
+  function botCard() {
+    var openHost = $("#bot-open"), accHost = $("#bot-acc"), sum = $("#bot-sum");
+    if (!openHost) return;
+    if (sum) sum.innerHTML = "";
+    var B = DATA.bot;
+    if (!B) {
+      table(openHost, [], [], "Bot auto-trade belum menjalankan siklus — jalankan: python3 zenbnb/autotrade/run.py once");
+      if (accHost) accHost.innerHTML = "";
+      return;
+    }
+    if (sum) {
+      var chip = function (l, v, cls) {
+        var s = el("span", "bc-chip " + (cls || ""));
+        s.appendChild(el("b", null, l));
+        s.appendChild(el("span", null, v));
+        return s;
+      };
+      var A = B.akurasi || {}, posOpen = (B.terbuka || []).length;
+      sum.appendChild(chip("mode", B.mode || "—", B.mode === "dry_run" ? "warn" : "pos"));
+      sum.appendChild(chip("modal", fdu(B.modal)));
+      sum.appendChild(chip("leverage", "x" + (B.leverage == null ? "—" : B.leverage)));
+      sum.appendChild(chip("margin", B.margin || "—"));
+      sum.appendChild(chip("posisi", posOpen + "/" + (B.maks_posisi || "—"), posOpen ? "pos" : "mut"));
+      sum.appendChild(chip("WR live bot", A.n ? (A.m + "W / " + A.l + "L · " + A.wr + "%") : "belum ada",
+        A.n ? (A.wr >= 50 ? "pos" : "neg") : "mut"));
+      sum.appendChild(chip("total R", (A.r == null ? "—" : (A.r > 0 ? "+" : "") + A.r),
+        (A.r || 0) >= 0 ? "pos" : "neg"));
+      if (B.ts) sum.appendChild(chip("update", B.ts, "mut"));
+    }
+    table(openHost, [
+      { h: "engine", c: function (r) { return txt(String(r.kanal || "").toUpperCase(), "st"); } },
+      { h: "pair", c: function (r) { return txt(r.sym); } },
+      { h: "side", c: function (r) { return side(r.dir); } },
+      { h: "entry", n: true, c: function (r) { return txt(fp(r.entry), "n"); } },
+      { h: "stop", n: true, c: function (r) { return txt(fp(r.sl), "n"); } },
+      { h: "target", n: true, c: function (r) { return txt(r.tp == null ? null : fp(r.tp), "n"); } },
+      { h: "skor", n: true, c: function (r) { return txt(r.skor == null ? null : (+r.skor).toFixed(0), "n"); } },
+      { h: "umur", n: true, c: function (r) {
+          var m = num(r.umur_menit);
+          return txt(m == null ? null : (m < 90 ? Math.round(m) + " mnt" : (m / 60).toFixed(1) + " jam"), "n dim");
+        } },
+      { h: "ukuran agent", n: true, c: function (r) {
+          var f = num(r.faktor_agent);
+          return txt(f == null ? "100%" : Math.round(f * 100) + "%", "n dim");
+        } }
+    ], B.terbuka || [], "Bot tidak sedang memegang posisi.");
+
+    var PE = B.per_engine || {}, barisAcc = [];
+    Object.keys(PE).forEach(function (k) {
+      var s = PE[k] || {};
+      barisAcc.push({ kanal: k, n: s.n || 0, m: s.m || 0, l: s.l || 0,
+                      wr: s.wr, ev: s.ev, r: s.r, open: s.terbuka || 0 });
+    });
+    if (accHost) table(accHost, [
+      { h: "engine", c: function (r) { return txt(String(r.kanal).toUpperCase(), "st"); } },
+      { h: "trade", n: true, c: function (r) { return txt(r.n, "n"); } },
+      { h: "TP (win)", n: true, c: function (r) { return txt(r.m, "n"); } },
+      { h: "lose", n: true, c: function (r) { return txt(r.l, "n"); } },
+      { h: "winrate", n: true, c: function (r) { return txt(r.wr == null ? null : r.wr + "%", "n"); } },
+      { h: "EV (R)", n: true, c: function (r) { return txt(r.ev == null ? null : r.ev, "n"); } },
+      { h: "total R", n: true, c: function (r) { return txt(r.r == null ? null : (r.r > 0 ? "+" : "") + r.r, "n"); } },
+      { h: "terbuka", n: true, c: function (r) { return txt(r.open, "n dim"); } }
+    ], barisAcc, "Belum ada trade bot yang tertutup — akurasi muncul setelah TP/SL pertama.");
+  }
+
   /* ── watchlist accuracy: skor mekanis 1R:1R atas SEMUA reclaim terdeteksi ── */
   function akurasi() {
     var host = $("#ak-grid"); if (!host) return;
@@ -3672,7 +3740,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      risetnya di tooltip. */
   function render(first) {
     liveScoreMount();       // 11 Okt: live score klasemen — PALING ATAS halaman
-    stamp(); gauge(); strip(); bigcaps(); kamu(); applyPicks(); btBadges();
+    stamp(); gauge(); strip(); bigcaps(); botCard(); kamu(); applyPicks(); btBadges();
     leaderboard(); whatif();   // 23 Okt: leaderboard admin + simulasi what-if
     scanNotif();
     if (!DATA || !DATA.live) return;
