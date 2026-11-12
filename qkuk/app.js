@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112w";
+  var BUILD = "qkuk-bot-20261112x";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -2158,6 +2158,42 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     });
   }
 
+  /* 12 Nov — label status harness dipakai di top bar DAN chip kartu bot,
+     supaya keduanya tidak pernah beda kata. */
+  function harnessLabel(HS, SK) {
+    if (!HS || !HS.status) return "—";
+    var kata = HS.status === "hidup" ? "hidup"
+      : HS.status === "macet" ? "macet"
+      : HS.status === "belum" ? "belum ada siklus" : "mati";
+    if (HS.status === "hidup" || HS.status === "macet") {
+      var m = SK && SK.umur_menit;
+      if (m != null) kata += " · " + m + " mnt";
+    }
+    return kata;
+  }
+  function harnessTop(HS, SK, ag) {
+    var a = $("#harness-top"), t = $("#harness-top-txt");
+    if (!a || !t) return;
+    if (!HS || !HS.status) {
+      a.className = "pill hp mut";
+      t.textContent = "harness —";
+      a.title = "Status agent harness belum ada di data.";
+      return;
+    }
+    var cls = HS.status === "hidup" ? "pos"
+      : HS.status === "macet" ? "warn" : "neg";
+    a.className = "pill hp " + cls;
+    t.textContent = "harness " + harnessLabel(HS, SK);
+    a.title = "Agent harness (autotrade watch): " + (HS.status || "?")
+      + (ag && ag.pid ? " · PID " + ag.pid : "")
+      + (ag && ag.umur ? " · umur proses " + ag.umur : "")
+      + "\nSiklus terakhir: " + ((SK && SK.t) || "belum ada")
+      + (SK && SK.umur_menit != null ? " (" + SK.umur_menit + " mnt lalu)" : "")
+      + (SK && SK.kandidat != null ? "\nKandidat dinilai: " + SK.kandidat : "")
+      + "\n\u226412 mnt = hidup; >12 mnt = macet; proses tidak ada = mati."
+      + "\nKlik untuk ke kartu Bot auto-trade.";
+  }
+
   function botCard() {
     var openHost = $("#bot-open"), accHost = $("#bot-acc"), sum = $("#bot-sum");
     if (!openHost) return;
@@ -2169,6 +2205,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (B) BOT_LAST = B;
     if (B) botNotifBaru(B);
     if (!B) {
+      harnessTop(null);
       table(openHost, [], [], "Bot auto-trade belum menjalankan siklus — jalankan: python3 zenbnb/autotrade/run.py once");
       if (accHost) accHost.innerHTML = "";
       botEquity([]);
@@ -2223,12 +2260,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
          penerbitan (proses nyata + /v1/models), jadi bukan tebakan halaman. */
       var AI = B.ai || {}, ag = AI.agent || {}, ll = AI.llm || {}, tx = AI.terakhir || {};
       var HS = AI.harness || {}, SK = AI.siklus || {};
+      harnessTop(HS, SK, ag);;
       /* 12 Nov — indikator HARNESS: proses hidup DAN siklusnya baru berputar.
          Proses yang hidup tapi siklus >12 mnt dianggap macet (warn), bukan OK. */
       if (HS.status) {
         var cH = chip("harness",
           (HS.hidup ? "\u2713 " : HS.status === "macet" ? "\u26a0 " : "\u2717 ")
-          + (SK.umur_menit == null ? HS.status : SK.umur_menit + " mnt"),
+          + harnessLabel(HS, SK),
           HS.hidup ? "pos" : HS.status === "macet" ? "warn" : "neg");
         cH.title = "Agent harness (autotrade watch): " + (HS.status || "?")
           + (ag.pid ? " \u00b7 PID " + ag.pid : "")

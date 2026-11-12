@@ -51,6 +51,16 @@ a:hover{color:#9CF2CE}
 .dot{width:6px;height:6px;border-radius:999px;background:var(--ac);flex:none;
   animation:p 2.6s cubic-bezier(.4,0,.6,1) infinite}
 .dot.stale{background:var(--gold);animation:none}
+/* 12 Nov — indikator harness di top bar: terlihat di semua posisi scroll. */
+.hp{text-decoration:none;transition:border-color .15s,color .15s}
+.hp.pos{color:var(--up);border-color:rgba(110,231,183,.5)}
+.hp.pos .dot{background:var(--up)}
+.hp.warn{color:var(--gold);border-color:rgba(245,196,92,.5)}
+.hp.warn .dot{background:var(--gold);animation:none}
+.hp.neg{color:var(--dn);border-color:rgba(255,107,107,.5)}
+.hp.neg .dot{background:var(--dn);animation:none}
+.hp.mut .dot{background:var(--fg-3);animation:none}
+.hp b{color:currentColor;font-weight:600}
 @keyframes p{0%{box-shadow:0 0 0 0 rgba(110,231,183,.45)}70%{box-shadow:0 0 0 7px rgba(110,231,183,0)}100%{box-shadow:0 0 0 0 rgba(110,231,183,0)}}
 .bar .sp{margin-left:auto}
 .kv{font-size:11px;color:var(--fg-3);white-space:nowrap}
