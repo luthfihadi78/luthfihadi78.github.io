@@ -156,16 +156,9 @@ a:hover{color:#9CF2CE}
 @keyframes spFire{0%,100%{transform:translateY(0) scale(1);opacity:.85}
   35%{transform:translateY(-1px) scale(1.08);opacity:1}
   70%{transform:translateY(1px) scale(.97);opacity:.8}}
-/* baris sinyal dari engine panas — nyala hijau berdenyut seperti gauge LIVE */
-tr.flame>td{background:linear-gradient(90deg,rgba(48,255,160,.09),rgba(48,255,160,.025) 45%,transparent 80%)}
-tr.flame>td:first-child{position:relative;box-shadow:inset 3px 0 0 rgba(70,255,170,.75)}
-tr.flame>td:first-child::after{content:"";position:absolute;left:0;top:0;bottom:0;width:14px;
-  pointer-events:none;background:radial-gradient(ellipse at left,rgba(70,255,170,.5),transparent 70%);
-  animation:flameGlow 2.1s ease-in-out infinite}
-@keyframes flameGlow{0%,100%{opacity:.35;transform:scaleX(.9)}
-  45%{opacity:.9;transform:scaleX(1.25)}
-  70%{opacity:.5;transform:scaleX(1)}}
-@media(prefers-reduced-motion:reduce){.sp-fire{animation:none}tr.flame>td:first-child::after{animation:none;opacity:.55}}
+
+
+@media(prefers-reduced-motion:reduce){.sp-fire{animation:none}}
 @media(max-width:600px){.kv.btc{display:none}}
 
 /* ── channel strip ── */

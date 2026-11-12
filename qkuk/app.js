@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112v";
+  var BUILD = "qkuk-bot-20261112w";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -1430,7 +1430,6 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var x = el("tr");
       /* baris watchlist/sinyal yang diambil admin → latar emas tipis */
       if (r && r.apick && r.apick.taken) x.classList.add("pickrow");
-      if (r && r._flame) x.classList.add("flame");      // 12 Nov: engine panas
       cols.forEach(function (c) { x.appendChild(c.c(r)); });
       tb.appendChild(x);
     });
@@ -1780,7 +1779,6 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     } else {
       rows.sort(function (a, b) { return (b.ts || "").localeCompare(a.ts || ""); });
     }
-    rows.forEach(function (r) { r._flame = !!(perf(r._tf).panas); });
     var kolom = [
       { h: "", c: function (r) { return tvCell(r.sym, r._tf); } },
       { h: "time WIB", c: function (r) { return txt(r.ts); } },
@@ -1791,6 +1789,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (semua) kolom.push({ h: "engine", c: function (r) {
       var td = el("td", "st", TAB_NAME[r._tf] || String(r._tf || "").toUpperCase());
       td.style.color = COLOR[r._tf] || "var(--fg-2)";
+      /* 12 Nov — logo api di nama engine bila performanya konsisten bagus;
+         baris tabel tetap normal (tidak diwarnai hijau). */
+      if (perf(r._tf).panas) td.appendChild(el("span", "sp-fire", "🔥"));
       return td; } });
     kolom.push(
       { h: "side", c: function (r) { return side(r.dir); } },
