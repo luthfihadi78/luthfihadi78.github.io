@@ -2222,6 +2222,24 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
          mati, model yang dipakai, dan putusan agent terakhir. Dibaca server saat
          penerbitan (proses nyata + /v1/models), jadi bukan tebakan halaman. */
       var AI = B.ai || {}, ag = AI.agent || {}, ll = AI.llm || {}, tx = AI.terakhir || {};
+      var HS = AI.harness || {}, SK = AI.siklus || {};
+      /* 12 Nov — indikator HARNESS: proses hidup DAN siklusnya baru berputar.
+         Proses yang hidup tapi siklus >12 mnt dianggap macet (warn), bukan OK. */
+      if (HS.status) {
+        var cH = chip("harness",
+          (HS.hidup ? "\u2713 " : HS.status === "macet" ? "\u26a0 " : "\u2717 ")
+          + (SK.umur_menit == null ? HS.status : SK.umur_menit + " mnt"),
+          HS.hidup ? "pos" : HS.status === "macet" ? "warn" : "neg");
+        cH.title = "Agent harness (autotrade watch): " + (HS.status || "?")
+          + (ag.pid ? " \u00b7 PID " + ag.pid : "")
+          + (ag.umur ? " \u00b7 umur proses " + ag.umur : "")
+          + "\nSiklus terakhir: " + (SK.t || "belum ada")
+          + (SK.umur_menit == null ? "" : " (" + SK.umur_menit + " mnt lalu)")
+          + (SK.kandidat == null ? "" : "\nKandidat dinilai: " + SK.kandidat)
+          + (SK.sumber ? " \u00b7 agent: " + SK.sumber : "")
+          + "\n\u226412 mnt = hidup; >12 mnt = macet.";
+        sum.appendChild(cH);
+      }
       if (ag.hidup != null || ll.hidup != null) {
         var nHidup = (ag.hidup ? 1 : 0) + (ll.hidup ? 1 : 0);
         var modelSingkat = String(ll.model || "").split("/").pop();
@@ -2555,6 +2573,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (wrapLog) {
       wrapLog.innerHTML = "";
       var LG = B.log || [];
+      /* 12 Nov — jam log dulu ditampilkan mentah dari ISO UTC (08:35),
+         padahal laptop & seluruh panel memakai WIB. Konversi +7 jam di sini. */
+      var jamLog = function (iso) {
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return String(iso || "").replace("T", " ").slice(0, 16);
+        d = new Date(d.getTime() + 7 * 3600e3);
+        return d.getUTCFullYear() + "-" + ("0" + (d.getUTCMonth() + 1)).slice(-2) + "-"
+          + ("0" + d.getUTCDate()).slice(-2) + " " + ("0" + d.getUTCHours()).slice(-2)
+          + ":" + ("0" + d.getUTCMinutes()).slice(-2) + " WIB";
+      };
       if (LG.length) {
         var hL = el("div", "bot-eq-h");
         hL.appendChild(el("span", null, "kejadian terakhir · di halaman ini saja, tidak dikirim ke WhatsApp"));
@@ -2571,7 +2599,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           var row = el("div", "bot-logi " + cls);
           row.appendChild(el("span", "bi", ic));
           row.appendChild(el("span", "bt", txt_));
-          row.appendChild(el("span", "bs", (e.t || "").replace("T", " ").slice(0, 16)));
+          row.appendChild(el("span", "bs", jamLog(e.t)));
           ul.appendChild(row);
         });
         wrapLog.appendChild(ul);
