@@ -104,7 +104,23 @@
         td.appendChild(p);
         return td;
       } },
-    { h: "mode", c: function (r) { return el("td", "dim st", r.mode || "—"); } }
+    { h: "mode", c: function (r) { return el("td", "dim st", r.mode || "—"); } },
+    { h: "catatan", c: function (r) {
+        var txt = "";
+        if (r.agent && r.agent.alasan) txt = r.agent.alasan;
+        else if (r.setup && r.setup.ringkas) txt = r.setup.ringkas;
+        else if (r.alasan) txt = String(r.alasan);
+        var short = txt ? (txt.length > 44 ? txt.slice(0, 44) + "…" : txt) : "—";
+        var td = el("td", "dim", short);
+        if (txt) {
+          var tip = txt;
+          if (r.agent && r.agent.aksi) tip += "  ·  agent: " + r.agent.aksi +
+            (r.agent.yakin != null ? " (" + Math.round(r.agent.yakin) + "%)" : "");
+          if (r.setup && r.setup.status) tip += "  ·  setup: " + r.setup.status;
+          td.title = tip;
+        }
+        return td;
+      } }
   ];
 
   function gambar(rows) {
