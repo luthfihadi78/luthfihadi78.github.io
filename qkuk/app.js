@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112p";
+  var BUILD = "qkuk-bot-20261112q";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -2148,7 +2148,42 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       } else {
         sum.appendChild(chip("agent hari ini", "belum ada sinyal", "mut"));
       }
-      sum.appendChild(chip("WR live bot", A.n ? (A.m + "W / " + A.l + "L · " + A.wr + "%") : "belum ada",
+      /* 12 Nov (permintaan user) — status AGENT & 9ROUTER apa adanya: hidup atau
+         mati, model yang dipakai, dan putusan agent terakhir. Dibaca server saat
+         penerbitan (proses nyata + /v1/models), jadi bukan tebakan halaman. */
+      var AI = B.ai || {}, ag = AI.agent || {}, ll = AI.llm || {}, tx = AI.terakhir || {};
+      if (ag.hidup != null || ll.hidup != null) {
+        var nHidup = (ag.hidup ? 1 : 0) + (ll.hidup ? 1 : 0);
+        var modelSingkat = String(ll.model || "").split("/").pop();
+        var cAI = chip("agent & 9router",
+          (ag.hidup ? "agent \u2713" : "agent \u2717") + " \u00b7 " +
+          (ll.hidup ? "9router \u2713 " + (ll.n_model || 0) + " model" : "9router \u2717"),
+          nHidup === 2 ? "pos" : nHidup ? "warn" : "neg");
+        cAI.title = "agent AI (autotrade watch): " + (ag.hidup ? "hidup" : "MATI")
+          + (ag.umur ? " \u00b7 umur proses " + ag.umur : "")
+          + "\n9router " + (ll.url || "") + ": " + (ll.hidup ? "hidup" : "MATI")
+          + " \u00b7 " + (ll.n_model || 0) + " model tersedia"
+          + (ll.model ? "\nmodel dipakai: " + ll.model + (ll.model_ada === false ? " (TIDAK ada di daftar!)" : "") : "")
+          + "\nposisi terbuka " + ((AI.posisi || {}).n || 0)
+          + " \u00b7 dinilai agent " + ((AI.posisi || {}).dinilai || 0)
+          + " \u00b7 ditahan lewat TP " + ((AI.posisi || {}).ditahan || 0);
+        sum.appendChild(cAI);
+        if (modelSingkat) sum.appendChild(chip("model LLM", modelSingkat, ll.hidup ? "mut" : "neg"));
+        if (tx.aksi) {
+          var lblAksi = String(tx.aksi).toLowerCase() === "tutup" ? "tutup"
+            : String(tx.aksi).toLowerCase() === "tahan" ? "tahan" : tx.aksi;
+          var cT = chip("putusan agent terakhir",
+            lblAksi + (tx.sym ? " " + String(tx.sym).replace("USDT", "") : "")
+            + (tx.keyakinan == null ? "" : " \u00b7 yakin " + tx.keyakinan),
+            lblAksi === "tutup" ? "neg" : "pos");
+          cT.title = (tx.waktu || "") + (tx.kanal ? " \u00b7 " + String(tx.kanal).toUpperCase() : "")
+            + (tx.jenis ? " \u00b7 " + tx.jenis : "") + "\n" + (tx.alasan || "");
+          sum.appendChild(cT);
+        } else {
+          sum.appendChild(chip("putusan agent terakhir", "belum ada", "mut"));
+        }
+      }
+      sum.appendChild(chip("WR live bot", A.n ? (A.m + "W / " + A.l + "L \u00b7 " + A.wr + "%") : "belum ada",
         A.n ? (A.wr >= 50 ? "pos" : "neg") : "mut"));
       sum.appendChild(chip("total R", (A.r == null ? "—" : (A.r > 0 ? "+" : "") + A.r),
         (A.r || 0) >= 0 ? "pos" : "neg"));
