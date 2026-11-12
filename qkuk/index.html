@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=20261112r">
+<link rel="stylesheet" href="style.css?v=20261112s">
 </head>
 <body>
 
@@ -170,13 +170,8 @@
       <svg class="ch" id="bot-eqr" role="img" aria-label="Kurva kumulatif bot dalam R"></svg>
     </div>
     <div id="bot-risiko"></div>
-    <div id="bot-riwayat"></div>
-    <div id="bot-jam"></div>
-    <div id="bot-sim"></div>
     <div id="bot-agent"></div>
     <div id="bot-bukti"></div>
-    <div id="bot-koreksi"></div>
-    <div id="bot-log"></div>
     <div class="tw" id="bot-acc"></div>
     <p class="cap">Sumber: journal bot (zenbnb/autotrade) — bukan backtest. Mode demo = uang virtual; R dihitung dari entry→SL/TP.</p>
   </section>
@@ -228,6 +223,20 @@
     <div class="bc-sum" id="bc-sum"></div>
     <div class="tw" id="bc-table"></div>
     <p class="cap">CoinGecko + Binance via engine (cache 15 mnt) · 🟡 = ada sinyal engine hari ini · alert WA otomatis saat ≥16 koin bergerak ≥1%/1j</p>
+  </section>
+
+  <!-- 12 Nov — analitik bot dipindah ke bawah Big caps supaya Signals langsung
+       muncul setelah ringkasan bot (posisi + equity + akurasi per engine). -->
+  <section id="bot-analitik">
+    <div class="sec-h">
+      <h2><i>&gt;</i> Analitik bot</h2>
+      <span class="hint">riwayat trade tertutup · performa per jam &amp; per simbol · koreksi engine · log kejadian</span>
+    </div>
+    <div id="bot-riwayat"></div>
+    <div id="bot-jam"></div>
+    <div id="bot-sim"></div>
+    <div id="bot-koreksi"></div>
+    <div id="bot-log"></div>
   </section>
 
 
@@ -295,6 +304,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20261112r" defer></script>
+<script src="app.js?v=20261112s" defer></script>
 </body>
 </html>

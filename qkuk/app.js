@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112r";
+  var BUILD = "qkuk-bot-20261112s";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -6391,7 +6391,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
          Jangkar = saudara BERIKUTNYA dari #bigcaps (insertBefore menaruh
          hostBox SEBELUM jangkar — dulu keliru pakai #bigcaps langsung,
          kor-bx menenggelami bigcaps ke bawah riwayat koreksi). */
-      var bcAfterSig = document.getElementById("bigcaps");
+      /* 12 Nov — analitik bot kini tepat di bawah big caps, jadi jangkar
+         riwayat koreksi = SESUDAH #bot-analitik (bukan sesudah bigcaps). */
+      var bcAfterSig = document.getElementById("bot-analitik")
+                       || document.getElementById("bigcaps");
       var jangkarKor = (bcAfterSig && bcAfterSig.nextSibling)
                      || (sig && sig.nextSibling);
       if (sig && sig.parentNode) sig.parentNode.insertBefore(hostBox, jangkarKor);
@@ -6782,7 +6785,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        1 Nov — #bigcaps (Big caps top 50) tepat di bawah #signals: section
        baru WAJIB dicantumkan di sini, kalau tidak ia tertinggal di ATAS wrap. */
     var ids  = ["dir", "mctx", "bubbles", "bot", "signals", "bigcaps",
-                "analisa", "watch", "kor-bx", "kamu", "charts",
+                "bot-analitik", "analisa", "watch", "kor-bx", "kamu", "charts",
                 "leaderboard", "whatif", "akurasi", "strip", "footer"];
     var host = document.querySelector(".wrap") || document.body;
     ids.forEach(function (id) {
