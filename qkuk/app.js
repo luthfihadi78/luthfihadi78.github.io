@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112u";
+  var BUILD = "qkuk-bot-20261112v";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
