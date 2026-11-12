@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112q";
+  var BUILD = "qkuk-bot-20261112r";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -2075,7 +2075,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     simpan();
     baru.forEach(function (r) {
       var jam = String(r.dibuka || "").slice(11, 16);
-      toast("sinyal", r.sym, r.kanal, jam, r.dir);
+      toast("bot", r.sym, r.kanal, jam, r.dir);
       var body = (r.dir === "long" ? "LONG" : "SHORT") + " " + r.sym
         + " · entry " + fp(r.entry) + " · SL " + fp(r.sl)
         + " · TP " + (r.tp == null ? "—" : fp(r.tp))
@@ -4341,7 +4341,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     xc.setAttribute("aria-label", "Tutup pengaturan suara");
     hd.appendChild(xc);
     bx.appendChild(hd);
-    bx.appendChild(el("p", "snd-sub", "30 jenis — contoh diputar saat dipilih."));
+    bx.appendChild(el("p", "snd-sub", "Berbunyi HANYA saat BOT auto-trade membuka posisi — "
+      + "sinyal per engine tetap muncul di tabel tanpa suara. 30 jenis, contoh diputar saat dipilih."));
     var grid = el("div", "snd-grid");
     SOUNDS.forEach(function (s, i) {
       var b = el("button", "snd-opt" + (i === SIDX ? " on" : "")); b.type = "button";
@@ -4406,28 +4407,6 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     paintDesk();
     dr.appendChild(db);
     bx.appendChild(dr);
-    /* 20 Okt — TOGGLE NOTIFIKASI PER ENGINE: BRICK/HARVEST/SWING/BASTION 4H.
-       Default semua ON. Preferensi di localStorage "qkuk_nkanal" (JSON tf→0/1). */
-    var nk = el("div", "nk-row");
-    nk.appendChild(el("div", "nk-h", "Notifikasi per engine"));
-    function paintNk() {
-      nk.querySelectorAll(".nk-t").forEach(function (b) {
-        b.classList.toggle("on", nn(b.dataset.tf));
-      });
-    }
-    ["ob", "2h", "ob4h", "ob2h"].forEach(function (tf) {
-      var b = el("button", "nk-t"); b.type = "button"; b.dataset.tf = tf;
-      b.textContent = NN_ENG[tf] || tf;
-      b.title = "Klik untuk hidup/matikan notifikasi engine ini";
-      b.addEventListener("click", function () {
-        NNOTE[tf] = nn(tf) ? 0 : 1;
-        try { localStorage.setItem("qkuk_nkanal", JSON.stringify(NNOTE)); } catch (e) {}
-        paintNk();
-      });
-      nk.appendChild(b);
-    });
-    paintNk();
-    bx.appendChild(nk);
     /* 15 Okt (bug blank): kotak panel pernah HILANG baris `ov.appendChild(bx)`
        — overlay muncul sebagai layar gelap kosong. Kini kotak dipasang
        sebelum overlay di-append ke body. */
@@ -6706,9 +6685,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       setTimeout(function () { if (tI.parentNode) { tI.classList.remove("in"); setTimeout(function () { if (tI.parentNode) tI.parentNode.removeChild(tI); }, 320); } }, 14000);
       return;
     }
-    var t = el("div", "toast " + (kind === "sinyal" ? "t-sig" : "t-wat"));
+    var t = el("div", "toast " + ((kind === "sinyal" || kind === "bot") ? "t-sig" : "t-wat"));
     var b = el("div", "tbody");
-    b.appendChild(el("span", "tkind", kind === "sinyal" ? "SINYAL BARU" : "WATCHLIST BARU"));
+    b.appendChild(el("span", "tkind", kind === "sinyal" ? "SINYAL BARU"
+      : kind === "bot" ? "🤖 BOT BUKA POSISI" : "WATCHLIST BARU"));
     var row = el("div", "trow");
     row.appendChild(el("b", "", sym));
     var dTxt = dir === "long" ? "long" : dir === "short" ? "short" : "—";
