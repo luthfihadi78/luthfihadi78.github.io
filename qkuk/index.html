@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=20261112s">
+<link rel="stylesheet" href="style.css?v=20261112u">
 </head>
 <body>
 
@@ -161,19 +161,7 @@
     </div>
     <div class="bc-sum" id="bot-sum"></div>
     <div class="tw" id="bot-open"></div>
-    <div class="bot-eq">
-      <div class="bot-eq-h"><span>equity harian · kumulatif $</span><b id="bot-eq-val">—</b></div>
-      <svg class="ch" id="bot-eq" role="img" aria-label="Kurva kumulatif untung/rugi bot dalam dolar"></svg>
-    </div>
-    <div class="bot-eq">
-      <div class="bot-eq-h"><span>equity per trade · kumulatif R</span><b id="bot-eqr-val">—</b></div>
-      <svg class="ch" id="bot-eqr" role="img" aria-label="Kurva kumulatif bot dalam R"></svg>
-    </div>
-    <div id="bot-risiko"></div>
-    <div id="bot-agent"></div>
-    <div id="bot-bukti"></div>
-    <div class="tw" id="bot-acc"></div>
-    <p class="cap">Sumber: journal bot (zenbnb/autotrade) — bukan backtest. Mode demo = uang virtual; R dihitung dari entry→SL/TP.</p>
+    <p class="cap">Ringkasan posisi &amp; akurasi per engine. Grafik equity, risiko, bukti historis, dan tabel engine ada di <b>Analitik bot</b> di bawah Big caps.</p>
   </section>
 
   <section id="signals">
@@ -196,9 +184,16 @@
         <option value="long">long only</option>
         <option value="short">short only</option>
       </select>
+      <select id="s-periode" aria-label="Filter periode signals">
+        <option value="1">hari ini</option>
+        <option value="7" selected>7 hari</option>
+        <option value="30">30 hari</option>
+        <option value="all">semua</option>
+      </select>
     </div>
+    <div class="s-perf" id="s-perf"></div>
     <div class="tw" id="s-table"></div>
-    <p class="cap">Arah = yang dikirim engine. 🧱 BRICK &amp; ⭐ SCALP 2H: sinyal <b>long</b> dicerminkan jadi <b>short</b> sejak 10 Nov — SL/TP ikut dicerminkan, R:R tidak berubah.</p>
+    <p class="cap">Arah = yang dikirim engine. 🧱 BRICK &amp; ⭐ SCALP 2H: sinyal <b>long</b> dicerminkan jadi <b>short</b> sejak 10 Nov — SL/TP ikut dicerminkan, R:R tidak berubah. 🔥 = engine yang performanya konsisten bagus (WR ≥55%, EV positif, n ≥8) — barisnya berapi hijau.</p>
   </section>
 
   <section id="bigcaps">
@@ -230,13 +225,26 @@
   <section id="bot-analitik">
     <div class="sec-h">
       <h2><i>&gt;</i> Analitik bot</h2>
-      <span class="hint">riwayat trade tertutup · performa per jam &amp; per simbol · koreksi engine · log kejadian</span>
+      <span class="hint">equity harian &amp; per trade · risiko &amp; biaya nyata · veto agent · bukti historis · riwayat, performa jam/simbol, koreksi, log</span>
     </div>
+    <div class="bot-eq">
+      <div class="bot-eq-h"><span>equity harian · kumulatif $</span><b id="bot-eq-val">—</b></div>
+      <svg class="ch" id="bot-eq" role="img" aria-label="Kurva kumulatif untung/rugi bot dalam dolar"></svg>
+    </div>
+    <div class="bot-eq">
+      <div class="bot-eq-h"><span>equity per trade · kumulatif R</span><b id="bot-eqr-val">—</b></div>
+      <svg class="ch" id="bot-eqr" role="img" aria-label="Kurva kumulatif bot dalam R"></svg>
+    </div>
+    <div id="bot-risiko"></div>
     <div id="bot-riwayat"></div>
     <div id="bot-jam"></div>
     <div id="bot-sim"></div>
+    <div id="bot-agent"></div>
+    <div id="bot-bukti"></div>
+    <div class="tw" id="bot-acc"></div>
     <div id="bot-koreksi"></div>
     <div id="bot-log"></div>
+    <p class="cap">Sumber: journal bot (zenbnb/autotrade) — bukan backtest. Mode demo = uang virtual; R dihitung dari entry→SL/TP.</p>
   </section>
 
 
@@ -304,6 +312,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20261112s" defer></script>
+<script src="app.js?v=20261112u" defer></script>
 </body>
 </html>

@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112s";
+  var BUILD = "qkuk-bot-20261112u";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -1430,6 +1430,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var x = el("tr");
       /* baris watchlist/sinyal yang diambil admin → latar emas tipis */
       if (r && r.apick && r.apick.taken) x.classList.add("pickrow");
+      if (r && r._flame) x.classList.add("flame");      // 12 Nov: engine panas
       cols.forEach(function (c) { x.appendChild(c.c(r)); });
       tb.appendChild(x);
     });
@@ -1639,6 +1640,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      sMode = filter: "semua" (default, gabungan) / "sig" / "watch". */
   var sMode = "semua";
   var wTf = null, sTf = "all", sQ = "", sSort = "ts", sSide = "", bq = "", bSort = "mcap";
+  /* 12 Nov (permintaan user) — filter periode tabel Signals + panel performa
+     per engine. Lampu 🔥 menyala bila engine konsisten bagus. */
+  var sPeriode = "7";
 
   /* 20 Okt — BASTION 4H hanya mengirim tier premium (OB 4h searah EMA200). */
   var KANAL_LANGKA = {
@@ -1668,23 +1672,84 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var semua = tf === "all";
     var hariIni = wibDate(new Date().toISOString());
     var gabung = sMode === "semua" && !semua;
+    /* Batas tanggal filter periode. "1" = hari ini; "7"/"30" = N hari terakhir
+       (termasuk hari ini); "all" = tanpa batas. */
+    var batas = "";
+    if (sPeriode === "1") batas = hariIni;
+    else if (sPeriode !== "all") {
+      var d = new Date(); d.setDate(d.getDate() - (parseInt(sPeriode, 10) || 7) + 1);
+      batas = wibDate(d.toISOString());
+    }
+    function lolosPeriode(r) {
+      var t = (r.ts || "").slice(0, 10);
+      if (!t) return false;
+      if (sPeriode === "1") return t === hariIni;
+      return !batas || t >= batas;
+    }
     var rows = [];
     if (semua) {
       ord().forEach(function (t) {
         (DATA.live[t].sinyal || []).forEach(function (r) {
-          if ((r.ts || "").slice(0, 10) !== hariIni) return;
-          rows.push(Object.assign({}, r, { _jenis: "sig", _tf: t }));
+          /* SEMUA tab: dulu hari ini saja; kini ikut filter periode (permintaan user). */
+          if (!lolosPeriode(r)) return;
+          rows.push(Object.assign({}, r, { _jenis: "sig", _tf: t, _wl: !!r.wl }));
         });
       });
     } else {
       if (sMode !== "watch")
         (DATA.live[tf].sinyal || []).forEach(function (r) {
-          rows.push(Object.assign({}, r, { _jenis: "sig", _tf: tf }));
+          if (!lolosPeriode(r)) return;
+          rows.push(Object.assign({}, r, { _jenis: "sig", _tf: tf, _wl: !!r.wl }));
         });
       if (sMode !== "sig")
         (DATA.live[tf].pantau || []).forEach(function (r) {
+          if (!lolosPeriode(r)) return;
           rows.push(Object.assign({}, r, { _jenis: "watch", _tf: tf }));
         });
+    }
+    /* 12 Nov — panel performa per engine + penanda 🔥 untuk yang konsisten
+       bagus. Ambang sengaja ketat: n≥8, WR≥55%, EV bersih > +0,05R. */
+    function perf(t) {
+      var L = (DATA.live || {})[t] || {}, n = num(L.tutup) || 0;
+      var menang = num(L.menang) || 0, tot = num(L.totR) || 0;
+      var wr = n ? menang / n * 100 : null, ev = n ? tot / n : null;
+      var panas = n >= 8 && wr !== null && wr >= 45 && ev !== null && ev > 0.05;
+      return { n: n, wr: wr, ev: ev, panas: panas, tot: tot };
+    }
+    var pHost = $("#s-perf");
+    if (pHost) {
+      pHost.innerHTML = "";
+      var daftar = semua ? ord() : [tf];
+      daftar.forEach(function (t) {
+        var P = perf(t);
+        var c = el("span", "bc-chip sp-chip" + (P.panas ? " panas" : ""));
+        c.innerHTML = "<b>" + (TAB_NAME[t] || String(t).toUpperCase()) + "</b> "
+          + (P.n ? (P.wr.toFixed(0) + "% · " + (P.ev >= 0 ? "+" : "") + P.ev.toFixed(2) + "R · n" + P.n)
+                  : "belum ada trade tertutup");
+        c.title = (P.panas ? "🔥 performa konsisten bagus — " : "") +
+          (P.n ? ("WR " + P.wr.toFixed(1) + "% dari " + P.n + " trade · total "
+                   + (P.tot >= 0 ? "+" : "") + P.tot.toFixed(2) + "R") : "belum ada data")
+          + "\nambang 🔥: EV > +0,05R, WR ≥45%, n ≥8";
+        if (P.panas) c.appendChild(el("span", "sp-fire", "🔥"));
+        pHost.appendChild(c);
+        /* 12 Nov — statistik WATCHLIST dipisah: performanya beda dengan sinyal.
+           Dihitung dari baris ber-tanda wl yang sudah punya hasil (pnl). */
+        var wl = ((DATA.live || {})[t] || {}).sinyal || [];
+        var wr2 = 0, wl_n = 0, wl_r = 0;
+        wl.forEach(function (x) {
+          if (!x || !x.wl) return;
+          var v = num(x.pnl); if (v === null) return;
+          wl_n++; wl_r += v; if (v > 0) wr2++;
+        });
+        if (wl_n) {
+          var cw = el("span", "bc-chip sp-chip wl");
+          cw.innerHTML = "👁 <b>watchlist " + (TAB_NAME[t] || String(t).toUpperCase()) + "</b> "
+            + (wr2 / wl_n * 100).toFixed(0) + "% · "
+            + (wl_r >= 0 ? "+" : "") + (wl_r / wl_n).toFixed(2) + "R · n" + wl_n;
+          cw.title = "performa khusus sinyal hasil WATCHLIST — dipisah dari sinyal engine";
+          pHost.appendChild(cw);
+        }
+      });
     }
     /* 23 Okt — KONSENSUS ENGINE (tab SEMUA): hitung berapa engine yang
        men-sinyal koin yang sama hari ini (SEBELUM filter search/side,
@@ -1715,10 +1780,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     } else {
       rows.sort(function (a, b) { return (b.ts || "").localeCompare(a.ts || ""); });
     }
+    rows.forEach(function (r) { r._flame = !!(perf(r._tf).panas); });
     var kolom = [
       { h: "", c: function (r) { return tvCell(r.sym, r._tf); } },
       { h: "time WIB", c: function (r) { return txt(r.ts); } },
-      { h: "pair", c: function (r) { return pairCell(r.sym, sQ, kons ? kons[r.sym] : null); } }];
+      { h: "pair", c: function (r) {
+          var td = pairCell(r.sym, sQ, kons ? kons[r.sym] : null);
+          if (r._wl) td.appendChild(el("span", "wlbadge", "👁 WL"));
+          return td; } }];
     if (semua) kolom.push({ h: "engine", c: function (r) {
       var td = el("td", "st", TAB_NAME[r._tf] || String(r._tf || "").toUpperCase());
       td.style.color = COLOR[r._tf] || "var(--fg-2)";
@@ -4205,6 +4274,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   });
   $("#s-sort").addEventListener("change", function () {
     sSort = this.value; rerenderTables();
+  });
+  var sper = $("#s-periode");
+  if (sper) sper.addEventListener("change", function () {
+    sPeriode = this.value; rerenderTables();
   });
   /* 24 Okt — urutan tabel Big caps top 50. */
   $("#bc-sort").addEventListener("change", function () {
