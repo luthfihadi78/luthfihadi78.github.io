@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261114a";
+  var BUILD = "qkuk-bot-20261114b";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -2633,6 +2633,85 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         var matiG = Object.keys(G).filter(function (k) { return G[k].mati; });
         cs.appendChild(chip2("guard engine", matiG.length ? "mati: " + matiG.join(", ") : "semua aktif", matiG.length ? "warn" : "pos"));
         wrapRisk.appendChild(cs);
+      }
+    }
+
+    /* ── 14 Nov — PAPAN STRATEGI ───────────────────────────────────────────
+       Permintaan user: "profile strategi tampilkan di website" + harness boleh
+       menambah strategi sendiri. Dua tabel: (1) irisan journal yang sudah
+       cukup sampel, (2) aturan yang DISUSUN otomatis oleh strategi.py —
+       aktif / calon, lengkap dengan n, sesi independen, EV bersih, dan
+       keyakinan bootstrap. Semua angka dari server (journal), bukan tafsiran. */
+    var wrapPS = $("#bot-strategi");
+    if (wrapPS) {
+      wrapPS.innerHTML = "";
+      var PS = B.papan || {}, SB = B.strategi || {};
+      if (PS.n_trade || (SB.aktif || []).length) {
+        var hPS = el("div", "bot-eq-h");
+        hPS.appendChild(el("span", null, "papan strategi \u00b7 mana yang benar-benar menghasilkan (EV bersih)"));
+        hPS.appendChild(el("b", null, (PS.n_trade || SB.n_trade || 0) + " trade \u00b7 "
+          + ((SB.aktif || []).length + " aturan aktif")
+          + (PS.momentum_tercatat ? " \u00b7 " + PS.momentum_tercatat + " punya momentum BTC" : "")));
+        wrapPS.appendChild(hPS);
+        var evT = function (r) {
+          var v = num(r.ev_net);
+          return txt(v == null ? null : (v > 0 ? "+" : "") + v.toFixed(3) + "R",
+                     "n " + (v == null ? "" : v > 0 ? "pos" : v < 0 ? "neg" : "dim"));
+        };
+        var pctC = function (v, d) {
+          return txt(v == null ? null : v.toFixed(d == null ? 1 : d) + "%", "n dim");
+        };
+        /* (1) irisan journal — termasuk yang terburuk supaya tidak menipu */
+        var rowsPS = (PS.teratas || []).concat(PS.terbawah || []);
+        if (rowsPS.length) {
+          wrapPS.appendChild(el("div", "pn-h lv-sub",
+            "irisan journal \u00b7 " + (PS.n_min || 6) + " trade minimal \u00b7 teratas & terburuk"));
+          var boxPS = el("div", "tw");
+          wrapPS.appendChild(boxPS);
+          table(boxPS, [
+            { h: "engine", c: function (r) { return txt(String(r.kanal || "").toUpperCase(), "st"); } },
+            { h: "irisan", c: function (r) { return txt(r.jenis || "\u2014", "dim"); } },
+            { h: "nilai", c: function (r) { return txt(r.nilai == null ? "\u2014" : r.nilai); } },
+            { h: "n", n: true, c: function (r) { return txt(r.n, "n"); } },
+            { h: "WR", n: true, c: function (r) { return pctC(r.wr); } },
+            { h: "EV net", n: true, c: evT },
+            { h: "total R", n: true, c: function (r) {
+                var v = num(r.total_r);
+                return txt(v == null ? null : (v > 0 ? "+" : "") + v.toFixed(2),
+                           "n " + (v == null ? "" : v < 0 ? "neg" : "pos"));
+              } }
+          ], rowsPS, "Belum ada irisan dengan sampel cukup.");
+        }
+        /* (2) aturan temuan harness sendiri */
+        var rowsSB = [];
+        (SB.aktif || []).forEach(function (x) { rowsSB.push({ a: x, st: "aktif", cls: "pos" }); });
+        (SB.calon || []).forEach(function (x) { rowsSB.push({ a: x, st: "calon", cls: "mut" }); });
+        (SB.gugur || []).forEach(function (x) { rowsSB.push({ a: x, st: "gugur", cls: "neg" }); });
+        if (rowsSB.length) {
+          wrapPS.appendChild(el("div", "pn-h lv-sub",
+            "aturan yang disusun harness sendiri \u00b7 satu sesi = tanggal WIB \u00d7 arah \u00b7 "
+            + (SB.diuji ? SB.diuji + " kombinasi diuji" : "") ));
+          var boxSB = el("div", "tw");
+          wrapPS.appendChild(boxSB);
+          table(boxSB, [
+            { h: "aturan", c: function (r) { return txt(r.a.aturan, "st"); } },
+            { h: "status", c: function (r) { return pill(r.st, r.cls); } },
+            { h: "n", n: true, c: function (r) { return txt(r.a.n, "n"); } },
+            { h: "sesi", n: true, c: function (r) { return txt(r.a.n_sesi, "n dim"); } },
+            { h: "WR", n: true, c: function (r) { return pctC(r.a.wr); } },
+            { h: "EV net", n: true, c: function (r) { return evT(r.a); } },
+            { h: "total R", n: true, c: function (r) {
+                var v = num(r.a.total_r);
+                return txt(v == null ? null : (v > 0 ? "+" : "") + v.toFixed(2),
+                           "n " + (v == null ? "" : v < 0 ? "neg" : "pos"));
+              } },
+            { h: "yakin", n: true, c: function (r) {
+                var v = num(r.a.yakin);
+                return txt(v == null ? null : Math.round(v * 100) + "%", "n dim");
+              } }
+          ], rowsSB, "Harness belum menemukan aturan \u2014 butuh journal lebih banyak.");
+          wrapPS.appendChild(el("p", "cap", SB.catatan || ""));
+        }
       }
     }
 
