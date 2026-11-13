@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261113b";
+  var BUILD = "qkuk-bot-20261114a";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -2480,6 +2480,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       { h: "engine", c: function (r) {
           var ks = (r.kanal_ikut && r.kanal_ikut.length) ? r.kanal_ikut : [r.kanal];
           return txt(ks.map(function (k) { return String(k || "").toUpperCase(); }).join(" + "), "st");
+        } },
+      /* 13 Nov — TF yang benar-benar dipakai engine ini (analisa & entry). */
+      { h: "TF analisa", c: function (r) { return txt(r.tf_analisa || "—", "dim"); } },
+      { h: "TF entry", c: function (r) { return txt(r.tf_entry || "—", "dim"); } },
+      /* 14 Nov — BONCE: target dipotong ≤0,8R + time-stop, bukan trade tren. */
+      { h: "bounce", c: function (r) {
+          return r.bounce ? txt("ya", "warn") : txt("—", "dim");
+        } },
+      { h: "time-stop", n: true, c: function (r) {
+          var m = num(r.time_stop_menit);
+          return m == null ? txt("—", "dim") : txt(m + "m", "dim");
         } },
       { h: "pair", c: function (r) { return txt(r.sym); } },
       { h: "side", c: function (r) { return side(r.dir); } },

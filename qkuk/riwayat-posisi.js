@@ -105,6 +105,18 @@
         return td;
       } },
     { h: "mode", c: function (r) { return el("td", "dim st", r.mode || "—"); } },
+    { h: "TM", n: 1, c: function (r) {
+        var tm = r.timemachine;
+        if (!tm || tm.p_target == null || tm.p_stop == null) return el("td", "dim", "—");
+        var txt = (tm.p_target * 100).toFixed(0) + "% / " + (tm.p_stop * 100).toFixed(0) + "%";
+        var td = el("td", "n dim", txt);
+        var tip = "Time Machine: target duluan " + (tm.p_target * 100).toFixed(1) + "% · stop duluan " +
+          (tm.p_stop * 100).toFixed(1) + "% · neither " + ((tm.p_neither || 0) * 100).toFixed(1) + "%" +
+          (tm.avg_R != null ? " · avg R " + Number(tm.avg_R).toFixed(3) : "") +
+          (tm.verdict ? " · " + tm.verdict : "");
+        td.title = tip;
+        return td;
+      } },
     { h: "catatan", c: function (r) {
         var txt = "";
         if (r.agent && r.agent.alasan) txt = r.agent.alasan;

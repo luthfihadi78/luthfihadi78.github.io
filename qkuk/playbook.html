@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>QKUK — Playbook Entry</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noarchive">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0A0F0D">
+<style>
+:root{--bg:#0A0F0D;--s0:#0D1411;--fg:#E8E3D5;--fg2:#8FA098;--up:#6EE7B7;--dn:#ff7a6e;
+--warn:#f5c26b;--line:#1c2a24;--mono:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--mono);font-size:13px;
+padding:18px 16px 46px;line-height:1.55}
+.wrap{max-width:1120px;margin:0 auto}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-size:15px;font-weight:600;letter-spacing:.04em;margin:0;color:var(--up)}
+a.back{color:var(--fg2);font-size:11.5px;text-decoration:none;border-bottom:1px dotted var(--line)}
+a.back:hover{color:var(--up)}
+.sub{color:var(--fg2);font-size:11.5px;margin:7px 0 18px;max-width:860px}
+.kartu{background:var(--s0);border:1px solid var(--line);border-radius:9px;padding:15px 17px;margin-bottom:14px}
+h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--up);
+margin:0 0 10px;font-weight:600}
+h3{font-size:11px;letter-spacing:.05em;color:var(--fg);margin:15px 0 6px}
+p{margin:6px 0;color:var(--fg2);font-size:11.5px}
+ul{margin:6px 0 6px 18px;padding:0;color:var(--fg2);font-size:11.5px}
+li{margin:3px 0}
+b{color:var(--fg);font-weight:600}
+.up{color:var(--up)}.dn{color:var(--dn)}.warn{color:var(--warn)}
+table{width:100%;border-collapse:collapse;font-size:11px;margin:8px 0}
+th{text-align:left;font-weight:500;color:var(--fg2);font-size:9.5px;letter-spacing:.07em;
+text-transform:uppercase;padding:0 8px 6px;border-bottom:1px solid var(--line)}
+td{padding:6px 8px;border-bottom:1px solid rgba(28,42,36,.6);vertical-align:top}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px;margin:10px 0}
+.step{border:1px solid var(--line);border-radius:7px;padding:8px 9px;background:#101a15}
+.step b{display:block;font-size:10px;color:var(--up);margin-bottom:3px}
+.step span{font-size:9.5px;color:var(--fg2);line-height:1.45}
+.cap{font-size:10px;color:var(--fg2);margin-top:9px}
+.pill{display:inline-block;padding:1px 6px;border:1px solid currentColor;border-radius:9px;
+font-size:9.5px}
+@media(max-width:760px){.flow{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>Playbook Entry — QKUK Auto-trade</h1>
+    <a class="back" href="./">← kembali ke terminal</a>
+  </div>
+  <p class="sub">Halaman ini menjelaskan <b>teknik, ambang, dan bobot</b> yang dipakai harness
+  sebelum bot membuka posisi. Semua angka bisa diubah lewat environment/settings, tetapi
+  arahnya tetap: <b>entry hanya boleh terjadi kalau chart, risiko, dan regime tidak saling bertentangan</b>.</p>
+
+  <div class="kartu">
+    <h2>Rantai keputusan</h2>
+    <div class="flow">
+      <div class="step"><b>1 · Sinyal</b><span>Engine mengirim kandidat: pair, arah, entry, SL, TP, skor.</span></div>
+      <div class="step"><b>2 · Agregasi</b><span>Satu pair long &amp; short sekaligus = konflik. Yang lemah dibuang, yang seri dibuang dua-duanya.</span></div>
+      <div class="step"><b>3 · Chart</b><span>Tren 1H, struktur 15m, order block, FVG, MSS, retest.</span></div>
+      <div class="step"><b>4 · Trigger</b><span>Hanya bar CLOSE yang dihitung. waiting / triggered / expired.</span></div>
+      <div class="step"><b>5 · Risiko</b><span>PASS/BLOCK: RR, risiko di stop, total risiko terbuka, batas trade/hari.</span></div>
+      <div class="step"><b>6 · Agent</b><span>Boleh setuju, tunggu, kecilkan, atau tolak. Tidak boleh menambah.</span></div>
+    </div>
+    <p class="cap">Exit tidak pernah diblokir oleh gate. Yang dijaga adalah <b>entry baru</b>.</p>
+  </div>
+
+  <div class="kartu">
+    <h2>1. Skor kandidat — 0–100</h2>
+    <table>
+      <thead><tr><th>Komponen</th><th>Bobot</th><th>Yang diukur</th></tr></thead>
+      <tbody>
+        <tr><td>Bobot kanal</td><td class="n">0–40</td><td>Hasil belajar harian per engine (policy).</td></tr>
+        <tr><td>Edge historis</td><td class="n">0–25</td><td>EV kanal dengan shrinkage; n kecil ditarik ke nol.</td></tr>
+        <tr><td>Edge jam WIB</td><td class="n">0–15</td><td>EV kanal pada jam yang sama.</td></tr>
+        <tr><td>Konsensus</td><td class="n">0–10</td><td>Jumlah engine yang sepakat arah.</td></tr>
+        <tr><td>Kualitas setup</td><td class="n">0–10</td><td>SL 2–10% dan R:R ≥ 1,5.</td></tr>
+        <tr><td>Pelajaran tersimpan</td><td class="n">−10…+10</td><td>Catatan yang sudah terbukti, bukan opini.</td></tr>
+      </tbody>
+    </table>
+    <p><b>Ambang skor</b> default <b>62</b>; bisa diturunkan lewat <code>QKUK_AT_MIN_SCORE</code>.
+    Skor bukan satu-satunya gerbang — chart dan risiko tetap bisa menolak.</p>
+  </div>
+
+  <div class="kartu">
+    <h2>2. Chart &amp; entry trigger</h2>
+    <h3>Tren 1H</h3>
+    <p>EMA50 vs EMA200 + kemiringan EMA50 10 bar. Long hanya selaras tren naik; short selaras tren turun.
+    Tren datar → status <span class="pill warn">tunggu_retest</span>, bukan entry paksa.</p>
+    <h3>Struktur 15m</h3>
+    <p>Swing high/low fraktal 2-2: <b>HH/HL</b> = naik, <b>LH/LL</b> = turun. Struktur yang melawan arah
+    sinyal = <span class="pill dn">berlawanan</span>.</p>
+    <h3>Order block, FVG, MSS, retest</h3>
+    <ul>
+      <li><b>Order block</b>: candle berlawanan terakhir sebelum impuls ≥ 1,2× ATR; zona = high–low candle itu.</li>
+      <li><b>Retest</b>: harga kembali menyentuh zona dalam 8 bar terakhir.</li>
+      <li><b>MSS</b>: close menembus swing terakhir setelah struktur berlawanan.</li>
+      <li><b>FVG</b>: gap 3 candle yang searah; dipakai sebagai konteks, bukan trigger tunggal.</li>
+    </ul>
+    <h3>State machine trigger</h3>
+    <table>
+      <thead><tr><th>Status</th><th>Arti</th><th>Aksi bot</th></tr></thead>
+      <tbody>
+        <tr><td><b>triggered</b></td><td>Close bar terakhir sudah melewati level entry.</td><td class="up">Boleh lanjut ke gate risiko.</td></tr>
+        <tr><td><b>waiting</b></td><td>Chart cocok, close belum melewati level.</td><td class="warn">Masuk pantauan, dicoba lagi tiap siklus.</td></tr>
+        <tr><td><b>expired</b></td><td>Level tidak tersentuh dalam 6 bar.</td><td class="dn">Ditolak; setup dianggap basi.</td></tr>
+        <tr><td><b>not_open</b></td><td>Data bar kurang.</td><td>Fail-open, tapi tetap lewat gate risiko.</td></tr>
+      </tbody>
+    </table>
+    <p>Hanya candle yang sudah <b>close</b> yang dipakai. Candle berjalan tidak boleh memicu entry.</p>
+  </div>
+
+  <div class="kartu">
+    <h2>3. Risiko — PASS/BLOCK</h2>
+    <table>
+      <thead><tr><th>Cek</th><th>Default</th><th>Perilaku</th></tr></thead>
+      <tbody>
+        <tr><td>Risiko per trade</td><td class="n">≤ 1% equity</td><td>Risiko = qty × |entry − SL|. Kalau lebih, qty dikecilkan; faktor &lt; 0,25 → BLOCK.</td></tr>
+        <tr><td>Total risiko terbuka</td><td class="n">≤ 2% equity</td><td>Posisi lama + trade baru. Bisa mengecilkan qty.</td></tr>
+        <tr><td>R:R minimum</td><td class="n">≥ 1,5</td><td>Di bawah ini ditolak.</td></tr>
+        <tr><td>Trade per hari</td><td class="n">≤ 12</td><td>Mencegah overtrading.</td></tr>
+        <tr><td>Harga sudah lari</td><td class="n">0,5 × jarak SL</td><td>Sinyal basi dilewati, bukan dikejar.</td></tr>
+        <tr><td>Duplikat simbol</td><td class="n">0</td><td>Satu posisi per pair.</td></tr>
+      </tbody>
+    </table>
+    <p><b>Modal per posisi tetap 2% equity sebagai margin.</b> Leverage pair dipakai agar marginnya
+    benar-benar 2%. Agent hanya boleh memberi faktor <b>0–1</b>; ia tidak pernah menambah modal.</p>
+    <p><b>Tidak ada circuit breaker akun.</b> Bot boleh terus trading selama setiap order lolos
+    gate risiko. Yang membatasi adalah ukuran dan kualitas order, bukan cooldown setelah rugi.</p>
+  </div>
+
+  <div class="kartu">
+    <h2>4. Regime kripto — 0–100</h2>
+    <table>
+      <thead><tr><th>Komponen</th><th>Bobot</th><th>Contoh sinyal</th></tr></thead>
+      <tbody>
+        <tr><td>Tren BTC</td><td class="n">25%</td><td>Harga vs EMA50/EMA200 4H + slope.</td></tr>
+        <tr><td>Breadth alt</td><td class="n">20%</td><td>% alt besar positif 24 jam + median.</td></tr>
+        <tr><td>Dominance</td><td class="n">15%</td><td>BTC relatif terhadap alt.</td></tr>
+        <tr><td>Funding</td><td class="n">15%</td><td>Funding ekstrem = crowding.</td></tr>
+        <tr><td>Drawdown &amp; volatilitas</td><td class="n">15%</td><td>Jarak dari puncak 90 hari + ATR.</td></tr>
+        <tr><td>Momentum</td><td class="n">10%</td><td>Return BTC 7 &amp; 30 hari.</td></tr>
+      </tbody>
+    </table>
+    <p><span class="up">RISK_ON</span> ≥ 65 · <span class="warn">NETRAL</span> 45–64 ·
+    <span class="dn">RISK_OFF</span> 25–44 · <span class="dn">PANIK</span> &lt; 25.
+    Di bawah <b>15</b>, long baru diblokir; faktor ukuran turun bertahap sampai 0,4.
+    Regime adalah konteks, bukan sinyal entry.</p>
+  </div>
+
+  <div class="kartu">
+    <h2>5. Time Machine v2</h2>
+    <ul>
+      <li><b>10.000 replay Monte Carlo</b> dari bar 5m Binance, seed tetap.</li>
+      <li><b>Replay historis aturan yang sama</b> di setiap sesi penuh sebelum hari ini.</li>
+      <li>Verdict memakai <b>break-even 1/(1+R)</b>, bukan sekadar target vs stop.</li>
+      <li>Percentile R &amp; harga, average R, median R.</li>
+      <li><b>Sesi &lt; 20</b> ditandai belum cukup — agent tidak boleh veto hanya dari itu.</li>
+      <li>Hanya bar yang sudah close; data 60 hari di-cache 6 jam.</li>
+    </ul>
+  </div>
+
+  <div class="kartu">
+    <h2>6. Postmortem &amp; coach</h2>
+    <table>
+      <thead><tr><th>Label</th><th>Arti</th></tr></thead>
+      <tbody>
+        <tr><td class="up">TRUE_POSITIVE</td><td>Menang; sinyal dan eksekusi terbukti.</td></tr>
+        <tr><td class="dn">FALSE_POSITIVE</td><td>Rugi dengan regime stabil; sinyal/setup yang salah.</td></tr>
+        <tr><td class="warn">REGIME_MISMATCH</td><td>Rugi karena regime berubah saat posisi berjalan.</td></tr>
+        <tr><td>NEUTRAL</td><td>Hasil tipis, belum cukup bukti.</td></tr>
+        <tr><td class="warn">MISSED_OPPORTUNITY</td><td>Sinyal ditolak, lalu harga menyentuh TP lebih dulu.</td></tr>
+        <tr><td class="up">AVOIDED_LOSS</td><td>Sinyal ditolak, lalu harga menyentuh SL lebih dulu.</td></tr>
+      </tbody>
+    </table>
+    <p><b>Coach</b> menilai proses: trade yang melebihi cap risiko, entry dalam 30 menit setelah rugi,
+    slippage, dan MFE yang tidak tertangkap exit. Skor proses bukan jaminan profit — ia mengukur
+    apakah aturan dijalankan.</p>
+  </div>
+
+  <div class="kartu">
+    <h2>Batas &amp; kejujuran</h2>
+    <p>Semua angka di halaman ini adalah <b>ambang operasional</b>, bukan janji hasil. Data bisa gagal
+    diambil; saat itu bot memilih <b>fail-open</b> untuk data konteks, tetapi gate risiko tetap memakai
+    batas konservatif. Situs menampilkan status apa adanya: kalau regime belum dihitung, panel
+    mengatakannya; kalau order diblokir, alasannya terlihat di gate.</p>
+    <p class="cap">Sumber angka: <code>zenbnb/autotrade/config.py</code>, <code>risk.py</code>,
+    <code>regime.py</code>, <code>setup.py</code>, <code>timemachine.py</code>, <code>postmortem.py</code>.</p>
+  </div>
+</div>
+</body>
+</html>
