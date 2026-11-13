@@ -1413,3 +1413,29 @@ td.bcw{color:var(--gold)}
 .bot-logi .bs{color:var(--fg-3);white-space:nowrap}
 .bot-logi.pos .bt{color:var(--up)} .bot-logi.neg .bt{color:var(--dn)}
 .bot-logi.warn .bt{color:var(--gold)}
+
+/* 13 Nov — panel pertahanan bot: regime, anggaran risiko, postmortem, TM v2 */
+#bot-pertahanan .def-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;margin:10px 0 4px}
+.def-card{border:1px solid var(--line);border-radius:8px;padding:10px 12px;
+  background:rgba(255,255,255,.018);min-width:0}
+.def-h{display:flex;justify-content:space-between;gap:8px;align-items:baseline;
+  margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.def-h b{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--fg)}
+.def-h span{font-size:9.5px;color:var(--fg-3);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.def-bar-row{display:grid;grid-template-columns:86px 1fr 28px;gap:7px;align-items:center;
+  margin:5px 0;font-size:10.5px;color:var(--fg-2)}
+.def-lab{text-transform:capitalize;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.def-bar{height:5px;background:var(--line);border-radius:99px;overflow:hidden}
+.def-bar i{display:block;height:100%;border-radius:99px}
+.def-bar i.pos{background:var(--up)} .def-bar i.warn{background:var(--gold)}
+.def-bar i.neg{background:var(--dn)}
+.def-line{display:flex;justify-content:space-between;gap:8px;font-size:10.5px;
+  color:var(--fg-2);padding:3px 0;border-bottom:1px dotted rgba(255,255,255,.05)}
+.def-line b{color:var(--fg);font-weight:600}
+.def-line b.pos{color:var(--up)} .def-line b.neg{color:var(--dn)}
+.def-line b.warn{color:var(--gold)} .def-line b.mut{color:var(--fg-3)}
+.def-note{font-size:10px;line-height:1.55;color:var(--fg-3);margin:7px 0 0}
+.def-note.pos{color:var(--up)} .def-note.neg{color:var(--dn)}
+@media(max-width:780px){#bot-pertahanan .def-grid{grid-template-columns:1fr}}

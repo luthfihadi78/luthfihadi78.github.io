@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261112x";
+  var BUILD = "qkuk-bot-20261113b";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -1830,6 +1830,19 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
             td.textContent = r.st === "fired" ? "open" : r.st;
           }
           return td; } },
+      { h: "harness", c: function (r) {
+          if (r._jenis !== "sig") return txt("—");
+          var hs = r.hs || {}, st = String(hs.status || "");
+          var td = el("td", "st");
+          if (st === "buka") { td.textContent = "✅ dibuka"; td.style.color = "var(--up)"; }
+          else if (st === "tunggu") { td.textContent = "⏳ ditunggu"; td.style.color = "var(--gold)"; }
+          else if (st === "tolak" || st === "gate" || st === "basi" || st === "tidak_diproses") {
+            td.textContent = "⛔ ditolak"; td.style.color = "var(--dn)"; }
+          else if (st === "analisa" || st === "antre") { td.textContent = "🧠 analisa…"; }
+          else { td.textContent = "—"; td.className = "st dim"; }
+          if (st) td.title = (hs.alasan || st) + (hs.skor != null ? "\nskor " + hs.skor : "")
+            + (hs.t ? "\n" + hs.t : "");
+          return td; } },
       { h: "result R", n: true, c: function (r) {
           return r._jenis === "watch" ? rcell(r.r, false) : rcell(r.pnl, r.st === "fired"); } },
       { h: "live", c: function (r) { return pickCell(r, r._tf, r._jenis); } });
@@ -2192,6 +2205,146 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       + (SK && SK.kandidat != null ? "\nKandidat dinilai: " + SK.kandidat : "")
       + "\n\u226412 mnt = hidup; >12 mnt = macet; proses tidak ada = mati."
       + "\nKlik untuk ke kartu Bot auto-trade.";
+  }
+
+  /* 13 Nov — panel PERTAHANAN: regime, anggaran risiko, postmortem, coach
+     proses, dan bukti Time Machine v2. Semua dari server. */
+  function botPertahanan(P) {
+    var host = $("#bot-pertahanan");
+    if (!host) return;
+    host.innerHTML = "";
+    if (!P) return;
+    var R = P.risk || {}, RG = P.regime || {}, PM = P.postmortem || {};
+    var TR = R.terbuka || {}, CO = P.coach || {};
+    var TM = P.tm || {}, GH = P.gate_hari || {};
+    var chip = function (l, v, cls) {
+      var s = el("span", "bc-chip " + (cls || "mut"));
+      s.appendChild(el("b", null, l));
+      s.appendChild(el("span", null, v));
+      return s;
+    };
+    var h = el("div", "bot-eq-h");
+    h.appendChild(el("span", null, "pertahanan & regime · kenapa bot boleh / tidak boleh masuk"));
+    h.appendChild(el("b", null, "ENTRY TERBUKA · TANPA CIRCUIT BREAKER"));
+    host.appendChild(h);
+    var cs = el("div", "bc-sum");
+    if (RG.skor != null) {
+      var rcls = RG.label === "RISK_ON" ? "pos" : RG.label === "NETRAL" ? "warn" : "neg";
+      cs.appendChild(chip("regime", (RG.skor | 0) + "/100 · " + (RG.label || "?"), rcls));
+    } else {
+      cs.appendChild(chip("regime", "belum dihitung", "mut"));
+    }
+    cs.appendChild(chip("risiko terbuka",
+      (TR.usd == null ? "—" : "$" + (+TR.usd).toFixed(2))
+      + (R.terbuka_pct == null ? "" : " · " + R.terbuka_pct.toFixed(2) + "%"),
+      (R.terbuka_pct || 0) > (R.batas || {}).total_terbuka_pct ? "neg" : "mut"));
+    cs.appendChild(chip("gate hari ini",
+      (GH.blok || 0) + " BLOCK · " + (GH.kecil || 0) + " kecil",
+      (GH.blok || 0) ? "warn" : "pos"));
+    if (PM.trade && PM.trade.label) {
+      var L = PM.trade.label || {};
+      cs.appendChild(chip("postmortem",
+        "menang " + (L.TRUE_POSITIVE || 0) + " · rugi " + (L.FALSE_POSITIVE || 0)
+        + " · regime " + (L.REGIME_MISMATCH || 0), "mut"));
+    }
+    if (CO.skor_proses != null) {
+      cs.appendChild(chip("skor proses", CO.skor_proses + "/100",
+        CO.skor_proses >= 70 ? "pos" : CO.skor_proses >= 45 ? "warn" : "neg"));
+    }
+    if (TM.n) {
+      cs.appendChild(chip("Time Machine v2",
+        TM.n + " setup · hist WR " + (TM.avg_hist_wr == null ? "—" : TM.avg_hist_wr + "%")
+        + " · avg R " + (TM.avg_hist_R == null ? "—" : (TM.avg_hist_R > 0 ? "+" : "") + TM.avg_hist_R),
+        (TM.avg_hist_R || 0) >= 0 ? "pos" : "neg"));
+    }
+    host.appendChild(cs);
+
+    var grid = el("div", "def-grid");
+    host.appendChild(grid);
+    var card = function (judul, sub) {
+      var c = el("div", "def-card");
+      var hh = el("div", "def-h");
+      hh.appendChild(el("b", null, judul));
+      if (sub) hh.appendChild(el("span", null, sub));
+      c.appendChild(hh);
+      grid.appendChild(c);
+      return c;
+    };
+
+    /* regime: 6 komponen + bar */
+    var cR = card("Regime kripto", RG.dibuat ? String(RG.dibuat).slice(0, 16).replace("T", " ") + " UTC" : "belum ada data");
+    var komp = RG.komponen || {};
+    var keys = Object.keys(komp);
+    if (keys.length) {
+      keys.forEach(function (k) {
+        var v = komp[k] || {}, s = num(v.skor) || 0;
+        var row = el("div", "def-bar-row");
+        row.appendChild(el("span", "def-lab", k.replace(/_/g, " ")));
+        var bar = el("span", "def-bar");
+        var fill = el("i", null);
+        fill.style.width = Math.max(0, Math.min(100, s)) + "%";
+        fill.className = s >= 60 ? "pos" : s >= 40 ? "warn" : "neg";
+        bar.appendChild(fill);
+        row.appendChild(bar);
+        row.appendChild(el("b", "n", Math.round(s)));
+        row.title = JSON.stringify(v.detail || {});
+        cR.appendChild(row);
+      });
+      cR.appendChild(el("p", "def-note", RG.ringkas || ""));
+    } else {
+      cR.appendChild(el("div", "def-note", "regime belum dihitung — jalankan satu siklus bot atau cek jaringan Binance/CoinGecko."));
+    }
+
+    /* anggaran risiko (tanpa circuit breaker) */
+    var cC = card("Anggaran risiko", "per order & total terbuka");
+    var line = function (l, v, cls) {
+      var row = el("div", "def-line");
+      row.appendChild(el("span", null, l));
+      row.appendChild(el("b", "n " + (cls || ""), v));
+      cC.appendChild(row);
+    };
+    line("risiko terbuka", (TR.usd == null ? "—" : "$" + (+TR.usd).toFixed(2)) + " · " + (TR.n || 0) + " posisi");
+    line("porsi modal", R.terbuka_pct == null ? "—" : R.terbuka_pct.toFixed(2) + "% equity");
+    line("cap per trade", ((R.batas || {}).per_trade_pct == null ? "—" : (R.batas || {}).per_trade_pct + "% equity"));
+    line("cap total terbuka", ((R.batas || {}).total_terbuka_pct == null ? "—" : (R.batas || {}).total_terbuka_pct + "% equity"));
+    line("gate hari ini", (GH.blok || 0) + " BLOCK · " + (GH.kecil || 0) + " kecil",
+      (GH.blok || 0) ? "warn" : "pos");
+    cC.appendChild(el("p", "def-note pos", "Tidak ada circuit breaker akun — entry tetap jalan selama order lolos gate risiko."));
+
+    /* postmortem + coach + penolakan */
+    var cM = card("Postmortem & coach", (PM.trade && PM.trade.n != null ? PM.trade.n + " trade dianalisis" : "belum ada"));
+    var L2 = (PM.trade || {}).label || {};
+    line = function (l, v, cls) {
+      var row = el("div", "def-line");
+      row.appendChild(el("span", null, l));
+      row.appendChild(el("b", "n " + (cls || ""), v));
+      cM.appendChild(row);
+    };
+    line("menang (true positive)", L2.TRUE_POSITIVE || 0, "pos");
+    line("rugi sinyal (false positive)", L2.FALSE_POSITIVE || 0, "neg");
+    line("regime berubah", L2.REGIME_MISMATCH || 0, "warn");
+    line("hasil tipis", L2.NEUTRAL || 0, "mut");
+    var PK = PM.penolakan_ringkas || {};
+    if (Object.keys(PK).length) {
+      line("penolakan dinilai", Object.keys(PK).map(function (k) { return k + " " + PK[k]; }).join(" · "), "mut");
+    }
+    (CO.catatan || []).forEach(function (t) { cM.appendChild(el("p", "def-note", "• " + t)); });
+
+    /* Time Machine v2 */
+    var cT = card("Time Machine v2", TM.n ? TM.n + " setup terbuka" : "belum ada");
+    line = function (l, v, cls) {
+      var row = el("div", "def-line");
+      row.appendChild(el("span", null, l));
+      row.appendChild(el("b", "n " + (cls || ""), v));
+      cT.appendChild(row);
+    };
+    line("rata-rata p(target) MC", TM.avg_p_target == null ? "—" : (TM.avg_p_target * 100).toFixed(1) + "%");
+    line("historis cukup (n≥20)", (TM.n_hist_cukup || 0) + " / " + (TM.n || 0), "mut");
+    line("WR historis rata-rata", TM.avg_hist_wr == null ? "—" : TM.avg_hist_wr + "%",
+      (TM.avg_hist_wr || 0) >= 50 ? "pos" : "neg");
+    line("avg R historis", TM.avg_hist_R == null ? "—" : (TM.avg_hist_R > 0 ? "+" : "") + TM.avg_hist_R,
+      (TM.avg_hist_R || 0) >= 0 ? "pos" : "neg");
+    cT.appendChild(el("p", "def-note", "Replay aturan yang sama di sesi historis, bukan hanya Monte Carlo. Sesi < 20 ditandai belum cukup."));
   }
 
   function botCard() {
@@ -2650,6 +2803,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       barisAcc.push({ kanal: k, n: s.n || 0, m: s.m || 0, l: s.l || 0,
                       wr: s.wr, ev: s.ev, r: s.r, usd: s.usd, open: s.terbuka || 0 });
     });
+    botPertahanan(B.pertahanan);
     if (accHost) table(accHost, [
       { h: "engine", c: function (r) { return txt(String(r.kanal).toUpperCase(), "st"); } },
       { h: "trade", n: true, c: function (r) { return txt(r.n, "n"); } },
@@ -4547,6 +4701,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     paintDesk();
     dr.appendChild(db);
     bx.appendChild(dr);
+    /* 13 Nov — suara bot (TTS macOS). Halaman lokal karena `say`/`afplay`
+       berjalan di Mac ini; situs publik tidak bisa menulis setelan ke mesin. */
+    var tr = el("div", "snd-vrow");
+    tr.appendChild(el("span", "snd-vlab", "Bot TTS"));
+    var tb = el("button", "snd-dbtn", "🎙 Atur suara bot"); tb.type = "button";
+    tb.title = "Buka halaman lokal untuk mendengar suara pria/wanita & atur volume";
+    tb.addEventListener("click", function () {
+      window.open("http://localhost:8767", "qkuk_tts", "noopener");
+    });
+    tr.appendChild(tb);
+    bx.appendChild(tr);
     /* 15 Okt (bug blank): kotak panel pernah HILANG baris `ov.appendChild(bx)`
        — overlay muncul sebagai layar gelap kosong. Kini kotak dipasang
        sebelum overlay di-append ke body. */
