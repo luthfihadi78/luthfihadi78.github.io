@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261114c";
+  var BUILD = "qkuk-bot-20261114d";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -2533,6 +2533,22 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           if (a.alasan) n.title = a.alasan;
           return n;
         } },
+      /* 14 Nov (permintaan user) — KENAPA ditahan: alasan kelola.py + skor
+         momentum multi-TF, umur posisi, dan R saat putusan. Arahkan kursor
+         ke lencana untuk kalimat lengkapnya. */
+      { h: "sebab", c: function (r) {
+          var u = r.putusan || {};
+          if (!u.alasan) return txt("—", "dim");
+          var m = u.momentum || {};
+          var ak = String(u.aksi || "tahan").toLowerCase();
+          var n = pill(ak === "tutup" ? "tutup" : "tahan", ak === "tutup" ? "neg" : "warn");
+          var ket = u.alasan;
+          if (m.skor != null) ket += "\nmomentum " + (m.skor > 0 ? "+" : "") + m.skor + (m.arah ? " (" + m.arah + ")" : "");
+          if (u.umur_menit != null) ket += "\numur " + Math.round(u.umur_menit) + " mnt";
+          if (u.r != null) ket += " · " + (+u.r).toFixed(2) + "R";
+          n.title = ket;
+          return n;
+        } },
       /* 12 Nov — status tegas tiap baris: masih OPEN. */
       { h: "status", c: function () { return pill("OPEN", "pos"); } }
     ], B.terbuka || [], "Bot tidak sedang memegang posisi.");
@@ -2587,7 +2603,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
             return txt(v == null ? null : (v > 0 ? "+" : "") + v.toFixed(2), "n " + (v == null ? "" : v < 0 ? "neg" : "pos"));
           } },
         { h: "$", n: true, c: function (r) { return uang(r.usd); } },
-        { h: "durasi", n: true, c: function (r) { return dur(r.umur_menit); } }
+        { h: "durasi", n: true, c: function (r) { return dur(r.umur_menit); } },
+        /* 14 Nov — sebab keluar (time-stop / agent / TP / SL / trail) apa adanya
+           dari journal; kursor ke sel untuk kalimat lengkapnya. */
+        { h: "sebab", c: function (r) {
+            if (!r.alasan) return txt("—", "dim");
+            var s = String(r.alasan);
+            var t = txt(s.length > 42 ? s.slice(0, 42) + "…" : s, "dim");
+            t.title = s + (r.r_tp != null ? "\nR saat TP tersentuh " + (+r.r_tp).toFixed(2) : "")
+              + (r.tp_sentuh ? "\nTP pernah tersentuh — posisi ditahan" : "");
+            return t;
+          } }
       ], RW, "Belum ada trade yang ditutup — posisi yang sedang jalan ada di tabel atas.");
     }
 
