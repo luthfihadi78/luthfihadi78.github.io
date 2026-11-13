@@ -2646,7 +2646,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (wrapPS) {
       wrapPS.innerHTML = "";
       var PS = B.papan || {}, SB = B.strategi || {};
-      if (PS.n_trade || (SB.aktif || []).length) {
+      if (PS.n_trade || (SB.aktif || []).length || (SB.kombo || []).length) {
         var hPS = el("div", "bot-eq-h");
         hPS.appendChild(el("span", null, "papan strategi \u00b7 mana yang benar-benar menghasilkan (EV bersih)"));
         hPS.appendChild(el("b", null, (PS.n_trade || SB.n_trade || 0) + " trade \u00b7 "
@@ -2711,6 +2711,53 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
               } }
           ], rowsSB, "Harness belum menemukan aturan \u2014 butuh journal lebih banyak.");
           wrapPS.appendChild(el("p", "cap", SB.catatan || ""));
+        }
+        /* (3) KOMBINASI CIRI (14 Nov) — "engulfing 1h + di atas EMA9 + FVG"
+           diuji sebagai satu aturan, bukan ciri tunggal. Karena itu tabelnya
+           dipisah: `kombo` menyimpan daftar ciri + arah, sedangkan tabel di
+           atas hanya memuat aturan berbasis kanal/skor/jam. */
+        var rowsK = SB.kombo || [];
+        wrapPS.appendChild(el("div", "pn-h lv-sub",
+          "kombinasi ciri \u00b7 FVG / order block / pola candle / EMA / RSI"
+          + (SB.diuji ? " \u00b7 " + SB.diuji + " kombinasi diuji" : "")));
+        if (rowsK.length) {
+          var boxK = el("div", "tw");
+          wrapPS.appendChild(boxK);
+          table(boxK, [
+            { h: "status", c: function (r) {
+                return pill(r.a.status === "aktif" ? "aktif" : "calon",
+                            r.a.status === "aktif" ? "pos" : "mut");
+              } },
+            { h: "arah", c: function (r) { return txt(r.a.dir || "\u2014", "dim"); } },
+            { h: "kombinasi ciri", c: function (r) {
+                return txt((r.a.kombo || []).join(" + "), "st");
+              } },
+            { h: "n", n: true, c: function (r) { return txt(r.a.n, "n"); } },
+            { h: "sesi", n: true, c: function (r) { return txt(r.a.n_sesi, "n dim"); } },
+            { h: "WR", n: true, c: function (r) { return pctC(r.a.wr); } },
+            { h: "EV net", n: true, c: function (r) { return evT(r.a); } },
+            { h: "total R", n: true, c: function (r) {
+                var v = num(r.a.total_r);
+                return txt(v == null ? null : (v > 0 ? "+" : "") + v.toFixed(2),
+                           "n " + (v == null ? "" : v < 0 ? "neg" : "pos"));
+              } },
+            { h: "yakin", n: true, c: function (r) {
+                var v = num(r.a.yakin);
+                return txt(v == null ? null : Math.round(v * 100) + "%", "n dim");
+              } }
+          ], rowsK, "Belum ada kombinasi ciri dengan sampel cukup.");
+          wrapPS.appendChild(el("p", "cap",
+            "kombinasi = 2\u20133 ciri yang muncul bersamaan saat entry, satu arah. "
+            + "status aktif butuh n\u2265" + ((SB.ambang || {}).n_min || 8)
+            + ", sesi\u2265" + ((SB.ambang || {}).sesi_min || 3)
+            + ", EV>+" + ((SB.ambang || {}).ev_min || 0.05) + "R."));
+        } else {
+          var nf = num(SB.fitur_tercatat);
+          wrapPS.appendChild(el("p", "cap",
+            "belum ada kombinasi \u2014 fitur chart (FVG/OB/pola candle/EMA/RSI) baru tercatat di "
+            + (nf == null ? 0 : nf) + " dari " + (SB.n_trade || 0)
+            + " trade. Trade lama tidak menyimpan snapshot ini, jadi pembuktiannya "
+            + "menunggu trade baru sesudah 14 Nov."));
         }
       }
     }
