@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261114k";
+  var BUILD = "qkuk-bot-20261114m";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -1487,13 +1487,21 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      auto-refresh list harga tiap 60 dtk selama tab terbuka. */
   var LPRICE = {};          // sym → {p: harga, t: ms}, cache
   var LPRICE_PENDING = false;
+  var LPRICE_WAIT = [];     // callback yang menunggu SATU batch harga
   function lpriceGet(sym, cb) {
     var c = LPRICE[sym];
     if (c && Date.now() - c.t < 20000) { cb(c.p); return; }
-    if (c && LPRICE_PENDING) { cb(c.p); return; }   // nilai lama sambil menunggu
+    if (LPRICE_PENDING) {   // jangan buka request kedua utk simbol berikutnya
+      LPRICE_WAIT.push(function () { var c2 = LPRICE[sym]; cb(c2 ? c2.p : null); });
+      return;
+    }
     lpriceBatch(function () { var c2 = LPRICE[sym]; cb(c2 ? c2.p : null); });
   }
   function lpriceBatch(done) {
+    if (LPRICE_PENDING) {   // satu request ticker/price utk SEMUA simbol
+      if (done) LPRICE_WAIT.push(done);
+      return;
+    }
     LPRICE_PENDING = true;
     fetch("https://api.binance.com/api/v3/ticker/price", { cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : []; })
@@ -1504,7 +1512,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         });
       })
       .catch(function () { /* diam: kolom hanya kosong */ })
-      .then(function () { LPRICE_PENDING = false; done && done(); });
+      .then(function () {
+        LPRICE_PENDING = false;
+        var tunggu = LPRICE_WAIT; LPRICE_WAIT = [];
+        tunggu.forEach(function (f) { try { f(); } catch (e) {} });
+        done && done();
+      });
   }
   function lastCell(sym, tf) {
     var td = el("td", "n jrk-last");
@@ -1583,11 +1596,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (SPARK[sym] && Date.now() - SPARK[sym].t < 600000) { cb(SPARK[sym]); continue; }
       SPARK_RUN++;
       (function (sym, cb) {
-        fetch("https://api.binance.com/api/v3/klines?symbol=" + encodeURIComponent(sym)
+        // Futures dulu: seluruh universe QKUK adalah USDT-M, jadi spot
+        // menghasilkan 400 utk simbol seperti 1000SHIBUSDT/KGENUSDT dan
+        // membanjiri console. Spot hanya fallback bila futures tidak ada.
+        fetch("https://fapi.binance.com/fapi/v1/klines?symbol=" + encodeURIComponent(sym)
             + "&interval=1h&limit=24", { cache: "no-store" })
           .then(function (r) { return r.ok ? r.json() : Promise.reject(0); })
           .catch(function () {
-            return fetch("https://fapi.binance.com/fapi/v1/klines?symbol=" + encodeURIComponent(sym)
+            return fetch("https://api.binance.com/api/v3/klines?symbol=" + encodeURIComponent(sym)
               + "&interval=1h&limit=24", { cache: "no-store" })
               .then(function (r2) { return r2.ok ? r2.json() : []; });
           })
@@ -5463,6 +5479,74 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         }).join("");
       });
   }
+  /* 14 Nov — hash password naik dari SHA-256 tanpa salt ke PBKDF2-SHA256
+     (600.000 iterasi, salt acak 16 byte). Format tersimpan:
+       pbkdf2$<iterasi>$<salt-hex>$<hash-hex>
+     Hash lama (SHA-256 hex) tetap bisa dipakai login, lalu OTOMATIS
+     dinaikkan ke PBKDF2 saat login berhasil — tidak ada admin yang terkunci.
+     Batasnya jujur: verifikasi masih di browser, jadi ini memperlambat
+     brute-force offline, bukan menggantikan autentikasi server. */
+  var PBKDF2_ITER = 600000;
+  function hexDari(buf) {
+    return Array.prototype.map.call(new Uint8Array(buf), function (b) {
+      return ("0" + b.toString(16)).slice(-2);
+    }).join("");
+  }
+  function bufDariHex(h) {
+    var n = String(h || "").length / 2, u = new Uint8Array(n);
+    for (var i = 0; i < n; i++) u[i] = parseInt(String(h).substr(i * 2, 2), 16);
+    return u;
+  }
+  function samaHex(a, b) {
+    if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+    var d = 0;
+    for (var i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    return d === 0;
+  }
+  function pbkdf2hex(acct, pass, saltHex, iter) {
+    var enc = new TextEncoder().encode(acct + ":" + pass);
+    return crypto.subtle.importKey("raw", enc, { name: "PBKDF2" }, false, ["deriveBits"])
+      .then(function (k) {
+        return crypto.subtle.deriveBits(
+          { name: "PBKDF2", salt: bufDariHex(saltHex), iterations: iter, hash: "SHA-256" },
+          k, 256);
+      })
+      .then(hexDari);
+  }
+  function hashPassword(acct, pass) {
+    var salt = crypto.getRandomValues(new Uint8Array(16));
+    var sh = hexDari(salt.buffer);
+    return pbkdf2hex(acct, pass, sh, PBKDF2_ITER).then(function (h) {
+      return "pbkdf2$" + PBKDF2_ITER + "$" + sh + "$" + h;
+    });
+  }
+  function cekPassword(acct, pass, stored) {
+    stored = String(stored || "");
+    var m = /^pbkdf2\$(\d+)\$([0-9a-f]+)\$([0-9a-f]+)$/.exec(stored);
+    if (m) {
+      return pbkdf2hex(acct, pass, m[2], parseInt(m[1], 10))
+        .then(function (h) { return samaHex(h, m[3]); });
+    }
+    return sha256hex(acct + ":" + pass).then(function (h) { return samaHex(h, stored); });
+  }
+  function cekAkun(u, p) {
+    var keys = Object.keys(ADMINS), i = 0;
+    function next() {
+      if (i >= keys.length) return Promise.resolve(null);
+      var k = keys[i++];
+      if (k.toLowerCase() !== String(u || "").toLowerCase()) return next();
+      return cekPassword(k, p, $hashOke(k)).then(function (ok) { return ok ? k : next(); });
+    }
+    return next();
+  }
+  function naikkanHash(acct, pass) {
+    if (/^pbkdf2\$/.test(String($hashOke(acct) || ""))) return Promise.resolve(false);
+    return hashPassword(acct, pass).then(function (h) {
+      AUTH_HASHES[acct] = h;
+      if (acct === AUTH.user) AUTHCLOUD = h;
+      return true;
+    });
+  }
   /* 21 Sep — penyimpanan sesi tahan-banting: kalau sessionStorage diblokir
      (WebView in-app, mode privat ketat, cookie pihak-ketiga off), login tetap
      TERSIMPAN di memori — menu edit admin tidak hilang lagi di device itu. */
@@ -6115,26 +6199,28 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       .then(function (t) {
         var j = null; try { j = JSON.parse(t); } catch (e) {}
         if (j && typeof j.value === "string") { try { j = JSON.parse(j.value); } catch (e) {} }
-        cloud = (j && j.picks) || {}; cloudLog = (j && j.log) || [];
+        var picksMasuk = (j && j.picks) || {}, logMasuk = (j && j.log) || [];
         if (j && j.auth && j.auth.hash) AUTHCLOUD = j.auth.hash;
         if (j && j.hashes && typeof j.hashes === "object") AUTH_HASHES = j.hashes;  // 11 Okt — hash per-akun
-        /* 12 Okt — verifikasi tanda tangan pembaca (prioritas-2): payload
-           dgn sig yang tidak cocok = kemungkinan ditulis pihak luar →
-           tampilkan warnan chip sekali, jangan blok: kadang kunci pick
-           terakhir berubah sah lewat edit admin lain. */
-        if (j && j.sig) {
-          var keys2 = Object.keys(j.picks || {}).sort();
-          var akhir2 = keys2.length ? keys2[keys2.length - 1] : "-";
-          var hari2 = wibDate(new Date().toISOString());
-          var mat2 = "qkuk-tulisan|" + akhir2 + "|" + keys2.length + "|" + hari2 + "|" + (j.sigBy || "Qkuk");
-          sha256hex(mat2).then(function (h2) {
-            if (h2 !== j.sig) {
-              var ada = document.getElementById("qk-err");
-              if (ada) { ada.textContent = "\u26a0 picks cloud ditulis tanpa tanda tangan admin yang sah (" + (j.sigBy || "?") + ") — isi bisa jadi dari pihak luar."; ada.style.display = "block"; }
+        /* 14 Nov — FAIL-CLOSED: payload dengan tanda tangan yang TIDAK cocok
+           tidak lagi cuma diberi peringatan; isinya DIBUANG dan pick repo
+           dipakai. Payload tanpa tanda tangan (format lama) tetap diterima
+           agar data lama tidak hilang. Ini bukan gembok kriptografis —
+           kunci tanda tangan masih publik — tapi mencegah tulisan asing
+           yang tidak mengikuti skema langsung tampil sebagai pick admin. */
+        sigSah(j).then(function (sah) {
+          if (sah === false) {
+            cloud = {}; cloudLog = [];
+            var ada = document.getElementById("qk-err");
+            if (ada) {
+              ada.textContent = "\u26a0 picks cloud DITOLAK: tanda tangan tidak cocok (" + (j.sigBy || "?") + "). Yang ditampilkan hanya pick resmi dari repo.";
+              ada.style.display = "block";
             }
-          });
-        }
-        tick();
+          } else {
+            cloud = picksMasuk; cloudLog = logMasuk;
+          }
+          tick();
+        }).catch(function () { cloud = {}; cloudLog = []; tick(); });
       })
       .catch(function () { tick(); });
   }
@@ -6186,11 +6272,41 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      asing (limit textdb), TAPI browser pembaca bisa MENGALERT isi yang
      tanda tangannya tak cocok (dipaksa ditulis dari luar) — tamu tak
      teralert bila sudah terbiasa. Ini pengaman ringan, bukan gembok. */
+  /* 14 Nov — tanda tangan v2: isi picks+log, BUKAN tanggal. Tanda tangan lama
+     memakai tanggal WIB sehingga otomatis "tidak cocok" sehari kemudian —
+     verifikasi jadi tidak berguna. v2 stabil lintas hari; payload lama tetap
+     diperiksa dengan mencari tanggal tulisnya (0..400 hari ke belakang). */
+  function stableStr(o) {
+    if (o === null || typeof o !== "object") return JSON.stringify(o);
+    if (Array.isArray(o)) return "[" + o.map(stableStr).join(",") + "]";
+    return "{" + Object.keys(o).sort().map(function (k) {
+      return JSON.stringify(k) + ":" + stableStr(o[k]);
+    }).join(",") + "}";
+  }
+  function sigMateri(picks, log, by) {
+    return sha256hex("qkuk-tulisan2|" + by + "|" + stableStr(picks || {}) + "|" + stableStr(log || []));
+  }
   function sigAdmin() {
-    var keys = Object.keys(PICKS).sort(), akhir = keys.length ? keys[keys.length-1] : "-";
-    var hari = wibDate(new Date().toISOString());
-    var mat = "qkuk-tulisan|" + akhir + "|" + keys.length + "|" + hari + "|" + meAdmin();
-    return sha256hex(mat);
+    return sigMateri(PICKS, PLOG, meAdmin()).then(function (h) { return "v2:" + h; });
+  }
+  function sigSah(j) {
+    if (!j || !j.sig) return Promise.resolve(null);       // belum ditandatangani
+    var sig = String(j.sig), by = j.sigBy || "Qkuk";
+    if (sig.indexOf("v2:") === 0) {
+      return sigMateri(j.picks || {}, j.log || [], by)
+        .then(function (h) { return samaHex("v2:" + h, sig); });
+    }
+    var keys = Object.keys(j.picks || {}).sort();
+    var akhir = keys.length ? keys[keys.length - 1] : "-";
+    var hari = [];
+    for (var i = 0; i < 400; i++)
+      hari.push(wibDate(new Date(Date.now() - i * 864e5).toISOString()));
+    return Promise.all(hari.map(function (d) {
+      return sha256hex("qkuk-tulisan|" + akhir + "|" + keys.length + "|" + d + "|" + by);
+    })).then(function (hs) {
+      for (var k = 0; k < hs.length; k++) if (samaHex(hs[k], sig)) return true;
+      return false;
+    });
   }
   function cloudWrite() {
     cairicitGambar();
@@ -6540,30 +6656,25 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     admShow(box);
     function tryLogin() {
       var u = (uIn.value || "").trim(), p = pIn.value || "";
-      sha256hex(u + ":" + p)
-        .then(function (h) {
+      cekAkun(u, p)
+        .then(function (akun) {
           /* 11 Okt — dua admin. Pencocokan username tak peduli besar-kecil;
              identitas (Qkuk/Gerry) dikunci di sessionStorage untuk penandaan. */
-          var hit = null;
-          Object.keys(ADMINS).forEach(function (k) {
-            if (!hit && k.toLowerCase() === u.toLowerCase() && h === $hashOke(k)) hit = ADMINS[k].who;
-          });
-          if (hit) {
-            SS.set("qkuk_admin_ok", "1");
-            SS.set("qkuk_admin_who", hit);
-            /* 23 Sep — pegas penyelamat: hasilkan ulang picks.json repo dari
-               cloud (sumber sebenarnya) setiap admin login. Tanpa ini,
-               pengunjung yang jaringannya memblokir textdb.dev jatuh ke
-               picks.json yang basi/kosong dan winrate live tampak hilang.
-               GUARD: hanya bila PICKS tidak kosong — bila jaringan memblokir
-               cloud DAN repo kosong, menulis berarti menghapus data; jangan. */
+          if (!akun) { st.textContent = "username / password salah"; return; }
+          var hit = ADMINS[akun].who;
+          SS.set("qkuk_admin_ok", "1");
+          SS.set("qkuk_admin_who", hit);
+          st.textContent = "selamat datang, " + hit + " ✓";
+          setTimeout(function () { admClose(); reapply(); }, 450);
+          /* 23 Sep — pegas penyelamat: hasilkan ulang picks.json repo dari
+             cloud (sumber sebenarnya) setiap admin login. Sekarang sekaligus
+             menyimpan hash PBKDF2 bila akun masih memakai hash lama. */
+          naikkanHash(akun, p).then(function () {
             if (Object.keys(PICKS).length) {
               cloudWrite().then(function () { try { console.info("picks.json disinkronkan dari cloud ✓"); } catch (e) {} })
                           .catch(function () {});
             }
-            st.textContent = "selamat datang, " + hit + " ✓";
-            setTimeout(function () { admClose(); reapply(); }, 450);
-          } else st.textContent = "username / password salah";
+          }).catch(function () {});
         })
         .catch(function () { st.textContent = "gagal memverifikasi login"; });
     }
@@ -6575,7 +6686,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var box = el("div");
     box.appendChild(admHead("Ganti password admin (" + meAdmin() + ")"));
     box.appendChild(el("div", "adm-desc",
-      "Password baru disimpan sebagai hash SHA-256 di cloud — berlaku untuk semua perangkat, tanpa edit kode. Minimal 6 karakter. Yang diganti = password " + meAdmin() + " saja; akun admin lain tidak terpengaruh."));
+      "Password baru disimpan sebagai hash PBKDF2-SHA256 (600.000 iterasi + salt acak) di cloud — berlaku untuk semua perangkat, tanpa edit kode. Minimal 6 karakter. Yang diganti = password " + meAdmin() + " saja; akun admin lain tidak terpengaruh."));
     var oIn = el("input", "adm-in"); oIn.type = "password"; oIn.placeholder = "password lama";
     var nIn = el("input", "adm-in"); nIn.type = "password"; nIn.placeholder = "password baru";
     var rIn = el("input", "adm-in"); rIn.type = "password"; rIn.placeholder = "ulangi password baru";
@@ -6599,10 +6710,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (n.length < 6) { st.textContent = "password baru minimal 6 karakter"; return; }
       if (n !== r2) { st.textContent = "ulangan password baru tidak sama"; return; }
       st.textContent = "memverifikasi…";
-      sha256hex(acct + ":" + o)
-        .then(function (h) {
-          if (h !== baseHash) { st.textContent = "password lama salah"; return; }
-          return sha256hex(acct + ":" + n);
+      cekPassword(acct, o, baseHash)
+        .then(function (ok) {
+          if (!ok) { st.textContent = "password lama salah"; return; }
+          return hashPassword(acct, n);
         })
         .then(function (h2) {
           if (!h2) return;
@@ -7679,25 +7790,29 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     function tryGate() {
       var u = (uIn.value || "").trim(), p = pIn.value || "";
       if (!u || !p) { err.textContent = "isi username dan password"; return; }
-      sha256hex(u + ":" + p).then(function (h) {
+      cekAkun(u, p).then(function (akun) {
         /* 11 Okt — dua admin: Qkuk (admin) & Gerry (Admin2). Identitas
            dikunci saat login supaya pick, bubbles & live score tahu
            TANGAN SIAPA. */
-        var hit = null;
-        Object.keys(ADMINS).forEach(function (k) {
-          if (!hit && k.toLowerCase() === u.toLowerCase() && h === $hashOke(k)) hit = ADMINS[k].who;
-        });
-        if (hit) {                                       // admin
+        if (akun) {                                      // admin
+          var hit = ADMINS[akun].who;
           SS.set("qkuk_admin_ok", "1");
           SS.set("qkuk_admin_who", hit);
           finish();
-        } else if (u === USER_AUTH.user && h === USER_AUTH.hash) {   // user biasa
-          SS.set("qkuk_user_ok", "1");
-          finish();
-        } else {
-          err.textContent = "username / password salah";
-          gate.classList.remove("shake"); void gate.offsetWidth; gate.classList.add("shake");
+          naikkanHash(akun, p).then(function () {
+            if (Object.keys(PICKS).length) cloudWrite().catch(function () {});
+          }).catch(function () {});
+          return;
         }
+        return cekPassword(USER_AUTH.user, p, USER_AUTH.hash).then(function (ok) {
+          if (ok) {                                      // user biasa
+            SS.set("qkuk_user_ok", "1");
+            finish();
+          } else {
+            err.textContent = "username / password salah";
+            gate.classList.remove("shake"); void gate.offsetWidth; gate.classList.add("shake");
+          }
+        });
       }).catch(function () { err.textContent = "gagal memverifikasi login"; });
     }
     btn.addEventListener("click", tryGate);
