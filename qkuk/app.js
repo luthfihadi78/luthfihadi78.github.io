@@ -3106,8 +3106,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
                 var bl = (d.bull || [])[0], br = (d.bear || [])[0];
                 if (bl || br) {
                   var kap = el("div", "cap");
-                  if (bl) { var sb = el("span", "pos", "▲ " + String(bl).slice(0, 70)); sb.title = bl; kap.appendChild(sb); }
-                  if (br) { var sr = el("span", "neg", (bl ? "  " : "") + "▼ " + String(br).slice(0, 70)); sr.title = br; kap.appendChild(sr); }
+                  if (bl) { var sb = el("span", "v pos", "▲ " + String(bl).slice(0, 70)); sb.title = bl; kap.appendChild(sb); }
+                  if (br) { var sr = el("span", "v neg", (bl ? "  " : "") + "▼ " + String(br).slice(0, 70)); sr.title = br; kap.appendChild(sr); }
                   td.appendChild(kap);
                 }
                 return td;
