@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261114g";
+  var BUILD = "qkuk-bot-20261114h";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -2357,6 +2357,34 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       });
       cH.appendChild(el("p", "def-note mut", "Dihitung sekali sehari dari journal \u2014 tanpa LLM."));
     }
+
+    /* 14 Nov — BERITA & ACARA MAKRO: hanya ditampilkan bila ada acara
+       high-impact dekat atau berita kilat yang cukup kuat. Selain itu gate
+       tidak mempengaruhi entry sama sekali. */
+    var BR = P.berita || {};
+    var cB = card("Berita & acara makro",
+      BR.on === false ? "nonaktif" : (BR.acara ? "acara dekat" : "pantau"));
+    var lnB = function (l, v, cls) {
+      var row = el("div", "def-line");
+      row.appendChild(el("span", null, l));
+      row.appendChild(el("b", "n " + (cls || ""), v));
+      cB.appendChild(row);
+    };
+    if (BR.acara) {
+      var mA = num(BR.acara.menit);
+      lnB("acara high-impact", BR.acara.judul || "\u2014", "warn");
+      lnB("waktu", mA == null ? "\u2014" :
+        (mA >= 0 ? "dalam " + mA.toFixed(0) + " mnt" : "lewat " + Math.abs(mA).toFixed(0) + " mnt"),
+        "warn");
+    }
+    if (BR.berita) {
+      lnB("berita teratas", BR.berita.arah + " \u00b7 skor " + BR.berita.skor,
+        BR.berita.arah === "negatif" ? "neg" : "pos");
+      cB.appendChild(el("p", "def-note", String(BR.berita.judul || "").slice(0, 200)));
+    } else {
+      cB.appendChild(el("p", "def-note mut", "tidak ada berita kuat / acara dekat \u2014 gate berita tidak aktif."));
+    }
+    if (BR.catatan) cB.appendChild(el("p", "def-note mut", String(BR.catatan).slice(0, 160)));
   }
 
   /* 14 Nov (permintaan user) — LAPORAN MINGGUAN: cut lama vs aturan tahan baru.
