@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261114h";
+  var BUILD = "qkuk-bot-20261114i";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -3037,6 +3037,125 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           { h: "totR", n: true, c: function (r) { return txt((r.r > 0 ? "+" : "") + r.r.toFixed(2), "n " + (r.r < 0 ? "neg" : "pos")); } },
           { h: "EV", n: true, c: function (r) { return txt(r.ev == null ? null : (r.ev > 0 ? "+" : "") + r.ev.toFixed(3), "n " + (r.ev < 0 ? "neg" : "pos")); } }
         ], agKeys.map(function (k) { return AG[k]; }), "—");
+      }
+    }
+
+    /* 14 Nov (permintaan user) — LOG AGENT: panel bayangan 5 analis + cara
+       berpikir agent. Tujuannya audit, bukan promosi: setiap kandidat
+       memperlihatkan suara tiap analis, debat bull/bear, putusan LLM, dan apa
+       yang benar-benar dilakukan bot. Angka dari state/agent_panel.json. */
+    var wrapPn = $("#bot-panel");
+    if (wrapPn) {
+      wrapPn.innerHTML = "";
+      var PNJ = B.panel || {};
+      var SIK = (PNJ.siklus || [])[0];
+      var hPn = el("div", "bot-eq-h");
+      hPn.appendChild(el("span", null, "panel bayangan · 5 analis (0 token) — setuju/tolak di samping keputusan nyata"));
+      hPn.appendChild(el("b", "n mut", SIK ? (SIK.n + " kandidat · " + String(SIK.ts || "").replace("T", " ").slice(0, 16)) : "belum ada siklus"));
+      wrapPn.appendChild(hPn);
+      if (!SIK) {
+        wrapPn.appendChild(el("div", "empty", "Panel belum mencatat siklus. Akan terisi pada siklus watch berikutnya yang punya kandidat."));
+      } else {
+        var kapPn = el("div", "cap");
+        kapPn.appendChild(el("span", null,
+          "T teknis · µ microstructure · R regime · M memori · F fade — hijau searah sinyal, merah melawan, abu netral. "
+          + "Agent = putusan LLM; Nyata = yang benar-benar dilakukan bot. "
+          + (SIK.sumber ? "Sumber LLM: " + SIK.sumber + ". " : "")
+          + (SIK.catatan ? "Catatan: " + SIK.catatan : "")));
+        wrapPn.appendChild(kapPn);
+        if (SIK.pelajaran) {
+          var pelPn = el("div", "cap");
+          pelPn.appendChild(el("span", null, "pelajaran agent: " + SIK.pelajaran));
+          wrapPn.appendChild(pelPn);
+        }
+        var rowsPn = (SIK.kandidat || []).map(function (r) { return r; });
+        if (rowsPn.length) {
+          var boxPn = el("div", "tw");
+          wrapPn.appendChild(boxPn);
+          table(boxPn, [
+            { h: "kandidat", c: function (r) {
+                var td = el("td");
+                td.appendChild(el("b", null, r.sym || "—"));
+                td.appendChild(el("span", "mut", " " + (r.kanal || "") + " · " + (r.dir || "") + " · skor " + (r.skor == null ? "—" : r.skor)));
+                return td;
+              } },
+            { h: "5 analis", c: function (r) {
+                var td = el("td");
+                var singkat = { technical: "T", microstructure: "µ", regime: "R", memory: "M", fade: "F" };
+                var klaim = (r.panel && r.panel.klaim) || [];
+                klaim.forEach(function (c) {
+                  var cls = "mut";
+                  if (c.dukung && c.dukung === r.dir) cls = "pos";
+                  else if (c.dukung && c.dukung !== r.dir) cls = "neg";
+                  var ch = el("span", "bc-chip " + cls, (singkat[c.analis] || "?") + (c.dukung ? " " + (c.dukung === r.dir ? "✓" : "✗") : " ·"));
+                  ch.style.marginRight = "3px";
+                  ch.title = (c.analis || "") + " · keyakinan " + (c.yakin == null ? "—" : c.yakin) + " · " + (c.ringkas || "");
+                  td.appendChild(ch);
+                });
+                if (!klaim.length) td.appendChild(el("span", "mut", "tak tersedia"));
+                return td;
+              } },
+            { h: "debat", n: true, c: function (r) {
+                var d = (r.panel && r.panel.debat) || {};
+                var td = el("td");
+                td.appendChild(el("span", "n", d.keyakinan == null ? "—" : d.keyakinan));
+                var s = (r.panel && r.panel.suara) || {};
+                var bc = el("span", "mut", " " + (s.setuju || 0) + "✓/" + (s.tolak || 0) + "✗");
+                bc.title = (d.bull || []).join(" | ") + ((d.bear || []).length ? " || lawan: " + (d.bear || []).join(" | ") : "");
+                td.appendChild(bc);
+                return td;
+              } },
+            { h: "agent", c: function (r) {
+                var a = r.llm || {};
+                var td = el("td");
+                if (!a.aksi) { td.appendChild(el("span", "mut", "—")); return td; }
+                td.appendChild(el("span", "bc-chip " + (a.aksi === "setuju" ? "pos" : a.aksi === "tolak" ? "neg" : "mut"), a.aksi + (a.keyakinan != null ? " " + a.keyakinan : "")));
+                if (a.alasan) { var sp = el("span", "mut", " " + a.alasan.slice(0, 70)); sp.title = a.alasan; td.appendChild(sp); }
+                return td;
+              } },
+            { h: "nyata", c: function (r) {
+                var n = r.nyata || {};
+                var td = el("td");
+                var cls = n.aksi === "eksekusi" ? "pos" : (n.aksi === "ditolak" || n.aksi === "diblokir risiko") ? "neg" : "mut";
+                var sp = el("span", "bc-chip " + cls, n.aksi || "—");
+                if (n.alasan) sp.title = n.alasan;
+                td.appendChild(sp);
+                return td;
+              } }
+          ], rowsPn, "—");
+        } else {
+          wrapPn.appendChild(el("div", "empty", "siklus terakhir tidak punya kandidat"));
+        }
+      }
+    }
+
+    /* 14 Nov — penalaran Manajer Posisi (LLM) untuk posisi terbuka: tahan /
+       tutup / geser SL, beserta alasannya. Dari state/agent_pos.json. */
+    var wrapAp = $("#bot-agent-pos");
+    if (wrapAp) {
+      wrapAp.innerHTML = "";
+      var APJ = B.agent_pos || {};
+      var APS = (APJ.siklus || [])[0];
+      var hAp = el("div", "bot-eq-h");
+      hAp.appendChild(el("span", null, "manajer posisi · penalaran tahan / tutup / geser SL"));
+      hAp.appendChild(el("b", "n mut", APS ? (APS.n + " posisi dinilai · " + String(APS.ts || "").replace("T", " ").slice(0, 16)) : "belum ada"));
+      wrapAp.appendChild(hAp);
+      if (!APS) {
+        wrapAp.appendChild(el("div", "empty", "Belum ada siklus penilaian posisi."));
+      } else {
+        if (APS.catatan) { var capAp = el("div", "cap"); capAp.appendChild(el("span", null, "catatan: " + APS.catatan)); wrapAp.appendChild(capAp); }
+        if ((APS.putusan || []).length) {
+          var boxAp = el("div", "tw");
+          wrapAp.appendChild(boxAp);
+          table(boxAp, [
+            { h: "posisi", c: function (r) { return txt((r.sym || "—") + " · " + (r.kanal || "") + " · " + (r.dir || "")); } },
+            { h: "aksi", c: function (r) { return pill(r.aksi || "—", r.aksi === "tutup" ? "neg" : r.aksi === "tahan" ? "pos" : "mut"); } },
+            { h: "yakin", n: true, c: function (r) { return txt(r.keyakinan, "n"); } },
+            { h: "alasan", c: function (r) { var td = txt(r.alasan || "—"); td.title = r.alasan || ""; return td; } }
+          ], APS.putusan, "—");
+        } else {
+          wrapAp.appendChild(el("div", "empty", "Agent tidak mengubah posisi pada siklus ini."));
+        }
       }
     }
 
