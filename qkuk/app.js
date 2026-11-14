@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261114i";
+  var BUILD = "qkuk-bot-20261114j";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -3044,6 +3044,38 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        berpikir agent. Tujuannya audit, bukan promosi: setiap kandidat
        memperlihatkan suara tiap analis, debat bull/bear, putusan LLM, dan apa
        yang benar-benar dilakukan bot. Angka dari state/agent_panel.json. */
+    /* 14 Nov — PENJAGA SITUS: apakah data yang tampil benar-benar versi live
+       terbaru? Status dari state/penjaga_situs.json (daemon terpisah, tetap
+       jalan walau bot trading berhenti). */
+    var wrapSt = $("#bot-situs");
+    if (wrapSt) {
+      wrapSt.innerHTML = "";
+      var ST = B.situs || {};
+      if (!ST.cek_terakhir) {
+        var hSt0 = el("div", "bot-eq-h");
+        hSt0.appendChild(el("span", null, "penjaga situs"));
+        hSt0.appendChild(el("b", "n mut", "belum pernah jalan"));
+        wrapSt.appendChild(hSt0);
+      } else {
+        var hSt = el("div", "bot-eq-h");
+        hSt.appendChild(el("span", null, "penjaga situs · data live vs data terbit"));
+        var cocok = !!ST.live_cocok;
+        var umur = num(ST.umur_terbit_menit);
+        var basi = umur != null && umur > 30;
+        var clsSt = cocok ? (basi ? "mut" : "pos") : (ST.deploy_tertunda ? "mut" : "neg");
+        var isiSt = cocok ? (basi ? "cocok · terbit " + umur + " mnt lalu" : "cocok · terbit " + (umur == null ? "—" : umur) + " mnt lalu")
+                         : (ST.deploy_tertunda ? "deploy GitHub tertunda" : "BEDA — live " + (ST.live_dibuat || "?") + " / terbit " + (ST.lokal_dibuat || "?"));
+        hSt.appendChild(el("b", "n " + clsSt, isiSt));
+        wrapSt.appendChild(hSt);
+        var capSt = el("div", "cap");
+        capSt.appendChild(el("span", null,
+          "cek terakhir " + String(ST.cek_terakhir || "").replace("T", " ").slice(0, 16)
+          + " · aksi " + (ST.aksi || "—")
+          + (ST.beda ? " · " + ST.beda : "")));
+        wrapSt.appendChild(capSt);
+      }
+    }
+
     var wrapPn = $("#bot-panel");
     if (wrapPn) {
       wrapPn.innerHTML = "";
