@@ -3084,6 +3084,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var hPn = el("div", "bot-eq-h");
       hPn.appendChild(el("span", null, "panel bayangan · 5 analis (0 token) — setuju/tolak di samping keputusan nyata"));
       hPn.appendChild(el("b", "n mut", SIK ? (SIK.n + " kandidat · " + String(SIK.ts || "").replace("T", " ").slice(0, 16)) : "belum ada siklus"));
+      var lnkPn = el("a", "mut", "riwayat debat →");
+      lnkPn.href = "panel.html";
+      lnkPn.style.marginLeft = "10px";
+      hPn.appendChild(lnkPn);
       wrapPn.appendChild(hPn);
       if (!SIK) {
         wrapPn.appendChild(el("div", "empty", "Panel belum mencatat siklus. Akan terisi pada siklus watch berikutnya yang punya kandidat."));
@@ -3095,6 +3099,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           + (SIK.sumber ? "Sumber LLM: " + SIK.sumber + ". " : "")
           + (SIK.catatan ? "Catatan: " + SIK.catatan : "")));
         wrapPn.appendChild(kapPn);
+        var NV = B.panel_nilai || {};
+        if (NV.vonis) {
+          var nv = el("div", "cap");
+          var clsNv = NV.cukup ? (NV.r_dihindari <= -0.5 ? "pos" : NV.r_dihindari >= 0.5 ? "neg" : "mut") : "mut";
+          nv.appendChild(el("span", "v " + clsNv, "nilai veto: " + NV.vonis
+            + (NV.n_tereksekusi != null ? " (" + NV.n_tereksekusi + " trade cocok)" : "")));
+          wrapPn.appendChild(nv);
+        }
         if (SIK.pelajaran) {
           var pelPn = el("div", "cap");
           pelPn.appendChild(el("span", null, "pelajaran agent: " + SIK.pelajaran));

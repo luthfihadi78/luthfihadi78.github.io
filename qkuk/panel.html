@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>QKUK — Riwayat Debat Panel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noarchive">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0A0F0D">
+<style>
+:root{--bg:#0A0F0D;--s0:#0D1411;--fg:#E8E3D5;--fg2:#8FA098;--up:#6EE7B7;--dn:#ff7a6e;
+--warn:#f5c26b;--line:#1c2a24;--mono:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--mono);font-size:13px;padding:18px 16px 40px}
+.wrap{max-width:1380px;margin:0 auto}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+h1{font-size:15px;font-weight:600;letter-spacing:.04em;margin:0;color:var(--up)}
+a.back{color:var(--fg2);font-size:11.5px;text-decoration:none;border-bottom:1px dotted var(--line);padding-bottom:1px}
+a.back:hover{color:var(--up)}
+.sub{color:var(--fg2);font-size:11px;margin:6px 0 16px;line-height:1.6}
+.kartu{background:var(--s0);border:1px solid var(--line);border-radius:9px;padding:14px 16px;margin-bottom:14px}
+.filt{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.f{display:flex;flex-direction:column;gap:4px}
+.f label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg2)}
+select,button,input{font-family:var(--mono);font-size:12px;background:#111c17;color:var(--fg);
+border:1px solid var(--line);border-radius:6px;padding:7px 10px;min-width:150px}
+input{min-width:180px}
+select:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--up);outline-offset:1px}
+button{cursor:pointer;min-width:0}
+button:hover{border-color:var(--up);color:var(--up)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.chip{display:flex;gap:6px;align-items:baseline;background:#111c17;border:1px solid var(--line);
+border-radius:20px;padding:4px 11px;font-size:11px;color:var(--fg2)}
+.chip b{color:var(--fg);font-weight:600;font-size:11.5px}
+.chip.pos b{color:var(--up)}.chip.neg b{color:var(--dn)}.chip.warn b{color:var(--warn)}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:11.5px;white-space:nowrap}
+th{text-align:left;font-weight:500;color:var(--fg2);font-size:10px;letter-spacing:.07em;
+text-transform:uppercase;padding:0 9px 7px;border-bottom:1px solid var(--line)}
+td{padding:7px 9px;border-bottom:1px solid rgba(28,42,36,.55);vertical-align:top}
+tbody tr:hover{background:#101a15}
+.n{text-align:right;font-variant-numeric:tabular-nums}
+.pos{color:var(--up)}.neg{color:var(--dn)}.warn{color:var(--warn)}.dim{color:var(--fg2)}
+.pill{display:inline-block;padding:1px 7px;border-radius:9px;font-size:10px;letter-spacing:.04em;
+border:1px solid currentColor;margin-right:3px}
+.kosong{padding:26px 8px;text-align:center;color:var(--fg2);font-size:12px}
+.cap{color:var(--fg2);font-size:10.5px;line-height:1.6;margin:0}
+.alasan{white-space:normal;max-width:280px;color:var(--fg2);font-size:11px;line-height:1.45}
+@media(max-width:560px){body{padding:14px 10px 30px}select,input{min-width:0;flex:1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>Riwayat Debat Panel</h1>
+    <a class="back" href="./">← kembali ke terminal</a>
+  </div>
+  <p class="sub">Log panel bayangan 5 analis: suara tiap analis, debat bull/bear, putusan agent LLM,
+  dan aksi nyata bot — terbaru di atas. Panel tidak punya hak veto; halaman ini untuk menilai
+  apakah mereka layak diberi veto.</p>
+
+  <div class="kartu">
+    <div class="chips" id="sum"><span class="chip">memuat…</span></div>
+    <p class="cap" id="vonis" style="margin-top:12px"></p>
+  </div>
+
+  <div class="kartu">
+    <div class="filt">
+      <div class="f"><label for="f-vonis">Vonis panel</label>
+        <select id="f-vonis">
+          <option value="">semua vonis</option>
+          <option value="lawan">lawan sinyal</option>
+          <option value="dukung">dukung sinyal</option>
+          <option value="netral">netral</option>
+        </select></div>
+      <div class="f"><label for="f-engine">Engine</label>
+        <select id="f-engine"><option value="">semua engine</option></select></div>
+      <div class="f"><label for="f-sym">Cari pair</label>
+        <input id="f-sym" placeholder="mis. BTC" spellcheck="false"></div>
+      <div class="f"><label>&nbsp;</label><button id="f-reset" type="button">reset</button></div>
+    </div>
+  </div>
+
+  <div class="kartu">
+    <div class="tw" id="tbl"><div class="kosong">memuat data…</div></div>
+  </div>
+</div>
+<script src="panel.js"></script>
+</body>
+</html>
