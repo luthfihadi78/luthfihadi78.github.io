@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261114d";
+  var BUILD = "qkuk-bot-20261114e";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -2347,6 +2347,74 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     cT.appendChild(el("p", "def-note", "Replay aturan yang sama di sesi historis, bukan hanya Monte Carlo. Sesi < 20 ditandai belum cukup."));
   }
 
+  /* 14 Nov (permintaan user) — LAPORAN MINGGUAN: cut lama vs aturan tahan baru.
+     Sumber: state/laporan_tahan.json (ditulis `run.py laporan-tahan`, dijadwalkan
+     tiap Senin oleh publisher loop). Semua angka dari journal, bukan tafsiran. */
+  function botLaporanTahan(LT) {
+    var host = $("#bot-laporan-tahan");
+    if (!host) return;
+    host.innerHTML = "";
+    if (!LT || !LT.n_tutup) return;
+    var h = el("div", "bot-eq-h");
+    h.appendChild(el("span", null, "laporan tahan vs cut \u00b7 mingguan"));
+    var tgl = String(LT.dibuat || "").slice(0, 10);
+    h.appendChild(el("b", null, LT.n_tutup + " trade tertutup" + (tgl ? " \u00b7 " + tgl : "")));
+    host.appendChild(h);
+
+    var CU = LT.cut || {}, cs = el("div", "bc-sum");
+    var sg = function (v, d) {
+      var n = num(v);
+      if (n == null) return "\u2014";
+      return (n > 0 ? "+" : n < 0 ? "\u2212" : "") + Math.abs(n).toFixed(d == null ? 2 : d);
+    };
+    var chip = function (l, v, cls) {
+      var s = el("span", "bc-chip " + (cls || "mut"));
+      s.appendChild(el("b", null, l));
+      s.appendChild(el("span", null, v));
+      cs.appendChild(s);
+      return s;
+    };
+    chip("cut prematur", CU.n == null ? "\u2014" : CU.n + " trade");
+    chip("hasil aktual", sg(CU.r_aktual) + "R", (CU.r_aktual || 0) < 0 ? "neg" : "pos");
+    chip("kalau ditahan", sg(CU.r_tahan) + "R", (CU.r_tahan || 0) > 0 ? "pos" : "neg");
+    chip("selisih", sg(CU.selisih) + "R", (CU.selisih || 0) > 0 ? "pos" : "neg");
+    chip("target tetap kena", (CU.capai_tp == null ? "\u2014" : CU.capai_tp + "/" + (CU.sampel || 0)),
+      (CU.capai_tp || 0) > 0 ? "pos" : "mut");
+    chip("lanjut \u2265 +1R", (CU.lanjut_1r == null ? "\u2014" : CU.lanjut_1r + "/" + (CU.sampel || 0)),
+      (CU.lanjut_1r || 0) > 0 ? "pos" : "mut");
+    host.appendChild(cs);
+
+    var box = el("div", "tw");
+    host.appendChild(box);
+    table(box, [
+      { h: "cara keluar", c: function (r) { return txt(r.hasil, "st"); } },
+      { h: "n", n: true, c: function (r) { return txt(r.n, "n"); } },
+      { h: "WR", n: true, c: function (r) { return txt(r.wr == null ? null : r.wr + "%", "n dim"); } },
+      { h: "total R", n: true, c: function (r) {
+          var v = num(r.r);
+          return txt(v == null ? null : (v > 0 ? "+" : "") + v.toFixed(2),
+                     "n " + (v == null ? "" : v < 0 ? "neg" : "pos"));
+        } },
+      { h: "EV", n: true, c: function (r) {
+          var v = num(r.ev);
+          return txt(v == null ? null : (v > 0 ? "+" : "") + v.toFixed(3) + "R",
+                     "n " + (v == null ? "" : v < 0 ? "neg" : "pos"));
+        } }
+    ], LT.per_hasil || [], "Belum ada trade tertutup.");
+
+    var W = LT.waktu || {}, cap = el("p", "cap");
+    cap.textContent = "waktu: median ke +0,5R "
+      + (W.med_half == null ? "\u2014" : W.med_half + " mnt (n=" + (W.n_half || 0) + ")")
+      + " \u00b7 median ke TP " + (W.med_tp == null ? "\u2014" : W.med_tp + " mnt (n=" + (W.n_tp || 0) + ")")
+      + (W.n_tp ? " \u00b7 TP setelah 75 mnt " + (W.lewat_75 || 0) + "/" + W.n_tp : "");
+    host.appendChild(cap);
+    (LT.kesimpulan || []).forEach(function (s) {
+      var p = el("p", "cap");
+      p.textContent = "\u2192 " + s;
+      host.appendChild(p);
+    });
+  }
+
   function botCard() {
     var openHost = $("#bot-open"), accHost = $("#bot-acc"), sum = $("#bot-sum");
     if (!openHost) return;
@@ -2967,6 +3035,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
                       wr: s.wr, ev: s.ev, r: s.r, usd: s.usd, open: s.terbuka || 0 });
     });
     botPertahanan(B.pertahanan);
+    botLaporanTahan(B.laporan_tahan);
     if (accHost) table(accHost, [
       { h: "engine", c: function (r) { return txt(String(r.kanal).toUpperCase(), "st"); } },
       { h: "trade", n: true, c: function (r) { return txt(r.n, "n"); } },
