@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261114e";
+  var BUILD = "qkuk-bot-20261114f";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -2415,6 +2415,56 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     });
   }
 
+  /* 14 Nov (permintaan user) — SINYAL LONG REBOUND: mana yang dibuka, ditahan
+     menunggu momentum, atau ditolak, beserta alasan syarat rebound dari journal
+     (momentum alt, BTC tidak jatuh lagi). */
+  function botRebound(RS) {
+    var host = $("#bot-rebound");
+    if (!host) return;
+    host.innerHTML = "";
+    var rows = RS || [];
+    var h = el("div", "bot-eq-h");
+    h.appendChild(el("span", null, "sinyal long rebound \u00b7 dibuka / ditahan / ditolak"));
+    h.appendChild(el("b", null, rows.length ? rows.length + " sinyal terakhir" : "belum ada sinyal"));
+    host.appendChild(h);
+    if (!rows.length) {
+      host.appendChild(el("p", "cap",
+        "Belum ada long yang muncul saat regime defensif sejak aturan rebound aktif. "
+        + "Long rebound hanya dibuka bila momentum alt sudah naik & BTC tidak jatuh lagi."));
+      return;
+    }
+    var box = el("div", "tw");
+    host.appendChild(box);
+    table(box, [
+      { h: "waktu", c: function (r) { return txt(r.waktu || r.t, "dim"); } },
+      { h: "pair", c: function (r) { return txt(r.sym); } },
+      { h: "engine", c: function (r) { return txt(String(r.kanal || "").toUpperCase(), "st"); } },
+      { h: "status", c: function (r) {
+          var cls = r.status === "dibuka" ? "pos" : r.status === "ditahan" ? "warn" : "neg";
+          return pill(r.status || "\u2014", cls);
+        } },
+      { h: "momentum alt", n: true, c: function (r) {
+          if (r.skor == null) return txt("—", "dim");
+          return txt((r.skor > 0 ? "+" : "") + r.skor + (r.arah ? " " + r.arah : ""),
+                     "n " + (r.skor > 0 ? "pos" : r.skor < 0 ? "neg" : "dim"));
+        } },
+      { h: "sebab", c: function (r) {
+          var s = String(r.rebound_alasan || r.alasan || "\u2014");
+          var t = txt(s.length > 54 ? s.slice(0, 54) + "\u2026" : s, "dim");
+          t.title = (r.rebound_alasan ? "syarat rebound: " + r.rebound_alasan + "\n" : "")
+            + (r.alasan ? "putusan bot: " + r.alasan + "\n" : "")
+            + (r.regime ? "regime " + r.regime : "")
+            + (r.regime_skor == null ? "" : " (" + r.regime_skor + "/100)")
+            + (r.leverage == null ? "" : "\nleverage " + Math.round(r.leverage) + "x");
+          return t;
+        } }
+    ], rows, "Belum ada sinyal long rebound.");
+    host.appendChild(el("p", "cap",
+      "syarat long rebound: momentum alt \u2265 +" + "2 (15m & 1h di atas EMA9) "
+      + "dan BTC tidak jatuh lagi (1h > \u22120,4%, candle 15m tidak merah). "
+      + "Ukuran \u00d70,5, TP \u2264 0,8R. Selain itu sinyal tetap ditolak."));
+  }
+
   function botCard() {
     var openHost = $("#bot-open"), accHost = $("#bot-acc"), sum = $("#bot-sum");
     if (!openHost) return;
@@ -2616,6 +2666,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           if (u.r != null) ket += " · " + (+u.r).toFixed(2) + "R";
           n.title = ket;
           return n;
+        } },
+      /* 14 Nov — batas leverage per pair: leverage pakai, maks bursa, dan
+         jarak likuidasi vs jarak SL (kursor untuk rinciannya). */
+      { h: "lev", n: true, c: function (r) {
+          if (r.leverage == null) return txt("—", "dim");
+          var t = txt(Math.round(r.leverage) + "x", "n dim");
+          t.title = "leverage pakai " + Math.round(r.leverage) + "x"
+            + (r.lev_maks == null ? "" : " · maks pair " + Math.round(r.lev_maks) + "x")
+            + (r.liq_jarak_pct == null ? "" : "\nlikuidasi ≈ " + (+r.liq_jarak_pct).toFixed(2) + "% gerak harga")
+            + (r.sl_jarak_pct == null ? "" : "\njarak SL " + (+r.sl_jarak_pct).toFixed(2) + "% → SL kena lebih dulu");
+          return t;
         } },
       /* 12 Nov — status tegas tiap baris: masih OPEN. */
       { h: "status", c: function () { return pill("OPEN", "pos"); } }
@@ -3036,6 +3097,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     });
     botPertahanan(B.pertahanan);
     botLaporanTahan(B.laporan_tahan);
+    botRebound(B.rebound_sinyal);
     if (accHost) table(accHost, [
       { h: "engine", c: function (r) { return txt(String(r.kanal).toUpperCase(), "st"); } },
       { h: "trade", n: true, c: function (r) { return txt(r.n, "n"); } },
