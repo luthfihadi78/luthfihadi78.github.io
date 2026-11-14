@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261114n";
+  var BUILD = "qkuk-bot-20261114o";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -2438,6 +2438,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       (CU.capai_tp || 0) > 0 ? "pos" : "mut");
     chip("lanjut \u2265 +1R", (CU.lanjut_1r == null ? "\u2014" : CU.lanjut_1r + "/" + (CU.sampel || 0)),
       (CU.lanjut_1r || 0) > 0 ? "pos" : "mut");
+    /* 14 Nov — dampak aturan agent-close baru (≤ -0,8R + momentum ≥8).
+       Angka = kandidat cut yang dulu terjadi di atas ambang R; syarat
+       momentum belum tersimpan di record lama, jadi ini batas atas. */
+    var AB = LT.aturan_baru || {};
+    if (AB.n_dicegah != null) {
+      chip("aturan baru", "cut \u2264 " + (num(AB.min_r) == null ? "-0,8" : num(AB.min_r).toFixed(1)) + "R"
+        + " \u00b7 momen \u2265 " + (AB.skor_lawan == null ? "8" : AB.skor_lawan), "mut");
+      chip("cut dicegah", AB.n_dicegah + " trade", AB.n_dicegah > 0 ? "warn" : "mut");
+      chip("EV dicegah", sg(AB.selisih_dicegah) + "R",
+        (AB.selisih_dicegah || 0) > 0 ? "pos" : "neg");
+    }
     host.appendChild(cs);
 
     var box = el("div", "tw");
