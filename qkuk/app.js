@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261114m";
+  var BUILD = "qkuk-bot-20261114n";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -6310,7 +6310,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   function cloudWrite() {
     cairicitGambar();
-    return sigAdmin().then(function (sig) {
+    /* 14 Nov — tanda tangan dihitung dari payload GABUNGAN yang benar-benar
+       ditulis (picks2/plog2), bukan PICKS lokal. Kalau menandatangani PICKS
+       lokal saja, setiap save yang menggabungkan pick admin lain akan gagal
+       verifikasi saat dibaca (fail-closed → pick baru ikut ditolak). */
+    {
       /* 13 Okt — LINDUNGI DATA (akar masalah "kemarin ngisi malah ilang"):
          textdb.dev = satu slot last-write-wins — klien dgn salinan lama yang
          menyimpan menimpa SELURUH payload. Sekarang SEBELUM menulis: ambil
@@ -6344,16 +6348,18 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           });
           plog2.sort(function (a, b) { return String(b.t || "").localeCompare(String(a.t || "")); });
           var hashes2 = Object.assign({}, (lamas && lamas.hashes) || {}, AUTH_HASHES || {});
-          return fetch("https://textdb.dev/api/data/" + TXTDB_ID, {
-            method: "POST", headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify({ __id: TXTDB_ID, value: JSON.stringify({
-              picks: picks2, log: plog2,
-              auth: (AUTHCLOUD || AUTH_HASHES[AUTH.user]) ? { user: AUTH.user, hash: AUTHCLOUD || AUTH_HASHES[AUTH.user] } : (lamas && lamas.auth) || null,
-              hashes: Object.keys(hashes2).length ? hashes2 : null,
-              sig: sig, sigBy: meAdmin() }) })
-          }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); });
+          return sigMateri(picks2, plog2, meAdmin()).then(function (sig) {
+            return fetch("https://textdb.dev/api/data/" + TXTDB_ID, {
+              method: "POST", headers: { "Content-Type": "text/plain" },
+              body: JSON.stringify({ __id: TXTDB_ID, value: JSON.stringify({
+                picks: picks2, log: plog2,
+                auth: (AUTHCLOUD || AUTH_HASHES[AUTH.user]) ? { user: AUTH.user, hash: AUTHCLOUD || AUTH_HASHES[AUTH.user] } : (lamas && lamas.auth) || null,
+                hashes: Object.keys(hashes2).length ? hashes2 : null,
+                sig: "v2:" + sig, sigBy: meAdmin() }) })
+            }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); });
+          });
         });
-    });
+    }
   }
   function savePicks(st, done) {
     if (!isLogged()) { openAdmin(); return; }
