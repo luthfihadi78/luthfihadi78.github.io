@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261114f";
+  var BUILD = "qkuk-bot-20261114g";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -2345,6 +2345,18 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     line("avg R historis", TM.avg_hist_R == null ? "—" : (TM.avg_hist_R > 0 ? "+" : "") + TM.avg_hist_R,
       (TM.avg_hist_R || 0) >= 0 ? "pos" : "neg");
     cT.appendChild(el("p", "def-note", "Replay aturan yang sama di sesi historis, bukan hanya Monte Carlo. Sesi < 20 ditandai belum cukup."));
+
+    /* 14 Nov — LAPORAN HARIAN (coach deterministik): hasil hari ini, sinyal
+       yang ditahan retest, penolakan dinilai, dan saran. Ditulis sekali sehari
+       oleh watcher ke state/laporan_harian.json. */
+    var LH = P.laporan_harian || {};
+    if (LH.tanggal) {
+      var cH = card("Laporan harian coach", LH.tanggal);
+      String(LH.teks || "").split("\n").slice(1).forEach(function (t) {
+        if (t) cH.appendChild(el("p", "def-note", t));
+      });
+      cH.appendChild(el("p", "def-note mut", "Dihitung sekali sehari dari journal \u2014 tanpa LLM."));
+    }
   }
 
   /* 14 Nov (permintaan user) — LAPORAN MINGGUAN: cut lama vs aturan tahan baru.
