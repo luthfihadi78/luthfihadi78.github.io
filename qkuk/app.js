@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261114o";
+  var BUILD = "qkuk-bot-20261115a";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -3109,7 +3109,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var PNJ = B.panel || {};
       var SIK = (PNJ.siklus || [])[0];
       var hPn = el("div", "bot-eq-h");
-      hPn.appendChild(el("span", null, "panel bayangan · 5 analis (0 token) — setuju/tolak di samping keputusan nyata"));
+      hPn.appendChild(el("span", null, "panel analis · 5 suara deterministik (0 token) — trader LLM memutuskan, BTC monitor memberi konteks"));
       hPn.appendChild(el("b", "n mut", SIK ? (SIK.n + " kandidat · " + String(SIK.ts || "").replace("T", " ").slice(0, 16)) : "belum ada siklus"));
       var lnkPn = el("a", "mut", "riwayat debat →");
       lnkPn.href = "panel.html";
@@ -3332,6 +3332,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       barisAcc.push({ kanal: k, n: s.n || 0, m: s.m || 0, l: s.l || 0,
                       wr: s.wr, ev: s.ev, r: s.r, usd: s.usd, open: s.terbuka || 0 });
     });
+    agentFeed(B);
     botPertahanan(B.pertahanan);
     botLaporanTahan(B.laporan_tahan);
     botRebound(B.rebound_sinyal);
@@ -3346,6 +3347,97 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       { h: "total $", n: true, c: function (r) { return usd(r.usd); } },
       { h: "terbuka", n: true, c: function (r) { return txt(r.open, "n dim"); } }
     ], barisAcc, "Belum ada trade bot yang tertutup — akurasi muncul setelah TP/SL pertama.");
+  }
+
+  /* 15 Nov (permintaan user) — jumlah agent + log komunikasi terstruktur.
+     Sumber: bot.agent_roles + bot.panel.siklus + bot.btc_agent. Ini BUKAN
+     chat bebas: tiap baris adalah Claim/debat/putusan yang benar-benar
+     dipakai harness, jadi bisa diaudit tanpa menebak. */
+  function agentFeed(B) {
+    var host = $("#bot-agents");
+    if (!host) return;
+    host.innerHTML = "";
+    var roles = B.agent_roles || [];
+    var panel = B.panel || {};
+    var cycles = panel.siklus || [];
+    var latest = cycles[0] || {};
+    var btc = B.btc_agent || {};
+    var aktif = {};
+    (latest.kandidat || []).forEach(function (k) {
+      ((k.panel || {}).klaim || []).forEach(function (c) { if (c.analis) aktif[c.analis] = 1; });
+      if ((k.llm || {}).aksi) aktif.trader = 1;
+    });
+    if (btc.ringkas || btc.arah) aktif.btc_agent = 1;
+    var nAktif = Object.keys(aktif).length;
+    var h = el("div", "bot-eq-h");
+    h.appendChild(el("span", null, "agent · " + (roles.length || 7) + " peran · 5 analis + trader + pemantau BTC"));
+    h.appendChild(el("b", "n mut", nAktif ? (nAktif + " aktif · siklus " + String(latest.ts || "").replace("T", " ").slice(5, 16)) : "belum ada siklus"));
+    var lnk = el("a", "mut", "riwayat lengkap →");
+    lnk.href = "panel.html";
+    lnk.style.marginLeft = "10px";
+    h.appendChild(lnk);
+    host.appendChild(h);
+    var ket = el("div", "cap");
+    ket.appendChild(el("span", null, "Log komunikasi terstruktur: klaim analis → debat bull/bear → putusan trader → aksi nyata. "
+      + "Bukan chat bebas; setiap baris berasal dari state/agent_panel.json."));
+    host.appendChild(ket);
+    if (roles.length) {
+      var chips = el("div", "bc-sum");
+      roles.forEach(function (r) {
+        var on = !!aktif[r.id];
+        var c = el("span", "bc-chip " + (on ? "pos" : "mut"), (r.nama || r.id) + (on ? " ✓" : " ·"));
+        c.title = (r.jenis || "agent") + " — " + (r.ringkas || "");
+        chips.appendChild(c);
+      });
+      host.appendChild(chips);
+    }
+    var rows = [];
+    cycles.slice(0, 4).forEach(function (sik) {
+      (sik.kandidat || []).forEach(function (k) {
+        var pn = k.panel || {};
+        (pn.klaim || []).forEach(function (c) {
+          rows.push({ t: sik.ts, dari: c.analis || "analis", sym: k.sym, kanal: k.kanal,
+            arah: c.dukung || c.arah || "netral", yakin: c.yakin,
+            pesan: c.ringkas || "(tanpa ringkasan)" });
+        });
+        ((pn.debat || {}).bull || []).forEach(function (m) {
+          rows.push({ t: sik.ts, dari: "bull", sym: k.sym, kanal: k.kanal, arah: "dukung", pesan: m });
+        });
+        ((pn.debat || {}).bear || []).forEach(function (m) {
+          rows.push({ t: sik.ts, dari: "bear", sym: k.sym, kanal: k.kanal, arah: "lawan", pesan: m });
+        });
+        if ((k.llm || {}).alasan) {
+          rows.push({ t: sik.ts, dari: "trader", sym: k.sym, kanal: k.kanal,
+            arah: (k.llm || {}).aksi || "putusan", yakin: (k.llm || {}).keyakinan,
+            pesan: (k.llm || {}).alasan });
+        }
+        var ny = k.nyata || {};
+        if (ny.aksi) {
+          rows.push({ t: sik.ts, dari: "harness", sym: k.sym, kanal: k.kanal,
+            arah: ny.aksi, pesan: ny.alasan || ("aksi nyata: " + ny.aksi) });
+        }
+      });
+    });
+    if (btc.ringkas || btc.peringatan) {
+      rows.unshift({ t: btc.ts, dari: "btc_agent", sym: "BTCUSDT", kanal: "15m/30m/1h/4h",
+        arah: btc.arah || "netral", pesan: btc.peringatan || btc.ringkas || "" });
+    }
+    if (!rows.length) {
+      host.appendChild(el("div", "empty", "Belum ada komunikasi agent pada siklus terakhir."));
+      return;
+    }
+    var ul = el("div", "bot-log");
+    rows.slice(0, 18).forEach(function (r) {
+      var cls = (r.arah === "tolak" || r.arah === "lawan") ? "neg" :
+                (r.arah === "setuju" || r.arah === "dukung" || r.arah === "long" || r.arah === "eksekusi") ? "pos" : "mut";
+      var row = el("div", "bot-logi " + cls);
+      row.appendChild(el("span", "bi", String(r.dari || "?").slice(0, 1).toUpperCase()));
+      var msg = "[" + String(r.dari || "?") + (r.sym ? " · " + r.sym : "") + "] " + String(r.pesan || "");
+      row.appendChild(el("span", "bt", msg));
+      row.appendChild(el("span", "bs", String(r.t || "").replace("T", " ").slice(5, 16)));
+      ul.appendChild(row);
+    });
+    host.appendChild(ul);
   }
 
   /* ── watchlist accuracy: skor mekanis 1R:1R atas SEMUA reclaim terdeteksi ── */
