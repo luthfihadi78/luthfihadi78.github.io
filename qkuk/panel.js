@@ -38,7 +38,7 @@
     if (!rows.length) { tbl.appendChild(el("div", "kosong", "tidak ada baris yang cocok")); return; }
     var table = el("table");
     var thead = el("thead"), tr = el("tr");
-    ["waktu", "pair", "engine / arah", "skor", "5 analis", "debat", "agent (LLM)", "nyata"].forEach(function (h) {
+    ["waktu", "pair", "engine / arah", "skor", "7 agent", "debat", "agent (LLM)", "nyata"].forEach(function (h) {
       tr.appendChild(el("th", null, h));
     });
     thead.appendChild(tr); table.appendChild(thead);
