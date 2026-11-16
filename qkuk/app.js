@@ -11,7 +11,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* 27 Okt — WYCKOFF & SWING 4h DIMATIKAN (permintaan user) → kanal "4h"
      (label SWING) keluar dari ORDER; kanal baru "ob2h" = ⭐ SCALP 2H
      (engine ob_premium_watch_2h.py: OB premium 2h + gate BTC b24>1%). */
-  var DATA = null, ORDER = ["ob", "2h", "ob4h", "ob2h"], LEFT = 60;   // 20 Okt: BASTION 4H ganti WHALE
+  var DATA = null, ORDER = ["ob", "ob30m", "2h", "ob2h"], LEFT = 60;   // 16 Nov: BRICK 30M ganti BASTION 4H
   /* ⚠️ GitHub Pages menyajikan index.html dgn cache-control 600 dtk, dan tab
      yang dibiarkan terbuka TIDAK PERNAH mengambil ulang HTML-nya sama sekali —
      ia hanya menarik data.json. Akibatnya pembaruan tampilan tak terlihat
@@ -31,8 +31,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      fallback "240", interval salah. */
   /* 1 Nov — kanal "4h" (SWING) dimatikan permanen; warna kuning emasnya
      diwariskan ke ⭐ SCALP 2H (ob2h). */
-  var COLOR = { "30m": "#C792EA", "2h": "#FF6B6B", "ob": "#E8965A", "ob4h": "#E8B04B", "ob2h": "#F5C542" };
-  var TVI = { "30m": "30", "1d": "1440", "2h": "120", "ob": "60", "ob4h": "240", "ob2h": "120" };
+  var COLOR = { "30m": "#C792EA", "2h": "#FF6B6B", "ob": "#E8965A", "ob4h": "#E8B04B", "ob2h": "#F5C542", "ob30m": "#8BC34A" };
+  var TVI = { "30m": "30", "1d": "1440", "2h": "120", "ob": "60", "ob4h": "240", "ob2h": "120", "ob30m": "30" };
 
   function $(s) { return document.querySelector(s); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
@@ -1169,7 +1169,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       return { L: L, S: S };
     };
     /* 1 Nov — SWING "4h" mati → komposit gauge memakai arah ⭐ SCALP 2H (ob2h). */
-    var K2 = hitungKanal("2h"), K4 = hitungKanal("ob2h"), KO = hitungKanal("ob"), KB = hitungKanal("ob4h");
+    var K2 = hitungKanal("2h"), K4 = hitungKanal("ob2h"), KO = hitungKanal("ob"), KB = hitungKanal("ob30m");
     var arahK = function (k) { return (k.L + k.S) ? (k.L > k.S ? 1 : k.S > k.L ? -1 : 0) : 0; };
     var d2 = arahK(K2), d4 = arahK(K4), dO = arahK(KO), dB4 = arahK(KB);
     var berdata = [d2, d4, dO, dB4].filter(function (d) { return d !== 0; });
@@ -1198,7 +1198,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var btcLedLong = (V.dirBtc > 0 && mom >= G37.btcLedMom && dirUsdt <= 0
                       && dUraw <= G37.usdtConflict
                       && (V.maj || 0) >= G37.btcLedMajFloor);
-    V.kanalArah = { "2h": d2, "ob2h": d4, ob: dO, ob4h: dB4 };
+    V.kanalArah = { "2h": d2, "ob2h": d4, ob: dO, ob30m: dB4 };
     /* 16 Okt — SWEEP KEBAWAH BERSAMAAN (engine v36): mayoritas altcoin
        menyapu low 24 jam dalam 3 bar 1h = keadaan darurat → CRASH, tanpa
        menunggu gate dominan & tanpa ditahan histeresis. Angka dihitung
@@ -1378,7 +1378,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
          HARVEST/SWING dari DATA.engine[tf], BRICK dari DATA.bt_brick,
          BASTION 4H dari DATA.bt_brick4h (schema sendiri, tak punya per_bln
          → dihitung n / n_bulan; tooltip jendela + populasi). */
-      var BT = (tf === "ob" && DATA.bt_brick) || (tf === "ob4h" && DATA.bt_brick4h) || E;
+      /* 16 Nov — BRICK 30M punya TF sendiri: JANGAN pakai backtest BRICK 1h
+         (angka 1h di tab 30m = menyesatkan). Kartu muncul hanya kalau
+         backtest 30m benar-benar ada (DATA.bt_brick30m). */
+      var BT = (tf === "ob" && DATA.bt_brick) || (tf === "ob30m" && DATA.bt_brick30m) || (tf === "ob4h" && DATA.bt_brick4h) || E;
       if (BT && BT.n) {
         var _pr = BT.per_bln;
         if (_pr == null && BT.n_bulan) _pr = Math.round(BT.n / BT.n_bulan * 10) / 10;
@@ -1400,7 +1403,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* 8 Okt (permintaan user): label tab pakai NAMA ENGINE — BRICK/HARVEST/SWING
      bukan kode TF "OB"/"2H"/"4H", biar konsisten dgn grup WA & strip riset. */
   var TAB_NAME = { "30m": "REA", "2h": "HARVEST",
-                   "ob": "BRICK", "ob4h": "BASTION 4H", "ob2h": "SCALP 2H", "1h": "SNIPER", "15m": "DART" };
+                   "ob": "BRICK", "ob4h": "BASTION 4H", "ob2h": "SCALP 2H", "1h": "SNIPER", "15m": "DART",
+                   "ob30m": "BRICK 30M" };
   function tabs(host, active, pick, withAll) {
     host.innerHTML = "";
     if (withAll) {
@@ -1659,11 +1663,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      per engine. Lampu 🔥 menyala bila engine konsisten bagus. */
   var sPeriode = "7";
 
-  /* 20 Okt — BASTION 4H hanya mengirim tier premium (OB 4h searah EMA200). */
+  /* 16 Nov — BRICK 30M menggantikan BASTION 4H (juga premium-only). */
   var KANAL_LANGKA = {
     ob4h: {
       w: "🏰 Watchlist BASTION 4H kosong — hanya tier premium yang ditampilkan.",
       s: "🏰 Belum ada sinyal BASTION 4H — kanal ini hanya mengirim tier premium."
+    },
+    ob30m: {
+      w: "🧱 Watchlist BRICK 30M kosong — hanya tier premium yang ditampilkan.",
+      s: "🧱 Belum ada sinyal BRICK 30M — kanal ini hanya mengirim tier premium."
     },
     /* 27 Okt — kanal ⭐ SCALP 2H: juga premium-only, pola sama dgn BASTION. */
     ob2h: {
@@ -3640,7 +3648,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
             makin bingung dgn 3 garis bersilangan)
      Sumber sama dengan heat table & kartu live resolve: picks admin. */
   /* 20 Okt — BASTION 4H = order block 4h tier premium. */
-  var HR_NAME = { "ob": "Engine OB", "30m": "Reversal 30m", "2h": "Harvest 2h", "4h": "Swing 4h", "ob4h": "Bastion 4h", "ob2h": "Scalp 2h" };
+  var HR_NAME = { "ob": "Engine OB", "30m": "Reversal 30m", "2h": "Harvest 2h", "4h": "Swing 4h", "ob4h": "Bastion 4h", "ob2h": "Scalp 2h", "ob30m": "Brick 30m" };
   /* 25 Sep — tinggi ter-akhir tiap batang histogram (urut h×kanal), buat
      tween antar segaran: batang MELUNCUR dari tinggi lama ke baru, persis
      histogram divergen di tab Whale. Bentuk array mengikuti urutan render. */
