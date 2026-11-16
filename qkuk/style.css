@@ -1439,3 +1439,58 @@ td.bcw{color:var(--gold)}
 .def-note{font-size:10px;line-height:1.55;color:var(--fg-3);margin:7px 0 0}
 .def-note.pos{color:var(--up)} .def-note.neg{color:var(--dn)}
 @media(max-width:780px){#bot-pertahanan .def-grid{grid-template-columns:1fr}}
+
+/* 17 Nov — LAPORAN HARIAN COACH: kartu lebar penuh, kiri KPI/funnel/catatan,
+   kanan tabel rincian trade. Sebelumnya 7 baris teks + 2 baris per trade
+   menumpuk vertikal sehingga kartu memanjang sendiri. */
+#bot-pertahanan .def-card.lh-card{grid-column:1/-1}
+.lh-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:14px}
+@media(max-width:980px){.lh-wrap{grid-template-columns:1fr}}
+.lh-kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(74px,1fr));gap:6px}
+.lh-k{background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:6px;
+  padding:6px 8px;min-width:0}
+.lh-k span{display:block;font-size:9px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--fg-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lh-k b{display:block;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;
+  color:var(--fg);margin-top:2px}
+.lh-k b.pos{color:var(--up)} .lh-k b.neg{color:var(--dn)} .lh-k b.warn{color:var(--gold)}
+.lh-chips{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 2px}
+.lh-chips .bc-chip{font-size:9.5px;padding:3px 7px}
+.lh-cap{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-3);
+  margin:10px 0 3px}
+.lh-list{margin:0;padding-left:13px;font-size:10px;line-height:1.5;color:var(--fg-2)}
+.lh-list li{margin:2px 0}
+.lh-box{margin-top:10px;border-left:2px solid var(--gold);background:rgba(255,255,255,.022);
+  padding:7px 9px;border-radius:0 6px 6px 0;font-size:10.5px;line-height:1.55;color:var(--fg-2)}
+.lh-box b{color:var(--fg-3);font-size:9px;letter-spacing:.09em;text-transform:uppercase;
+  margin-right:3px}
+.lh-tw{max-height:46vh;border-radius:6px}
+.lh-tab{min-width:0;font-size:11px}
+.lh-tab th{font-size:9px;padding:6px 8px}
+.lh-tab td{padding:5px 8px;font-size:11px}
+.lh-tab td.n{text-align:right;font-family:var(--mono)}
+.lh-tab td.n.pos{color:var(--up);font-weight:600}
+.lh-tab td.n.neg{color:var(--dn);font-weight:600}
+.lh-tab td.n.dim{color:var(--fg-3)}
+.lh-tab .bc-chip{font-size:9px;padding:2px 6px}
+.lh-tab .side{font-size:9px;padding:1px 5px}
+.lh-eval{margin:8px 0 0;padding-left:13px;font-size:9.5px;line-height:1.5;color:var(--fg-3)}
+
+/* 17 Nov — EV PER ATURAN GERBANG: kartu lebar penuh, tabel bergrup per engine
+   (dulu tiap aturan jadi dua baris teks yang memanjang ke bawah). */
+#bot-pertahanan .def-card.gev-card{grid-column:1/-1}
+.gev-tw{max-height:52vh;border-radius:6px}
+.gev-tab{min-width:0;font-size:11px}
+.gev-tab th{font-size:9px;padding:6px 9px;white-space:pre-line;line-height:1.35}
+.gev-tab td{padding:5px 9px;font-size:11px;vertical-align:baseline}
+.gev-tab tr.gev-set td{background:rgba(255,255,255,.03);padding:7px 9px}
+.gev-tab tr.gev-set b{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--fg)}
+.gev-tab tr.gev-set span{font-size:9.5px}
+.gev-tab td.gev-nama{color:var(--fg-2);white-space:normal;max-width:340px}
+.gev-tab td.n{text-align:right;font-family:var(--mono);white-space:nowrap}
+.gev-tab td.n b{font-weight:600}
+.gev-tab td.n b.pos,.gev-tab td.n.pos{color:var(--up)}
+.gev-tab td.n b.neg,.gev-tab td.n.neg{color:var(--dn)}
+.gev-tab td.n.mut{color:var(--fg-3)}
+.gev-sub{display:block;font-size:9px;color:var(--fg-3);letter-spacing:.02em}
+.gev-tab .bc-chip{font-size:9px;padding:2px 6px}

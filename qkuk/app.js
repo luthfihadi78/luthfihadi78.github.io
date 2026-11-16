@@ -2375,39 +2375,146 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        oleh watcher ke state/laporan_harian.json. */
     var LH = P.laporan_harian || {};
     if (LH.tanggal) {
+      /* 17 Nov (permintaan user) — kartu ini dulu menumpuk 7 baris teks + 2
+         baris per trade sehingga memanjang ke bawah. Sekarang: kartu lebar
+         penuh, KPI + funnel di kiri, RINCIAN TRADE jadi TABEL di kanan. */
       var cH = card("Laporan harian coach", LH.tanggal);
-      String(LH.teks || "").split("\n").slice(1).forEach(function (t) {
-        if (t) cH.appendChild(el("p", "def-note", t));
-      });
-      /* 16 Nov (permintaan user) — kesimpulan harian + rincian per trade:
-         menang/kalah beserta label & alasan, supaya bisa dibaca detail. */
+      cH.className += " lh-card";
+      var M = LH.metrik || {};
+      var wrapH = el("div", "lh-wrap");
+      cH.appendChild(wrapH);
+      var kiri = el("div", "lh-left");
+      wrapH.appendChild(kiri);
+
+      var vR = function (v, desimal) {
+        var x = num(v);
+        if (x == null) return "\u2014";
+        return (x > 0 ? "+" : "") + x.toFixed(desimal == null ? 2 : desimal) + "R";
+      };
+      var kpi = el("div", "lh-kpi");
+      var kt = function (lab, val, cls) {
+        var d = el("div", "lh-k");
+        d.appendChild(el("span", null, lab));
+        d.appendChild(el("b", cls || null, val));
+        kpi.appendChild(d);
+      };
+      kt("equity", M.equity == null ? "\u2014" : "$" + (+M.equity).toFixed(0));
+      kt("tutup", M.n_tutup == null ? "\u2014" : String(M.n_tutup));
+      kt("total", vR(M.total_r), (num(M.total_r) || 0) >= 0 ? "pos" : "neg");
+      kt("WR", M.wr == null ? "\u2014" : M.wr + "%",
+        M.wr == null ? null : (M.wr >= 50 ? "pos" : "neg"));
+      kt("proses", M.skor_proses == null ? "\u2014" : M.skor_proses + "/100",
+        M.skor_proses == null ? null
+          : M.skor_proses >= 70 ? "pos" : M.skor_proses >= 45 ? "warn" : "neg");
+      kiri.appendChild(kpi);
+
+      var chipsH = el("div", "lh-chips");
+      chipsH.appendChild(chip("eksekusi", String(M.n_buka == null ? 0 : M.n_buka), "pos"));
+      chipsH.appendChild(chip("tahan retest",
+        (M.n_retest == null ? 0 : M.n_retest) + " · "
+        + (M.n_lokasi == null ? 0 : M.n_lokasi) + " lokasi", "warn"));
+      chipsH.appendChild(chip("ditolak",
+        (M.n_tolak == null ? 0 : M.n_tolak) + " · "
+        + (M.n_agent == null ? 0 : M.n_agent) + " agent", "mut"));
+      chipsH.appendChild(chip("antrean", String(M.antrean == null ? 0 : M.antrean), "mut"));
+      if (M.over_risk != null) {
+        chipsH.appendChild(chip("risiko berlebih", String(M.over_risk),
+          M.over_risk > 0 ? "neg" : "pos"));
+      }
+      if (M.revenge != null) {
+        chipsH.appendChild(chip("revenge", String(M.revenge),
+          M.revenge > 0 ? "neg" : "pos"));
+      }
+      if (M.slip_bps != null) {
+        chipsH.appendChild(chip("slip", num(M.slip_bps).toFixed(2) + " bps",
+          (num(M.slip_bps) || 0) < -8 ? "neg" : "mut"));
+      }
+      chipsH.appendChild(chip("penolakan",
+        (M.hindari_rugi == null ? 0 : M.hindari_rugi) + " hindari rugi · "
+        + (M.peluang_terlewat == null ? 0 : M.peluang_terlewat) + " terlewat", "mut"));
+      kiri.appendChild(chipsH);
+
+      var CAT = (M.catatan && M.catatan.length) ? M.catatan : [];
+      if (CAT.length) {
+        kiri.appendChild(el("p", "lh-cap", "catatan proses"));
+        var ulC = el("ul", "lh-list");
+        CAT.forEach(function (t) { ulC.appendChild(el("li", null, String(t))); });
+        kiri.appendChild(ulC);
+      }
+      if ((LH.saran || []).length) {
+        kiri.appendChild(el("p", "lh-cap", "saran"));
+        var ulS = el("ul", "lh-list");
+        (LH.saran || []).forEach(function (t) { ulS.appendChild(el("li", null, String(t))); });
+        kiri.appendChild(ulS);
+      }
       if (LH.kesimpulan) {
-        var kp = el("p", "def-note");
-        kp.appendChild(el("b", null, "Kesimpulan: "));
-        kp.appendChild(document.createTextNode(String(LH.kesimpulan)));
-        cH.appendChild(kp);
+        var kb = el("div", "lh-box");
+        kb.appendChild(el("b", null, "kesimpulan "));
+        kb.appendChild(document.createTextNode(String(LH.kesimpulan)));
+        kiri.appendChild(kb);
       }
+
+      /* kanan: tabel rincian trade. Alasan deterministik masuk tooltip supaya
+         tabel tetap ringkas; label disingkat TP/FP supaya kolomnya sempit. */
+      var kanan = el("div", "lh-right");
+      wrapH.appendChild(kanan);
       var TR = LH.trade || [];
-      if (TR.length) {
-        cH.appendChild(el("p", "def-note mut", "Rincian trade hari ini:"));
+      kanan.appendChild(el("p", "lh-cap",
+        "rincian trade" + (TR.length ? " \u00b7 " + TR.length : "")));
+      var NAMA = { TRUE_POSITIVE: "TP", FALSE_POSITIVE: "FP",
+                   NEUTRAL: "NEUTRAL", REGIME_MISMATCH: "REGIME" };
+      if (!TR.length) {
+        kanan.appendChild(el("p", "def-note", "Belum ada trade tertutup hari ini."));
+      } else {
+        var twH = el("div", "tw lh-tw");
+        var tbl = el("table", "lh-tab");
+        var thead = el("thead"), trh = el("tr");
+        [["jam", 0], ["pair", 0], ["kanal", 0], ["arah", 0], ["R", 1], ["label", 0]]
+          .forEach(function (c) {
+            var th = el("th", null, c[0]);
+            if (c[1]) th.style.textAlign = "right";
+            trh.appendChild(th);
+          });
+        thead.appendChild(trh);
+        tbl.appendChild(thead);
+        var tbody = el("tbody");
         TR.forEach(function (t) {
-          var rw = el("div", "def-line");
-          rw.appendChild(el("span", null,
-            (t.jam ? t.jam + " " : "") + (t.sym || "") + " " + (t.dir || "") +
-            (t.kanal ? " \u00b7 " + t.kanal : "")));
-          var rv = num(t.r);
-          if (rv == null) rv = 0;
-          rw.appendChild(el("b", "n " + (rv >= 0 ? "pos" : "neg"),
-            (rv > 0 ? "+" : "") + rv.toFixed(2) + "R"));
-          cH.appendChild(rw);
-          cH.appendChild(el("p", "def-note mut",
-            (t.label || "") + (t.alasan ? " \u2014 " + t.alasan : "")));
+          var rv = num(t.r); if (rv == null) rv = 0;
+          var tr = el("tr");
+          tr.appendChild(txt(t.jam || "\u2014", "st"));
+          var tdS = el("td", "sym"); tdS.textContent = t.sym || "\u2014";
+          tr.appendChild(tdS);
+          tr.appendChild(txt(String(t.kanal || "\u2014").toUpperCase(), "st"));
+          var tdD = el("td");
+          tdD.appendChild(el("span", "side " + (t.dir === "long" ? "long" : "short"),
+            t.dir === "long" ? "long" : "short"));
+          tr.appendChild(tdD);
+          var tdR = el("td", "n " + (rv > 0 ? "pos" : rv < 0 ? "neg" : "dim"));
+          tdR.textContent = (rv > 0 ? "+" : "") + rv.toFixed(2);
+          tr.appendChild(tdR);
+          var tdL = el("td");
+          var lbl = String(t.label || "");
+          var lcls = lbl === "TRUE_POSITIVE" ? "pos" : lbl === "NEUTRAL" ? "warn" : "neg";
+          var chipL = el("span", "bc-chip " + lcls, NAMA[lbl] || lbl);
+          chipL.title = lbl + (t.alasan ? "\n" + t.alasan : "");
+          tdL.appendChild(chipL);
+          tr.appendChild(tdL);
+          tbody.appendChild(tr);
         });
+        tbl.appendChild(tbody);
+        twH.appendChild(tbl);
+        kanan.appendChild(twH);
+        kanan.appendChild(el("p", "def-note mut",
+          "TP = sinyal & eksekusi terbukti \u00b7 FP = sinyal/setup salah \u00b7 "
+          + "arahkan kursor ke label untuk alasan lengkap."));
       }
-      (LH.evaluasi || []).forEach(function (e) {
-        cH.appendChild(el("p", "def-note", "\u00b7 " + e));
-      });
-      cH.appendChild(el("p", "def-note mut", "Dihitung sekali sehari dari journal \u2014 tanpa LLM."));
+      if ((LH.evaluasi || []).length) {
+        var ulE = el("ul", "lh-eval");
+        (LH.evaluasi || []).forEach(function (e) { ulE.appendChild(el("li", null, String(e))); });
+        kanan.appendChild(ulE);
+      }
+      kanan.appendChild(el("p", "def-note mut",
+        "Dihitung sekali sehari dari journal \u2014 tanpa LLM."));
     }
 
     /* 16 Nov (permintaan user) — EV PER ATURAN GERBANG: mana aturan yang masih
@@ -2418,36 +2525,84 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (Object.keys(GS).length) {
       var cG = card("EV per aturan gerbang",
         GE.diperbarui ? "uji " + String(GE.diperbarui).slice(0, 10) : "hasil backtest");
+      cG.className += " gev-card";
       var fmtR = function (v) {
         var n = num(v);
         if (n == null) return "\u2014";
         return (n > 0 ? "+" : "") + n.toFixed(3) + "R";
       };
-      var fmtN = function (o) {
-        if (!o || o.n == null) return "n=0";
-        return "n=" + o.n + " " + fmtR(o.ev);
+      var selisih = function (A) {
+        var a = A.ditahan || {}, b = A.lolos || {};
+        if (num(a.ev) == null || num(b.ev) == null) return null;
+        return num(a.ev) - num(b.ev);   /* + = yang ditahan lebih baik = aturan merugikan */
+      };
+      var twG = el("div", "tw gev-tw");
+      var tg = el("table", "gev-tab");
+      var thG = el("thead"), trg = el("tr");
+      [["engine \u00b7 aturan", 0], ["ditahan\nn · EV", 1],
+       ["lolos\nn · EV", 1], ["\u0394 EV", 1], ["vonis", 0]].forEach(function (c) {
+        var th = el("th", null, c[0]);
+        if (c[1]) th.style.textAlign = "right";
+        trg.appendChild(th);
+      });
+      thG.appendChild(trg); tg.appendChild(thG);
+      var tbG = el("tbody");
+      var chipV = function (v) {
+        var t = String(v || "");
+        var cls = t.indexOf("MERUGIKAN") >= 0 ? "neg"
+                : t.indexOf("BERGUNA") >= 0 ? "pos" : "mut";
+        var c = el("span", "bc-chip " + cls,
+          t.indexOf("MERUGIKAN") >= 0 ? "merugikan"
+          : t.indexOf("BERGUNA") >= 0 ? "berguna"
+          : t.indexOf("escape") >= 0 ? "escape" : "\u2014");
+        c.title = t || "tidak ada vonis";
+        return c;
       };
       Object.keys(GS).forEach(function (kN) {
-        var S = GS[kN] || {};
-        var SM = S.semua || {};
-        var rw = el("div", "def-line");
-        rw.appendChild(el("span", null, kN + " \u00b7 " + (SM.n || 0) + " sinyal"));
-        rw.appendChild(el("b", "n " + (num(SM.ev) >= 0 ? "pos" : "neg"),
-          "EV " + fmtR(SM.ev)));
-        cG.appendChild(rw);
+        var S = GS[kN] || {}, SM = S.semua || {};
+        var rg = el("tr", "gev-set");
+        var tds = el("td"); tds.colSpan = 2;
+        tds.appendChild(el("b", null, kN));
+        tds.appendChild(el("span", "mut",
+          " \u00b7 " + (SM.n || 0) + " sinyal \u00b7 WR "
+          + (SM.wr == null ? "\u2014" : SM.wr + "%")));
+        rg.appendChild(tds);
+        var tde = el("td", "n"); tde.colSpan = 3;
+        tde.appendChild(el("span", "mut", "EV keseluruhan "));
+        tde.appendChild(el("b", (num(SM.ev) || 0) >= 0 ? "pos" : "neg", fmtR(SM.ev)));
+        rg.appendChild(tde);
+        tbG.appendChild(rg);
         (S.aturan || []).forEach(function (A) {
-          var v = (A.vonis || "");
-          var cls = v.indexOf("MERUGIKAN") >= 0 ? "neg"
-                  : v.indexOf("BERGUNA") >= 0 ? "pos" : "mut";
-          var line2 = el("div", "def-line");
-          line2.appendChild(el("span", null, A.nama || ""));
-          line2.appendChild(el("b", "n " + cls,
-            "tahan " + fmtN(A.ditahan) + " \u00b7 lolos " + fmtN(A.lolos)));
-          cG.appendChild(line2);
+          var tr = el("tr");
+          var tdN = el("td", "gev-nama");
+          tdN.textContent = A.nama || "\u2014";
+          tr.appendChild(tdN);
+          [A.ditahan, A.lolos].forEach(function (o) {
+            var td = el("td", "n");
+            if (!o || o.n == null) { td.textContent = "\u2014"; tr.appendChild(td); return; }
+            td.appendChild(el("b", (num(o.ev) || 0) >= 0 ? "pos" : "neg", fmtR(o.ev)));
+            td.appendChild(el("span", "gev-sub", "n=" + o.n));
+            tr.appendChild(td);
+          });
+          var d = selisih(A);
+          var tdD = el("td", "n " + (d == null ? "mut" : d > 0 ? "neg" : d < 0 ? "pos" : "mut"));
+          tdD.textContent = d == null ? "\u2014" : (d > 0 ? "+" : "") + d.toFixed(3) + "R";
+          tr.appendChild(tdD);
+          var tdV = el("td");
+          if (A.vonis) tdV.appendChild(chipV(A.vonis));
+          else tdV.textContent = "\u2014";
+          tr.appendChild(tdV);
+          tbG.appendChild(tr);
         });
       });
+      tg.appendChild(tbG);
+      twG.appendChild(tg);
+      cG.appendChild(twG);
       cG.appendChild(el("p", "def-note mut",
-        "\u201ctahan\u201d = sinyal yang diblokir aturan itu. Bila EV yang ditahan lebih buruk dari yang lolos, aturan BERGUNA. Hasil dihitung ulang lewat backtest_lokasi_breakout.py."));
+        "\u201cditahan\u201d = sinyal yang diblokir aturan. \u0394 EV = EV ditahan \u2212 EV lolos; "
+        + "negatif berarti aturan berguna (yang diblokir memang buruk), positif berarti merugikan. "
+        + "Untuk baris escape, kolom \u201cditahan\u201d = tetap di dalam pocket. "
+        + "Sumber: backtest_lokasi_breakout.py, klines tertutup tanpa look-ahead."));
     }
 
     /* 14 Nov — BERITA & ACARA MAKRO: hanya ditampilkan bila ada acara
