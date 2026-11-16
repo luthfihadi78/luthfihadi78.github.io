@@ -2410,6 +2410,46 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       cH.appendChild(el("p", "def-note mut", "Dihitung sekali sehari dari journal \u2014 tanpa LLM."));
     }
 
+    /* 16 Nov (permintaan user) — EV PER ATURAN GERBANG: mana aturan yang masih
+       layak dipertahankan. Sumber logs/gate_ev.json, dihasilkan
+       backtest_lokasi_breakout.py (klines tertutup, tanpa look-ahead). */
+    var GE = P.gate_ev || {};
+    var GS = GE.set || {};
+    if (Object.keys(GS).length) {
+      var cG = card("EV per aturan gerbang",
+        GE.diperbarui ? "uji " + String(GE.diperbarui).slice(0, 10) : "hasil backtest");
+      var fmtR = function (v) {
+        var n = num(v);
+        if (n == null) return "\u2014";
+        return (n > 0 ? "+" : "") + n.toFixed(3) + "R";
+      };
+      var fmtN = function (o) {
+        if (!o || o.n == null) return "n=0";
+        return "n=" + o.n + " " + fmtR(o.ev);
+      };
+      Object.keys(GS).forEach(function (kN) {
+        var S = GS[kN] || {};
+        var SM = S.semua || {};
+        var rw = el("div", "def-line");
+        rw.appendChild(el("span", null, kN + " \u00b7 " + (SM.n || 0) + " sinyal"));
+        rw.appendChild(el("b", "n " + (num(SM.ev) >= 0 ? "pos" : "neg"),
+          "EV " + fmtR(SM.ev)));
+        cG.appendChild(rw);
+        (S.aturan || []).forEach(function (A) {
+          var v = (A.vonis || "");
+          var cls = v.indexOf("MERUGIKAN") >= 0 ? "neg"
+                  : v.indexOf("BERGUNA") >= 0 ? "pos" : "mut";
+          var line2 = el("div", "def-line");
+          line2.appendChild(el("span", null, A.nama || ""));
+          line2.appendChild(el("b", "n " + cls,
+            "tahan " + fmtN(A.ditahan) + " \u00b7 lolos " + fmtN(A.lolos)));
+          cG.appendChild(line2);
+        });
+      });
+      cG.appendChild(el("p", "def-note mut",
+        "\u201ctahan\u201d = sinyal yang diblokir aturan itu. Bila EV yang ditahan lebih buruk dari yang lolos, aturan BERGUNA. Hasil dihitung ulang lewat backtest_lokasi_breakout.py."));
+    }
+
     /* 14 Nov — BERITA & ACARA MAKRO: hanya ditampilkan bila ada acara
        high-impact dekat atau berita kilat yang cukup kuat. Selain itu gate
        tidak mempengaruhi entry sama sekali. */
