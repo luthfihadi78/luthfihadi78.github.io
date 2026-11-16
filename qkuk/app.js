@@ -2379,6 +2379,34 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       String(LH.teks || "").split("\n").slice(1).forEach(function (t) {
         if (t) cH.appendChild(el("p", "def-note", t));
       });
+      /* 16 Nov (permintaan user) — kesimpulan harian + rincian per trade:
+         menang/kalah beserta label & alasan, supaya bisa dibaca detail. */
+      if (LH.kesimpulan) {
+        var kp = el("p", "def-note");
+        kp.appendChild(el("b", null, "Kesimpulan: "));
+        kp.appendChild(document.createTextNode(String(LH.kesimpulan)));
+        cH.appendChild(kp);
+      }
+      var TR = LH.trade || [];
+      if (TR.length) {
+        cH.appendChild(el("p", "def-note mut", "Rincian trade hari ini:"));
+        TR.forEach(function (t) {
+          var rw = el("div", "def-line");
+          rw.appendChild(el("span", null,
+            (t.jam ? t.jam + " " : "") + (t.sym || "") + " " + (t.dir || "") +
+            (t.kanal ? " \u00b7 " + t.kanal : "")));
+          var rv = num(t.r);
+          if (rv == null) rv = 0;
+          rw.appendChild(el("b", "n " + (rv >= 0 ? "pos" : "neg"),
+            (rv > 0 ? "+" : "") + rv.toFixed(2) + "R"));
+          cH.appendChild(rw);
+          cH.appendChild(el("p", "def-note mut",
+            (t.label || "") + (t.alasan ? " \u2014 " + t.alasan : "")));
+        });
+      }
+      (LH.evaluasi || []).forEach(function (e) {
+        cH.appendChild(el("p", "def-note", "\u00b7 " + e));
+      });
       cH.appendChild(el("p", "def-note mut", "Dihitung sekali sehari dari journal \u2014 tanpa LLM."));
     }
 
