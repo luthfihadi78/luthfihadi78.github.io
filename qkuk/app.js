@@ -3282,7 +3282,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           if (lama && lama.classList && lama.classList.contains("detrow")) lama.remove();
           detAktif.classList.remove("detbuka");
         }
-        if (detAktif === tr) { detAktif = null; return; }
+        if (detAktif === tr) {          // klik baris yang sama = tutup
+          var tutup = tr.nextSibling;
+          if (tutup && tutup.classList && tutup.classList.contains("detrow")) tutup.remove();
+          tr.classList.remove("detbuka");
+          detAktif = null;
+          return;
+        }
         detAktif = tr; tr.classList.add("detbuka");
         var lebar = tr.children.length || 1;
         var row = el("tr", "detrow");
