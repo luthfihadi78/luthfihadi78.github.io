@@ -2936,7 +2936,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      ditunggu bot/harness. Sumber server: bot.antrean (state/pending.json +
      state/signal_status.json). Baris hilang sendiri begitu entry jalan atau
      antreannya kedaluwarsa, jadi tabel ini selalu = yang benar-benar ditunggu. */
-  function botAntrean(A) {
+  function botAntrean(A, B) {
     var host = $("#bot-antrean");
     if (!host) return;
     host.innerHTML = "";
@@ -2964,20 +2964,86 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     });
     try { localStorage.setItem(LSKEY, JSON.stringify(_simpanBaru)); } catch (e) { /* privat */ }
     rows = rows.filter(function (r) { return !_sudahSembunyi[kunciBaris(r)]; });
+    /* 17 Nov (permintaan user) — "antrean kosong" saja membingungkan: bisa
+       berarti gate menolak semua kandidat (engine SEHAT, tak ada yang layak)
+       atau engine tidak berputar sama sekali (data basi). Badge kini membedakan
+       ketiganya, memakai status harness + umur siklus + hitungan gate hari ini
+       yang sudah dikirim server. */
+    var AI = (B && B.ai) || {}, HS = AI.harness || {}, SK = AI.siklus || {};
+    var GH = ((B && B.pertahanan) || {}).gate_hari || {};
+    var umurS = num(SK.umur_menit), nBlok = num(GH.blok) || 0, nKecil = num(GH.kecil) || 0;
+    var statusEng;                       // "hidup" | "macet" | "mati" | "tak jelas"
+    if (HS.status === "hidup" && (umurS == null || umurS <= 12)) statusEng = "hidup";
+    else if (HS.status === "hidup" || HS.status === "macet") statusEng = "macet";
+    else if (HS.status === "mati" || HS.status === "belum") statusEng = "mati";
+    else if (!HS.status && umurS == null) statusEng = "tak jelas";
+    else statusEng = (umurS != null && umurS > 12) ? "macet" : "hidup";
+    var teksEng = statusEng === "hidup" ? "engine hidup"
+      : statusEng === "macet" ? "engine macet"
+      : statusEng === "mati" ? "engine mati" : "status engine tak jelas";
+    var alasanKosong;
+    if (statusEng === "mati") alasanKosong = "engine mati";
+    else if (nBlok > 0) alasanKosong = "gate tolak " + nBlok + " hari ini";
+    else if (statusEng === "macet") alasanKosong = "engine macet";
+    else if (statusEng === "tak jelas") alasanKosong = "status engine tak jelas";
+    else alasanKosong = "engine hidup, tak ada kandidat";
+
     /* 17 Nov — panel berwarna, bukan tabel polos: warna per arah, per jenis
        tunggu, dan per sisa waktu supaya antrean terbaca sekilas. */
     host.className = "antrean";
     var h = el("div", "antrean-h");
     h.appendChild(el("span", null, "\u23f3 antrean agent \u00b7 sedang menunggu apa"));
-    var badge = el("b", rows.length ? "antre-badge" : "antre-badge kosong",
-                   rows.length ? rows.length + " setup menunggu" : "antrean kosong");
+    var bcls, btxt;
+    if (statusEng === "mati") {
+      bcls = "antre-badge kosong-mati";
+      btxt = rows.length ? rows.length + " setup \u00b7 engine mati" : "kosong \u00b7 engine mati";
+    } else if (rows.length) {
+      bcls = "antre-badge";
+      btxt = rows.length + " setup menunggu";
+    } else if (nBlok > 0) {
+      bcls = "antre-badge kosong-gate";
+      btxt = "kosong \u00b7 gate tolak " + nBlok;
+    } else if (statusEng === "hidup") {
+      bcls = "antre-badge kosong-sepi";
+      btxt = "kosong \u00b7 engine hidup";
+    } else {
+      bcls = "antre-badge kosong-macet";
+      btxt = "kosong \u00b7 " + teksEng;
+    }
+    var badge = el("b", bcls, btxt);
+    badge.title = "Status diambil dari harness bot, bukan dari isi tabel: "
+      + teksEng + (umurS == null ? " (siklus belum tercatat)"
+        : " (siklus terakhir " + umurS + " menit lalu)")
+      + "\nGate hari ini: " + nBlok + " entry diblok, " + nKecil + " dikecilkan."
+      + "\n\u201ckosong\u201d + gate menolak = engine jalan normal tapi tak ada setup"
+      + " yang lolos; \u201cengine mati/macet\u201d = tabel ini tidak sedang diperbarui.";
     h.appendChild(badge);
     host.appendChild(h);
+
+    /* baris status terpisah supaya sebabnya terbaca tanpa hover */
+    var barisStatus = el("div", "antre-status st-" + (statusEng === "tak jelas" ? "tidak" : statusEng));
+    barisStatus.appendChild(el("i", "antre-dot"));
+    barisStatus.appendChild(el("span", null,
+      teksEng + (umurS == null ? " \u00b7 belum ada siklus" : " \u00b7 siklus " + umurS + " mnt lalu")
+      + " \u00b7 gate hari ini " + nBlok + " blok / " + nKecil + " kecil"));
+    host.appendChild(barisStatus);
     if (!rows.length) {
-      host.appendChild(el("p", "cap",
-        "Tidak ada yang ditunggu: semua sinyal sudah diputuskan (dibuka/ditolak) "
-        + "atau antreannya kedaluwarsa. Baris di tabel ini hilang otomatis begitu entry jalan."));
+      var sebab = statusEng === "mati"
+        ? "Engine tidak berputar, jadi antrean ini bukan \u201ckosong karena gate\u201d "
+          + "\u2014 datanya memang tidak diperbarui. Cek proses bot/harness."
+        : nBlok > 0
+          ? "Engine hidup; " + nBlok + " entry diblok gate hari ini + "
+            + nKecil + " dikecilkan. Tidak ada setup yang sedang ditunggu \u2014 itu "
+            + "hasil keputusan gate, bukan engine mati."
+          : "Engine hidup dan tidak ada entry yang diblok gate hari ini: memang "
+            + "belum ada kandidat yang lolos. Antrean terisi otomatis saat ada setup.";
+      host.appendChild(el("p", "cap", sebab));
       return;
+    }
+    if (statusEng !== "hidup") {
+      host.appendChild(el("p", "cap",
+        "\u26a0 Baris di bawah bisa BASI: " + teksEng
+        + (umurS == null ? "" : " (siklus terakhir " + umurS + " mnt lalu)") + "."));
     }
     var jenisTeks = { retest: "retest zona", momentum: "tunggu momentum",
                       breakdown: "tunggu breakdown", pantau: "pantau", agent: "agent" };
@@ -3058,7 +3124,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
             s.push({ k: kunciBaris(r), ts: Date.now() });
             try { localStorage.setItem(LSKEY, JSON.stringify(s.slice(-300))); }
             catch (e) { /* mode privat: cukup sembunyikan sesi ini */ }
-            botAntrean(A);
+            botAntrean(A, B);
           };
           var td = el("td", "antre-xc");
           td.appendChild(b);
@@ -4012,7 +4078,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     agentFeed(B);
     botPertahanan(B.pertahanan);
     botLaporanTahan(B.laporan_tahan);
-    botAntrean(B.antrean);
+    botAntrean(B.antrean, B);
     botRebound(B.rebound_sinyal);
     if (accHost) table(accHost, [
       { h: "engine", c: function (r) { return txt(String(r.kanal).toUpperCase(), "st"); } },

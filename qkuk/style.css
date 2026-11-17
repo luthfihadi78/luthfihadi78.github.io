@@ -1511,6 +1511,26 @@ td.bcw{color:var(--gold)}
   font-weight:700;white-space:nowrap}
 .antre-badge.kosong{background:transparent;color:var(--fg-3);
   border:1px solid var(--line-2);font-weight:600}
+/* 17 Nov — tiga rasa "kosong" yang berbeda: gate menolak (kuning), engine
+   sehat tapi sepi (abu), engine mati (merah). */
+.antre-badge.kosong-gate{background:linear-gradient(90deg,#F5C45C,#FFB86B);color:#1b1405}
+.antre-badge.kosong-sepi{background:rgba(255,255,255,.06);color:var(--fg-2);
+  border:1px solid var(--line-2);font-weight:600}
+.antre-badge.kosong-mati{background:linear-gradient(90deg,#FF6B6B,#FF9B9B);color:#1d0808;
+  box-shadow:0 0 0 1px rgba(255,107,107,.35)}
+.antre-badge.kosong-macet{background:rgba(245,196,92,.16);color:var(--gold);
+  border:1px solid rgba(245,196,92,.45);font-weight:600}
+.antre-status{display:flex;align-items:center;gap:7px;font-size:10.5px;letter-spacing:.02em;
+  padding:5px 9px;border-radius:6px;margin:0 0 8px;background:rgba(255,255,255,.035);
+  border:1px solid var(--line);color:var(--fg-2)}
+.antre-dot{width:7px;height:7px;border-radius:999px;background:var(--fg-3);flex:none}
+.antre-status.st-hidup{color:var(--up);border-color:rgba(110,231,183,.35);background:rgba(110,231,183,.08)}
+.antre-status.st-hidup .antre-dot{background:var(--up);box-shadow:0 0 6px rgba(110,231,183,.7)}
+.antre-status.st-macet{color:var(--gold);border-color:rgba(245,196,92,.35);background:rgba(245,196,92,.08)}
+.antre-status.st-macet .antre-dot{background:var(--gold)}
+.antre-status.st-mati{color:var(--dn);border-color:rgba(255,107,107,.4);background:rgba(255,107,107,.09)}
+.antre-status.st-mati .antre-dot{background:var(--dn);box-shadow:0 0 6px rgba(255,107,107,.7)}
+.antre-status.st-tidak{color:var(--fg-3);border-style:dashed}
 .antrean .tw{background:rgba(10,14,12,.45);border-color:rgba(245,196,92,.20);max-height:44vh}
 .antrean table{min-width:860px}
 .antrean th{background:rgba(18,24,20,.92);color:var(--fg-2);border-bottom-color:rgba(245,196,92,.22)}
