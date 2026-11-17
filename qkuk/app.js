@@ -3285,6 +3285,54 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         { h: "$", n: 1, c: function (r) { return usdCell(r.usd, true); } }
       ], baris,
         S.galat ? "kueri gagal: " + S.galat : "belum ada trade tertutup sejak reset");
+
+      /* 17 Nov (permintaan user) — TOTAL $ PER KANAL, gabungan long+short.
+         Tabel di atas memecah per arah, jadi untuk menjawab "kanal ini
+         untung berapa dolar" orang harus menjumlahkan sendiri dan sering
+         salah tanda (short dibalik). Ringkasan ini menjumlahkan apa adanya:
+         total $ seluruh arah, plus baris TOTAL semua kanal di bawahnya. */
+      var kanalTot = [], peta = {};
+      baris.forEach(function (r) {
+        var k = String(r.kanal || "?");
+        if (!peta[k]) { peta[k] = { kanal: k, n: 0, m: 0, l: 0, r: 0, usd: 0, ada_usd: false }; kanalTot.push(peta[k]); }
+        var t = peta[k];
+        t.n += num(r.n) || 0; t.m += num(r.m) || 0; t.l += num(r.l) || 0;
+        t.r += num(r.r) || 0;
+        if (r.usd != null) { t.usd += num(r.usd) || 0; t.ada_usd = true; }
+      });
+      if (kanalTot.length) {
+        var semua = { n: 0, m: 0, l: 0, r: 0, usd: 0, ada_usd: false };
+        kanalTot.forEach(function (t) {
+          semua.n += t.n; semua.m += t.m; semua.l += t.l; semua.r += t.r;
+          if (t.ada_usd) { semua.usd += t.usd; semua.ada_usd = true; }
+        });
+        var wadah = el("div", "stat-total");
+        var judul = el("div", "bot-eq-h");
+        judul.appendChild(el("span", null, "total $ per kanal (long + short)"));
+        wadah.appendChild(judul);
+        var isi = kanalTot.map(function (t) {
+          return { kanal: t.kanal, n: t.n, m: t.m, l: t.l, r: t.r,
+                   usd: t.ada_usd ? t.usd : null };
+        });
+        isi.push({ kanal: "TOTAL", n: semua.n, m: semua.m, l: semua.l,
+                   r: semua.r, usd: semua.ada_usd ? semua.usd : null, total: true });
+        table(wadah, [
+          { h: "kanal", c: function (r) {
+              var td = txt(r.total ? "TOTAL" : namaKanal(r.kanal), "st");
+              if (r.total) td.style.fontWeight = "700";
+              return td;
+            } },
+          { h: "n", n: 1, c: function (r) { return numCell(r.n); } },
+          { h: "W/L", n: 1, c: function (r) { return numCell((r.m || 0) + " / " + (r.l || 0)); } },
+          { h: "ΣR", n: 1, c: function (r) { return rcell(r.r); } },
+          { h: "total $", n: 1, c: function (r) {
+              var td = usdCell(r.usd, false);
+              if (r.total) td.style.fontWeight = "700";
+              return td;
+            } }
+        ], isi, "—");
+        chanHost.appendChild(wadah);
+      }
     }
     if (hariHost) {
       table(hariHost, [

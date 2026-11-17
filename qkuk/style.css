@@ -1571,3 +1571,6 @@ td.bcw{color:var(--gold)}
   border-radius:4px;width:18px;height:18px;line-height:1;font-size:12px;
   cursor:pointer;padding:0}
 .antre-x:hover{color:var(--dn);border-color:var(--dn)}
+
+/* 17 Nov — ringkasan total $ per kanal, di bawah tabel per arah. */
+.stat-total{margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.09)}
