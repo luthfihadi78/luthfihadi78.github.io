@@ -3070,6 +3070,18 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var NAMA_KANAL = { "ob": "🧱 BRICK", "ob4h": "🏰 BASTION 4H", "ob30m": "🧱 TILE 30M",
       "tile": "🧱 TILE 30M", "2h": "🩸 HARVEST 2H", "4h": "SCALP 2H",
       "1h": "⚡ SNIPER", "30m": "REVERSAL", "15m": "🎯 DART" };
+    /* Satu engine bisa tercatat dengan dua kunci berbeda (mis. "tile" dan
+       "ob30m" untuk TILE 30M). Kalau labelnya jadi sama, tambahkan kunci
+       mentahnya supaya dua baris tidak terlihat seperti duplikat. */
+    var labelKanal = {};
+    (S.kanal || []).forEach(function (r) {
+      var l = NAMA_KANAL[r.kanal] || String(r.kanal || "?").toUpperCase();
+      labelKanal[l] = (labelKanal[l] || 0) + 1;
+    });
+    var namaKanal = function (k) {
+      var l = NAMA_KANAL[k] || String(k || "?").toUpperCase();
+      return labelKanal[l] > 1 ? l + " · " + k : l;
+    };
     var rcell = function (v) {
       var td = el("td"); td.className = "n";
       if (v == null) { td.textContent = "—"; return td; }
@@ -3080,7 +3092,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var numCell = function (v) { var td = el("td", "n", v == null ? "—" : String(v)); return td; };
     if (chanHost) {
       table(chanHost, [
-        { h: "kanal", c: function (r) { return txt(NAMA_KANAL[r.kanal] || String(r.kanal || "?").toUpperCase(), "st"); } },
+        { h: "kanal", c: function (r) { return txt(namaKanal(r.kanal), "st"); } },
         { h: "n", n: 1, c: function (r) { return numCell(r.n); } },
         { h: "W/L", c: function (r) { return numCell((r.m || 0) + " / " + (r.l || 0)); } },
         { h: "WR", n: 1, c: function (r) { return numCell(r.wr == null ? null : r.wr.toFixed(1) + "%"); } },
