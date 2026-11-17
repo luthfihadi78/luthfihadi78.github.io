@@ -3297,6 +3297,55 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
   }
 
+  /* 17 Nov (permintaan user) — PANEL DIAGNOSTIK: berapa request Binance yang
+     benar-benar dikirim pada build ini dan berapa yang dilayani cache SQLite.
+     Angka dari server (binance_throttle menghitung di satu tempat), jadi
+     bukan tebakan browser. Tujuannya: kalau build terasa lambat, kelihatan
+     apakah penyebabnya antrean jaringan atau bukan. */
+  function botDiag(DG) {
+    var host = $("#bot-diag");
+    if (!host) return;
+    host.innerHTML = "";
+    DG = DG || {};
+    var B = DG.binance || {};
+    var nJ = num(B.jaringan), nC = num(B.cache);
+    var h = el("div", "bot-eq-h");
+    h.appendChild(el("span", null, "diagnostik · request Binance per build"));
+    var badge = el("b", "diag-badge " + (nJ === 0 ? "ok" : nJ > 40 ? "bad" : "warn"),
+      nJ === 0 ? "0 jaringan" : nJ + " request jaringan");
+    h.appendChild(badge);
+    host.appendChild(h);
+    var sub = el("div", "cap");
+    sub.textContent = (nC ? nC + " dilayani cache SQLite · " : "")
+      + "build " + (DG.build_ms == null ? "—" : (DG.build_ms / 1000).toFixed(2) + " dtk")
+      + (B.weight ? " · bobot " + B.weight : "")
+      + (B.terukur === false ? " · (throttle tidak aktif di build ini)" : "");
+    host.appendChild(sub);
+    var per = B.per || {};
+    var kunci = Object.keys(per);
+    if (!kunci.length) {
+      host.appendChild(el("p", "empty", nJ === 0
+        ? "Tidak ada request ke Binance: semua angka build ini datang dari cache/disk."
+        : "Rincian endpoint tidak tersedia."));
+      return;
+    }
+    var box = el("div", "tw diag-tw");
+    host.appendChild(box);
+    table(box, [
+      { h: "endpoint", c: function (r) {
+          var td = txt(r.endpoint, "st");
+          if (/ cache$/.test(r.endpoint)) td.style.color = "#6EE7B7";   // dari SQLite
+          return td;
+        } },
+      { h: "request", n: 1, c: function (r) {
+          var td = el("td", "n", String(r.n));
+          td.style.color = / cache$/.test(r.endpoint) ? "#6EE7B7" : "#F5C45C";
+          td.style.fontWeight = "600";
+          return td;
+        } }
+    ], kunci.map(function (k) { return { endpoint: k, n: per[k] }; }), "—");
+  }
+
   function botCard() {
     var openHost = $("#bot-open"), accHost = $("#bot-acc"), sum = $("#bot-sum");
     if (!openHost) return;
@@ -5825,7 +5874,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      risetnya di tooltip. */
   function render(first) {
     liveScoreMount();       // 11 Okt: live score klasemen — PALING ATAS halaman
-    stamp(); gauge(); strip(); bigcaps(); botCard(); kamu(); applyPicks();
+    stamp(); gauge(); strip(); bigcaps(); botCard(); botDiag(DATA && DATA.diag); kamu(); applyPicks();
     leaderboard(); whatif();   // 23 Okt: leaderboard admin + simulasi what-if
     scanNotif();
     if (!DATA || !DATA.live) return;

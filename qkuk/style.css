@@ -1520,6 +1520,13 @@ td.bcw{color:var(--gold)}
   box-shadow:0 0 0 1px rgba(255,107,107,.35)}
 .antre-badge.kosong-macet{background:rgba(245,196,92,.16);color:var(--gold);
   border:1px solid rgba(245,196,92,.45);font-weight:600}
+/* 17 Nov — panel diagnostik: request Binance per build. */
+.diag-badge{font-size:11px;letter-spacing:.02em;border-radius:999px;padding:3px 11px;font-weight:700}
+.diag-badge.ok{background:rgba(110,231,183,.16);color:var(--up);border:1px solid rgba(110,231,183,.45)}
+.diag-badge.warn{background:rgba(245,196,92,.16);color:var(--gold);border:1px solid rgba(245,196,92,.45)}
+.diag-badge.bad{background:rgba(255,107,107,.16);color:var(--dn);border:1px solid rgba(255,107,107,.45)}
+.diag-tw{margin-top:6px;max-height:30vh}
+.diag-tw table{min-width:0}
 .antre-status{display:flex;align-items:center;gap:7px;font-size:10.5px;letter-spacing:.02em;
   padding:5px 9px;border-radius:6px;margin:0 0 8px;background:rgba(255,255,255,.035);
   border:1px solid var(--line);color:var(--fg-2)}
