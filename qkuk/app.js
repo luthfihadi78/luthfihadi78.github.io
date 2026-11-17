@@ -2417,6 +2417,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         (M.n_tolak == null ? 0 : M.n_tolak) + " · "
         + (M.n_agent == null ? 0 : M.n_agent) + " agent", "mut"));
       chipsH.appendChild(chip("antrean", String(M.antrean == null ? 0 : M.antrean), "mut"));
+      /* 17 Nov — trade hasil escape RSI-momen (breakout bervolume). */
+      var ES = LH.escape || {};
+      if (ES.n) {
+        chipsH.appendChild(chip("escape RSI",
+          ES.n + " \u00b7 WR " + (ES.wr == null ? "\u2014" : ES.wr + "%")
+          + " \u00b7 EV " + (ES.ev == null ? "\u2014"
+                            : (ES.ev > 0 ? "+" : "") + (+ES.ev).toFixed(2) + "R"),
+          (num(ES.ev) || 0) >= 0 ? "pos" : "neg"));
+      }
       if (M.over_risk != null) {
         chipsH.appendChild(chip("risiko berlebih", String(M.over_risk),
           M.over_risk > 0 ? "neg" : "pos"));
@@ -2515,6 +2524,84 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       }
       kanan.appendChild(el("p", "def-note mut",
         "Dihitung sekali sehari dari journal \u2014 tanpa LLM."));
+    }
+
+    /* 17 Nov (permintaan user) — EVALUASI HARIAN AGENT (00:00 WIB): semua sinyal
+       hari itu dinilai terhadap target/SL-nya, termasuk pump/crash, arah balik,
+       komposisi fitur menang/kalah, dan ilmu yang masuk harness.
+       Sumber state/riset_agent.json + state/ilmu_evaluasi.json. */
+    var EVH = P.evaluasi || {};
+    if (EVH.tanggal) {
+      var cE2 = card("Evaluasi harian agent",
+        EVH.tanggal + " \u00b7 " + (EVH.n_dinilai == null ? 0 : EVH.n_dinilai)
+        + " sinyal dinilai");
+      var kE2 = el("div", "lh-chips");
+      kE2.appendChild(chip("sinyal", String(EVH.n_sinyal == null ? 0 : EVH.n_sinyal), "mut"));
+      kE2.appendChild(chip("win", String(EVH.n_win == null ? 0 : EVH.n_win), "pos"));
+      kE2.appendChild(chip("loss", String(EVH.n_loss == null ? 0 : EVH.n_loss), "neg"));
+      kE2.appendChild(chip("flip lebih baik", String(EVH.n_flip == null ? 0 : EVH.n_flip), "warn"));
+      kE2.appendChild(chip("pump", String(EVH.n_pump == null ? 0 : EVH.n_pump), "mut"));
+      kE2.appendChild(chip("crash", String(EVH.n_crash == null ? 0 : EVH.n_crash), "mut"));
+      cE2.appendChild(kE2);
+      var SE = EVH.sinyal || [];
+      if (SE.length) {
+        var twE = el("div", "tw");
+        cE2.appendChild(twE);
+        table(twE, [
+          { h: "jam UTC", c: function (s) {
+              return txt(String(s.t || "").slice(11, 16) || "\u2014", "dim"); } },
+          { h: "pair", c: function (s) { return txt(s.sym, "st"); } },
+          { h: "engine", c: function (s) {
+              return txt(String(s.kanal || "\u2014").toUpperCase(), "dim"); } },
+          { h: "arah", c: function (s) { return side(s.dir === "long" ? "long" : "short"); } },
+          { h: "hasil", c: function (s) {
+              var h = String(s.hasil_real || s.hasil || "\u2014");
+              return pill(h === "target" ? "TP" : h === "stop" ? "SL"
+                          : h === "time" ? "waktu" : h,
+                          h === "target" ? "pos" : h === "stop" ? "neg" : "warn"); } },
+          { h: "R", n: true, c: function (s) {
+              var rv = num(s.r_real); if (rv == null) rv = num(s.r); if (rv == null) rv = 0;
+              return txt((rv > 0 ? "+" : "") + rv.toFixed(2),
+                         "n " + (rv > 0 ? "pos" : rv < 0 ? "neg" : "dim")); } },
+          { h: "catatan", c: function (s) {
+              var t = String((s.diagnosa || {}).teks || "\u2014");
+              var td = txt(t.length > 48 ? t.slice(0, 48) + "\u2026" : t, "dim");
+              td.title = t; return td; } }
+        ], SE, "Tidak ada sinyal dinilai.");
+      }
+      var KM = EVH.komposisi_menang || [], KK = EVH.komposisi_kalah || [];
+      if (KM.length || KK.length) {
+        var wrE = el("div", "lh-wrap");
+        var mkList = function (judul, arr, cls) {
+          var d = el("div", "lh-left");
+          d.appendChild(el("p", "lh-cap", judul));
+          var ul = el("ul", "lh-list");
+          (arr || []).forEach(function (x) {
+            var ev = num(x.ev) || 0;
+            var li = el("li", cls || null,
+              String(x.n) + "\u00d7 \u00b7 WR " + x.wr + "% \u00b7 EV "
+              + (ev > 0 ? "+" : "") + ev.toFixed(2) + "R \u2014 "
+              + String(x.komposisi || ""));
+            ul.appendChild(li);
+          });
+          d.appendChild(ul);
+          return d;
+        };
+        wrE.appendChild(mkList("komposisi menang", KM, "pos"));
+        wrE.appendChild(mkList("komposisi kalah", KK, "neg"));
+        cE2.appendChild(wrE);
+      }
+      if ((EVH.ilmu || []).length) {
+        cE2.appendChild(el("p", "lh-cap", "ilmu harness (terbaru per kombinasi)"));
+        var ulI = el("ul", "lh-list");
+        (EVH.ilmu || []).forEach(function (t) {
+          ulI.appendChild(el("li", null, String(t)));
+        });
+        cE2.appendChild(ulI);
+      }
+      cE2.appendChild(el("p", "def-note mut",
+        "Dinilai 00:00 WIB dari journal hari itu (5m Binance, stop didahulukan). "
+        + "Temuan jadi konteks agent \u2014 bukan izin entry."));
     }
 
     /* 16 Nov (permintaan user) — EV PER ATURAN GERBANG: mana aturan yang masih
@@ -2711,6 +2798,109 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       p.textContent = "\u2192 " + s;
       host.appendChild(p);
     });
+  }
+
+  /* 17 Nov (permintaan user) — ANTREAN AGENT: daftar setup yang SEDANG
+     ditunggu bot/harness. Sumber server: bot.antrean (state/pending.json +
+     state/signal_status.json). Baris hilang sendiri begitu entry jalan atau
+     antreannya kedaluwarsa, jadi tabel ini selalu = yang benar-benar ditunggu. */
+  function botAntrean(A) {
+    var host = $("#bot-antrean");
+    if (!host) return;
+    host.innerHTML = "";
+    var rows = (A && A.baris) || [];
+    /* 17 Nov (permintaan user) — baris yang sudah tidak relevan bisa
+       disembunyikan. Ini hanya tampilan di browser ini (situs statis tak bisa
+       menulis ke bot); untuk benar-benar membatalkan pantauan jalankan
+       `run.py antre-batal <SYM>` di mesin bot. */
+    var LSKEY = "qkuk_antrean_sembunyi";
+    var kunciBaris = function (r) {
+      return [r.sym, r.dir, r.kanal, r.jenis].join("|");
+    };
+    var _sembunyi = [];
+    try { _sembunyi = JSON.parse(localStorage.getItem(LSKEY) || "[]") || []; }
+    catch (e) { _sembunyi = []; }
+    var _sudahSembunyi = {};
+    _sembunyi.forEach(function (k) { _sudahSembunyi[k] = 1; });
+    rows = rows.filter(function (r) { return !_sudahSembunyi[kunciBaris(r)]; });
+    var h = el("div", "bot-eq-h");
+    h.appendChild(el("span", null, "antrean agent \u00b7 sedang menunggu apa"));
+    h.appendChild(el("b", null, rows.length ? rows.length + " setup menunggu" : "antrean kosong"));
+    host.appendChild(h);
+    if (!rows.length) {
+      host.appendChild(el("p", "cap",
+        "Tidak ada yang ditunggu: semua sinyal sudah diputuskan (dibuka/ditolak) "
+        + "atau antreannya kedaluwarsa. Baris di tabel ini hilang otomatis begitu entry jalan."));
+      return;
+    }
+    var jenisTeks = { retest: "retest zona", momentum: "tunggu momentum",
+                      breakdown: "tunggu breakdown", pantau: "pantau", agent: "agent" };
+    var rp = function (v) {
+      var n = num(v);
+      if (n == null) return "\u2014";
+      return n >= 100 ? n.toFixed(2) : n >= 1 ? n.toFixed(4) : String(+n.toPrecision(4));
+    };
+    var umurTeks = function (m) {
+      var n = num(m);
+      if (n == null) return "\u2014";
+      if (n < 60) return Math.round(n) + " mnt";
+      return Math.floor(n / 60) + "j " + Math.round(n % 60) + "m";
+    };
+    var box = el("div", "tw");
+    host.appendChild(box);
+    table(box, [
+      { h: "sejak", c: function (r) { return txt(r.sejak || "\u2014", "dim"); } },
+      { h: "pair", c: function (r) {
+          var t = txt(r.sym || "\u2014", "st");
+          if (r.kanal) t.title = "engine " + String(r.kanal).toUpperCase();
+          return t;
+        } },
+      { h: "engine", c: function (r) { return txt(String(r.kanal || "\u2014").toUpperCase(), "dim"); } },
+      { h: "arah", c: function (r) {
+          var d = String(r.dir || "").toLowerCase();
+          return pill(d === "long" ? "LONG" : d === "short" ? "SHORT" : "\u2014",
+                      d === "long" ? "pos" : d === "short" ? "neg" : "mut");
+        } },
+      { h: "menunggu", c: function (r) {
+          var j = String(r.jenis || "");
+          return pill(jenisTeks[j] || j || "\u2014", j === "agent" ? "warn" : "mut");
+        } },
+      { h: "entry", n: true, c: function (r) { return txt(r.entry == null ? null : rp(r.entry), "n dim"); } },
+      { h: "SL", n: true, c: function (r) { return txt(r.sl == null ? null : rp(r.sl), "n neg"); } },
+      { h: "TP", n: true, c: function (r) { return txt(r.tp == null ? null : rp(r.tp), "n pos"); } },
+      { h: "umur", n: true, c: function (r) { return txt(umurTeks(r.umur), "n"); } },
+      { h: "sisa", n: true, c: function (r) {
+          var s = num(r.sisa);
+          if (s == null) return txt("\u2014", "n dim");
+          return txt(umurTeks(s), "n " + (s <= 15 ? "warn" : "dim"));
+        } },
+      { h: "alasan", c: function (r) {
+          var s = String(r.alasan || "\u2014");
+          var t = txt(s.length > 42 ? s.slice(0, 42) + "\u2026" : s, "dim");
+          t.title = s + (r.skor == null ? "" : "\nskor " + r.skor)
+            + "\nsumber: " + (r.sumber === "pending" ? "antrean eksekusi bot" : "putusan harness");
+          return t;
+        } },
+      { h: "", c: function (r) {
+          var b = el("button", "antre-x", "\u00d7");
+          b.title = "sembunyikan baris ini di browser ini "
+                    + "(batalkan pantauan: run.py antre-batal " + (r.sym || "") + ")";
+          b.onclick = function () {
+            var s = _sembunyi.slice();
+            s.push(kunciBaris(r));
+            try { localStorage.setItem(LSKEY, JSON.stringify(s.slice(-300))); }
+            catch (e) { /* mode privat: cukup sembunyikan sesi ini */ }
+            botAntrean(A);
+          };
+          var td = el("td", "antre-xc");
+          td.appendChild(b);
+          return td;
+        } }
+    ], rows, "Antrean kosong.");
+    host.appendChild(el("p", "cap",
+      "Tabel ini = setup yang masih dinilai/ditunggu. Begitu entry dijalankan status "
+      + "berubah jadi \u201cbuka\u201d, begitu ditolak jadi \u201ctolak\u201d \u2014 keduanya MENGHAPUS baris di sini. "
+      + "Antrean eksekusi bot juga punya batas waktu (kolom \u201csisa\u201d)."));
   }
 
   /* 14 Nov (permintaan user) — SINYAL LONG REBOUND: mana yang dibuka, ditahan
@@ -3566,6 +3756,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     agentFeed(B);
     botPertahanan(B.pertahanan);
     botLaporanTahan(B.laporan_tahan);
+    botAntrean(B.antrean);
     botRebound(B.rebound_sinyal);
     if (accHost) table(accHost, [
       { h: "engine", c: function (r) { return txt(String(r.kanal).toUpperCase(), "st"); } },

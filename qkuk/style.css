@@ -1494,3 +1494,9 @@ td.bcw{color:var(--gold)}
 .gev-tab td.n.mut{color:var(--fg-3)}
 .gev-sub{display:block;font-size:9px;color:var(--fg-3);letter-spacing:.02em}
 .gev-tab .bc-chip{font-size:9px;padding:2px 6px}
+/* 17 Nov — tombol sembunyikan baris antrean agent (tampilan browser saja). */
+.antre-xc{width:22px;text-align:center}
+.antre-x{background:none;border:1px solid var(--line);color:var(--fg-3);
+  border-radius:4px;width:18px;height:18px;line-height:1;font-size:12px;
+  cursor:pointer;padding:0}
+.antre-x:hover{color:var(--dn);border-color:var(--dn)}
