@@ -2081,6 +2081,97 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      hari (WIB). Sumber: journal autotrade (bukan backtest) — tiap titik =
      Σ (R × risiko$) hari itu, dijumlah berantai. Hari tanpa trade tertutup
      tidak dibuat, jadi kurva hanya bergerak saat benar-benar ada hasil. */
+  /* ═══ 17 Nov — EQUITY LIVE PER SIKLUS (permintaan user) ═══════════════
+     Beda dari kurva harian di bawah: kurva ini ABSOLUT (modal + realisasi +
+     PnL mengambang), satu titik tiap ~10 menit, 48 jam terakhir. Jadi kalau
+     satu posisi ditutup minus, garisnya langsung turun di siklus berikutnya —
+     bukan menunggu rekap harian. Sumber: DATA.bot.equity_hist. */
+  function equityLiveChart(hist, modal) {
+    var svg = $("#bot-eqv"), val = $("#bot-eqv-val");
+    if (!svg) return;
+    svg.innerHTML = "";
+    var titik = (hist && hist.titik) || [];
+    var M = num(hist && hist.modal != null ? hist.modal : modal);
+    var W = 620, H = 170, P = { t: 16, r: 66, b: 24, l: 62 };
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("preserveAspectRatio", "none");
+    var usd = function (v, d) { return (v < 0 ? "−$" : "$") + Math.abs(v).toFixed(d == null ? 2 : d); };
+    if (!titik.length) {
+      if (val) { val.textContent = "—"; val.style.color = ""; }
+      var k = mk("text", { x: W / 2, y: H / 2, "text-anchor": "middle" });
+      k.textContent = "riwayat equity belum terkumpul — titik pertama dibuat saat build berikutnya";
+      svg.appendChild(k);
+      return;
+    }
+    var ys = titik.map(function (r) { return num(r.total); }).filter(function (v) { return v !== null; });
+    if (!ys.length) return;
+    var hi = Math.max.apply(null, ys.concat([M || ys[0]]));
+    var lo = Math.min.apply(null, ys.concat([M || ys[0]]));
+    if (hi === lo) { hi += 1; lo -= 1; }
+    var pd = (hi - lo) * .18; hi += pd; lo -= pd;
+    var X = function (i) {
+      return titik.length === 1 ? (P.l + W - P.r) / 2
+        : P.l + i / (titik.length - 1) * (W - P.l - P.r);
+    };
+    var Y = function (v) { return P.t + (1 - (v - lo) / (hi - lo)) * (H - P.t - P.b); };
+    var akhir = ys[ys.length - 1];
+    var warna = (M != null && akhir < M) ? "#E8877C" : "#6EE7B7";
+    if (val) {
+      val.textContent = usd(akhir) + (M == null ? "" : " · "
+        + (akhir - M >= 0 ? "+" : "−") + "$" + Math.abs(akhir - M).toFixed(2));
+      val.style.color = warna;
+    }
+    for (var g = 0; g <= 3; g++) {
+      var yy = P.t + g / 3 * (H - P.t - P.b);
+      svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: yy, y2: yy, "class": "g" }));
+      var lb = mk("text", { x: P.l - 6, y: yy + 3, "text-anchor": "end" });
+      lb.textContent = "$" + (hi - g / 3 * (hi - lo)).toFixed(1);
+      svg.appendChild(lb);
+    }
+    /* garis modal: acuan untung/rugi. Di atas = hijau, di bawah = merah. */
+    if (M != null) {
+      svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: Y(M), y2: Y(M), "class": "z" }));
+      var lm = mk("text", { x: W - P.r + 6, y: Y(M) + 3, "class": "eq-end" });
+      lm.textContent = "modal " + usd(M, 0);
+      svg.appendChild(lm);
+    }
+    var xt = [0, titik.length - 1];
+    if (titik.length > 6) xt.splice(1, 0, Math.floor((titik.length - 1) / 2));
+    xt.forEach(function (i) {
+      var t = mk("text", { x: X(i), y: H - 7, "text-anchor": "middle" });
+      t.textContent = String(titik[i].t || "").slice(6);      // "MM-DD HH:MM" → "HH:MM"
+      svg.appendChild(t);
+    });
+    var pts = titik.map(function (r, i) { return [X(i), Y(num(r.total))]; });
+    var dLine = "M" + pts[0][0] + "," + pts[0][1];
+    pts.slice(1).forEach(function (p) { dLine += "L" + p[0] + "," + p[1]; });
+    var defs = mk("defs"); svg.appendChild(defs);
+    var gr = mk("linearGradient", { id: "boteqv", x1: 0, y1: 0, x2: 0, y2: 1 });
+    gr.appendChild(mk("stop", { offset: "0%", "stop-color": warna, "stop-opacity": .18 }));
+    gr.appendChild(mk("stop", { offset: "100%", "stop-color": warna, "stop-opacity": 0 }));
+    defs.appendChild(gr);
+    var dasar = Y(M != null ? M : lo);
+    if (pts.length > 1) {
+      svg.appendChild(mk("path", { d: dLine + "L" + pts[pts.length - 1][0] + "," + dasar
+        + "L" + pts[0][0] + "," + dasar + "Z", fill: "url(#boteqv)", stroke: "none" }));
+    }
+    svg.appendChild(mk("path", { d: dLine, fill: "none", stroke: warna, "stroke-width": 2,
+      "stroke-linecap": "round", "stroke-linejoin": "round" }));
+    titik.forEach(function (r, i) {
+      var c = mk("circle", { cx: pts[i][0], cy: pts[i][1], r: titik.length > 120 ? 0 : 2.4, fill: warna });
+      var tt = mk("title");
+      tt.textContent = r.t + " · equity " + usd(num(r.total), 2)
+        + " · terealisasi " + (r.realisasi == null ? "—" : usd(num(r.realisasi), 2))
+        + " · mengambang " + (r.mengambang == null ? "—" : usd(num(r.mengambang), 2));
+      c.appendChild(tt);
+      svg.appendChild(c);
+    });
+    var lab = mk("text", { x: pts[pts.length - 1][0] + 8, y: pts[pts.length - 1][1] + 3,
+      "class": "eq-end", fill: warna });
+    lab.textContent = usd(akhir, 1);
+    svg.appendChild(lab);
+  }
+
   /* 12 Nov — kurva equity dipakai dua kali: harian dalam $ (#bot-eq) dan
      per-trade dalam R (#bot-eqr). `o` memilih host, satuan, dan id gradient
      supaya dua SVG di halaman yang sama tidak saling menimpa. */
@@ -2968,8 +3059,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       table(openHost, [], [], "Bot auto-trade belum menjalankan siklus — jalankan: python3 zenbnb/autotrade/run.py once");
       if (accHost) accHost.innerHTML = "";
       botEquity([]);
+      equityLiveChart(null, null);
       return;
     }
+    equityLiveChart(B.equity_hist, B.equity_live);
     if (sum) {
       var chip = function (l, v, cls) {
         var s = el("span", "bc-chip " + (cls || ""));
