@@ -1423,7 +1423,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       host.appendChild(b);
     });
   }
-  function table(host, cols, rows, msg) {
+  function table(host, cols, rows, msg, onRow) {
     host.innerHTML = "";
     if (!rows.length) { host.appendChild(el("div", "empty", msg)); return; }
     var t = el("table"), th = el("thead"), tr = el("tr");
@@ -1436,6 +1436,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (r && r.apick && r.apick.taken) x.classList.add("pickrow");
       cols.forEach(function (c) { x.appendChild(c.c(r)); });
       tb.appendChild(x);
+      if (onRow) onRow(x, r);
     });
     t.appendChild(tb); host.appendChild(t);
   }
@@ -3264,6 +3265,57 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         return { kanal: r.kanal, dir: "", n: r.n, m: r.m, l: r.l, wr: r.wr,
                  r: r.r, tp_pct: null, gerak_pct: null, usd: null };
       });
+      /* 17 Nov (permintaan user) — klik baris kanal → rincian per trade.
+         Trading sudah ikut di payload (dikirim server dengan waktu WIB), jadi
+         membuka baris tidak memicu request apa pun. Klik lagi = tutup; satu
+         baris terbuka sekaligus supaya tabel tidak jadi tak terbaca. */
+      var harga = function (v) {
+        if (v == null) return "—";
+        var a = Math.abs(v);
+        var d = a >= 1000 ? 2 : a >= 1 ? 4 : a >= 0.01 ? 5 : 8;
+        return v.toFixed(d).replace(/0+$/, "").replace(/\.$/, "");
+      };
+      var detAktif = null;
+      var bukaRincian = function (tr, trades, judul) {
+        if (detAktif && detAktif !== tr) {
+          var lama = detAktif.nextSibling;
+          if (lama && lama.classList && lama.classList.contains("detrow")) lama.remove();
+          detAktif.classList.remove("detbuka");
+        }
+        if (detAktif === tr) { detAktif = null; return; }
+        detAktif = tr; tr.classList.add("detbuka");
+        var lebar = tr.children.length || 1;
+        var row = el("tr", "detrow");
+        var td = el("td"); td.colSpan = lebar;
+        row.appendChild(td);
+        var kep = el("div", "det-judul", judul + " · " + trades.length + " trade"
+          + (trades.length >= 80 ? " (ditampilkan 80 terbaru)" : ""));
+        td.appendChild(kep);
+        if (!trades.length) {
+          td.appendChild(el("div", "empty", "rincian trade belum tersedia untuk baris ini"));
+        } else {
+          var wrap = el("div", "tw det-tw");
+          table(wrap, [
+            { h: "waktu (WIB)", c: function (x) { return txt(x.waktu, "st"); } },
+            { h: "pair", c: function (x) { return txt(x.sym, "st"); } },
+            { h: "arah", c: arahCell },
+            { h: "entry", n: 1, c: function (x) { return numCell(harga(x.entry)); } },
+            { h: "exit", n: 1, c: function (x) { return numCell(harga(x.exit)); } },
+            { h: "R", n: 1, c: function (x) { return rcell(x.r); } },
+            { h: "$", n: 1, c: function (x) { return usdCell(x.usd, false); } },
+            { h: "hasil", c: function (x) {
+                var td2 = txt(x.hasil, "st");
+                td2.title = (x.alasan || "")
+                  + (x.mfe_r == null ? "" : " · MFE " + x.mfe_r.toFixed(2) + "R")
+                  + (x.mae_r == null ? "" : " · MAE " + x.mae_r.toFixed(2) + "R")
+                  + (x.tp_sentuh ? " · TP tersentuh" : "");
+                return td2;
+              } }
+          ], trades, "—");
+          td.appendChild(wrap);
+        }
+        tr.parentNode.insertBefore(row, tr.nextSibling);
+      };
       table(chanHost, [
         { h: "kanal", c: function (r) { return txt(namaKanal(r.kanal), "st"); } },
         { h: "arah", c: arahCell },
@@ -3284,7 +3336,18 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           } },
         { h: "$", n: 1, c: function (r) { return usdCell(r.usd, true); } }
       ], baris,
-        S.galat ? "kueri gagal: " + S.galat : "belum ada trade tertutup sejak reset");
+        S.galat ? "kueri gagal: " + S.galat : "belum ada trade tertutup sejak reset",
+        function (tr, r) {
+          if (!r.trades || !r.trades.length) return;
+          tr.classList.add("bisadet");
+          var s = el("span", "det-caret", "▸");
+          tr.firstChild.insertBefore(s, tr.firstChild.firstChild);
+          tr.addEventListener("click", function () {
+            var buka = !tr.classList.contains("detbuka");
+            bukaRincian(tr, r.trades, namaKanal(r.kanal) + " · " + (r.dir || "?"));
+            s.textContent = buka ? "▾" : "▸";
+          });
+        });
 
       /* 17 Nov (permintaan user) — TOTAL $ PER KANAL, gabungan long+short.
          Tabel di atas memecah per arah, jadi untuk menjawab "kanal ini
@@ -3294,17 +3357,19 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var kanalTot = [], peta = {};
       baris.forEach(function (r) {
         var k = String(r.kanal || "?");
-        if (!peta[k]) { peta[k] = { kanal: k, n: 0, m: 0, l: 0, r: 0, usd: 0, ada_usd: false }; kanalTot.push(peta[k]); }
+        if (!peta[k]) { peta[k] = { kanal: k, n: 0, m: 0, l: 0, r: 0, usd: 0, ada_usd: false, trades: [] }; kanalTot.push(peta[k]); }
         var t = peta[k];
         t.n += num(r.n) || 0; t.m += num(r.m) || 0; t.l += num(r.l) || 0;
         t.r += num(r.r) || 0;
         if (r.usd != null) { t.usd += num(r.usd) || 0; t.ada_usd = true; }
+        if (r.trades) t.trades = t.trades.concat(r.trades);
       });
       if (kanalTot.length) {
-        var semua = { n: 0, m: 0, l: 0, r: 0, usd: 0, ada_usd: false };
+        var semua = { n: 0, m: 0, l: 0, r: 0, usd: 0, ada_usd: false, trades: [] };
         kanalTot.forEach(function (t) {
           semua.n += t.n; semua.m += t.m; semua.l += t.l; semua.r += t.r;
           if (t.ada_usd) { semua.usd += t.usd; semua.ada_usd = true; }
+          semua.trades = semua.trades.concat(t.trades);
         });
         var wadah = el("div", "stat-total");
         var judul = el("div", "bot-eq-h");
@@ -3312,10 +3377,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         wadah.appendChild(judul);
         var isi = kanalTot.map(function (t) {
           return { kanal: t.kanal, n: t.n, m: t.m, l: t.l, r: t.r,
-                   usd: t.ada_usd ? t.usd : null };
+                   usd: t.ada_usd ? t.usd : null,
+                   trades: t.trades.sort(function (a, b) { return a.waktu < b.waktu ? 1 : -1; }) };
         });
         isi.push({ kanal: "TOTAL", n: semua.n, m: semua.m, l: semua.l,
-                   r: semua.r, usd: semua.ada_usd ? semua.usd : null, total: true });
+                   r: semua.r, usd: semua.ada_usd ? semua.usd : null, total: true,
+                   trades: semua.trades.sort(function (a, b) { return a.waktu < b.waktu ? 1 : -1; }) });
         table(wadah, [
           { h: "kanal", c: function (r) {
               var td = txt(r.total ? "TOTAL" : namaKanal(r.kanal), "st");
@@ -3330,7 +3397,18 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
               if (r.total) td.style.fontWeight = "700";
               return td;
             } }
-        ], isi, "—");
+        ], isi, "—", function (tr, r) {
+          if (!r.trades || !r.trades.length) return;
+          tr.classList.add("bisadet");
+          var s = el("span", "det-caret", "▸");
+          tr.firstChild.insertBefore(s, tr.firstChild.firstChild);
+          tr.addEventListener("click", function () {
+            var buka = !tr.classList.contains("detbuka");
+            bukaRincian(tr, r.trades, r.total ? "SEMUA KANAL"
+              : namaKanal(r.kanal) + " (long + short)");
+            s.textContent = buka ? "▾" : "▸";
+          });
+        });
         chanHost.appendChild(wadah);
       }
     }

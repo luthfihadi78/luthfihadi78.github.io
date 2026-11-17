@@ -1574,3 +1574,13 @@ td.bcw{color:var(--gold)}
 
 /* 17 Nov — ringkasan total $ per kanal, di bawah tabel per arah. */
 .stat-total{margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.09)}
+
+/* 17 Nov — baris kanal yang bisa diklik → rincian per trade. */
+.bisadet{cursor:pointer}
+.bisadet:hover td{background:rgba(255,255,255,.035)}
+.det-caret{display:inline-block;width:10px;margin-right:3px;font-size:9px;color:var(--mut,#8b93a7)}
+.detbuka td{background:rgba(110,231,183,.05)}
+.detrow>td{padding:0!important;background:rgba(0,0,0,.20)}
+.det-judul{font-size:11px;letter-spacing:.03em;text-transform:uppercase;color:var(--mut,#8b93a7);padding:7px 10px 0}
+.det-tw{margin:4px 8px 8px;max-height:42vh}
+.det-tw table{min-width:0}
