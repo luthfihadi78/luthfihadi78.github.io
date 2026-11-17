@@ -2086,7 +2086,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      PnL mengambang), satu titik tiap ~10 menit, 48 jam terakhir. Jadi kalau
      satu posisi ditutup minus, garisnya langsung turun di siklus berikutnya —
      bukan menunggu rekap harian. Sumber: DATA.bot.equity_hist. */
-  function equityLiveChart(hist, modal) {
+  function equityLiveChart(hist, modal, tutupTitik) {
     var svg = $("#bot-eqv"), val = $("#bot-eqv-val");
     if (!svg) return;
     svg.innerHTML = "";
@@ -2180,6 +2180,37 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       "class": "eq-end", fill: warna });
     lab.textContent = usd(akhir, 1);
     svg.appendChild(lab);
+    /* 17 Nov (permintaan user) — penanda tiap posisi yang DITUTUP: garis
+       vertikal di titik waktu terdekat + label R di puncak grafik. Posisi
+       ditentukan dari epoch titik (bukan indeks), jadi tetap benar meski
+       titik dirapatkan per bucket. */
+    var tk = (tutupTitik || []).slice().sort(function (a, b) { return a.ts - b.ts; });
+    if (!tk.length) return;
+    var tsTitik = titik.map(function (r) { return r.ts || 0; });
+    var idxDari = function (ts) {
+      for (var i = tsTitik.length - 1; i >= 0; i--) if (tsTitik[i] && tsTitik[i] <= ts) return i;
+      return 0;
+    };
+    var xLabelTerakhir = -1e9, nLabel = 0;
+    tk.forEach(function (t) {
+      var i = idxDari(t.ts), x = X(i), menang = t.r > 0;
+      var c = menang ? "#6EE7B7" : t.r < 0 ? "#E8877C" : "#9AA4B2";
+      var garis = mk("line", { x1: x, x2: x, y1: P.t, y2: H - P.b,
+        stroke: c, "stroke-width": 1, "stroke-dasharray": "2 3", "stroke-opacity": .55 });
+      var ttl = mk("title");
+      ttl.textContent = (t.sym || "") + " ditutup " + t.r.toFixed(2) + "R · "
+        + String((titik[i] || {}).t || "");
+      garis.appendChild(ttl);
+      svg.appendChild(garis);
+      /* label hanya kalau tidak berdesakan (jarak ≥ 30 px), maks 12 label */
+      if (nLabel < 12 && x - xLabelTerakhir >= 30) {
+        var lb = mk("text", { x: x, y: P.t - 5, "text-anchor": "middle",
+          fill: c, "font-size": 8.5, "font-weight": 600 });
+        lb.textContent = (t.r > 0 ? "+" : t.r < 0 ? "−" : "") + Math.abs(t.r).toFixed(1) + "R";
+        svg.appendChild(lb);
+        xLabelTerakhir = x; nLabel++;
+      }
+    });
   }
 
   /* 12 Nov — kurva equity dipakai dua kali: harian dalam $ (#bot-eq) dan
@@ -3127,11 +3158,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       table(openHost, [], [], "Bot auto-trade belum menjalankan siklus — jalankan: python3 zenbnb/autotrade/run.py once");
       if (accHost) accHost.innerHTML = "";
       botEquity([]);
-      equityLiveChart(null, null);
+      equityLiveChart(null, null, null);
       botStatDb(null);
       return;
     }
-    equityLiveChart(B.equity_hist, B.equity_live);
+    equityLiveChart(B.equity_hist, B.equity_live, B.tutup_titik);
     botStatDb(B.stat_db);
     if (sum) {
       var chip = function (l, v, cls) {
