@@ -3054,6 +3054,52 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       + "Ukuran \u00d70,5, TP \u2264 0,8R. Selain itu sinyal tetap ditolak."));
   }
 
+  /* 17 Nov (permintaan user) — STATISTIK DARI SQLITE. Angka di tabel ini
+     dihasilkan oleh kueri GROUP BY di state/qkuk_state.sqlite (bukan dihitung
+     ulang di browser dari riwayat mentah), jadi yang terlihat = isi DB apa
+     adanya: per kanal dan per hari WIB, sejak jam reset. */
+  function botStatDb(S) {
+    var chanHost = $("#bot-chan"), hariHost = $("#bot-hari");
+    if (!chanHost && !hariHost) return;
+    S = S || {};
+    var cap = $("#bot-stat-cap"), nEl = $("#bot-stat-n"), msEl = $("#bot-stat-ms");
+    if (cap) cap.textContent = "statistik SQLite · per kanal" + (S.sejak ? " · sejak " + S.sejak : "");
+    if (nEl) nEl.textContent = (S.n == null ? "—" : S.n + " trade tertutup");
+    if (msEl) msEl.textContent = S.galat ? "—"
+      : (S.ms == null ? "—" : "kueri " + S.ms + " ms");
+    var NAMA_KANAL = { "ob": "🧱 BRICK", "ob4h": "🏰 BASTION 4H", "ob30m": "🧱 TILE 30M",
+      "tile": "🧱 TILE 30M", "2h": "🩸 HARVEST 2H", "4h": "SCALP 2H",
+      "1h": "⚡ SNIPER", "30m": "REVERSAL", "15m": "🎯 DART" };
+    var rcell = function (v) {
+      var td = el("td"); td.className = "n";
+      if (v == null) { td.textContent = "—"; return td; }
+      td.textContent = (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(2) + "R";
+      td.style.color = v > 0 ? "#6EE7B7" : v < 0 ? "#E8877C" : "";
+      return td;
+    };
+    var numCell = function (v) { var td = el("td", "n", v == null ? "—" : String(v)); return td; };
+    if (chanHost) {
+      table(chanHost, [
+        { h: "kanal", c: function (r) { return txt(NAMA_KANAL[r.kanal] || String(r.kanal || "?").toUpperCase(), "st"); } },
+        { h: "n", n: 1, c: function (r) { return numCell(r.n); } },
+        { h: "W/L", c: function (r) { return numCell((r.m || 0) + " / " + (r.l || 0)); } },
+        { h: "WR", n: 1, c: function (r) { return numCell(r.wr == null ? null : r.wr.toFixed(1) + "%"); } },
+        { h: "ΣR", n: 1, c: function (r) { return rcell(r.r); } },
+        { h: "EV", n: 1, c: function (r) { return rcell(r.ev); } }
+      ], (S.kanal || []).map(function (r) { return r; }),
+        S.galat ? "kueri gagal: " + S.galat : "belum ada trade tertutup sejak reset");
+    }
+    if (hariHost) {
+      table(hariHost, [
+        { h: "tanggal (WIB)", c: function (r) { return txt(r.tanggal || "—", "st"); } },
+        { h: "n", n: 1, c: function (r) { return numCell(r.n); } },
+        { h: "W/L", c: function (r) { return numCell((r.m || 0) + " / " + (r.l || 0)); } },
+        { h: "WR", n: 1, c: function (r) { return numCell(r.wr == null ? null : r.wr.toFixed(1) + "%"); } },
+        { h: "ΣR", n: 1, c: function (r) { return rcell(r.r); } }
+      ], (S.harian || []), "belum ada hari dengan trade tertutup");
+    }
+  }
+
   function botCard() {
     var openHost = $("#bot-open"), accHost = $("#bot-acc"), sum = $("#bot-sum");
     if (!openHost) return;
@@ -3070,9 +3116,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (accHost) accHost.innerHTML = "";
       botEquity([]);
       equityLiveChart(null, null);
+      botStatDb(null);
       return;
     }
     equityLiveChart(B.equity_hist, B.equity_live);
+    botStatDb(B.stat_db);
     if (sum) {
       var chip = function (l, v, cls) {
         var s = el("span", "bc-chip " + (cls || ""));
