@@ -2139,7 +2139,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (titik.length > 6) xt.splice(1, 0, Math.floor((titik.length - 1) / 2));
     xt.forEach(function (i) {
       var t = mk("text", { x: X(i), y: H - 7, "text-anchor": "middle" });
-      t.textContent = String(titik[i].t || "").slice(6);      // "MM-DD HH:MM" → "HH:MM"
+      t.textContent = String(titik[i].t || "").split(" ").pop();   // "17 Nov 13:13" → "13:13"
       svg.appendChild(t);
     });
     var pts = titik.map(function (r, i) { return [X(i), Y(num(r.total))]; });
