@@ -2092,6 +2092,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     svg.innerHTML = "";
     var titik = (hist && hist.titik) || [];
     var M = num(hist && hist.modal != null ? hist.modal : modal);
+    /* keterangan: sumber titik (siklus atau dirapatkan) + jumlahnya */
+    var cap = $("#bot-eqv-cap");
+    if (cap && hist) {
+      var mode = hist.mode === "siklus" ? "tiap siklus build"
+        : "tiap " + (hist.mode || "10 mnt");
+      cap.textContent = "equity live · " + mode + " · " + (hist.n || titik.length)
+        + " titik · " + (hist.jendela_jam || 48) + " jam";
+      if (hist.dari && hist.sampai) cap.title = "dari " + hist.dari + " sampai " + hist.sampai
+        + (hist.n_mentah ? " · " + hist.n_mentah + " siklus tercatat" : "");
+    }
     var W = 620, H = 170, P = { t: 16, r: 66, b: 24, l: 62 };
     svg.setAttribute("viewBox", "0 0 " + W + " " + H);
     svg.setAttribute("preserveAspectRatio", "none");
