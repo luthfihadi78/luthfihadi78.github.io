@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{if(top!==self){document.documentElement.style.display="none";top.location=self.location}if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=20261117i">
+<link rel="stylesheet" href="style.css?v=20261117j">
 </head>
 <body>
 
@@ -170,6 +170,10 @@
         · <a class="riwayat-link" href="playbook.html">playbook entry →</a></span>
     </div>
     <div class="bc-sum" id="bot-sum"></div>
+    <!-- 17 Nov — antrean agent dipindah ke sini (atas, dekat equity live) supaya
+         setup yang sedang ditunggu langsung terpantau, bukan terkubur di
+         Analitik bot. -->
+    <div id="bot-antrean"></div>
     <div class="bot-eq">
       <div class="bot-eq-h"><span id="bot-eqv-cap">equity live · tiap siklus build · 48 jam</span><b id="bot-eqv-val">—</b></div>
       <svg class="ch" id="bot-eqv" role="img" aria-label="Pergerakan equity bot per siklus build"></svg>
@@ -270,7 +274,6 @@
     <div id="bot-bukti"></div>
     <div id="bot-strategi"></div>
     <div id="bot-laporan-tahan"></div>
-    <div id="bot-antrean"></div>
     <div id="bot-rebound"></div>
     <div class="tw" id="bot-acc"></div>
     <div id="bot-koreksi"></div>
@@ -343,6 +346,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20261117i" defer></script>
+<script src="app.js?v=20261117j" defer></script>
 </body>
 </html>

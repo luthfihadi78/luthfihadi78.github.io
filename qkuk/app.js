@@ -2949,15 +2949,29 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var kunciBaris = function (r) {
       return [r.sym, r.dir, r.kanal, r.jenis].join("|");
     };
-    var _sembunyi = [];
+    /* 17 Nov — sembunyian KEDALUWARSA (6 jam), bukan selamanya. Dulu entri
+       string disimpan permanen, jadi baris dengan kunci sama tak pernah muncul
+       lagi walau setup-nya baru — antrean tampak "hilang". Entri format lama
+       (string tanpa waktu) dibuang supaya baris lama ikut tampil kembali. */
+    var _sembunyi = [], _umurSembunyi = 6 * 3600 * 1000, _kini = Date.now();
     try { _sembunyi = JSON.parse(localStorage.getItem(LSKEY) || "[]") || []; }
     catch (e) { _sembunyi = []; }
-    var _sudahSembunyi = {};
-    _sembunyi.forEach(function (k) { _sudahSembunyi[k] = 1; });
+    var _sudahSembunyi = {}, _simpanBaru = [];
+    _sembunyi.forEach(function (e) {
+      if (e && typeof e === "object" && e.k && (_kini - (e.ts || 0)) < _umurSembunyi) {
+        _sudahSembunyi[e.k] = 1; _simpanBaru.push(e);
+      }
+    });
+    try { localStorage.setItem(LSKEY, JSON.stringify(_simpanBaru)); } catch (e) { /* privat */ }
     rows = rows.filter(function (r) { return !_sudahSembunyi[kunciBaris(r)]; });
-    var h = el("div", "bot-eq-h");
-    h.appendChild(el("span", null, "antrean agent \u00b7 sedang menunggu apa"));
-    h.appendChild(el("b", null, rows.length ? rows.length + " setup menunggu" : "antrean kosong"));
+    /* 17 Nov — panel berwarna, bukan tabel polos: warna per arah, per jenis
+       tunggu, dan per sisa waktu supaya antrean terbaca sekilas. */
+    host.className = "antrean";
+    var h = el("div", "antrean-h");
+    h.appendChild(el("span", null, "\u23f3 antrean agent \u00b7 sedang menunggu apa"));
+    var badge = el("b", rows.length ? "antre-badge" : "antre-badge kosong",
+                   rows.length ? rows.length + " setup menunggu" : "antrean kosong");
+    h.appendChild(badge);
     host.appendChild(h);
     if (!rows.length) {
       host.appendChild(el("p", "cap",
@@ -2978,16 +2992,35 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (n < 60) return Math.round(n) + " mnt";
       return Math.floor(n / 60) + "j " + Math.round(n % 60) + "m";
     };
+    /* chip engine berwarna per kanal (mudah dibedakan sekilas) */
+    var WARNA_ENG = { tile: "eng-gold", ob: "eng-blue", "2h": "eng-violet",
+                      ob30m: "eng-gold", "4h": "eng-teal", "1h": "eng-teal",
+                      "15m": "eng-pink", "30m": "eng-blue" };
+    var chipEng = function (k) {
+      var kunci = String(k || "").toLowerCase();
+      var sp = el("span", "antre-eng " + (WARNA_ENG[kunci] || "eng-mute"),
+                  String(k || "\u2014").toUpperCase());
+      return sp;
+    };
+    var warnaLama = function (m, batas) {
+      var n = num(m);
+      if (n == null) return "n dim";
+      if (n >= batas * 2) return "n a-old";     // lama menunggu = merah
+      if (n >= batas) return "n a-warn";        // mendekati = kuning
+      return "n a-fresh";                       // baru = hijau
+    };
     var box = el("div", "tw");
     host.appendChild(box);
     table(box, [
       { h: "sejak", c: function (r) { return txt(r.sejak || "\u2014", "dim"); } },
       { h: "pair", c: function (r) {
-          var t = txt(r.sym || "\u2014", "st");
+          var t = txt(r.sym || "\u2014", "sym");
           if (r.kanal) t.title = "engine " + String(r.kanal).toUpperCase();
           return t;
         } },
-      { h: "engine", c: function (r) { return txt(String(r.kanal || "\u2014").toUpperCase(), "dim"); } },
+      { h: "engine", c: function (r) {
+          var td = el("td"); td.appendChild(chipEng(r.kanal)); return td;
+        } },
       { h: "arah", c: function (r) {
           var d = String(r.dir || "").toLowerCase();
           return pill(d === "long" ? "LONG" : d === "short" ? "SHORT" : "\u2014",
@@ -2995,16 +3028,19 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         } },
       { h: "menunggu", c: function (r) {
           var j = String(r.jenis || "");
-          return pill(jenisTeks[j] || j || "\u2014", j === "agent" ? "warn" : "mut");
+          var td = el("td");
+          var sp = el("span", "antre-jenis j-" + (j || "lain"), jenisTeks[j] || j || "\u2014");
+          td.appendChild(sp); return td;
         } },
-      { h: "entry", n: true, c: function (r) { return txt(r.entry == null ? null : rp(r.entry), "n dim"); } },
+      { h: "entry", n: true, c: function (r) { return txt(r.entry == null ? null : rp(r.entry), "n"); } },
       { h: "SL", n: true, c: function (r) { return txt(r.sl == null ? null : rp(r.sl), "n neg"); } },
       { h: "TP", n: true, c: function (r) { return txt(r.tp == null ? null : rp(r.tp), "n pos"); } },
-      { h: "umur", n: true, c: function (r) { return txt(umurTeks(r.umur), "n"); } },
+      { h: "umur", n: true, c: function (r) { return txt(umurTeks(r.umur), warnaLama(r.umur, 90)); } },
       { h: "sisa", n: true, c: function (r) {
           var s = num(r.sisa);
           if (s == null) return txt("\u2014", "n dim");
-          return txt(umurTeks(s), "n " + (s <= 15 ? "warn" : "dim"));
+          /* sisa waktu: makin sedikit makin merah (kebalikan umur) */
+          return txt(umurTeks(s), "n " + (s <= 15 ? "a-old" : s <= 60 ? "a-warn" : "a-fresh"));
         } },
       { h: "alasan", c: function (r) {
           var s = String(r.alasan || "\u2014");
@@ -3018,8 +3054,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           b.title = "sembunyikan baris ini di browser ini "
                     + "(batalkan pantauan: run.py antre-batal " + (r.sym || "") + ")";
           b.onclick = function () {
-            var s = _sembunyi.slice();
-            s.push(kunciBaris(r));
+            var s = _simpanBaru.slice();
+            s.push({ k: kunciBaris(r), ts: Date.now() });
             try { localStorage.setItem(LSKEY, JSON.stringify(s.slice(-300))); }
             catch (e) { /* mode privat: cukup sembunyikan sesi ini */ }
             botAntrean(A);
@@ -3029,6 +3065,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           return td;
         } }
     ], rows, "Antrean kosong.");
+    /* 17 Nov — warna baris per arah (garis tepi kiri hijau/merah) supaya mata
+       langsung tahu mana long dan mana short. */
+    var trs = box.querySelectorAll("tbody tr");
+    for (var ti = 0; ti < trs.length && ti < rows.length; ti++) {
+      var dr = String(rows[ti].dir || "").toLowerCase();
+      trs[ti].className = dr === "long" ? "ar-l" : dr === "short" ? "ar-s" : "ar-n";
+    }
     host.appendChild(el("p", "cap",
       "Tabel ini = setup yang masih dinilai/ditunggu. Begitu entry dijalankan status "
       + "berubah jadi \u201cbuka\u201d, begitu ditolak jadi \u201ctolak\u201d \u2014 keduanya MENGHAPUS baris di sini. "

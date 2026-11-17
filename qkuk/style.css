@@ -1498,6 +1498,47 @@ td.bcw{color:var(--gold)}
 .gev-sub{display:block;font-size:9px;color:var(--fg-3);letter-spacing:.02em}
 .gev-tab .bc-chip{font-size:9px;padding:2px 6px}
 /* 17 Nov — tombol sembunyikan baris antrean agent (tampilan browser saja). */
+/* 17 Nov — antrean agent dipindah ke kartu bot & dibuat berwarna.
+   Tujuannya: terbaca sekilas tanpa harus membaca angkanya. */
+.antrean{border:1px solid rgba(245,196,92,.30);border-radius:var(--r);
+  background:linear-gradient(180deg,rgba(245,196,92,.09),rgba(110,231,183,.045) 52%,rgba(0,0,0,0));
+  padding:10px 12px 8px;margin:10px 0}
+.antrean-h{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--gold);margin-bottom:6px}
+.antre-badge{font-size:11px;letter-spacing:.02em;text-transform:none;color:#12160f;
+  background:linear-gradient(90deg,#F5C45C,#6EE7B7);border-radius:999px;padding:3px 11px;
+  font-weight:700;white-space:nowrap}
+.antre-badge.kosong{background:transparent;color:var(--fg-3);
+  border:1px solid var(--line-2);font-weight:600}
+.antrean .tw{background:rgba(10,14,12,.45);border-color:rgba(245,196,92,.20);max-height:44vh}
+.antrean table{min-width:860px}
+.antrean th{background:rgba(18,24,20,.92);color:var(--fg-2);border-bottom-color:rgba(245,196,92,.22)}
+.antrean td{border-bottom:1px solid rgba(255,255,255,.05)}
+.antrean tbody tr:nth-child(odd){background:rgba(255,255,255,.018)}
+.antrean tbody tr.ar-l td:first-child{box-shadow:inset 3px 0 0 var(--up)}
+.antrean tbody tr.ar-s td:first-child{box-shadow:inset 3px 0 0 var(--dn)}
+.antrean tbody tr.ar-n td:first-child{box-shadow:inset 3px 0 0 var(--fg-3)}
+.antrean td.n.a-fresh{color:var(--up)}
+.antrean td.n.a-warn{color:var(--gold)}
+.antrean td.n.a-old{color:var(--dn);font-weight:600}
+/* chip engine: warna tetap per kanal */
+.antre-eng{display:inline-block;font-size:10px;letter-spacing:.06em;font-weight:700;
+  padding:2px 8px;border-radius:4px;border:1px solid transparent}
+.antre-eng.eng-gold{color:#F5C45C;background:rgba(245,196,92,.13);border-color:rgba(245,196,92,.35)}
+.antre-eng.eng-blue{color:#8FB8FF;background:rgba(139,184,255,.13);border-color:rgba(139,184,255,.35)}
+.antre-eng.eng-violet{color:#C4A8FF;background:rgba(196,168,255,.13);border-color:rgba(196,168,255,.35)}
+.antre-eng.eng-teal{color:#6EE7D5;background:rgba(110,231,213,.13);border-color:rgba(110,231,213,.35)}
+.antre-eng.eng-pink{color:#FF9FCF;background:rgba(255,159,207,.13);border-color:rgba(255,159,207,.35)}
+.antre-eng.eng-mute{color:var(--fg-2);background:rgba(255,255,255,.05);border-color:var(--line)}
+/* jenis tunggu */
+.antre-jenis{display:inline-block;font-size:10px;letter-spacing:.05em;text-transform:uppercase;
+  padding:2px 8px;border-radius:999px;font-weight:600;border:1px solid transparent}
+.antre-jenis.j-agent{color:var(--gold);background:rgba(245,196,92,.14);border-color:rgba(245,196,92,.4)}
+.antre-jenis.j-momentum{color:#8FB8FF;background:rgba(139,184,255,.14);border-color:rgba(139,184,255,.4)}
+.antre-jenis.j-retest{color:var(--up);background:rgba(110,231,183,.14);border-color:rgba(110,231,183,.4)}
+.antre-jenis.j-breakdown{color:var(--dn);background:rgba(255,107,107,.14);border-color:rgba(255,107,107,.4)}
+.antre-jenis.j-pantau{color:var(--fg-2);background:rgba(255,255,255,.06);border-color:var(--line)}
 .antre-xc{width:22px;text-align:center}
 .antre-x{background:none;border:1px solid var(--line);color:var(--fg-3);
   border-radius:4px;width:18px;height:18px;line-height:1;font-size:12px;
