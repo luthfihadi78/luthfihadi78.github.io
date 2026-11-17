@@ -3207,7 +3207,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (cap) cap.textContent = "statistik SQLite · per kanal & arah"
       + (S.sejak ? " · sejak " + S.sejak : "");
     if (cap) cap.title = "target % = jarak entry→TP · gerak % = perubahan harga "
-      + "entry→exit (short dibalik) · $ = R × risiko USDT sebelum fee";
+      + "entry→exit (short dibalik) · $ = R bersih (setelah fee & funding) × risiko USDT";
     if (nEl) nEl.textContent = (S.n == null ? "—" : S.n + " trade tertutup");
     if (msEl) msEl.textContent = S.galat ? "—"
       : (S.ms == null ? "—" : "kueri " + S.ms + " ms");
@@ -3309,8 +3309,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
             { h: "arah", c: arahCell },
             { h: "entry", n: 1, c: function (x) { return numCell(harga(x.entry)); } },
             { h: "exit", n: 1, c: function (x) { return numCell(harga(x.exit)); } },
-            { h: "R", n: 1, c: function (x) { return rcell(x.r); } },
-            { h: "$", n: 1, c: function (x) { return usdCell(x.usd, false); } },
+            { h: "R", n: 1, c: function (x) {
+                var td3 = rcell(x.r);
+                if (x.r_net != null && x.r !== x.r_net) {
+                  td3.title = "kotor " + x.r.toFixed(2) + "R · bersih " + x.r_net.toFixed(2) + "R";
+                }
+                return td3;
+              } },
+            { h: "$ bersih", n: 1, c: function (x) { return usdCell(x.usd, false); } },
             { h: "hasil", c: function (x) {
                 var td2 = txt(x.hasil, "st");
                 td2.title = (x.alasan || "")
@@ -3342,7 +3348,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
             td.title = "perubahan harga entry→exit rata-rata (sudah dibalik untuk short)";
             return td;
           } },
-        { h: "$", n: 1, c: function (r) { return usdCell(r.usd, true); } }
+        { h: "$ bersih", n: 1, c: function (r) { return usdCell(r.usd, true); } }
       ], baris,
         S.galat ? "kueri gagal: " + S.galat : "belum ada trade tertutup sejak reset",
         function (tr, r) {
@@ -3400,7 +3406,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           { h: "n", n: 1, c: function (r) { return numCell(r.n); } },
           { h: "W/L", n: 1, c: function (r) { return numCell((r.m || 0) + " / " + (r.l || 0)); } },
           { h: "ΣR", n: 1, c: function (r) { return rcell(r.r); } },
-          { h: "total $", n: 1, c: function (r) {
+          { h: "total $ bersih", n: 1, c: function (r) {
               var td = usdCell(r.usd, false);
               if (r.total) td.style.fontWeight = "700";
               return td;
