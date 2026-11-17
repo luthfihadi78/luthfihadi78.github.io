@@ -3281,6 +3281,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           var lama = detAktif.nextSibling;
           if (lama && lama.classList && lama.classList.contains("detrow")) lama.remove();
           detAktif.classList.remove("detbuka");
+          var c = detAktif.querySelector(".det-caret");
+          if (c) c.textContent = "▸";
         }
         if (detAktif === tr) {          // klik baris yang sama = tutup
           var tutup = tr.nextSibling;
