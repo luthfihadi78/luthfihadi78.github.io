@@ -2980,6 +2980,25 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var A = B.akurasi || {}, posOpen = (B.terbuka || []).length;
       sum.appendChild(chip("mode", B.mode || "—", B.mode === "dry_run" ? "warn" : "pos"));
       sum.appendChild(chip("modal", fdu(B.modal)));
+      /* 17 Nov (permintaan user) — EQUITY LIVE: modal + hasil terealisasi +
+         PnL mengambang. Begitu ada close minus, angka total dan chip ini
+         langsung merah tanpa menunggu rekap harian. */
+      var EL = B.equity_live;
+      if (EL && EL.sekarang != null) {
+        var dEL = EL.delta == null ? 0 : EL.delta;
+        var tEL = dEL > 0 ? "+" : dEL < 0 ? "−" : "";
+        var cEL = chip("equity",
+          "$" + (+EL.sekarang).toFixed(2) + " · " + tEL + "$" + Math.abs(dEL).toFixed(2)
+          + (EL.delta_pct == null ? "" : " (" + tEL + Math.abs(EL.delta_pct).toFixed(2) + "%)"),
+          dEL < 0 ? "neg" : dEL > 0 ? "pos" : "mut");
+        cEL.title = "modal $" + (+EL.modal).toFixed(2)
+          + " · terealisasi " + ((EL.realisasi || 0) < 0 ? "−$" : "+$")
+          + Math.abs(EL.realisasi || 0).toFixed(2)
+          + " (" + (EL.realisasi_n || 0) + " trade tertutup)"
+          + (EL.mengambang == null ? "" : " · mengambang "
+             + (EL.mengambang < 0 ? "−$" : "+$") + Math.abs(EL.mengambang).toFixed(2));
+        sum.appendChild(cEL);
+      }
       sum.appendChild(chip("leverage", "x" + (B.leverage == null ? "—" : B.leverage)));
       sum.appendChild(chip("margin", B.margin || "—"));
       sum.appendChild(chip("posisi", posOpen + "/" + (B.maks_posisi || "—"), posOpen ? "pos" : "mut"));
