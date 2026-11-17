@@ -3203,7 +3203,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (!chanHost && !hariHost) return;
     S = S || {};
     var cap = $("#bot-stat-cap"), nEl = $("#bot-stat-n"), msEl = $("#bot-stat-ms");
-    if (cap) cap.textContent = "statistik SQLite · per kanal" + (S.sejak ? " · sejak " + S.sejak : "");
+    if (cap) cap.textContent = "statistik SQLite · per kanal & arah"
+      + (S.sejak ? " · sejak " + S.sejak : "");
+    if (cap) cap.title = "target % = jarak entry→TP · gerak % = perubahan harga "
+      + "entry→exit (short dibalik) · $ = R × risiko USDT sebelum fee";
     if (nEl) nEl.textContent = (S.n == null ? "—" : S.n + " trade tertutup");
     if (msEl) msEl.textContent = S.galat ? "—"
       : (S.ms == null ? "—" : "kueri " + S.ms + " ms");
@@ -3231,14 +3234,56 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     };
     var numCell = function (v) { var td = el("td", "n", v == null ? "—" : String(v)); return td; };
     if (chanHost) {
+      /* 17 Nov (permintaan user) — tabel ini kini per KANAL + ARAH dan
+         menampilkan hal yang benar-benar ditanyakan: arahnya long/short,
+         target % (entry→TP), gerak % yang benar-benar terjadi saat posisi
+         ditutup, dan uangnya dalam $ (R × risiko USDT). */
+      var arahCell = function (r) {
+        var d = String(r.dir || "").toLowerCase();
+        return pill(d === "long" ? "LONG" : d === "short" ? "SHORT" : "—",
+                    d === "long" ? "pos" : d === "short" ? "neg" : "mut");
+      };
+      var pctCell = function (v) {
+        var td = el("td", "n");
+        if (v == null) { td.textContent = "—"; return td; }
+        td.textContent = (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(2) + "%";
+        td.style.color = v > 0 ? "#6EE7B7" : v < 0 ? "#E8877C" : "";
+        return td;
+      };
+      var usdCell = function (v, rata) {
+        var td = el("td", "n");
+        if (v == null) { td.textContent = "—"; return td; }
+        var s = (v > 0 ? "+$" : v < 0 ? "−$" : "$") + Math.abs(v).toFixed(2);
+        if (rata && Math.abs(v) >= 0.005) s += " · $" + Math.abs(v).toFixed(2) + "/trade";
+        td.textContent = rata ? s : s;
+        td.style.color = v > 0 ? "#6EE7B7" : v < 0 ? "#E8877C" : "";
+        return td;
+      };
+      var AR = S.kanal_arah || [];
+      var baris = AR.length ? AR : (S.kanal || []).map(function (r) {
+        return { kanal: r.kanal, dir: "", n: r.n, m: r.m, l: r.l, wr: r.wr,
+                 r: r.r, tp_pct: null, gerak_pct: null, usd: null };
+      });
       table(chanHost, [
         { h: "kanal", c: function (r) { return txt(namaKanal(r.kanal), "st"); } },
+        { h: "arah", c: arahCell },
         { h: "n", n: 1, c: function (r) { return numCell(r.n); } },
         { h: "W/L", c: function (r) { return numCell((r.m || 0) + " / " + (r.l || 0)); } },
         { h: "WR", n: 1, c: function (r) { return numCell(r.wr == null ? null : r.wr.toFixed(1) + "%"); } },
         { h: "ΣR", n: 1, c: function (r) { return rcell(r.r); } },
-        { h: "EV", n: 1, c: function (r) { return rcell(r.ev); } }
-      ], (S.kanal || []).map(function (r) { return r; }),
+        { h: "target %", n: 1, c: function (r) {
+            var td = pctCell(r.tp_pct);
+            td.title = "jarak entry→TP yang dikejar"
+              + (r.risk_pct == null ? "" : " · risiko SL " + r.risk_pct.toFixed(2) + "%");
+            return td;
+          } },
+        { h: "gerak %", n: 1, c: function (r) {
+            var td = pctCell(r.gerak_pct);
+            td.title = "perubahan harga entry→exit rata-rata (sudah dibalik untuk short)";
+            return td;
+          } },
+        { h: "$", n: 1, c: function (r) { return usdCell(r.usd, true); } }
+      ], baris,
         S.galat ? "kueri gagal: " + S.galat : "belum ada trade tertutup sejak reset");
     }
     if (hariHost) {
