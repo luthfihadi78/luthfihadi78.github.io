@@ -135,64 +135,9 @@
       } }
   ];
 
-  /* 18 Nov (permintaan user) — ringkasan HASIL PER KOIN di halaman ini,
-     dihitung dari baris yang lolos saringan (engine/pair/hasil), jadi angkanya
-     selalu konsisten dengan tabel di bawahnya. */
-  function gambarKoin(rows) {
-    var host = $("#perkoin");
-    if (!host) return;
-    host.innerHTML = "";
-    var m = {};
-    rows.forEach(function (r) {
-      var s = String(r.sym || "").toUpperCase();
-      if (!s) return;
-      var o = m[s] || (m[s] = { sym: s, n: 0, w: 0, l: 0, r: 0, usd: 0, nusd: 0 });
-      o.n++;
-      var R = num(r.r);
-      if (R != null) { o.r += R; if (R > 0) o.w++; else if (R < 0) o.l++; }
-      var U = num(r.usd);
-      if (U != null) { o.usd += U; o.nusd++; }
-    });
-    var arr = Object.keys(m).map(function (k) { return m[k]; })
-      .sort(function (a, b) { return b.usd - a.usd; });
-    var h = el("div", "jdl");
-    if (!arr.length) {
-      h.textContent = "hasil per koin · belum ada posisi tertutup pada saringan ini";
-      host.appendChild(h);
-      return;
-    }
-    var tot = 0;
-    arr.forEach(function (o) { tot += o.usd; });
-    h.textContent = "hasil per koin · mengikuti saringan di atas · " + arr.length
-      + " koin · total " + (tot < 0 ? "−$" : "+$") + Math.abs(tot).toFixed(2);
-    host.appendChild(h);
-    var t = el("table");
-    var thead = el("thead"), trh = el("tr");
-    [["pair"], ["trade", 1], ["W/L", 1], ["WR", 1], ["ΣR", 1], ["$", 1], ["$/trade", 1]]
-      .forEach(function (c) { trh.appendChild(el("th", c[1] ? "n" : null, c[0])); });
-    thead.appendChild(trh); t.appendChild(thead);
-    var tb = el("tbody");
-    arr.forEach(function (o) {
-      var tr = el("tr");
-      tr.appendChild(el("td", null, o.sym));
-      tr.appendChild(el("td", "n", String(o.n)));
-      tr.appendChild(el("td", "n dim", o.w + "/" + o.l));
-      tr.appendChild(el("td", "n", o.n ? Math.round(o.w / o.n * 100) + "%" : "—"));
-      tr.appendChild(el("td", "n " + (o.r < 0 ? "neg" : o.r > 0 ? "pos" : "dim"),
-        (o.r > 0 ? "+" : "") + o.r.toFixed(2)));
-      tr.appendChild(el("td", kelasUsd(o.usd), usd(o.usd)));
-      tr.appendChild(el("td", kelasUsd(o.nusd ? o.usd / o.nusd : null),
-        o.nusd ? usd(o.usd / o.nusd) : "—"));
-      tb.appendChild(tr);
-    });
-    t.appendChild(tb);
-    host.appendChild(t);
-  }
-
   function gambar(rows) {
     var host = $("#tbl");
     host.innerHTML = "";
-    gambarKoin(rows);
     var s = ringkas(rows);
     var sum = $("#sum");
     sum.innerHTML = "";

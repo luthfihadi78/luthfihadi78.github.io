@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261118h";
+  var BUILD = "qkuk-bot-20261118i";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -2953,7 +2953,18 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var box = el("div", "tw");
     host.appendChild(box);
     table(box, [
-      { h: "cara keluar", c: function (r) { return txt(r.hasil, "st"); } },
+      { h: "cara keluar", c: function (r) {
+          /* 18 Nov — sebab keluar dibaca apa adanya dari journal (balik_1h,
+             balik_15m, time_stop, …). Tanpa peta ini yang tampil nama kunci
+             mentah; yang tak dikenal tetap ditampilkan apa adanya. */
+          var HT = { "balik_1h": "balik 1H", "balik_15m": "balik 15m",
+                     "balik_5m": "balik 5m", "time_stop": "time-stop",
+                     "tp": "TP", "sl": "SL", "trail": "trail SL",
+                     "agent": "agent tutup", "close_bursa": "ditutup bursa",
+                     "partial_tp": "partial TP" };
+          var k = String(r.hasil || "");
+          return txt(HT[k] || r.hasil, "st");
+        } },
       { h: "n", n: true, c: function (r) { return txt(r.n, "n"); } },
       { h: "WR", n: true, c: function (r) { return txt(r.wr == null ? null : r.wr + "%", "n dim"); } },
       { h: "total R", n: true, c: function (r) {
@@ -3094,8 +3105,21 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         "\u26a0 Baris di bawah bisa BASI: " + teksEng
         + (umurS == null ? "" : " (siklus terakhir " + umurS + " mnt lalu)") + "."));
     }
-    var jenisTeks = { retest: "retest zona", momentum: "tunggu momentum",
-                      breakdown: "tunggu breakdown", pantau: "pantau", agent: "agent" };
+    /* 18 Nov (permintaan user) — tiap baris harus jelas STATUS-nya (open /
+       menunggu / ditolak) dan APA yang sedang ditunggu (persiapan LONG atau
+       SHORT, bukan cuma "pantau"). */
+    var jenisTeks = { retest: "tunggu retest zona", momentum: "tunggu momentum",
+                      breakdown: "tunggu breakdown", pantau: "pantau", agent: "agent",
+                      retest_long: "persiapan retest", retest_short: "persiapan retest",
+                      retest_zona: "tunggu retest zona",
+                      tunggu_arah: "tunggu arah (bisa lanjut turun)",
+                      tolak: "ditolak gate/agent",
+                      timeout: "analisa timeout \u00b7 diulang" };
+    var STATUS = {
+      "Open Posisi": { cls: "pos", txt: "\u2705 Open Posisi" },
+      "Menunggu":    { cls: "mut", txt: "\u23f3 Menunggu" },
+      "Ditolak":     { cls: "neg", txt: "\u26d4 Ditolak" }
+    };
     var rp = function (v) {
       var n = num(v);
       if (n == null) return "\u2014";
@@ -3141,10 +3165,34 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           return pill(d === "long" ? "LONG" : d === "short" ? "SHORT" : "\u2014",
                       d === "long" ? "pos" : d === "short" ? "neg" : "mut");
         } },
-      { h: "menunggu", c: function (r) {
+      { h: "status \u00b7 menunggu apa", c: function (r) {
           var j = String(r.jenis || "");
+          var st = STATUS[r.status_antre] || STATUS.Menunggu;
           var td = el("td");
-          var sp = el("span", "antre-jenis j-" + (j || "lain"), jenisTeks[j] || j || "\u2014");
+          var bp = pill(st.txt, st.cls);
+          bp.className += " antre-status-badge";
+          bp.title = "status antrean: " + (r.status_antre || "Menunggu")
+            + (r.status_antre === "Open Posisi"
+               ? " \u2014 posisi " + String(r.dir_antre || r.dir || "").toUpperCase()
+                 + " sudah jalan, baris tetap tampil sampai posisinya ditutup"
+               : r.status_antre === "Ditolak"
+                 ? " \u2014 tidak dieksekusi (alasan di kolom kanan)"
+                 : " \u2014 masih di antrean, dievaluasi ulang tiap siklus")
+            + (r.kanal ? "\nengine " + String(r.kanal).toUpperCase() : "");
+          td.appendChild(bp);
+          td.appendChild(document.createTextNode(" "));
+          /* arah yang sedang DISIAPKAN (bisa beda dari arah sinyal asli bila
+             bot membalik arah setelah membaca momentum) */
+          var arah = String(r.dir_antre || r.dir || "").toLowerCase();
+          var dasar = jenisTeks[j] || j || "\u2014";
+          if (r.status_antre !== "Ditolak" && arah && r.status_antre !== "Open Posisi"
+              && dasar.indexOf("persiapan") !== 0) {
+            dasar = "persiapan " + arah.toUpperCase() + " \u00b7 " + dasar;
+          } else if (r.status_antre === "Open Posisi") {
+            dasar = "posisi " + arah.toUpperCase() + " terbuka \u00b7 " + dasar;
+          }
+          var sp = el("span", "antre-jenis j-" + (j || "lain"), dasar);
+          sp.title = dasar + (r.alasan ? "\nsebab: " + r.alasan : "");
           td.appendChild(sp); return td;
         } },
       { h: "entry", n: true, c: function (r) { return txt(r.entry == null ? null : rp(r.entry), "n"); } },
@@ -3185,11 +3233,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var trs = box.querySelectorAll("tbody tr");
     for (var ti = 0; ti < trs.length && ti < rows.length; ti++) {
       var dr = String(rows[ti].dir || "").toLowerCase();
-      trs[ti].className = dr === "long" ? "ar-l" : dr === "short" ? "ar-s" : "ar-n";
+      trs[ti].className = (rows[ti].status_antre === "Open Posisi" ? "ar-open " : "")
+        + (dr === "long" ? "ar-l" : dr === "short" ? "ar-s" : "ar-n");
     }
     host.appendChild(el("p", "cap",
-      "Tabel ini = setup yang masih dinilai/ditunggu. Begitu entry dijalankan status "
-      + "berubah jadi \u201cbuka\u201d, begitu ditolak jadi \u201ctolak\u201d \u2014 keduanya MENGHAPUS baris di sini. "
+      "Tabel ini = setup yang masih dinilai/ditunggu. Baris yang posisinya sudah "
+      + "terbuka diberi status \u201cOpen Posisi\u201d (tetap tampil sampai posisinya ditutup), "
+      + "yang ditolak MENGHAPUS baris di sini. "
       + "Antrean eksekusi bot juga punya batas waktu (kolom \u201csisa\u201d)."));
   }
 
