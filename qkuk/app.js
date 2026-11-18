@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261118g";
+  var BUILD = "qkuk-bot-20261118h";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -1666,6 +1666,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* 18 Nov (permintaan user) — filter "hanya open": tampilkan posisi hidup
      saja, supaya tidak perlu menyaring manual saat memantau. */
   var sOnlyOpen = "";
+  /* 18 Nov (permintaan user) — periode tabel HASIL PER KOIN (7/30 hari/semua).
+     Server mengirim tiga jendela waktu supaya tak perlu hitung ulang di sini. */
+  var HK_PERIODE = "all";
+  function hkData(B) {
+    if (HK_PERIODE === "7") return B.hasil_koin_7d || [];
+    if (HK_PERIODE === "30") return B.hasil_koin_30d || [];
+    return B.hasil_koin || [];
+  }
 
   /* 18 Nov (permintaan user) — pilihan filter tabel sinyal (sisi, periode,
      hanya open) disimpan di localStorage supaya tidak reset tiap reload. */
@@ -3776,7 +3784,18 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         } },
       /* 12 Nov — status tegas tiap baris: masih OPEN. */
       { h: "status", c: function () { return pill("OPEN", "pos"); } }
-    ], B.terbuka || [], "Bot tidak sedang memegang posisi.");
+    ], B.terbuka || [], "Bot tidak sedang memegang posisi.", function (tr, r) {
+      /* 18 Nov (permintaan user) — posisi yang rugi mengambang >0,5R diberi
+         latar merah tipis supaya langsung terlihat tanpa menjumlah manual. */
+      var _ru = num(r.risiko_usd), _u = num(r.upnl_usd);
+      if (_ru && _u != null) {
+        var _R = _u / _ru;
+        if (_R <= -0.5) {
+          tr.classList.add("rowrugi");
+          tr.title = "rugi mengambang " + _R.toFixed(2) + "R (ambang sorot −0,5R)";
+        }
+      }
+    });
 
     botEquity(B.equity || []);
     /* 12 Nov — kurva kedua: kumulatif R per trade (dari blok riset). */
@@ -3844,12 +3863,24 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       /* 18 Nov (permintaan user) — HASIL PER KOIN (dolar): setelah trade
          ditutup, kelihatan tiap koin membawa berapa dolar (+/−), berapa kali
          trade, WR, dan total R. Sumber: bot.hasil_koin (server). */
-      var HK = B.hasil_koin || [];
-      if (HK.length) {
+      var HK_SEMUA = B.hasil_koin || [];
+      var HK = hkData(B);
+      if (HK_SEMUA.length) {
         var totD = 0;
         HK.forEach(function (r) { totD += num(r.usd) || 0; });
         var hK = el("div", "bot-eq-h");
         hK.appendChild(el("span", null, "hasil per koin setelah ditutup · terbesar di atas"));
+        /* 18 Nov (permintaan user) — filter periode sama seperti tabel sinyal. */
+        var selK = el("select");
+        [ ["7", "7 hari"], ["30", "30 hari"], ["all", "semua"] ].forEach(function (o) {
+          var op = el("option", null, o[1]);
+          op.value = o[0];
+          if (HK_PERIODE === o[0]) op.selected = true;
+          selK.appendChild(op);
+        });
+        selK.setAttribute("aria-label", "periode hasil per koin");
+        selK.addEventListener("change", function () { HK_PERIODE = this.value; botCard(); });
+        hK.appendChild(selK);
         hK.appendChild(el("b", null, HK.length + " koin · "
           + (totD < 0 ? "−" : "+") + "$" + Math.abs(totD).toFixed(2)));
         wrapRW.appendChild(hK);
@@ -3882,7 +3913,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           { h: "terakhir", c: function (r) {
               return txt(r.terakhir ? String(r.terakhir).slice(5, 16).replace("T", " ") : null, "dim");
             } }
-        ], HK, "Belum ada koin dengan trade tertutup.");
+        ], HK, "Belum ada koin dengan trade tertutup pada periode ini.");
       }
     }
 

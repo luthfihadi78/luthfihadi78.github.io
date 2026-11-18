@@ -716,6 +716,13 @@ svg.ch .hr-lab.dn{fill:var(--dn)}
 tbody tr.pickrow{background:rgba(255,213,79,.055)}
 tbody tr.pickrow td:first-child{box-shadow:inset 3px 0 0 rgba(255,213,79,.5)}
 tbody tr.pickrow:hover{background:rgba(255,213,79,.09)}
+/* 18 Nov (permintaan user) — posisi terbuka yang rugi mengambang ≥0,5R. */
+tbody tr.rowrugi{background:rgba(255,122,110,.07)}
+tbody tr.rowrugi td:first-child{box-shadow:inset 3px 0 0 rgba(255,122,110,.65)}
+tbody tr.rowrugi:hover{background:rgba(255,122,110,.12)}
+/* 18 Nov — select periode di judul tabel (hasil per koin). */
+.bot-eq-h select{margin-left:auto;font-family:var(--mono);font-size:10.5px;letter-spacing:.02em;
+  background:var(--s1);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:2px 6px}
 
 /* ═══════════ GERBANG LOGIN PRIVAT (v25) ═══════════ */
 #gate{position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;
