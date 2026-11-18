@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261118b";
+  var BUILD = "qkuk-bot-20261118c";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -1884,6 +1884,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
               + (r.dir === "long" ? "short" : "long") + ", R dihitung dari arahmu" : "")
             + (r.note ? " — " + r.note : "");
           return td; } });
+    /* 18 Nov (permintaan user) — COUNTER VISIBLE: kalau tabel terlihat
+       "cuma 2 baris", angka ini langsung menunjukkan apakah datanya memang
+       sedikit atau ada yang menyaring baris. */
+    if (pHost) {
+      var _open = rows.filter(function (r) { return r._jenis === "sig" && r.st === "fired"; }).length;
+      var cf = el("span", "bc-chip sp-chip");
+      cf.innerHTML = "tabel <b>" + rows.length + " baris</b> · open " + _open;
+      cf.title = "jumlah baris yang lolos pencarian, filter sisi, dan periode"
+        + " (sinyal open selalu ikut tampil)";
+      pHost.appendChild(cf);
+    }
     table($("#s-table"), kolom, rows, sQ
       ? "No signal matches \u201C" + sQ + "\u201D" + (semua ? " in any engine today." : " on this channel.")
       : semua
