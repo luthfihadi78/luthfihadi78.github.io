@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261115a";
+  var BUILD = "qkuk-bot-20261118a";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -3788,6 +3788,50 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
             return t;
           } }
       ], RW, "Belum ada trade yang ditutup — posisi yang sedang jalan ada di tabel atas.");
+
+      /* 18 Nov (permintaan user) — HASIL PER KOIN (dolar): setelah trade
+         ditutup, kelihatan tiap koin membawa berapa dolar (+/−), berapa kali
+         trade, WR, dan total R. Sumber: bot.hasil_koin (server). */
+      var HK = B.hasil_koin || [];
+      if (HK.length) {
+        var totD = 0;
+        HK.forEach(function (r) { totD += num(r.usd) || 0; });
+        var hK = el("div", "bot-eq-h");
+        hK.appendChild(el("span", null, "hasil per koin setelah ditutup · terbesar di atas"));
+        hK.appendChild(el("b", null, HK.length + " koin · "
+          + (totD < 0 ? "−" : "+") + "$" + Math.abs(totD).toFixed(2)));
+        wrapRW.appendChild(hK);
+        var boxK = el("div", "tw");
+        wrapRW.appendChild(boxK);
+        table(boxK, [
+          { h: "pair", c: function (r) { return txt(r.sym); } },
+          { h: "trade", n: true, c: function (r) { return txt(r.n, "n"); } },
+          { h: "W/L", n: true, c: function (r) {
+              return txt((r.w || 0) + "/" + (r.l || 0), "n dim");
+            } },
+          { h: "WR", n: true, c: function (r) {
+              return txt(r.wr == null ? null : r.wr + "%", "n");
+            } },
+          { h: "ΣR", n: true, c: function (r) {
+              var v = num(r.r);
+              return txt(v == null ? null : (v > 0 ? "+" : "") + v.toFixed(2),
+                         "n " + (v == null ? "" : v < 0 ? "neg" : "pos"));
+            } },
+          { h: "$", n: true, c: function (r) {
+              var v = num(r.usd);
+              return txt(v == null ? null : (v < 0 ? "−$" + Math.abs(v).toFixed(2) : "+$" + v.toFixed(2)),
+                         "n " + (v == null ? "" : v < 0 ? "neg" : "pos"));
+            } },
+          { h: "$/trade", n: true, c: function (r) {
+              var v = num(r.usd_rata);
+              return txt(v == null ? null : (v < 0 ? "−$" + Math.abs(v).toFixed(2) : "+$" + v.toFixed(2)),
+                         "n " + (v == null ? "" : v < 0 ? "neg" : "pos"));
+            } },
+          { h: "terakhir", c: function (r) {
+              return txt(r.terakhir ? String(r.terakhir).slice(5, 16).replace("T", " ") : null, "dim");
+            } }
+        ], HK, "Belum ada koin dengan trade tertutup.");
+      }
     }
 
     /* ── 12 Nov — PANEL RISET PERFORMA ──────────────────────────────────────
