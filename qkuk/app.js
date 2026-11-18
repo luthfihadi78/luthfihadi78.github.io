@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261118c";
+  var BUILD = "qkuk-bot-20261118d";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -1663,6 +1663,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* 12 Nov (permintaan user) — filter periode tabel Signals + panel performa
      per engine. Lampu 🔥 menyala bila engine konsisten bagus. */
   var sPeriode = "7";
+  /* 18 Nov (permintaan user) — filter "hanya open": tampilkan posisi hidup
+     saja, supaya tidak perlu menyaring manual saat memantau. */
+  var sOnlyOpen = "";
 
   /* 16 Nov — TILE 30M menggantikan BASTION 4H (juga premium-only). */
   var KANAL_LANGKA = {
@@ -1793,6 +1796,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
     if (sQ) rows = rows.filter(function (r) { return (r.sym || "").toUpperCase().indexOf(sQ) !== -1; });
     if (sSide) rows = rows.filter(function (r) { return r.dir === sSide; });
+    if (sOnlyOpen) rows = rows.filter(function (r) {
+      return r._jenis === "sig" && String(r.st || "") === "fired";
+    });
     if (sSort === "pick") {
       rows.sort(function (a, b) {               // pilihan user dulu, lalu terbaru
         return ((b.pick ? 1 : 0) - (a.pick ? 1 : 0)) || (b.ts || "").localeCompare(a.ts || "");
@@ -6160,6 +6166,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   var sper = $("#s-periode");
   if (sper) sper.addEventListener("change", function () {
     sPeriode = this.value; rerenderTables();
+  });
+  var sop = $("#s-open");
+  if (sop) sop.addEventListener("change", function () {
+    sOnlyOpen = this.value; rerenderTables();
   });
   /* 24 Okt — urutan tabel Big caps top 50. */
   $("#bc-sort").addEventListener("change", function () {
