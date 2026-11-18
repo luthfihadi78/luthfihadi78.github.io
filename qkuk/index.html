@@ -173,12 +173,14 @@
     <!-- 17 Nov — antrean agent dipindah ke sini (atas, dekat equity live) supaya
          setup yang sedang ditunggu langsung terpantau, bukan terkubur di
          Analitik bot. -->
+    <!-- 18 Nov (permintaan user) — POSISI TERBUKA di paling atas: yang sedang
+         dipegang dilihat lebih dulu, baru antrean, equity, dan statistik. -->
+    <div class="tw" id="bot-open"></div>
     <div id="bot-antrean"></div>
     <div class="bot-eq">
       <div class="bot-eq-h"><span id="bot-eqv-cap">equity live · tiap siklus build · 48 jam</span><b id="bot-eqv-val">—</b></div>
       <svg class="ch" id="bot-eqv" role="img" aria-label="Pergerakan equity bot per siklus build"></svg>
     </div>
-    <div class="tw" id="bot-open"></div>
     <div class="bot-eq">
       <div class="bot-eq-h"><span id="bot-stat-cap">statistik SQLite · per kanal</span><b id="bot-stat-n">—</b></div>
       <div class="tw" id="bot-chan"></div>
