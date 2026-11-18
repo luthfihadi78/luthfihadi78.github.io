@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261118e";
+  var BUILD = "qkuk-bot-20261118f";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -1666,6 +1666,24 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* 18 Nov (permintaan user) — filter "hanya open": tampilkan posisi hidup
      saja, supaya tidak perlu menyaring manual saat memantau. */
   var sOnlyOpen = "";
+
+  /* 18 Nov (permintaan user) — pilihan filter tabel sinyal (sisi, periode,
+     hanya open) disimpan di localStorage supaya tidak reset tiap reload. */
+  var LS_FILTER = "qkuk_sig_filter_v1";
+  function bacaFilter() {
+    try {
+      var j = JSON.parse(localStorage.getItem(LS_FILTER) || "{}") || {};
+      if (typeof j.side === "string") sSide = j.side;
+      if (typeof j.periode === "string" && j.periode) sPeriode = j.periode;
+      if (typeof j.open === "string") sOnlyOpen = j.open;
+    } catch (e) { /* storage diblokir / JSON rusak — pakai bawaan */ }
+  }
+  function simpanFilter() {
+    try {
+      localStorage.setItem(LS_FILTER, JSON.stringify(
+        { side: sSide, periode: sPeriode, open: sOnlyOpen }));
+    } catch (e) { /* mode privat — abaikan */ }
+  }
 
   /* 16 Nov — TILE 30M menggantikan BASTION 4H (juga premium-only). */
   var KANAL_LANGKA = {
@@ -3518,8 +3536,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var B = DATA.bot || BOT_LAST;
     if (B) BOT_LAST = B;
     if (B) botNotifBaru(B);
+    var hON = $("#bot-open-n");
     if (!B) {
       harnessTop(null);
+      if (hON) hON.textContent = "—";
       table(openHost, [], [], "Bot auto-trade belum menjalankan siklus — jalankan: python3 zenbnb/autotrade/run.py once");
       if (accHost) accHost.innerHTML = "";
       botEquity([]);
@@ -3654,6 +3674,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       /* 12 Nov — siklus terbit gagal baca bursa: kartu menampilkan salinan
          terakhir yang sah (ditandai server), bukan posisi live. */
       if (B.basi) sum.appendChild(chip("data basi", "salinan terakhir", "warn"));
+    }
+    /* 18 Nov (permintaan user) — judul kecil tabel posisi terbuka: jumlah posisi
+       hidup + total PnL mengambang, jadi tak perlu menjumlah baris manual. */
+    if (hON) {
+      var OPn = B.terbuka || [], UPn = 0;
+      OPn.forEach(function (r) { UPn += num(r.upnl_usd) || 0; });
+      hON.textContent = OPn.length
+        ? OPn.length + " posisi · " + (UPn < 0 ? "−$" : "+$") + Math.abs(UPn).toFixed(2)
+        : "tidak ada posisi";
+      hON.style.color = OPn.length && UPn < 0 ? "var(--neg)" : OPn.length ? "var(--pos)" : "";
     }
     /* 12 Nov — nominal uang: margin terpakai, risiko (1R), dan target TP. */
     var usd = function (v) {
@@ -6157,19 +6187,31 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   $("#b-q").addEventListener("search", function () {
     if (!this.value) { bq = ""; bbSorot(); }
   });
+  /* 18 Nov (permintaan user) — pulihkan filter tersimpan, lalu cerminkan ke
+     select. Nilai yang tak dikenal (opsi dihapus) kembali ke opsi pertama. */
+  function pasangFilter(sel, nilai) {
+    var e = $(sel);
+    if (!e) return nilai;
+    e.value = nilai;
+    return e.value;
+  }
+  bacaFilter();
+  sSide = pasangFilter("#s-side", sSide);
+  sPeriode = pasangFilter("#s-periode", sPeriode);
+  sOnlyOpen = pasangFilter("#s-open", sOnlyOpen);
   $("#s-side").addEventListener("change", function () {
-    sSide = this.value; rerenderTables();
+    sSide = this.value; simpanFilter(); rerenderTables();
   });
   $("#s-sort").addEventListener("change", function () {
     sSort = this.value; rerenderTables();
   });
   var sper = $("#s-periode");
   if (sper) sper.addEventListener("change", function () {
-    sPeriode = this.value; rerenderTables();
+    sPeriode = this.value; simpanFilter(); rerenderTables();
   });
   var sop = $("#s-open");
   if (sop) sop.addEventListener("change", function () {
-    sOnlyOpen = this.value; rerenderTables();
+    sOnlyOpen = this.value; simpanFilter(); rerenderTables();
   });
   /* 24 Okt — urutan tabel Big caps top 50. */
   $("#bc-sort").addEventListener("change", function () {
