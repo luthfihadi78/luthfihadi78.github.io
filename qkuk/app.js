@@ -20,7 +20,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261118a";
+  var BUILD = "qkuk-bot-20261118b";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -1707,6 +1707,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     function lolosPeriode(r) {
       var t = (r.ts || "").slice(0, 10);
       if (!t) return false;
+      /* 18 Nov (permintaan user) — SINYAL YANG MASIH OPEN selalu ditampilkan,
+         walau tanggal sinyalnya di luar periode. Dulu posisi hidup yang
+         lahir kemarin terbuang filter tanggal, sehingga tabel terlihat
+         "cuma 2 sinyal" padahal engine masih memegang banyak posisi. */
+      if (String(r.st || "") === "fired") return true;
       if (sPeriode === "1") return t === hariIni;
       return !batas || t >= batas;
     }
