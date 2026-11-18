@@ -165,7 +165,7 @@
   <section id="bot">
     <div class="sec-h">
       <h2><i>&gt;</i> Bot auto-trade</h2>
-      <span class="hint">akun demo Binance · posisi yang sedang dipegang &amp; akurasi live per engine
+      <span class="hint">akun demo Binance · posisi yang sedang dipegang · riwayat trade tertutup &amp; hasil per koin
         · <a class="riwayat-link" href="riwayat-posisi.html">riwayat posisi lengkap →</a>
         · <a class="riwayat-link" href="playbook.html">playbook entry →</a></span>
     </div>
@@ -182,6 +182,9 @@
     </div>
     <div class="tw" id="bot-open"></div>
     <div id="bot-antrean"></div>
+    <!-- 18 Nov (permintaan user) — riwayat trade tertutup + hasil per koin
+         dipindah ke sini, langsung di bawah posisi terbuka & antrean. -->
+    <div id="bot-riwayat"></div>
     <div class="bot-eq">
       <div class="bot-eq-h"><span id="bot-eqv-cap">equity live · tiap siklus build · 48 jam</span><b id="bot-eqv-val">—</b></div>
       <svg class="ch" id="bot-eqv" role="img" aria-label="Pergerakan equity bot per siklus build"></svg>
@@ -262,7 +265,7 @@
   <section id="bot-analitik">
     <div class="sec-h">
       <h2><i>&gt;</i> Analitik bot</h2>
-      <span class="hint">equity harian &amp; per trade · pertahanan &amp; regime · risiko &amp; biaya nyata · veto agent · bukti historis · riwayat, performa jam/simbol, koreksi, log</span>
+      <span class="hint">equity harian &amp; per trade · pertahanan &amp; regime · risiko &amp; biaya nyata · veto agent · bukti historis · performa jam/simbol, koreksi, log</span>
     </div>
     <div class="bot-eq">
       <div class="bot-eq-h"><span>equity harian · kumulatif $</span><b id="bot-eq-val">—</b></div>
@@ -275,7 +278,6 @@
     <div id="bot-diag"></div>
     <div id="bot-risiko"></div>
     <div id="bot-pertahanan"></div>
-    <div id="bot-riwayat"></div>
     <div id="bot-jam"></div>
     <div id="bot-sim"></div>
     <div id="bot-agent"></div>
