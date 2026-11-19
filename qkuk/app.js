@@ -2140,6 +2140,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (!svg) return;
     svg.innerHTML = "";
     var titik = (hist && hist.titik) || [];
+    /* 19 Nov (permintaan user) — kurva terlalu padat titik. Untuk gambar,
+       cukup 28 titik yang tersebar merata + titik terakhir (selalu ikut),
+       jadi bentuk tren tetap benar tanpa gerigi tiap siklus. Data aslinya
+       tidak diubah; ini hanya sampling untuk SVG. */
+    if (titik.length > 29) {
+      var _step = (titik.length - 1) / 28, _rapi = [];
+      for (var _i = 0; _i < 28; _i++) _rapi.push(titik[Math.round(_i * _step)]);
+      _rapi.push(titik[titik.length - 1]);
+      titik = _rapi;
+    }
     var M = num(hist && hist.modal != null ? hist.modal : modal);
     /* keterangan: sumber titik (siklus atau dirapatkan) + jumlahnya */
     var cap = $("#bot-eqv-cap");
@@ -2204,8 +2214,18 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       svg.appendChild(t);
     });
     var pts = titik.map(function (r, i) { return [X(i), Y(num(r.total))]; });
-    var dLine = "M" + pts[0][0] + "," + pts[0][1];
-    pts.slice(1).forEach(function (p) { dLine += "L" + p[0] + "," + p[1]; });
+    /* 19 Nov — garis HALUS (Catmull-Rom → bezier) alih-alih siku-siku per
+       titik, supaya kurva equity terbaca sebagai tren, bukan tangga data. */
+    var dLine = "M" + pts[0][0].toFixed(1) + "," + pts[0][1].toFixed(1);
+    for (var pi = 0; pi < pts.length - 1; pi++) {
+      var p0 = pts[pi > 0 ? pi - 1 : 0], p1 = pts[pi], p2 = pts[pi + 1],
+          p3 = pts[pi + 2 < pts.length ? pi + 2 : pi + 1];
+      var c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+      var c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+      dLine += "C" + c1x.toFixed(1) + "," + c1y.toFixed(1) + " "
+             + c2x.toFixed(1) + "," + c2y.toFixed(1) + " "
+             + p2[0].toFixed(1) + "," + p2[1].toFixed(1);
+    }
     var defs = mk("defs"); svg.appendChild(defs);
     var gr = mk("linearGradient", { id: "boteqv", x1: 0, y1: 0, x2: 0, y2: 1 });
     gr.appendChild(mk("stop", { offset: "0%", "stop-color": warna, "stop-opacity": .18 }));
@@ -2223,7 +2243,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     titik.forEach(function (r, i) {
       var akhir_ = i === titik.length - 1;
       var c = mk("circle", { cx: pts[i][0], cy: pts[i][1],
-        r: akhir_ ? 3.6 : (titik.length > 120 ? 0 : 2.4), fill: warna,
+        r: akhir_ ? 4 : 0, fill: warna,
         "class": akhir_ ? "dot eq-last" : "dot" });
       var tt = mk("title");
       tt.textContent = r.t + " · equity " + usd(num(r.total), 2)
@@ -3056,6 +3076,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        yang sudah dikirim server. */
     var AI = (B && B.ai) || {}, HS = AI.harness || {}, SK = AI.siklus || {};
     var GH = ((B && B.pertahanan) || {}).gate_hari || {};
+    /* 19 Nov — ringkasan hari ini dari server: seluruh sinyal hari ini ikut
+       dihitung, bukan hanya yang masih menunggu. */
+    var RG = (A && A.ringkas) || {};
     var umurS = num(SK.umur_menit), nBlok = num(GH.blok) || 0, nKecil = num(GH.kecil) || 0;
     var statusEng;                       // "hidup" | "macet" | "mati" | "tak jelas"
     if (HS.status === "hidup" && (umurS == null || umurS <= 12)) statusEng = "hidup";
@@ -3077,14 +3100,16 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        tunggu, dan per sisa waktu supaya antrean terbaca sekilas. */
     host.className = "antrean";
     var h = el("div", "antrean-h");
-    h.appendChild(el("span", null, "\u23f3 antrean agent \u00b7 sedang menunggu apa"));
+    h.appendChild(el("span", null, "antrean agent \u00b7 semua sinyal hari ini"));
     var bcls, btxt;
     if (statusEng === "mati") {
       bcls = "antre-badge kosong-mati";
       btxt = rows.length ? rows.length + " setup \u00b7 engine mati" : "kosong \u00b7 engine mati";
     } else if (rows.length) {
       bcls = "antre-badge";
-      btxt = rows.length + " setup menunggu";
+      btxt = (RG.n || rows.length) + " sinyal hari ini \u00b7 "
+        + (RG.menunggu == null ? rows.length : RG.menunggu) + " menunggu \u00b7 "
+        + (RG.open || 0) + " open \u00b7 " + (RG.ditolak || 0) + " ditolak";
     } else if (nBlok > 0) {
       bcls = "antre-badge kosong-gate";
       btxt = "kosong \u00b7 gate tolak " + nBlok;
@@ -3141,9 +3166,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
                       tolak: "ditolak gate/agent",
                       timeout: "analisa timeout \u00b7 diulang" };
     var STATUS = {
-      "Open Posisi": { cls: "pos", txt: "\u2705 Open Posisi" },
-      "Menunggu":    { cls: "mut", txt: "\u23f3 Menunggu" },
-      "Ditolak":     { cls: "neg", txt: "\u26d4 Ditolak" }
+      "Open Posisi": { cls: "pos", txt: "\u25b2 Open Posisi" },
+      "Menunggu":    { cls: "mut", txt: "\u25cb Menunggu" },
+      "Ditolak":     { cls: "neg", txt: "\u2715 Ditolak" },
+      "Dibatalkan":  { cls: "warn", txt: "\u2014 Dibatalkan" },
+      "Selesai":     { cls: "mut", txt: "\u25a0 Selesai" },
+      "Dieksekusi":  { cls: "pos", txt: "\u2713 Dieksekusi" }
     };
     var rp = function (v) {
       var n = num(v);
@@ -3221,6 +3249,40 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           td.appendChild(sp); return td;
         } },
       { h: "entry", n: true, c: function (r) { return txt(r.entry == null ? null : rp(r.entry), "n"); } },
+      /* 19 Nov — PELACAKAN CANDLE: harga mark terakhir + posisi harga terhadap
+         entry (sesuai arah), SL, dan TP. Diperbarui tiap build data, jadi
+         pergerakan candle tiap siklus terbaca tanpa buka journal. */
+      { h: "harga kini", n: true, c: function (r) {
+          var c = r.candle || {}, h = num(c.harga);
+          var td = el("td", "antre-cd");
+          td.appendChild(txt(h == null ? null : rp(h), "n"));
+          var chg = num(c.chg_pct);
+          if (chg != null) {
+            var cl = chg > 0 ? "pos" : chg < 0 ? "neg" : "dim";
+            var sp = el("span", "antre-chg " + cl,
+                        (chg > 0 ? "+" : "") + chg.toFixed(2) + "%");
+            sp.title = "pergerakan harga dari entry " + (r.entry == null ? "" : rp(r.entry))
+              + " (dihitung sesuai arah " + String(r.dir || "").toUpperCase() + ")";
+            td.appendChild(document.createTextNode(" "));
+            td.appendChild(sp);
+          }
+          if (c.sentuh) {
+            td.appendChild(document.createTextNode(" "));
+            td.appendChild(pill("sentuh " + c.sentuh, c.sentuh === "TP" ? "pos" : "neg"));
+          }
+          return td;
+        } },
+      { h: "jarak SL/TP", n: true, c: function (r) {
+          var c = r.candle || {}, a = num(c.ke_sl_pct), b = num(c.ke_tp_pct);
+          if (a == null && b == null) return txt("\u2014", "n dim");
+          var td = el("td", "antre-cd");
+          var s1 = el("span", "antre-dst neg", a == null ? "SL \u2014" : "SL " + a.toFixed(2) + "%");
+          s1.title = "jarak harga sekarang ke SL";
+          var s2 = el("span", "antre-dst pos", b == null ? "TP \u2014" : "TP " + b.toFixed(2) + "%");
+          s2.title = "jarak harga sekarang ke TP";
+          td.appendChild(s1); td.appendChild(document.createTextNode(" ")); td.appendChild(s2);
+          return td;
+        } },
       { h: "SL", n: true, c: function (r) { return txt(r.sl == null ? null : rp(r.sl), "n neg"); } },
       { h: "TP", n: true, c: function (r) { return txt(r.tp == null ? null : rp(r.tp), "n pos"); } },
       { h: "umur", n: true, c: function (r) { return txt(umurTeks(r.umur), warnaLama(r.umur, 90)); } },
@@ -3234,7 +3296,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           var s = String(r.alasan || "\u2014");
           var t = txt(s.length > 42 ? s.slice(0, 42) + "\u2026" : s, "dim");
           t.title = s + (r.skor == null ? "" : "\nskor " + r.skor)
-            + "\nsumber: " + (r.sumber === "pending" ? "antrean eksekusi bot" : "putusan harness");
+            + "\nsumber: " + (r.sumber === "journal"
+                ? "journal bot hari ini (" + (r.n_sinyal || 1) + " catatan siklus)"
+                : r.sumber === "pending" ? "antrean eksekusi bot" : "putusan harness");
           return t;
         } },
       { h: "", c: function (r) {
@@ -3262,10 +3326,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         + (dr === "long" ? "ar-l" : dr === "short" ? "ar-s" : "ar-n");
     }
     host.appendChild(el("p", "cap",
-      "Tabel ini = setup yang masih dinilai/ditunggu. Baris yang posisinya sudah "
-      + "terbuka diberi status \u201cOpen Posisi\u201d (tetap tampil sampai posisinya ditutup), "
-      + "yang ditolak MENGHAPUS baris di sini. "
-      + "Antrean eksekusi bot juga punya batas waktu (kolom \u201csisa\u201d)."));
+      "Tabel ini memuat SELURUH sinyal hari ini (WIB) dari journal: yang masih "
+      + "menunggu, yang sudah dieksekusi, yang ditolak, dan yang dibatalkan \u2014 "
+      + "tidak ada baris yang dihapus karena kedaluwarsa. Kolom \u201charga kini\u201d "
+      + "dan \u201cjarak SL/TP\u201d diperbarui tiap build data, jadi pergerakan candle "
+      + "tiap siklus terbaca di sini."));
   }
 
   /* 14 Nov (permintaan user) — SINYAL LONG REBOUND: mana yang dibuka, ditahan
@@ -4261,29 +4326,36 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         wrapPS.appendChild(el("div", "pn-h lv-sub",
           "kombinasi ciri \u00b7 FVG / order block / pola candle / EMA / RSI"
           + (SB.diuji ? " \u00b7 " + SB.diuji + " kombinasi diuji" : "")));
+        /* 19 Nov — BUG RENDER MATI: dashboard_data.py kini mengirim `kombo`
+           sebagai objek datar ({dir, kombo, n, …}), sedangkan tabel di sini
+           masih membaca `r.a.status`. TypeError di tengah botCard membuat
+           SELURUH render setelahnya batal (bubbles & antrean ikut kosong)
+           dan errornya tertelan .catch() pada load(). Terima dua bentuk. */
         if (rowsK.length) {
           var boxK = el("div", "tw");
           wrapPS.appendChild(boxK);
           table(boxK, [
             { h: "status", c: function (r) {
-                return pill(r.a.status === "aktif" ? "aktif" : "calon",
-                            r.a.status === "aktif" ? "pos" : "mut");
+                var a = (r && r.a) || r || {};
+                return pill(a.status === "aktif" ? "aktif" : "calon",
+                            a.status === "aktif" ? "pos" : "mut");
               } },
-            { h: "arah", c: function (r) { return txt(r.a.dir || "\u2014", "dim"); } },
+            { h: "arah", c: function (r) { return txt(((r && r.a) || r || {}).dir || "\u2014", "dim"); } },
             { h: "kombinasi ciri", c: function (r) {
-                return txt((r.a.kombo || []).join(" + "), "st");
+                var a = (r && r.a) || r || {};
+                return txt((a.kombo || []).join(" + "), "st");
               } },
-            { h: "n", n: true, c: function (r) { return txt(r.a.n, "n"); } },
-            { h: "sesi", n: true, c: function (r) { return txt(r.a.n_sesi, "n dim"); } },
-            { h: "WR", n: true, c: function (r) { return pctC(r.a.wr); } },
-            { h: "EV net", n: true, c: function (r) { return evT(r.a); } },
+            { h: "n", n: true, c: function (r) { return txt(((r && r.a) || r || {}).n, "n"); } },
+            { h: "sesi", n: true, c: function (r) { return txt(((r && r.a) || r || {}).n_sesi, "n dim"); } },
+            { h: "WR", n: true, c: function (r) { return pctC(((r && r.a) || r || {}).wr); } },
+            { h: "EV net", n: true, c: function (r) { return evT((r && r.a) || r || {}); } },
             { h: "total R", n: true, c: function (r) {
-                var v = num(r.a.total_r);
+                var v = num(((r && r.a) || r || {}).total_r);
                 return txt(v == null ? null : (v > 0 ? "+" : "") + v.toFixed(2),
                            "n " + (v == null ? "" : v < 0 ? "neg" : "pos"));
               } },
             { h: "yakin", n: true, c: function (r) {
-                var v = num(r.a.yakin);
+                var v = num(((r && r.a) || r || {}).yakin);
                 return txt(v == null ? null : Math.round(v * 100) + "%", "n dim");
               } }
           ], rowsK, "Belum ada kombinasi ciri dengan sampel cukup.");
@@ -6859,8 +6931,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      SHA-256 dari "username:password" — tidak ada kredensial mentah. Nama
      panggung ("Qkuk"/"Gerry") dipakai sbg penanda di pick, bubbles,
      live score & kotak analisis — KONSTAN, tidak boleh diganti. */
+  /* 19 Nov — admin Qkuk sempat tidak bisa login: hash di cloud (hasil
+     "ganti password") menang atas hash bawaan, dan password lamanya tak bisa
+     dibaca kembali (hash satu arah). Sekarang SEMUA hash yang sah diterima:
+     hash cloud, hash per-akun, dan hash bawaan di kode ini — jadi password
+     lama tetap berlaku dan password tetap yang baru juga bisa dipakai.
+     Password bawaan baru disimpan sebagai PBKDF2-SHA256 (600k iterasi),
+     bukan teks. */
   var ADMINS = {
-    "admin":  { who: "Qkuk",  hash: "19286fe99591231d536271f80ee9e5301e5c5747e20b777927ef041d1459e67d" },
+    "admin":  { who: "Qkuk",  hash: "pbkdf2$600000$6f14ea982b16087b6d83d6ef098020e0$7fa1fad14fa9d599d61ae06265a8d9d7c13067236637f4dc1ef65d6438e91751" },
     "Admin2": { who: "Gerry", hash: "b12039778e31e421be674d6b5f02b126b95f5fcd7fd506b142a56062bbf3e313" }
   };
   /* 26 Sep — CHECKLIST ALASAN AMBIL POSISI: setiap pick bisa dicatat alasannya
@@ -6974,7 +7053,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (i >= keys.length) return Promise.resolve(null);
       var k = keys[i++];
       if (k.toLowerCase() !== String(u || "").toLowerCase()) return next();
-      return cekPassword(k, p, $hashOke(k)).then(function (ok) { return ok ? k : next(); });
+      var list = $hashList(k), j = 0;
+      function coba() {
+        if (j >= list.length) return next();
+        return cekPassword(k, p, list[j++]).then(function (ok) { return ok ? k : coba(); });
+      }
+      return coba();
     }
     return next();
   }
@@ -7042,6 +7126,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (AUTH_HASHES[k]) return AUTH_HASHES[k];
     if (k === AUTH.user && AUTHCLOUD) return AUTHCLOUD;
     return ADMINS[k].hash;
+  }
+  /* 19 Nov — daftar hash yang DITERIMA untuk satu akun (cloud, per-akun,
+     bawaan kode). Dulu hanya satu yang dipakai, jadi begitu cloud menyimpan
+     hash lain, password lama langsung ditolak tanpa jalan pulih. */
+  function $hashList(k) {
+    var out = [];
+    function add(h) { if (h && typeof h === "string" && out.indexOf(h) === -1) out.push(h); }
+    add(AUTH_HASHES[k]);
+    if (k === AUTH.user) add(AUTHCLOUD);
+    if (ADMINS[k]) add(ADMINS[k].hash);
+    return out;
   }
   function curHash() { return AUTHCLOUD || AUTH.hash; }
   function wibStr(iso) {
