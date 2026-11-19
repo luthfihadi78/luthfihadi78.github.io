@@ -2243,7 +2243,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     gr.appendChild(mk("stop", { offset: "100%", "stop-color": warna, "stop-opacity": 0 }));
     defs.appendChild(gr);
     var dasar = Y(M != null ? M : lo);
-    if (pts.length > 1) {
+    /* 19 Nov — dengan SATU titik, area ke garis modal jadi blok raksasa yang
+       menutupi grafik. Garis + titik sudah cukup sampai titik kedua masuk. */
+    if (pts.length > 1 && !_satuTitik) {
       svg.appendChild(mk("path", { d: dLine + "L" + pts[pts.length - 1][0] + "," + dasar
         + "L" + pts[0][0] + "," + dasar + "Z", fill: "url(#boteqv)", stroke: "none",
         "class": "eq-area" }));
