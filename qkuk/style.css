@@ -1800,3 +1800,82 @@ body.mode-bot #bot>.sec-h>span.hint,body.mode-bot #bot-analitik>.sec-h>span.hint
 /* ganti fokus: animasi tukar dulu, lalu denyut melanjutkan (bukan mati) */
 .rk-fokus.aktif.ganti{animation:rk-tukar .55s cubic-bezier(.2,.8,.2,1),
   rk-denyut 3.2s ease-in-out .55s infinite}
+
+/* ══ 19 Nov — SKOR REGIME KOMPOSIT 0–100 (tab bot) ═══════════════════════
+   Satu blok ringkas sebelum posisi/antrean: cincin skor, label zona, dan enam
+   komponen bertimbang supaya angka besar itu punya sebab yang terbaca.
+   Warna zona: hijau RISK_ON · emas NETRAL · merah RISK_OFF/PANIK. */
+.rgx{margin:0 0 16px;padding:12px 14px 10px;border:1px solid var(--line-2);
+  border-radius:var(--r);background:rgba(255,255,255,.014);
+  transition:border-color .6s ease,background .6s ease}
+.rgx.on{border-color:rgba(110,231,183,.32);background:linear-gradient(180deg,rgba(110,231,183,.05),transparent 60%),rgba(255,255,255,.012)}
+.rgx.mid{border-color:rgba(216,200,154,.32);background:linear-gradient(180deg,rgba(216,200,154,.05),transparent 60%),rgba(255,255,255,.012)}
+.rgx.off{border-color:rgba(232,135,124,.30);background:linear-gradient(180deg,rgba(232,135,124,.05),transparent 60%),rgba(255,255,255,.012)}
+.rgx-kosong{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3)}
+.rgx-kosong>b{color:var(--fg-2);letter-spacing:.05em;text-transform:none}
+.rgx-kosong .rgx-note{flex:1 1 100%;margin:2px 0 0}
+
+.rgx-head{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--fg-3);padding-bottom:8px;margin-bottom:10px;border-bottom:1px solid var(--line)}
+.rgx-head>span{color:var(--gold);display:flex;align-items:center;gap:7px}
+.rgx-head>span::before{content:"";width:6px;height:6px;border-radius:999px;background:var(--gold);
+  box-shadow:0 0 7px rgba(216,200,154,.55);flex:none}
+.rgx-head>b{font-weight:400;font-size:9.5px;letter-spacing:.06em;text-transform:none;color:var(--fg-3)}
+
+.rgx-body{display:grid;grid-template-columns:132px minmax(0,1fr);gap:8px 18px;align-items:center}
+.rgx-dial{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;
+  padding:2px 0 0}
+.rgx-dial svg{width:96px;height:96px;transform:rotate(-90deg);overflow:visible}
+.rgx-ring-bg{fill:none;stroke:var(--line-2);stroke-width:6}
+.rgx-ring-fg{fill:none;stroke-width:6;stroke-linecap:round;
+  transition:stroke-dashoffset 1.15s cubic-bezier(.22,.8,.2,1),stroke .6s ease}
+.rgx-ring-fg.on{stroke:var(--up)}
+.rgx-ring-fg.mid{stroke:#F5C45C}
+.rgx-ring-fg.off{stroke:var(--dn)}
+.rgx-tengah{position:absolute;top:32px;left:0;right:0;display:flex;align-items:baseline;
+  justify-content:center;gap:1px;pointer-events:none}
+.rgx-tengah>b{font-family:var(--mono);font-size:27px;line-height:1;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;color:var(--fg);font-weight:600}
+.rgx-tengah>span{font-family:var(--mono);font-size:9px;color:var(--fg-3)}
+.rgx-lab{display:inline-flex;align-items:center;gap:6px;margin-top:4px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  padding:3px 9px;border-radius:999px;border:1px solid var(--line-2);color:var(--fg-2);
+  transition:color .6s ease,border-color .6s ease,background .6s ease}
+.rgx-lab>i{width:5px;height:5px;border-radius:999px;background:currentColor;flex:none}
+.rgx-lab.on{color:var(--up);border-color:rgba(110,231,183,.35);background:rgba(110,231,183,.07)}
+.rgx-lab.on>i{animation:rgx-denyut 2.4s ease-in-out infinite}
+.rgx-lab.mid{color:#F5C45C;border-color:rgba(245,196,92,.35);background:rgba(245,196,92,.07)}
+.rgx-lab.off{color:var(--dn);border-color:rgba(232,135,124,.35);background:rgba(232,135,124,.07)}
+@keyframes rgx-denyut{
+  0%,100%{box-shadow:0 0 0 0 rgba(110,231,183,.45)}
+  50%{box-shadow:0 0 0 4px rgba(110,231,183,0)}}
+
+.rgx-komp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 18px}
+.rgx-row{min-width:0}
+.rgx-row-h{display:flex;align-items:baseline;gap:7px;font-family:var(--mono);font-size:10px}
+.rgx-nm{color:var(--fg-2);letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rgx-bb{font-style:normal;font-size:8.5px;color:var(--fg-3);letter-spacing:.06em;flex:none}
+.rgx-v{margin-left:auto;font-variant-numeric:tabular-nums;font-size:11px;font-weight:600}
+.rgx-v.pos{color:var(--up)} .rgx-v.warn{color:#F5C45C} .rgx-v.neg{color:var(--dn)}
+.rgx-bar{display:block;height:4px;margin-top:3px;border-radius:999px;background:rgba(255,255,255,.05);
+  overflow:hidden}
+.rgx-bar>i{display:block;height:100%;width:0;border-radius:999px;
+  transition:width .85s cubic-bezier(.22,.8,.2,1)}
+.rgx-bar>i.pos{background:linear-gradient(90deg,rgba(110,231,183,.45),var(--up))}
+.rgx-bar>i.warn{background:linear-gradient(90deg,rgba(245,196,92,.4),#F5C45C)}
+.rgx-bar>i.neg{background:linear-gradient(90deg,rgba(232,135,124,.4),var(--dn))}
+
+.rgx-note{margin:9px 0 0;font-family:var(--mono);font-size:10px;line-height:1.55;
+  color:var(--fg-3);letter-spacing:.01em}
+.rgx-dim{color:var(--fg-3);opacity:.85;margin-top:4px}
+@media (max-width:720px){
+  .rgx-body{grid-template-columns:1fr;justify-items:center;gap:10px}
+  .rgx-komp{grid-template-columns:1fr;width:100%}
+  .rgx-head{flex-wrap:wrap;gap:4px}
+}
+@media (prefers-reduced-motion:reduce){
+  .rgx-ring-fg,.rgx-bar>i,.rgx-lab,.rgx{transition:none}
+  .rgx-lab.on>i{animation:none}
+}

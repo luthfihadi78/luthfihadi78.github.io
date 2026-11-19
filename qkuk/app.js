@@ -3055,6 +3055,129 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      ditunggu bot/harness. Sumber server: bot.antrean (state/pending.json +
      state/signal_status.json). Baris hilang sendiri begitu entry jalan atau
      antreannya kedaluwarsa, jadi tabel ini selalu = yang benar-benar ditunggu. */
+  /* 19 Nov (permintaan user) — SKOR REGIME KOMPOSIT 0–100 di tab bot.
+     Enam komponen (tren BTC, breadth alt, dominance, funding, drawdown/vol,
+     momentum) masing-masing 0–100 lalu ditimbang 25/20/15/15/15/10. Angka
+     besar = kondisi mendukung risiko; skor ini juga yang menjadi pengali
+     ukuran entry, jadi ditampilkan sebelum posisi & antrean.
+     Rincian mentah tiap komponen ada di tooltip baris dan di kartu
+     "pertahanan" (tetap ada, tidak diganti). */
+  var _rgTanda = null;
+  var RG_NAMA = { tren_btc: "tren BTC", breadth_alt: "breadth alt",
+                  dominance: "dominance", funding: "funding",
+                  drawdown_vol: "drawdown & vol", momentum: "momentum" };
+  function _rgKls(v) { return v >= 60 ? "pos" : v >= 40 ? "warn" : "neg"; }
+  function botRegime(P) {
+    var host = $("#bot-regime");
+    if (!host) return;
+    var RG = (P && P.regime) || {};
+    if (RG.skor == null) {
+      if (_rgTanda !== "kosong") {
+        _rgTanda = "kosong";
+        host.innerHTML = "";
+        var kos = el("div", "rgx rgx-kosong");
+        kos.appendChild(el("span", null, "regime kripto · skor komposit 0–100"));
+        kos.appendChild(el("b", null, "belum dihitung"));
+        kos.appendChild(el("p", "rgx-note",
+          "Regime baru terisi setelah satu siklus bot menulis state/regime.json "
+          + "(butuh akses Binance + CoinGecko)."));
+        host.appendChild(kos);
+      }
+      return;
+    }
+    var tanda = [RG.skor, RG.label, RG.faktor_ukuran, RG.dibuat].join("|");
+    if (tanda === _rgTanda) return;
+    _rgTanda = tanda;
+
+    var skor = Math.max(0, Math.min(100, num(RG.skor) || 0));
+    var lab = String(RG.label || "?").toUpperCase();
+    var kls = lab === "RISK_ON" ? "on" : lab === "NETRAL" ? "mid" : "off";
+    var fak = num(RG.faktor_ukuran);
+    host.innerHTML = "";
+
+    var box = el("div", "rgx " + kls);
+    var head = el("div", "rgx-head");
+    var hl = el("span", null, "regime kripto · skor komposit 0–100");
+    head.appendChild(hl);
+    var meta = el("b", null,
+      (fak == null ? "pengali ukuran —" : "pengali ukuran ×" + fak.toFixed(2))
+      + " · " + (RG.dibuat ? String(RG.dibuat).slice(11, 16) + " UTC" : "—")
+      + (RG.sumber ? " · " + RG.sumber : ""));
+    head.appendChild(meta);
+    box.appendChild(head);
+
+    var body = el("div", "rgx-body");
+    var dial = el("div", "rgx-dial");
+    var NS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 92 92");
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "skor regime " + Math.round(skor) + " dari 100, " + lab);
+    var lingkar = 2 * Math.PI * 36;
+    var bg = document.createElementNS(NS, "circle");
+    bg.setAttribute("cx", "46"); bg.setAttribute("cy", "46"); bg.setAttribute("r", "36");
+    bg.setAttribute("class", "rgx-ring-bg");
+    svg.appendChild(bg);
+    var fg = document.createElementNS(NS, "circle");
+    fg.setAttribute("cx", "46"); fg.setAttribute("cy", "46"); fg.setAttribute("r", "36");
+    fg.setAttribute("class", "rgx-ring-fg " + kls);
+    fg.setAttribute("stroke-dasharray", String(lingkar.toFixed(1)));
+    fg.setAttribute("stroke-dashoffset", String(lingkar.toFixed(1)));
+    svg.appendChild(fg);
+    dial.appendChild(svg);
+    var tengah = el("div", "rgx-tengah");
+    tengah.appendChild(el("b", null, String(Math.round(skor))));
+    tengah.appendChild(el("span", null, "/100"));
+    dial.appendChild(tengah);
+    var pile = el("span", "rgx-lab " + kls);
+    pile.appendChild(el("i", null));
+    pile.appendChild(el("span", null, lab));
+    dial.appendChild(pile);
+    body.appendChild(dial);
+
+    var komp = RG.komponen || {};
+    var keys = Object.keys(komp);
+    var wrap = el("div", "rgx-komp");
+    keys.forEach(function (k, i) {
+      var v = komp[k] || {}, s = Math.max(0, Math.min(100, num(v.skor) || 0));
+      var row = el("div", "rgx-row");
+      var rowHead = el("div", "rgx-row-h");
+      rowHead.appendChild(el("span", "rgx-nm", RG_NAMA[k] || k.replace(/_/g, " ")));
+      var bob = num(v.bobot);
+      rowHead.appendChild(el("em", "rgx-bb", bob == null ? "" : bob + "%"));
+      rowHead.appendChild(el("b", "rgx-v n " + _rgKls(s), String(Math.round(s))));
+      row.appendChild(rowHead);
+      var bar = el("span", "rgx-bar");
+      var fill = el("i", null);
+      fill.className = _rgKls(s);
+      fill.style.width = "0%";
+      bar.appendChild(fill);
+      row.appendChild(bar);
+      row.title = (RG_NAMA[k] || k) + " · skor " + Math.round(s)
+        + (bob == null ? "" : " · bobot " + bob + "%")
+        + "\n" + JSON.stringify(v.detail || {});
+      wrap.appendChild(row);
+      setTimeout(function () { fill.style.width = s + "%"; }, 60 + i * 55);
+    });
+    body.appendChild(wrap);
+    box.appendChild(body);
+
+    if (RG.ringkas) box.appendChild(el("p", "rgx-note", RG.ringkas));
+    host.appendChild(box);
+    var petunjuk = { RISK_ON: "kondisi mendukung risiko — nominal penuh",
+                     NETRAL: "campuran — nominal dikecilkan sedikit",
+                     RISK_OFF: "defensif — nominal dipotong",
+                     PANIK: "panik — nominal dipotong paling dalam" }[lab];
+    if (petunjuk && fak != null) {
+      box.appendChild(el("p", "rgx-note rgx-dim",
+        "ukuran entry ×" + fak.toFixed(2) + " — " + petunjuk + ". Skor tidak pernah memblokir entry, hanya mengecilkan."));
+    }
+    setTimeout(function () {
+      fg.setAttribute("stroke-dashoffset",
+        String((lingkar * (1 - skor / 100)).toFixed(1)));
+    }, 40);
+  }
+
   /* 19 Nov (permintaan user) — RADAR AGENT versi KARTU (bento).
      Menggantikan radar SVG yang terlalu ramai. Koin yang sedang dibaca tampil
      sebagai kartu fokus besar, koin lain sebagai kartu kecil. Semua perpindahan
@@ -4993,6 +5116,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     });
     agentFeed(B);
     botPertahanan(B.pertahanan);
+    botRegime(B.pertahanan);
     botLaporanTahan(B.laporan_tahan);
     botRadar(B);
     botAntrean(B.antrean, B);
