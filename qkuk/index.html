@@ -206,6 +206,15 @@
       <div class="bot-eq-h"><span>statistik SQLite · per hari (WIB)</span><b id="bot-stat-ms">—</b></div>
       <div class="tw" id="bot-hari"></div>
     </div>
+    <!-- 19 Nov (permintaan user) — METRIK WAL: blokir checkpoint harus kelihatan
+         sebelum -wal tumbuh sampai disk penuh. Angkanya dari PRAGMA
+         wal_checkpoint(PASSIVE), jadi tidak mengganggu penulis. -->
+    <div class="bot-eq">
+      <div class="bot-eq-h"><span id="wal-cap">kesehatan DB · WAL &amp; checkpoint</span><b id="wal-status">—</b></div>
+      <div class="tw" id="wal-tabel"></div>
+      <p class="cap">db = berkas utama · wal = jurnal yang belum di-checkpoint · shm = indeks bersama.
+        checkpoint PASSIVE: <b>busy 0</b> = bisa jalan, <b>busy 1</b> = tertahan transaksi terbuka (WAL akan tumbuh).</p>
+    </div>
     <p class="cap">Ringkasan posisi &amp; akurasi per engine. Grafik equity, risiko, bukti historis, dan tabel engine ada di <b>Analitik bot</b> di bawah Big caps.</p>
   </section>
 

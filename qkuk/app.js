@@ -3322,6 +3322,70 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      dihasilkan oleh kueri GROUP BY di state/qkuk_state.sqlite (bukan dihitung
      ulang di browser dari riwayat mentah), jadi yang terlihat = isi DB apa
      adanya: per kanal dan per hari WIB, sejak jam reset. */
+  /* ═══ 19 Nov (permintaan user) — METRIK WAL & CHECKPOINT ═══════════════
+     Insiden -wal 20 GB terjadi tanpa peringatan. Kartu ini menampilkan ukuran
+     db/-wal/-shm dan hasil checkpoint PASSIVE per berkas SQLite, supaya
+     keadaan "tertahan" kelihatan jauh sebelum disk penuh. */
+  function walDb(W) {
+    var host = $("#wal-tabel"), st = $("#wal-status");
+    if (!host) return;
+    W = W || {};
+    var db = W.db || [];
+    var masalah = (W.blokir || 0) + (W.besar || 0);
+    if ($("#wal-cap")) $("#wal-cap").textContent = "kesehatan DB · WAL & checkpoint"
+      + (W.ts ? " · " + W.ts : "");
+    if (st) {
+      st.textContent = walRingkas(db, W);
+      st.style.color = (W.blokir ? "#E8877C" : (W.besar ? "#F5C45C" : "#6EE7B7"));
+      if (W.siaga) st.title = W.siaga;
+    }
+    var mb = function (v) { return v == null ? "—" : (v >= 1024 ? (v / 1024).toFixed(2) + " GB" : v.toFixed(2) + " MB"); };
+    table(host, [
+      { h: "database", c: function (r) {
+          var td = el("td");
+          td.appendChild(el("div", null, r.nama));
+          var p = el("div", "hint", r.jalur);
+          p.style.fontSize = "9.5px"; p.style.color = "var(--fg-3)";
+          td.appendChild(p);
+          return td; } },
+      { h: "db / wal / shm", n: 1, c: function (r) {
+          var td = el("td", "n");
+          td.textContent = mb(r.db_mb) + " · " + mb(r.wal_mb) + " · " + mb(r.shm_mb);
+          var batas = num(W.ambang_mb) || 256;
+          if ((num(r.wal_mb) || 0) >= batas) td.style.color = "#F5C45C";
+          return td; } },
+      { h: "checkpoint (busy · log · ckpt)", n: 1, c: function (r) {
+          var td = el("td", "n");
+          if (r.busy == null) { td.textContent = "—"; return td; }
+          td.textContent = r.busy + " · " + r.log + " · " + r.ckpt;
+          td.style.color = r.busy ? "#E8877C" : "#6EE7B7";
+          td.title = r.busy
+            ? "tertahan: " + (r.belum_ckpt_mb || 0).toFixed(2) + " MB frame belum masuk DB"
+            : "semua frame sudah di-checkpoint";
+          return td; } },
+      { h: "status", c: function (r) {
+          var s = String(r.status || "");
+          var label = s === "ok" ? "sehat" : s === "blokir" ? "TERTAHAN"
+            : s === "besar" ? "wal besar" : s === "bukan-wal" ? "non-WAL"
+            : s === "galat" ? "galat" : "belum ada";
+          var cls = s === "ok" ? "pos" : s === "blokir" ? "neg"
+            : s === "besar" ? "warn" : "mut";
+          var td = pill(label, cls);
+          if (r.pesan) td.title = r.pesan;
+          return td; } }
+    ], db, "metrik WAL belum tersedia — build berikutnya mengisinya");
+  }
+
+  function walRingkas(db, W) {
+    var blok = (db || []).filter(function (r) { return r.status === "blokir"; });
+    if (blok.length) return "⚠️ " + blok.length + " DB tertahan";
+    if (W && W.besar) return "⚠️ wal " + W.besar + " berkas besar";
+    var nyata = (db || []).filter(function (r) { return r.status === "ok"; });
+    if (!nyata.length) return "—";
+    var mb = nyata.reduce(function (a, r) { return a + (num(r.wal_mb) || 0); }, 0);
+    return "aman · wal " + mb.toFixed(2) + " MB";
+  }
+
   function botStatDb(S) {
     var chanHost = $("#bot-chan"), hariHost = $("#bot-hari");
     if (!chanHost && !hariHost) return;
@@ -3628,10 +3692,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       botEquity([]);
       equityLiveChart(null, null, null);
       botStatDb(null);
+      walDb(DATA.wal || null);
       return;
     }
     equityLiveChart(B.equity_hist, B.equity_live, B.tutup_titik);
     botStatDb(B.stat_db);
+    walDb(DATA.wal || null);
     if (sum) {
       var chip = function (l, v, cls) {
         var s = el("span", "bc-chip " + (cls || ""));
