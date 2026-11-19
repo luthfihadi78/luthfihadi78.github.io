@@ -3386,6 +3386,78 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     return "aman · wal " + mb.toFixed(2) + " MB";
   }
 
+  /* ═══ 19 Nov (permintaan user) — PANEL REVERSAL ═════════════════════════
+     Menampilkan (a) blokir entry arah lawan yang sedang aktif beserta sisa
+     menitnya, (b) jejak kejadian reversal terakhir, (c) hasil entry reversal
+     yang sudah tertutup vs entry biasa. */
+  function reversalDb(R) {
+    var host = $("#rev-tabel"), st = $("#rev-status"), cap = $("#rev-hasil");
+    if (!host) return;
+    R = R || {};
+    var blok = R.blok || null;
+    if (st) {
+      if (blok && blok.aktif) {
+        st.textContent = "⛔ " + String(blok.blokir || "").toUpperCase()
+          + " diblokir · sisa " + blok.sisa_menit + " mnt";
+        st.style.color = "#F5C45C";
+        st.title = "reversal " + String(blok.arah || "").toUpperCase()
+          + " terbaca " + (blok.dari || "") + " → entry "
+          + String(blok.blokir || "").toUpperCase() + " ditolak sampai " + (blok.sampai || "");
+      } else {
+        st.textContent = "tidak ada blokir";
+        st.style.color = "#6EE7B7";
+        st.title = "entry kedua arah boleh dieksekusi";
+      }
+    }
+    if ($("#rev-cap")) $("#rev-cap").textContent = "reversal · blokir entry lawan & jejak"
+      + (R.ts ? " · " + R.ts : "");
+    var NAMA = {
+      reversal_blok: "blokir lawan",
+      reversal_tutup_segera: "tutup lawan · deteksi",
+      reversal_tutup: "tutup lawan · entry",
+      momentum_long: "long reversal",
+      short_dibatalkan_5m: "short dibatalkan"
+    };
+    var KLAS = {
+      reversal_blok: "warn", reversal_tutup_segera: "neg",
+      reversal_tutup: "neg", momentum_long: "pos", short_dibatalkan_5m: "mut"
+    };
+    var baris = (R.kejadian || []).map(function (e) {
+      return { t: e.t, tanggal: e.tanggal, jenis: NAMA[e.jenis] || e.jenis,
+               kelas: KLAS[e.jenis] || "mut", sym: e.sym || "—",
+               arah: String(e.arah || "").toUpperCase() || "—",
+               detail: e.detail || "" };
+    });
+    table(host, [
+      { h: "waktu", c: function (r) {
+          var td = el("td", "n");
+          td.textContent = r.t + (r.tanggal ? " · " + r.tanggal : "");
+          return td; } },
+      { h: "kejadian", c: function (r) { return pill(r.jenis, r.kelas); } },
+      { h: "koin / arah", c: function (r) {
+          var td = el("td");
+          td.textContent = r.sym + " · " + r.arah;
+          return td; } },
+      { h: "detail", c: function (r) {
+          var td = el("td");
+          td.textContent = r.detail;
+          td.title = r.detail;
+          return td; } }
+    ], baris, "belum ada kejadian reversal");
+    if (cap) {
+      var H = R.hasil || {};
+      var fmt = function (x) {
+        if (!x || !x.n) return "n=0";
+        return "n=" + x.n + " · WR " + (x.wr == null ? "—" : x.wr + "%") +
+          " · avgR " + (x.avgR == null ? "—" : (x.avgR > 0 ? "+" : "−") + Math.abs(x.avgR).toFixed(2)) +
+          " · total " + (x.totalR > 0 ? "+" : x.totalR < 0 ? "−" : "") + Math.abs(x.totalR || 0).toFixed(2) + "R";
+      };
+      cap.textContent = "hasil tertutup — entry reversal: " + fmt(H.reversal)
+        + "  |  entry biasa: " + fmt(H.biasa)
+        + (H.terbuka ? "  |  " + H.terbuka + " reversal masih terbuka" : "");
+    }
+  }
+
   function botStatDb(S) {
     var chanHost = $("#bot-chan"), hariHost = $("#bot-hari");
     if (!chanHost && !hariHost) return;
@@ -3693,11 +3765,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       equityLiveChart(null, null, null);
       botStatDb(null);
       walDb(DATA.wal || null);
+      reversalDb(DATA.reversal || null);
       return;
     }
     equityLiveChart(B.equity_hist, B.equity_live, B.tutup_titik);
     botStatDb(B.stat_db);
     walDb(DATA.wal || null);
+    reversalDb(DATA.reversal || null);
     if (sum) {
       var chip = function (l, v, cls) {
         var s = el("span", "bc-chip " + (cls || ""));

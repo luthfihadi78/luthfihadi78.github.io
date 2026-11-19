@@ -215,6 +215,14 @@
       <p class="cap">db = berkas utama · wal = jurnal yang belum di-checkpoint · shm = indeks bersama.
         checkpoint PASSIVE: <b>busy 0</b> = bisa jalan, <b>busy 1</b> = tertahan transaksi terbuka (WAL akan tumbuh).</p>
     </div>
+    <!-- 19 Nov (permintaan user) — BLOKIR ENTRY LAWAN setelah reversal dan
+         jejak kejadiannya. Tanpa ini, bot tampak "diam" padahal sedang
+         menolak sinyal arah lawan selama 2 jam. -->
+    <div class="bot-eq">
+      <div class="bot-eq-h"><span id="rev-cap">reversal · blokir entry lawan &amp; jejak</span><b id="rev-status">—</b></div>
+      <div class="tw" id="rev-tabel"></div>
+      <p class="cap" id="rev-hasil"></p>
+    </div>
     <p class="cap">Ringkasan posisi &amp; akurasi per engine. Grafik equity, risiko, bukti historis, dan tabel engine ada di <b>Analitik bot</b> di bawah Big caps.</p>
   </section>
 
