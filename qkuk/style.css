@@ -255,7 +255,40 @@ td.n{text-align:right}
 svg.ch{width:100%;height:190px;display:block;overflow:visible}
 /* 17 Nov — grafik equity live per siklus: lebih tinggi supaya gerakan
    kecil modal (dolar) tetap terbaca sebagai kurva, bukan garis datar. */
-svg.ch#bot-eqv{height:230px}
+svg.ch#bot-eqv{height:360px}
+
+/* ═══ 19 Nov — EQUITY HERO (permintaan user: "grafik taruh di atas",
+   design lebih hidup). Kartu grafik jadi elemen pertama bagian bot, dengan
+   latar gradien tipis, kurva yang menggambar dirinya saat muncul, area yang
+   memudar masuk, dan titik terakhir yang berdenyut seperti harga live. ═══ */
+.bot-eq-hero{margin:4px 0 18px;padding:16px 18px 10px;border:1px solid var(--line);
+  border-radius:14px;background:
+    radial-gradient(120% 150% at 8% 0%, rgba(110,231,183,.055) 0%, transparent 58%),
+    radial-gradient(90% 140% at 95% 10%, rgba(232,135,124,.05) 0%, transparent 60%),
+    var(--s1)}
+.bot-eq-hero .bot-eq-h{margin-bottom:6px}
+.bot-eq-hero .bot-eq-h span{font-size:10px;letter-spacing:.18em}
+.bot-eq-hero .bot-eq-h b{font-size:19px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.eq-wrap{position:relative}
+.eq-now{position:absolute;right:8px;top:2px;font-family:var(--mono);font-size:10px;color:var(--fg-3);
+  letter-spacing:.04em}
+.eq-now.on{display:inline-block}
+.eq-now.dot::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:currentColor;margin-right:6px;vertical-align:middle;animation:eq-ping 2s ease-out infinite}
+@keyframes eq-ping{0%{box-shadow:0 0 0 0 currentColor;opacity:1}
+  70%{box-shadow:0 0 0 7px transparent;opacity:.55}100%{box-shadow:0 0 0 0 transparent;opacity:1}}
+/* kurva: pathLength=1 di JS → panjang normal, jadi stroke-dashoffset 1 = kosong */
+svg.ch#bot-eqv path.eq-line{stroke-dasharray:1;stroke-dashoffset:1}
+.eq-anim path.eq-line{animation:eq-draw 1.6s cubic-bezier(.22,.8,.28,1) forwards}
+@keyframes eq-draw{to{stroke-dashoffset:0}}
+.eq-anim path.eq-area{animation:eq-fade 1.1s ease .45s both}
+@keyframes eq-fade{from{opacity:0}to{opacity:1}}
+svg.ch#bot-eqv circle.eq-last{animation:eq-beat 2.6s ease-in-out infinite}
+@keyframes eq-beat{0%,100%{r:3.6;opacity:.95}50%{r:5.4;opacity:.55}}
+svg.ch#bot-eqv circle.dot:hover{r:5}
+svg.ch#bot-eqv .g{stroke-dasharray:0}
+svg.ch#bot-eqv .eq-mk{opacity:0}
+.eq-anim svg.ch#bot-eqv .eq-mk{animation:eq-fade .5s ease .9s both}
 svg.ch text{font-family:var(--mono);font-size:9px;fill:var(--fg-3)}
 svg.ch .g{stroke:var(--line);stroke-width:1}
 svg.ch .z{stroke:var(--line-2);stroke-width:1;stroke-dasharray:3 4}

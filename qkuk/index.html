@@ -173,6 +173,15 @@
         · <a class="riwayat-link" href="riwayat-posisi.html">riwayat posisi lengkap →</a>
         · <a class="riwayat-link" href="playbook.html">playbook entry →</a></span>
     </div>
+    <!-- 19 Nov (permintaan user) — GRAFIK EQUITY DI PALING ATAS: kurva modal
+         adalah hal pertama yang dilihat, baru ringkasan, posisi, antrean. -->
+    <div class="bot-eq bot-eq-hero">
+      <div class="bot-eq-h"><span id="bot-eqv-cap">equity live · tiap siklus build · 48 jam</span><b id="bot-eqv-val">—</b></div>
+      <div class="eq-wrap">
+        <svg class="ch" id="bot-eqv" role="img" aria-label="Pergerakan equity bot per siklus build"></svg>
+        <span class="eq-now" id="bot-eqv-now" hidden></span>
+      </div>
+    </div>
     <div class="bc-sum" id="bot-sum"></div>
     <!-- 17 Nov — antrean agent dipindah ke sini (atas, dekat equity live) supaya
          setup yang sedang ditunggu langsung terpantau, bukan terkubur di
@@ -189,10 +198,6 @@
     <!-- 18 Nov (permintaan user) — riwayat trade tertutup + hasil per koin
          dipindah ke sini, langsung di bawah posisi terbuka & antrean. -->
     <div id="bot-riwayat"></div>
-    <div class="bot-eq">
-      <div class="bot-eq-h"><span id="bot-eqv-cap">equity live · tiap siklus build · 48 jam</span><b id="bot-eqv-val">—</b></div>
-      <svg class="ch" id="bot-eqv" role="img" aria-label="Pergerakan equity bot per siklus build"></svg>
-    </div>
     <div class="bot-eq">
       <div class="bot-eq-h"><span id="bot-stat-cap">statistik SQLite · per kanal</span><b id="bot-stat-n">—</b></div>
       <div class="tw" id="bot-chan"></div>

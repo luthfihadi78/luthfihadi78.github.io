@@ -2151,7 +2151,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (hist.dari && hist.sampai) cap.title = "dari " + hist.dari + " sampai " + hist.sampai
         + (hist.n_mentah ? " · " + hist.n_mentah + " siklus tercatat" : "");
     }
-    var W = 620, H = 170, P = { t: 16, r: 66, b: 24, l: 62 };
+    /* 19 Nov — kartu hero: kanvas lebih tinggi (360px di CSS) supaya gerakan
+       kecil tetap terbaca, plus ruang untuk label R di puncak. */
+    var W = 620, H = 380, P = { t: 20, r: 70, b: 26, l: 64 };
     svg.setAttribute("viewBox", "0 0 " + W + " " + H);
     svg.setAttribute("preserveAspectRatio", "none");
     var usd = function (v, d) { return (v < 0 ? "−$" : "$") + Math.abs(v).toFixed(d == null ? 2 : d); };
@@ -2180,11 +2182,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         + (akhir - M >= 0 ? "+" : "−") + "$" + Math.abs(akhir - M).toFixed(2));
       val.style.color = warna;
     }
-    for (var g = 0; g <= 3; g++) {
-      var yy = P.t + g / 3 * (H - P.t - P.b);
+    for (var g = 0; g <= 4; g++) {
+      var yy = P.t + g / 4 * (H - P.t - P.b);
       svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: yy, y2: yy, "class": "g" }));
       var lb = mk("text", { x: P.l - 6, y: yy + 3, "text-anchor": "end" });
-      lb.textContent = "$" + (hi - g / 3 * (hi - lo)).toFixed(1);
+      lb.textContent = "$" + (hi - g / 4 * (hi - lo)).toFixed(1);
       svg.appendChild(lb);
     }
     /* garis modal: acuan untung/rugi. Di atas = hijau, di bawah = merah. */
@@ -2212,12 +2214,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var dasar = Y(M != null ? M : lo);
     if (pts.length > 1) {
       svg.appendChild(mk("path", { d: dLine + "L" + pts[pts.length - 1][0] + "," + dasar
-        + "L" + pts[0][0] + "," + dasar + "Z", fill: "url(#boteqv)", stroke: "none" }));
+        + "L" + pts[0][0] + "," + dasar + "Z", fill: "url(#boteqv)", stroke: "none",
+        "class": "eq-area" }));
     }
-    svg.appendChild(mk("path", { d: dLine, fill: "none", stroke: warna, "stroke-width": 2,
-      "stroke-linecap": "round", "stroke-linejoin": "round" }));
+    svg.appendChild(mk("path", { d: dLine, fill: "none", stroke: warna, "stroke-width": 2.4,
+      "stroke-linecap": "round", "stroke-linejoin": "round", "class": "eq-line",
+      pathLength: 1 }));
     titik.forEach(function (r, i) {
-      var c = mk("circle", { cx: pts[i][0], cy: pts[i][1], r: titik.length > 120 ? 0 : 2.4, fill: warna });
+      var akhir_ = i === titik.length - 1;
+      var c = mk("circle", { cx: pts[i][0], cy: pts[i][1],
+        r: akhir_ ? 3.6 : (titik.length > 120 ? 0 : 2.4), fill: warna,
+        "class": akhir_ ? "dot eq-last" : "dot" });
       var tt = mk("title");
       tt.textContent = r.t + " · equity " + usd(num(r.total), 2)
         + " · terealisasi " + (r.realisasi == null ? "—" : usd(num(r.realisasi), 2))
@@ -2233,6 +2240,23 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        vertikal di titik waktu terdekat + label R di puncak grafik. Posisi
        ditentukan dari epoch titik (bukan indeks), jadi tetap benar meski
        titik dirapatkan per bucket. */
+    /* 19 Nov (permintaan user) — animasi: kurva menggambar dirinya sendiri,
+       area memudar masuk, dan titik terakhir berdenyut seperti harga live.
+       Hanya diputar pada render PERTAMA per muat halaman; refresh 60 dtk tidak
+       mengulang animasinya supaya grafik tidak berkedip tiap menit. */
+    var badge = $("#bot-eqv-now");
+    if (badge) {
+      badge.hidden = false;
+      badge.className = "eq-now on dot";
+      badge.style.color = warna;
+      badge.textContent = "live · " + String((titik[titik.length - 1] || {}).t || "").split(" ").pop();
+    }
+    if (!svg.dataset.anim) {
+      svg.dataset.anim = "1";
+      svg.classList.remove("eq-anim");
+      void svg.getBoundingClientRect();          /* paksa reflow agar animasi mulai */
+      svg.classList.add("eq-anim");
+    }
     var tk = (tutupTitik || []).slice().sort(function (a, b) { return a.ts - b.ts; });
     if (!tk.length) return;
     var tsTitik = titik.map(function (r) { return r.ts || 0; });
@@ -2245,7 +2269,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var i = idxDari(t.ts), x = X(i), menang = t.r > 0;
       var c = menang ? "#6EE7B7" : t.r < 0 ? "#E8877C" : "#9AA4B2";
       var garis = mk("line", { x1: x, x2: x, y1: P.t, y2: H - P.b,
-        stroke: c, "stroke-width": 1, "stroke-dasharray": "2 3", "stroke-opacity": .55 });
+        stroke: c, "stroke-width": 1, "stroke-dasharray": "2 3", "stroke-opacity": .55,
+        "class": "eq-mk" });
       var ttl = mk("title");
       ttl.textContent = (t.sym || "") + " ditutup " + t.r.toFixed(2) + "R · "
         + String((titik[i] || {}).t || "");
@@ -2254,7 +2279,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       /* label hanya kalau tidak berdesakan (jarak ≥ 30 px), maks 12 label */
       if (nLabel < 12 && x - xLabelTerakhir >= 30) {
         var lb = mk("text", { x: x, y: P.t - 5, "text-anchor": "middle",
-          fill: c, "font-size": 8.5, "font-weight": 600 });
+          fill: c, "font-size": 8.5, "font-weight": 600, "class": "eq-mk" });
         lb.textContent = (t.r > 0 ? "+" : t.r < 0 ? "−" : "") + Math.abs(t.r).toFixed(1) + "R";
         svg.appendChild(lb);
         xLabelTerakhir = x; nLabel++;
