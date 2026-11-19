@@ -1968,3 +1968,43 @@ body.mode-bot #bot>.sec-h>span.hint,body.mode-bot #bot-analitik>.sec-h>span.hint
 .antrean th:nth-child(5){width:84px}
 .antrean th:nth-child(6){width:152px}
 .antrean th:nth-child(7){width:142px}
+
+/* 19 Nov (permintaan user) — KARTU "validasi & riset": dua skill referensi
+   (backtest-expert & crypto-regime-analyzer) yang dijalankan manual. Gaya
+   mengikuti kartu regime (.rgx) supaya tidak jadi bahasa desain baru. */
+.skl{margin:0 0 16px;padding:12px 14px 10px;border:1px solid var(--line-2);
+  border-radius:var(--r);background:rgba(255,255,255,.014)}
+.skl-head{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--fg-3);padding-bottom:8px;margin-bottom:10px;border-bottom:1px solid var(--line)}
+.skl-head>span{color:var(--gold);display:flex;align-items:center;gap:7px}
+.skl-head>span::before{content:"";width:6px;height:6px;border-radius:999px;
+  background:var(--gold);box-shadow:0 0 7px rgba(216,200,154,.55);flex:none}
+.skl-head>b{font-weight:400;font-size:9.5px;letter-spacing:.06em;text-transform:none;color:var(--fg-3)}
+.skl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px}
+.skl-card{padding:10px 12px;border:1px solid var(--line);border-radius:7px;
+  background:var(--s1);display:flex;flex-direction:column;gap:7px}
+.skl-t{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--fg-3)}
+.skl-v{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.skl-v>b{font-family:var(--mono);font-size:15px;letter-spacing:.02em;font-weight:500}
+.skl-v>span{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--fg-3)}
+.skl-v.pos>b{color:var(--ac)} .skl-v.mid>b{color:var(--gold)} .skl-v.neg>b{color:var(--dn)}
+.skl-m{font-family:var(--mono);font-size:10.5px;color:var(--fg-2);line-height:1.45;
+  font-variant-numeric:tabular-nums}
+.skl-f{margin:0;padding:0 0 0 14px;display:flex;flex-direction:column;gap:3px}
+.skl-f li{font-family:var(--mono);font-size:10px;line-height:1.4;color:var(--fg-3)}
+.skl-f li.high{color:var(--dn)} .skl-f li.mid{color:var(--gold)}
+.skl-s{font-family:var(--mono);font-size:9px;letter-spacing:.04em;color:var(--fg-3);
+  padding-top:6px;border-top:1px solid var(--line)}
+.skl-chips{display:flex;flex-wrap:wrap;gap:4px}
+.skl-chip{display:inline-flex;align-items:baseline;gap:5px;padding:3px 7px;border-radius:5px;
+  border:1px solid var(--line-2);background:rgba(255,255,255,.02);font-family:var(--mono);
+  font-size:9px;color:var(--fg-3)}
+.skl-chip>i{font-style:normal;letter-spacing:.08em;text-transform:uppercase}
+.skl-chip>b{color:var(--fg);font-weight:500;font-variant-numeric:tabular-nums}
+.skl-chip.off{opacity:.55}
+.skl-note{margin-top:9px;padding-top:8px;border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:9.5px;line-height:1.5;color:var(--fg-3)}
+@media (max-width:720px){.skl-grid{grid-template-columns:1fr}}

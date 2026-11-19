@@ -3067,6 +3067,108 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
                   dominance: "dominance", funding: "funding",
                   drawdown_vol: "drawdown & vol", momentum: "momentum" };
   function _rgKls(v) { return v >= 60 ? "pos" : v >= 40 ? "warn" : "neg"; }
+  /* 19 Nov (permintaan user) — KARTU VALIDASI & RISET.
+     Isinya hasil dua skill referensi yang dijalankan MANUAL, bukan bagian
+     siklus bot:
+       • backtest-expert        → menilai MUTU uji strategi (kecukupan sampel,
+                                  expectancy, slipage, panjang periode) lalu
+                                  memberi vonis deploy/refine/tolak.
+       • crypto-regime-analyzer → skor regime 0–100 dari CoinGecko + funding
+                                  Binance, pembanding skor regime internal.
+     Datanya datang dari logs/skill_ringkas.json (skill_ringkas.py) lewat
+     dashboard_data.py; kalau berkasnya belum ada kartunya disembunyikan. */
+  function botSkill(S) {
+    var host = $("#bot-skill"); if (!host) return;
+    host.textContent = "";
+    if (!S || (!S.backtest && !S.regime)) { host.hidden = true; return; }
+    host.hidden = false;
+
+    var VONIS = {
+      DEPLOY: ["siap dipakai", "pos"], REFINE: ["perlu diperbaiki", "mid"],
+      ABANDON: ["ditinggalkan", "neg"], REJECT: ["ditolak", "neg"],
+      RISK_LIMIT_EXCEEDED: ["lewat batas risiko", "neg"],
+      VALIDATION_REQUIRED: ["validasi kurang", "mid"],
+      NOT_EVALUABLE: ["sampel belum cukup", "mid"]
+    };
+    var jam = function (iso) {
+      return iso ? String(iso).slice(0, 16).replace("T", " ") : "";
+    };
+
+    var wrap = el("div", "skl");
+    var head = el("div", "skl-head");
+    head.appendChild(el("span", null, "validasi & riset"));
+    head.appendChild(el("b", null, "dua skill referensi · dijalankan manual, bukan jalur live"));
+    wrap.appendChild(head);
+
+    var grid = el("div", "skl-grid");
+
+    var B = S.backtest;
+    if (B) {
+      var c1 = el("div", "skl-card");
+      c1.appendChild(el("div", "skl-t", "backtest-expert · layak dipercaya atau tidak"));
+      var v = VONIS[B.keputusan] || [String(B.keputusan || "—"), "mid"];
+      var vb = el("div", "skl-v " + v[1]);
+      vb.appendChild(el("b", null, v[0]));
+      if (B.mutu != null) vb.appendChild(el("span", null, "mutu " + B.mutu + "/100"));
+      c1.appendChild(vb);
+      var m = B.masukan || {}, meta = [];
+      if (m.trade != null) meta.push(m.trade + " trade");
+      if (m.wr != null) meta.push("WR " + m.wr + "%");
+      if (m.win != null && m.loss != null) meta.push("win " + m.win + "% / loss " + m.loss + "%");
+      if (m.dd != null) meta.push("maxDD " + m.dd + "%");
+      if (m.parameter != null) meta.push(m.parameter + " parameter");
+      if (m.slippage === false) meta.push("slippage belum diuji");
+      c1.appendChild(el("div", "skl-m", meta.join(" · ")));
+      var ul = el("ul", "skl-f");
+      (B.bendera || []).slice(0, 3).forEach(function (f) {
+        ul.appendChild(el("li", f.tingkat === "high" ? "high" : "mid", f.pesan || ""));
+      });
+      c1.appendChild(ul);
+      c1.appendChild(el("div", "skl-s", "berkas " + (B.berkas || "—") +
+        (B.waktu ? " · " + jam(B.waktu) : "") +
+        " · vonis ini soal metode, bukan soal bot sedang rugi/untung"));
+      grid.appendChild(c1);
+    }
+
+    var R = S.regime;
+    if (R) {
+      var c2 = el("div", "skl-card");
+      c2.appendChild(el("div", "skl-t", "crypto-regime-analyzer · skor regime independen"));
+      var zona = String(R.zona || "").toUpperCase();
+      var c2c = zona === "RISK_ON" ? "pos" : zona === "NEUTRAL" ? "mid" : "neg";
+      var v2 = el("div", "skl-v " + c2c);
+      v2.appendChild(el("b", null, R.skor == null ? "—" : R.skor + " /100"));
+      v2.appendChild(el("span", null, zona || "—"));
+      c2.appendChild(v2);
+      if (R.dalam && R.dalam.skor != null) {
+        c2.appendChild(el("div", "skl-m", "pembanding skor internal QKUK: " +
+          R.dalam.skor + "/100 " + (R.dalam.label || "")));
+      }
+      var chips = el("div", "skl-chips");
+      (R.komponen || []).forEach(function (k) {
+        var ada = k.ada && k.skor != null;
+        var chip = el("span", "skl-chip" + (ada ? "" : " off"));
+        chip.appendChild(el("i", null, k.nama));
+        chip.appendChild(el("b", null, ada ? k.skor : "n/a"));
+        if (k.signal) chip.title = k.signal;
+        chips.appendChild(chip);
+      });
+      c2.appendChild(chips);
+      c2.appendChild(el("div", "skl-s", "CoinGecko + funding Binance · universe top " +
+        (R.universe || "?") + " · " + (R.ada_komponen || "?") + "/" +
+        (R.total_komponen || 6) + " komponen" +
+        (R.waktu ? " · " + jam(R.waktu) + " UTC" : "")));
+      grid.appendChild(c2);
+    }
+
+    wrap.appendChild(grid);
+    wrap.appendChild(el("div", "skl-note",
+      "Dijalankan manual di luar siklus bot: tidak ada angka di kartu ini yang " +
+      "memblokir entry atau mengubah ukuran posisi. Gunanya menilai METODE " +
+      "(kartu kiri) dan jadi pendapat kedua soal regime (kartu kanan)."));
+    host.appendChild(wrap);
+  }
+
   function botRegime(P) {
     var host = $("#bot-regime");
     if (!host) return;
@@ -5082,6 +5184,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     agentFeed(B);
     botPertahanan(B.pertahanan);
     botRegime(B.pertahanan);
+    botSkill(B.skill);
     botLaporanTahan(B.laporan_tahan);
     botRadar(B);
     botAntrean(B.antrean, B);
