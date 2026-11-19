@@ -117,6 +117,16 @@
 
 <div class="wrap">
 
+  <!-- 19 Nov (permintaan user) — DUA TAB: "dashboard" (sinyal, bubbles, big caps)
+       dan "bot & agent" (seluruh info auto-trade). Dulu blok bot menumpuk di
+       tengah halaman sehingga dashboard utama terasa penuh. Tab ini hanya
+       menyembunyikan bagian, jadi data & render tetap satu aliran. -->
+  <div class="mode-tabs" id="mode-tabs" role="tablist" aria-label="Pilih tampilan">
+    <button type="button" class="mt on" data-mode="dash" role="tab" aria-selected="true">dashboard</button>
+    <button type="button" class="mt" data-mode="bot" role="tab" aria-selected="false">bot &amp; agent</button>
+    <span class="mt-cap">dua tampilan, satu data — pilihan diingat di browser ini</span>
+  </div>
+
   <section id="dir">
     <div class="dir">
       <div class="gwrap">
@@ -166,12 +176,23 @@
   </section>
 
 
-  <section id="bot">
+  <section id="bot" data-tab="bot" hidden>
     <div class="sec-h">
       <h2><i>&gt;</i> Bot auto-trade</h2>
-      <span class="hint">akun demo Binance · posisi yang sedang dipegang · riwayat trade tertutup &amp; hasil per koin
+      <span class="hint">akun demo Binance · posisi, radar agent, antrean, riwayat
         · <a class="riwayat-link" href="riwayat-posisi.html">riwayat posisi lengkap →</a>
         · <a class="riwayat-link" href="playbook.html">playbook entry →</a></span>
+    </div>
+    <!-- 19 Nov — pintasan di dalam tab bot: isinya panjang, jadi tiap blok
+         diberi jangkar pendek supaya tak perlu menggulir buta. -->
+    <div class="bot-jump">
+      <a href="#bot-open-h">posisi</a>
+      <a href="#bot-radar">radar</a>
+      <a href="#bot-antrean">antrean</a>
+      <a href="#bot-riwayat">riwayat</a>
+      <a href="#wal-cap">db/wal</a>
+      <a href="#rev-cap">reversal</a>
+      <a href="#bot-analitik">analitik</a>
     </div>
     <!-- 19 Nov (permintaan user) — GRAFIK EQUITY DI PALING ATAS: kurva modal
          adalah hal pertama yang dilihat, baru ringkasan, posisi, antrean. -->
@@ -291,7 +312,7 @@
 
   <!-- 12 Nov — analitik bot dipindah ke bawah Big caps supaya Signals langsung
        muncul setelah ringkasan bot (posisi + equity + akurasi per engine). -->
-  <section id="bot-analitik">
+  <section id="bot-analitik" data-tab="bot" hidden>
     <div class="sec-h">
       <h2><i>&gt;</i> Analitik bot</h2>
       <span class="hint">equity harian &amp; per trade · pertahanan &amp; regime · risiko &amp; biaya nyata · veto agent · bukti historis · performa jam/simbol, koreksi, log</span>

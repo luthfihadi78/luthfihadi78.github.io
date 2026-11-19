@@ -6727,6 +6727,59 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         if (!DATA) { $("#state").textContent = "no data"; $("#dot").classList.add("stale"); }
       });
   }
+  /* 19 Nov (permintaan user) — TAB "dashboard" vs "bot & agent".
+     Seluruh info auto-trade (equity, posisi, radar, antrean, riwayat, WAL,
+     analitik) tinggal di tab bot; dashboard utama kembali bersih. Yang
+     disembunyikan hanya tampilan — render & data tetap satu aliran, jadi tak
+     ada permintaan jaringan tambahan saat berpindah tab. */
+  var MODE_KEY = "qkuk_tab";
+  function modeTerapkan(m) {
+    var bot = m === "bot";
+    Array.prototype.forEach.call(document.querySelectorAll(".wrap > section"), function (s) {
+      s.hidden = s.getAttribute("data-tab") === "bot" ? !bot : bot;
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("#mode-tabs .mt"), function (b) {
+      var on = b.getAttribute("data-mode") === m;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    document.body.classList.toggle("mode-bot", bot);
+    try { localStorage.setItem(MODE_KEY, m); } catch (e) { /* privat */ }
+  }
+  function modePilih(m, gulir) {
+    modeTerapkan(m);
+    if (gulir) window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  (function modeAwal() {
+    var m = "dash";
+    try { m = localStorage.getItem(MODE_KEY) || "dash"; } catch (e) { m = "dash"; }
+    if (location.hash === "#bot") m = "bot";
+    modeTerapkan(m);
+    Array.prototype.forEach.call(document.querySelectorAll("#mode-tabs .mt"), function (b) {
+      b.addEventListener("click", function () {
+        var pilih = b.getAttribute("data-mode");
+        try {
+          if (pilih === "bot") history.replaceState(null, "", "#bot");
+          else history.replaceState(null, "", location.pathname + location.search);
+        } catch (e) { /* file:// */ }
+        modePilih(pilih, true);
+      });
+    });
+    window.addEventListener("hashchange", function () {
+      modePilih(location.hash === "#bot" ? "bot" : "dash", true);
+    });
+    /* tautan 🤖 di header + pil harness langsung membuka tab bot */
+    ["#bot-link", "#harness-top"].forEach(function (sel) {
+      var a = $(sel);
+      if (!a) return;
+      a.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        try { history.replaceState(null, "", "#bot"); } catch (e) { /* file:// */ }
+        modePilih("bot", true);
+      });
+    });
+  })();
+
   $("#s-q").addEventListener("input", function () {
     sQ = this.value.trim().toUpperCase(); rerenderTables();
   });
