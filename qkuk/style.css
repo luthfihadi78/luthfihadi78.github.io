@@ -1734,6 +1734,8 @@ td.bcw{color:var(--gold)}
   background:linear-gradient(90deg,#D8C89A,#F5C45C);
   box-shadow:0 0 9px rgba(245,196,92,.45);transition:width 1.4s cubic-bezier(.3,.7,.2,1)}
 .rk-f-idle{font-family:var(--mono);font-size:10.5px;color:var(--fg-3);margin-top:6px}
+.rk-f-idle .rk-cd{padding:2px 8px;border:1px solid var(--line-2);border-radius:999px;
+  background:rgba(255,255,255,.02)}
 
 .rk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(152px,1fr));
   gap:9px;margin-top:10px}
@@ -1819,6 +1821,14 @@ td.bcw{color:var(--gold)}
 .rk-stage.kini .rk-stage-i{opacity:1;background:#1b1405}
 @keyframes rk-kini{0%,100%{box-shadow:0 0 0 0 rgba(245,196,92,.35)}50%{box-shadow:0 0 14px 2px rgba(245,196,92,.30)}}
 .rk-stage.nanti{opacity:.55}
+/* idle: pipeline tetap tampil, hanya redup — jejak kerja terakhir, bukan kosong */
+.rk-pipe.redup .rk-stage{color:rgba(216,200,154,.40);border-color:rgba(255,255,255,.06)}
+.rk-pipe.redup .rk-stage.lewat{color:rgba(216,200,154,.58);border-color:rgba(216,200,154,.17)}
+.rk-pipe.redup .rk-stage.lewat .rk-stage-i{opacity:.85;background:rgba(111,224,166,.55)}
+.rk-pipe.redup .rk-stage.kini{background:rgba(245,196,92,.10);color:rgba(245,196,92,.86);
+  border-color:rgba(245,196,92,.34);font-weight:500;animation:none;box-shadow:none}
+.rk-pipe.redup .rk-stage.kini .rk-stage-i{opacity:1;background:rgba(245,196,92,.85)}
+.rk-pipe.redup .rk-stage.nanti{opacity:.38}
 
 /* 2 — reasoning ticker */
 .rk-think{display:flex;align-items:baseline;gap:8px;min-height:20px;margin:0 0 10px;

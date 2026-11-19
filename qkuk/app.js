@@ -3387,13 +3387,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     return box;
   }
   /* Baris tahap. Aktif: titik cahaya berjalan di garis + chip menyala. */
-  function _rkPipe(idx, hidup) {
-    var wrap = el("div", "rk-pipe" + (hidup ? " on" : ""));
+  function _rkPipe(idx, hidup, redup) {
+    var wrap = el("div", "rk-pipe" + (hidup ? " on" : "") + (redup ? " redup" : ""));
     var line = el("div", "rk-pipe-line");
     if (hidup) { line.appendChild(el("i", "rk-pipe-dot")); }
     wrap.appendChild(line);
     RK_STAGE.forEach(function (nm, i) {
-      var st = !hidup ? "" : i < idx ? "lewat" : i === idx ? "kini" : "nanti";
+      var st = !hidup ? (redup && idx >= 0 ? (i < idx ? "lewat" : i === idx ? "kini" : "nanti") : "")
+                      : i < idx ? "lewat" : i === idx ? "kini" : "nanti";
       var c = el("span", "rk-stage " + st);
       c.appendChild(el("i", "rk-stage-i"));
       c.appendChild(el("span", null, nm));
@@ -3433,6 +3434,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     bar.appendChild(el("i", null));
     box.appendChild(bar);
     return box;
+  }
+  function _rkHms(u) {
+    var sisa = Math.max(0, u - Date.now() / 1000);
+    var mm = Math.floor(sisa / 60), ss = Math.floor(sisa % 60);
+    return (mm < 10 ? "0" : "") + mm + ":" + (ss < 10 ? "0" : "") + ss;
   }
   function _rkTick() {
     var kini = Date.now() / 1000;
@@ -3535,6 +3541,26 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var lbl = RK_TAHAP[tahap] || (F.sym ? "bekerja" : "idle");
     var idx = RK_STAGE_IDX[tahap];
     if (idx == null) idx = aktif ? 4 : -1;
+    /* Idle bukan berarti kosong: pipeline tetap tampil (redup) dengan tahap
+       terakhir yang benar-benar dikerjakan. Tebakannya dari data yang ada —
+       ada kandidat yang sudah ditolak → agent sudah sampai keputusan; semua
+       masih antre → ia berhenti di gate. Tanpa kandidat: tidak ada jejak. */
+    var idxIdle = -1;
+    if (!aktif) {
+      var sudahVonis = rows.some(function (r) {
+        return r.status_antre && r.status_antre !== "Menunggu";
+      });
+      if (sudahVonis) idxIdle = 5;
+      else if (rows.length) idxIdle = 4;
+    }
+    /* tinjauan terdekat dari antrean — dipakai ticker + hitung mundur saat
+       idle, supaya kartu tetap menunjukkan denyut kerja, bukan jeda kosong. */
+    var tinjau = null;
+    rows.forEach(function (r) {
+      var u = num(r.sisa_until);
+      if (u == null || u <= Date.now() / 1000) return;
+      if (tinjau == null || u < tinjau) tinjau = u;
+    });
     var koin = [], lihat = {};
     rows.forEach(function (r) {
       var s = String(r.sym || "").toUpperCase();
@@ -3583,14 +3609,18 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     host.appendChild(head);
 
     /* ── 1. jalur berpikir ──────────────────────────────────────────── */
-    host.appendChild(_rkPipe(idx, aktif));
+    host.appendChild(_rkPipe(aktif ? idx : idxIdle, aktif, !aktif));
 
     /* ── 2. reasoning ticker ────────────────────────────────────────── */
     var fRow = null;
     koin.forEach(function (r) { if (r.sym === F.sym) fRow = r; });
     var pikir = F.catatan
       || (fRow && fRow.alasan)
-      || (aktif ? "membaca " + String(F.sym).replace("USDT", "") : "menunggu kandidat berikutnya");
+      || (aktif ? "membaca " + String(F.sym).replace("USDT", "")
+                : rows.length
+                  ? "antrean " + rows.length + " kandidat belum lolos gate " + (ambang == null ? "" : ambang)
+                    + (tinjau == null ? "" : " \u00b7 tinjauan berikutnya " + _rkHms(tinjau))
+                  : "menunggu kandidat berikutnya");
     host.appendChild(_rkThink(pikir, aktif));
 
     /* ── kartu fokus ─────────────────────────────────────────────────── */
@@ -3691,6 +3721,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           + " \u2014 agent sudah selesai" + (F.sejak ? " (" + F.sejak + ")" : "")
         : "agent tidak memegang koin; radar menyala lagi saat ada kandidat dibaca";
       fid.appendChild(el("span", null, tIdle));
+      /* countdown tetap hidup saat idle: menunjuk tinjauan kandidat berikutnya */
+      var kd = tinjau == null ? null : _rkCd(tinjau);
+      if (kd) fid.appendChild(kd);
       var led = el("span", "rk-led");
       led.title = "sinkron dengan siklus build";
       fid.appendChild(led);
@@ -3731,8 +3764,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         mid.appendChild(el("span", "rk-hex", String(r.kanal || "?").toUpperCase()));
         mid.appendChild(el("span", "rk-dir " + (d === "long" ? "pos" : d === "short" ? "neg" : "mut"),
                            d ? d.toUpperCase() : "\u2014"));
-        mid.appendChild(el("span", "rk-c-chg" + (chg == null ? " mut" : chg > 0 ? " pos" : chg < 0 ? " neg" : " mut"),
-                           chg == null ? "" : (chg > 0 ? "+" : "") + chg.toFixed(2) + "%"));
+        if (chg != null) {
+          mid.appendChild(el("span", "rk-c-chg" + (chg > 0 ? " pos" : chg < 0 ? " neg" : " mut"),
+                             (chg > 0 ? "+" : "") + chg.toFixed(2) + "%"));
+        }
         k.appendChild(mid);
         /* sparkline mini + denyut harga */
         var sp = _rkSpark(r.spark, 100, 20);
@@ -3753,7 +3788,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         var kaki = [];
         if (r.entry != null) kaki.push(_rkNum(r.entry));
         if (num(c.ke_tp_pct) != null) kaki.push("TP " + num(c.ke_tp_pct).toFixed(1) + "%");
-        k.appendChild(el("div", "rk-c-kaki", kaki.join(" \u00b7 ")));
+        if (kaki.length) k.appendChild(el("div", "rk-c-kaki", kaki.join(" \u00b7 ")));
         k.appendChild(el("div", "rk-c-id", "#" + _rkHex([r.sym, r.kanal, r.dir, r.sejak].join("|"))));
         if (!_rect[r.sym]) {
           k.className += " masuk";
