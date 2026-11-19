@@ -43,6 +43,8 @@ td.num,th.num{text-align:right}
 .chip{cursor:pointer;background:#111c17;border:1px solid var(--line);border-radius:20px;
 padding:4px 12px;font-size:11px;color:var(--fg2);font-family:inherit}
 .chip[aria-pressed="true"]{border-color:var(--up);color:var(--up)}
+.tgl-in{background:#111c17;border:1px solid var(--line);border-radius:6px;color:var(--fg);
+font-family:inherit;font-size:11px;padding:3px 6px}
 .hint{color:var(--fg2);font-size:11px;line-height:1.6;margin:10px 0 0}
 .kosong{color:var(--fg2);font-size:11.5px;padding:10px 0}
 .kaki{color:var(--fg2);font-size:10.5px;margin-top:16px;line-height:1.6}
@@ -77,6 +79,36 @@ b{color:var(--fg)}
     </div>
     <p class="hint">Chip harian memilih satu tanggal; isi <b>dari/sampai</b> untuk rentang bebas
        (mis. 18 Nov → 19 Nov). Tanggal memakai UTC, sama seperti kolom waktu di tabel bawah.</p>
+  </div>
+
+  <!-- 19 Nov (permintaan user, lanjutan) — BANDINGKAN DUA PERIODE sekaligus:
+       periode A dan B bersebelahan dalam satu tabel, plus selisihnya. Semua
+       dihitung dari blok `dagang`, jadi tidak perlu memuat ulang halaman. -->
+  <div class="kartu">
+    <h2>Bandingkan dua periode</h2>
+    <div class="chips">
+      <button class="chip" data-preset="hari">hari terakhir vs sebelumnya</button>
+      <button class="chip" data-preset="3hari">3 hari vs 3 hari sebelumnya</button>
+      <button class="chip" data-preset="7hari">7 hari vs 7 hari sebelumnya</button>
+    </div>
+    <div class="chips" style="align-items:center">
+      <label style="font-size:11px;color:var(--fg2)">A
+        <input type="date" id="b-a-dari" class="tgl-in"> →
+        <input type="date" id="b-a-sampai" class="tgl-in"></label>
+      <label style="font-size:11px;color:var(--fg2)">B
+        <input type="date" id="b-b-dari" class="tgl-in"> →
+        <input type="date" id="b-b-sampai" class="tgl-in"></label>
+      <button class="chip" id="b-reset" aria-pressed="false">kosongkan</button>
+    </div>
+    <div class="tw"><table id="t-banding"><thead><tr>
+      <th>metrik</th><th class="num">periode A</th><th class="num">periode B</th>
+      <th class="num">selisih A−B</th>
+    </tr></thead><tbody></tbody></table></div>
+    <div class="tw" style="margin-top:14px"><table id="t-banding-engine"><thead><tr>
+      <th>engine</th><th class="num">n A</th><th class="num">avgR A</th>
+      <th class="num">n B</th><th class="num">avgR B</th><th class="num">Δ avgR</th>
+    </tr></thead><tbody></tbody></table></div>
+    <p class="hint" id="b-info"></p>
   </div>
 
   <div class="kartu">
@@ -148,7 +180,8 @@ b{color:var(--fg)}
 </div>
 
 <script>
-const st = { f: 'semua', data: null, semua: [], meta: null, tgl: { dari: '', sampai: '' } };
+const st = { f: 'semua', data: null, semua: [], meta: null, tgl: { dari: '', sampai: '' },
+             banding: { a: { dari: '', sampai: '' }, b: { dari: '', sampai: '' } } };
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function nf(v, d=2){ return v==null ? '—' : (v>0?'+':'') + v.toFixed(d); }
@@ -388,6 +421,136 @@ document.getElementById('tgl-reset').addEventListener('click', () => {
   terapkanTanggal();
 });
 
+/* ═══ BANDINGKAN DUA PERIODE ═════════════════════════════════════════════
+   `st.banding = {a:{dari,sampai}, b:{dari,sampai}}`. Rentang kosong = semua
+   trade, jadi periode otomatis terisi setelah data.json termuat. */
+function rentang(rows, r){
+  return rows.filter(x => {
+    const t = String(x.t || '').slice(0, 10);
+    if (r.dari && t < r.dari) return false;
+    if (r.sampai && t > r.sampai) return false;
+    return true;
+  });
+}
+
+function selisihBanding(a, b, desimal){
+  if (a == null || b == null) return null;
+  return +(a - b).toFixed(desimal);
+}
+
+function barisBanding(label, a, b, jenis){
+  const fmt = jenis === 'pct' ? wr : (v => v == null ? '—' :
+    (jenis === 'n' ? String(v) : nf(v, jenis === 'r3' ? 3 : 2)));
+  const d = jenis === 'n' ? (a == null || b == null ? null : a - b)
+                          : selisihBanding(a, b, jenis === 'r3' ? 3 : (jenis === 'pct' ? 1 : 2));
+  const dTeks = d == null ? '—' : (jenis === 'pct' ? (d > 0 ? '+' : '') + d.toFixed(1) + ' pp'
+                                          : (jenis === 'n' ? (d > 0 ? '+' : '') + d : nf(d, jenis === 'r3' ? 3 : 2)));
+  return '<tr><td>' + label + '</td>'
+    + '<td class="num">' + fmt(a) + '</td>'
+    + '<td class="num">' + fmt(b) + '</td>'
+    + '<td class="num ' + cls(d) + '">' + dTeks + '</td></tr>';
+}
+
+function isiBanding(){
+  const info = document.getElementById('b-info');
+  const semua = st.semua || [];
+  if (!semua.length) {
+    ['t-banding', 't-banding-engine'].forEach(i => isi(i, ''));
+    if (info) info.textContent = 'filter tanggal menunggu data.json baru';
+    return;
+  }
+  const rA = st.banding.a || { dari: '', sampai: '' };
+  const rB = st.banding.b;          // null = preset tak punya hari pembanding
+  const A = rentang(semua, rA);
+  const B = rB ? rentang(semua, rB) : [];
+  const a = ringkasKlien(A), b = ringkasKlien(B);
+  const gA = Object.fromEntries(grupKlien(A, x => x.grup).map(x => [x.k, x]));
+  const gB = Object.fromEntries(grupKlien(B, x => x.grup).map(x => [x.k, x]));
+  const ar = gA.reversal || {}, br = gB.reversal || {};
+  const ab = gA.biasa || {}, bb = gB.biasa || {};
+  isi('t-banding', [
+    barisBanding('trade tertutup', a.n, b.n, 'n'),
+    barisBanding('win rate', a.wr, b.wr, 'pct'),
+    barisBanding('avgR', a.avg, b.avg, 'r3'),
+    barisBanding('total R', a.tot, b.tot, 'r2'),
+    barisBanding('USD', a.usd, b.usd, 'r2'),
+    barisBanding('WR sinyal biasa', ab.wr, bb.wr, 'pct'),
+    barisBanding('avgR sinyal biasa', ab.avg, bb.avg, 'r3'),
+    barisBanding('WR reversal', ar.wr, br.wr, 'pct'),
+    barisBanding('avgR reversal', ar.avg, br.avg, 'r3'),
+    barisBanding('n reversal', ar.n || 0, br.n || 0, 'n')
+  ].join(''));
+
+  const eA = Object.fromEntries(grupKlien(A, x => x.kanal).map(x => [x.k, x]));
+  const eB = Object.fromEntries(grupKlien(B, x => x.kanal).map(x => [x.k, x]));
+  const nama = [...new Set([...Object.keys(eA), ...Object.keys(eB)])].sort();
+  isi('t-banding-engine', nama.map(k => {
+    const x = eA[k] || {}, y = eB[k] || {};
+    const d = (x.n && y.n) ? selisihBanding(x.avg, y.avg, 3) : null;
+    return '<tr><td>' + esc(k) + '</td>'
+      + '<td class="num">' + (x.n || 0) + '</td>'
+      + '<td class="num ' + cls(x.avg) + '">' + nf(x.avg, 3) + '</td>'
+      + '<td class="num">' + (y.n || 0) + '</td>'
+      + '<td class="num ' + cls(y.avg) + '">' + nf(y.avg, 3) + '</td>'
+      + '<td class="num ' + cls(d) + '">' + (d == null ? '—' : nf(d, 3)) + '</td></tr>';
+  }).join(''));
+
+  if (info) {
+    const ket = (nama2, r, n) => nama2 + ': ' + (!r ? 'tidak ada hari pembanding'
+      : (r.dari || 'awal') + ' → ' + (r.sampai || 'akhir') + ' (' + n + ' trade)');
+    info.textContent = ket('A', rA, A.length) + ' · ' + ket('B', rB, B.length)
+      + ' · Δ positif = periode A lebih baik';
+  }
+}
+
+const inB = ['b-a-dari', 'b-a-sampai', 'b-b-dari', 'b-b-sampai'];
+function bacaBanding(){
+  st.banding = {
+    a: { dari: document.getElementById('b-a-dari').value,
+         sampai: document.getElementById('b-a-sampai').value },
+    b: { dari: document.getElementById('b-b-dari').value,
+         sampai: document.getElementById('b-b-sampai').value }
+  };
+  isiBanding();
+}
+inB.forEach(id => {
+  const el2 = document.getElementById(id);
+  if (el2) el2.addEventListener('change', bacaBanding);
+});
+
+document.getElementById('b-reset').addEventListener('click', () => {
+  inB.forEach(id => { document.getElementById(id).value = ''; });
+  st.banding = { a: { dari: '', sampai: '' }, b: { dari: '', sampai: '' } };
+  isiBanding();
+});
+
+// Preset memakai daftar tanggal yang benar-benar ada trade-nya, bukan
+// kalender kosong: N hari terakhir vs N hari sebelumnya.
+function presetBanding(n){
+  const hari = (st.meta && st.meta.hari) || [];
+  if (!hari.length) return;
+  const A = hari.slice(0, n), B = hari.slice(n, n * 2);
+  const isi2 = (dari, sampai, arr) => {
+    if (!arr.length) return { dari: '', sampai: '' };
+    return { dari: arr[arr.length - 1], sampai: arr[0] };
+  };
+  const rA = isi2(null, null, A), rB = isi2(null, null, B);
+  // Jangan biarkan B kosong dibaca sebagai "semua trade" — itu membandingkan
+  // periode A dengan seluruh riwayat dan angkanya menyesatkan.
+  st.banding = { a: rA, b: rB.dari ? rB : null };
+  document.getElementById('b-a-dari').value = rA.dari;
+  document.getElementById('b-a-sampai').value = rA.sampai;
+  document.getElementById('b-b-dari').value = rB.dari;
+  document.getElementById('b-b-sampai').value = rB.sampai;
+  isiBanding();
+}
+
+document.querySelectorAll('[data-preset]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    presetBanding(parseInt(btn.dataset.preset.replace('hari', '') || '1', 10));
+  });
+});
+
 document.getElementById('chips').addEventListener('click', (e) => {
   const btn = e.target.closest('.chip');
   if (!btn) return;
@@ -409,6 +572,7 @@ async function muat(){
       // Filter tanggal butuh seluruh trade; tanpa `dagang` (data.json lama)
       // halaman tetap tampil memakai agregat server.
       terapkanTanggal();
+      presetBanding(1);   // isi awal: hari terakhir vs sehari sebelumnya
     } else {
       gambar(A);
       chipTanggal();
