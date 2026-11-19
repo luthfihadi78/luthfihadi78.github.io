@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>QKUK — Status Sesi WhatsApp</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noarchive">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0A0F0D">
+<style>
+:root{--bg:#0A0F0D;--s0:#0D1411;--fg:#E8E3D5;--fg2:#8FA098;--up:#6EE7B7;--dn:#ff7a6e;
+--warn:#f5c26b;--line:#1c2a24;--mono:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--mono);font-size:13px;padding:18px 16px 40px}
+.wrap{max-width:1080px;margin:0 auto}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+h1{font-size:15px;font-weight:600;letter-spacing:.04em;margin:0;color:var(--up)}
+a.back{color:var(--fg2);font-size:11.5px;text-decoration:none;border-bottom:1px dotted var(--line);padding-bottom:1px}
+a.back:hover{color:var(--up)}
+.sub{color:var(--fg2);font-size:11px;margin:6px 0 16px;line-height:1.6}
+.kartu{background:var(--s0);border:1px solid var(--line);border-radius:9px;padding:14px 16px;margin-bottom:14px}
+.kartu h2{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg2);
+font-weight:500;margin:0 0 12px}
+.pill{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:20px;
+padding:5px 13px;font-size:12px;background:#111c17}
+.pill b{font-weight:600}
+.pill.up{border-color:#1e4a38}.pill.up b{color:var(--up)}
+.pill.warn{border-color:#4a3d1e}.pill.warn b{color:var(--warn)}
+.pill.dn{border-color:#4a2320}.pill.dn b{color:var(--dn)}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px}
+.sel{background:#111c17;border:1px solid var(--line);border-radius:8px;padding:11px 12px}
+.sel .lab{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg2);margin-bottom:5px}
+.sel .val{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.sel .ket{font-size:10px;color:var(--fg2);margin-top:4px;line-height:1.45}
+.sel.good .val{color:var(--up)}.sel.bad .val{color:var(--dn)}.sel.warn .val{color:var(--warn)}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:11.5px;white-space:nowrap}
+th{text-align:left;font-weight:500;color:var(--fg2);font-size:10px;letter-spacing:.07em;
+text-transform:uppercase;padding:0 9px 7px;border-bottom:1px solid var(--line)}
+td{padding:7px 9px;border-bottom:1px solid rgba(28,42,36,.55);vertical-align:top}
+tr:last-child td{border-bottom:0}
+.tag{display:inline-block;border-radius:5px;padding:1px 7px;font-size:10px;border:1px solid var(--line);color:var(--fg2)}
+.tag.siap{color:var(--up);border-color:#1e4a38}
+.tag.putus{color:var(--dn);border-color:#4a2320}
+.tag.qr{color:var(--warn);border-color:#4a3d1e}
+.tag.pulih{color:#8ec5ff;border-color:#1e3a4a}
+.tag.snapshot{color:var(--fg2)}
+.hint{color:var(--fg2);font-size:11px;line-height:1.6;margin:10px 0 0}
+.kosong{color:var(--fg2);font-size:11.5px;padding:10px 0}
+.kaki{color:var(--fg2);font-size:10.5px;margin-top:16px;line-height:1.6}
+b{color:var(--fg)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>STATUS SESI WHATSAPP</h1>
+    <a class="back" href="index.html">← kembali ke terminal</a>
+  </div>
+  <p class="sub">Umur sesi, rantai snapshot pemulihan, dan riwayat reconnect gateway WA.
+     Sumber: <b>/health</b> gateway, penanda sesi, direktori snapshot, dan ekor
+     <b>logs/wa_gateway.log</b>. Nomor WA sengaja dimasker.</p>
+
+  <div class="kartu">
+    <h2>Keadaan sekarang</h2>
+    <div id="status"><span class="pill"><span class="dot"></span><b>memuat…</b></span></div>
+    <div class="grid" id="grid"></div>
+    <p class="hint" id="hint"></p>
+  </div>
+
+  <div class="kartu">
+    <h2>Generasi snapshot profil</h2>
+    <div class="tw"><table id="snap"><thead><tr>
+      <th>generasi</th><th>umur</th><th>dibuat</th>
+    </tr></thead><tbody></tbody></table></div>
+    <p class="hint" id="snap-hint"></p>
+  </div>
+
+  <div class="kartu">
+    <h2>Riwayat reconnect</h2>
+    <div class="tw"><table id="riwayat"><thead><tr>
+      <th>waktu</th><th>peristiwa</th><th>keterangan</th>
+    </tr></thead><tbody></tbody></table></div>
+    <p class="hint" id="riwayat-hint"></p>
+  </div>
+
+  <p class="kaki" id="kaki"></p>
+</div>
+
+<script>
+const JENIS = { siap:'siap', putus:'putus', qr:'butuh scan', pulih:'pulih', snapshot:'snapshot' };
+
+function umur(menit){
+  if(menit==null) return '—';
+  if(menit < 60) return menit + ' mnt';
+  const j = Math.floor(menit/60), s = menit%60;
+  if(j < 24) return j + ' j' + (s ? ' ' + s + ' mnt' : '');
+  const h = Math.floor(j/24), jj = j%24;
+  return h + ' hr' + (jj ? ' ' + jj + ' j' : '');
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+/* nama generasi snap-YYYYMMDDHHMMSS → "19 Nov · 08:08" (WIB) */
+function dariNama(nama){
+  const m = /snap-(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/.exec(nama || '');
+  if(!m) return '—';
+  const bln = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+  return +m[3] + ' ' + bln[+m[2]-1] + ' · ' + m[4] + ':' + m[5] + ' WIB';
+}
+function sel(lab, val, ket, kelas){
+  return '<div class="sel ' + (kelas||'') + '"><div class="lab">' + lab + '</div>'
+       + '<div class="val">' + esc(val) + '</div>'
+       + (ket ? '<div class="ket">' + ket + '</div>' : '') + '</div>';
+}
+
+function gambar(w){
+  const kotak = document.getElementById('status');
+  const grid  = document.getElementById('grid');
+  const hint  = document.getElementById('hint');
+
+  if(!w){
+    kotak.innerHTML = '<span class="pill warn"><span class="dot"></span><b>data belum ada</b></span>';
+    grid.innerHTML = '';
+    hint.textContent = 'Blok "wa" belum muncul di data.json — penerbitan berikutnya akan mengisinya.';
+    return;
+  }
+
+  let kelas, teks;
+  if(w.hidup === true && w.qr){ kelas='warn'; teks = 'MENUNGGU SCAN QR'; }
+  else if(w.hidup === true){ kelas='up'; teks = 'TERHUBUNG'; }
+  else if(w.hidup === false){ kelas='warn'; teks = 'BELUM READY'; }
+  else { kelas='dn'; teks = 'GATEWAY TIDAK MENJAWAB'; }
+  kotak.innerHTML = '<span class="pill ' + kelas + '"><span class="dot"></span><b>' + teks + '</b></span>'
+    + (w.wid ? ' <span class="tag">' + esc(w.wid) + '</span>' : '');
+
+  const h24 = w.hitung24 || {};
+  const sn = w.snap || [];
+  const baru = sn.length ? sn[sn.length-1] : null;
+
+  grid.innerHTML =
+      sel('Umur sesi sekarang', umur(w.login_umur_mnt),
+          w.login_ts ? 'READY sejak ' + esc(w.login_ts) : 'penanda sesi belum ada',
+          w.login_umur_mnt > 60 ? 'good' : '')
+    + sel('Login terakhir via scan', w.scan_umur_mnt == null ? '—' : umur(w.scan_umur_mnt),
+          w.scan_umur_mnt == null ? 'belum ada scan di ekor log'
+            : 'READY ' + esc(w.scan_terakhir) + ' sesudah scan',
+          'good')
+    + sel('Snapshot siap', (w.snap_total || 0) + ' generasi',
+          baru ? 'terbaru ' + umur(baru.umur_mnt) + ' lalu' : 'belum ada generasi',
+          w.snap_segar === false ? 'warn' : (w.snap_total ? 'good' : 'bad'))
+    + sel('Reconnect 24 j', (h24.siap || 0) + '× siap',
+          (h24.putus || 0) + ' putus · ' + (h24.pulih || 0) + ' dipulihkan · '
+          + (h24.qr || 0) + ' butuh scan',
+          (h24.qr || 0) ? 'bad' : 'good')
+    + sel('Antrean kirim', w.pending == null ? '—' : w.pending + ' pesan',
+          w.pending ? 'menunggu sesi siap' : 'kosong',
+          w.pending ? 'warn' : '')
+    + sel('Proses gateway', umur(w.proses_detik == null ? null : Math.floor(w.proses_detik/60)),
+          w.proses_detik == null ? '' : 'sejak start terakhir', '');
+
+  let pesan = [];
+  if(w.hidup === false && !w.qr)
+    pesan.push('Gateway hidup tapi sesi belum READY — kalau QR muncul, mekanisme pemulihan sedang mencoba snapshot dulu.');
+  if(w.qr)
+    pesan.push('QR sampai ke layar: semua sumber snapshot sudah dicoba. Buka <b>http://localhost:3000/qr.html</b> dan scan sekali.');
+  if(w.snap_segar === false)
+    pesan.push('Snapshot terbaru lebih tua dari sesi sekarang — generasi itu belum memuat kredensial login terakhir, jadi pulihan darinya bisa meminta QR lagi. Tunggu snapshot periodik (±20 mnt).');
+  if(h24.qr)
+    pesan.push('Ada ' + h24.qr + ' permintaan scan dalam 24 jam terakhir. Satu-dua kali wajar; sering = akar masalahnya belum selesai.');
+  if(!pesan.length)
+    pesan.push('Tidak ada yang perlu ditindak. Snapshot periodik menjaga sesi tetap bisa pulih sendiri tanpa scan.');
+  hint.innerHTML = pesan.join('<br>');
+
+  const tb = document.querySelector('#snap tbody');
+  tb.innerHTML = sn.length
+    ? sn.slice().reverse().map(s =>
+        '<tr><td>' + esc(s.nama) + '</td><td>' + umur(s.umur_mnt) + ' lalu</td>'
+        + '<td>' + dariNama(s.nama) + '</td></tr>').join('')
+    : '<tr><td colspan="3" class="kosong">belum ada generasi snapshot</td></tr>';
+  document.getElementById('snap-hint').textContent = w.snap_total
+    ? w.snap_total + ' generasi disimpan (generasi tertua dibuang otomatis saat melewati batas).'
+    : '';
+
+  const riv = (w.riwayat || []).slice().reverse();
+  const tr = document.querySelector('#riwayat tbody');
+  tr.innerHTML = riv.length
+    ? riv.map(k => '<tr><td>' + esc(k.ts) + '</td>'
+        + '<td><span class="tag ' + esc(k.jenis) + '">' + esc(JENIS[k.jenis] || k.jenis) + '</span></td>'
+        + '<td>' + esc(k.teks) + '</td></tr>').join('')
+    : '<tr><td colspan="3" class="kosong">ekor log kosong</td></tr>';
+  document.getElementById('riwayat-hint').textContent = riv.length
+    ? 'Diambil dari ekor logs/wa_gateway.log (' + (w.kejadian_ekor || riv.length)
+      + ' peristiwa terbaca). "pulih" = QR dibatalkan karena snapshot berhasil dipakai.'
+    : 'Gateway belum mencatat satu pun peristiwa sesi.';
+
+  document.getElementById('kaki').textContent =
+    'Dirakit ' + (w.ts || '—') + ' · diperbarui otomatis tiap menit dari data.json';
+}
+
+let terakhir = 0;
+async function muat(){
+  try{
+    const r = await fetch('data.json?t=' + Date.now(), { cache:'no-store' });
+    const d = await r.json();
+    gambar(d.wa);
+    terakhir = Date.now();
+  }catch(e){
+    // Gagal ambil = jangan kosongkan halaman yang sudah tampil.
+    if(!terakhir) gambar(null);
+  }
+}
+muat();
+setInterval(muat, 60000);
+</script>
+</body>
+</html>
