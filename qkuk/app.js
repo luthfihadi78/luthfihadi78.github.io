@@ -2602,13 +2602,22 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       row.appendChild(el("b", "n " + (cls || ""), v));
       cT.appendChild(row);
     };
+    line("horizon replay", TM.horizon_jam == null ? "— (entry lama)" : TM.horizon_jam + " jam tetap", "mut");
     line("rata-rata p(target) MC", TM.avg_p_target == null ? "—" : (TM.avg_p_target * 100).toFixed(1) + "%");
+    // 19 Nov — satu setup diuji beberapa horizon dalam satu lintasan, supaya
+    // kelihatan apakah target lebih likely dalam 6 jam atau butuh 24 jam.
+    var PH = TM.per_horizon || {}, phTeks = Object.keys(PH).map(function (k) {
+      var v = PH[k] || {};
+      return k + " " + (v.p_target == null ? "—" : (v.p_target * 100).toFixed(1)) + "%/"
+        + (v.p_stop == null ? "—" : (v.p_stop * 100).toFixed(1)) + "%";
+    }).join(" · ");
+    if (phTeks) line("target/stop per horizon", phTeks, "mut");
     line("historis cukup (n≥20)", (TM.n_hist_cukup || 0) + " / " + (TM.n || 0), "mut");
     line("WR historis rata-rata", TM.avg_hist_wr == null ? "—" : TM.avg_hist_wr + "%",
       (TM.avg_hist_wr || 0) >= 50 ? "pos" : "neg");
     line("avg R historis", TM.avg_hist_R == null ? "—" : (TM.avg_hist_R > 0 ? "+" : "") + TM.avg_hist_R,
       (TM.avg_hist_R || 0) >= 0 ? "pos" : "neg");
-    cT.appendChild(el("p", "def-note", "Replay aturan yang sama di sesi historis, bukan hanya Monte Carlo. Sesi < 20 ditandai belum cukup."));
+    cT.appendChild(el("p", "def-note", "Replay aturan yang sama di sesi historis, bukan hanya Monte Carlo. Sesi < 20 ditandai belum cukup. 19 Nov: horizon tetap (bukan sisa hari UTC), jadi setup jam 02:00 dan 23:30 diuji dengan jangkauan yang sama; p(target) juga dilaporkan per 6/12/24 jam."));
 
     /* 14 Nov — LAPORAN HARIAN (coach deterministik): hasil hari ini, sinyal
        yang ditahan retest, penolakan dinilai, dan saran. Ditulis sekali sehari
