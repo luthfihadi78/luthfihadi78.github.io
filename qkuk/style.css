@@ -1556,6 +1556,9 @@ td.bcw{color:var(--gold)}
 .antrean-h>span:first-child{color:var(--gold);display:flex;align-items:center;gap:7px}
 .antrean-h>span:first-child::before{content:"";width:6px;height:6px;border-radius:999px;
   background:var(--gold);box-shadow:0 0 7px rgba(216,200,154,.55);flex:none}
+/* 19 Nov — sebab penolakan harness (mis. market cap tak diketahui) sengaja
+   dibedakan dari catatan siklus engine: warna hangat, bukan abu-abu. */
+.antre-sebab{color:#F5C45C;font-size:11px;line-height:1.35}
 .antre-badge{font-size:10.5px;letter-spacing:.01em;text-transform:none;color:var(--gold);
   background:var(--gold-w);border:1px solid rgba(216,200,154,.32);
   border-radius:999px;padding:3px 11px;font-weight:600;white-space:nowrap}

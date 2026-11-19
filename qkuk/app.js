@@ -3308,8 +3308,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         } },
       { h: "alasan", c: function (r) {
           var s = String(r.alasan || "\u2014");
-          var t = txt(s.length > 42 ? s.slice(0, 42) + "\u2026" : s, "dim");
-          t.title = s + (r.skor == null ? "" : "\nskor " + r.skor)
+          /* 19 Nov — alasan penolakan harness (mis. market cap tak diketahui)
+             adalah sebab sinyal tidak dieksekusi; tampilkan lebih panjang dan
+             beri warna beda supaya tidak tertukar dengan catatan siklus. */
+          var t = txt(s.length > 64 ? s.slice(0, 64) + "\u2026" : s,
+                      r.alasan_harness ? "antre-sebab" : "dim");
+          t.title = (r.alasan_harness ? "sebab sinyal tidak dieksekusi: " : "") + s
+            + (r.skor == null ? "" : "\nskor " + r.skor)
             + "\nsumber: " + (r.sumber === "journal"
                 ? "journal bot hari ini (" + (r.n_sinyal || 1) + " catatan siklus)"
                 : r.sumber === "pending" ? "antrean eksekusi bot" : "putusan harness");
