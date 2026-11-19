@@ -2163,7 +2163,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
     /* 19 Nov — kartu hero: kanvas lebih tinggi (360px di CSS) supaya gerakan
        kecil tetap terbaca, plus ruang untuk label R di puncak. */
-    var W = 620, H = 380, P = { t: 20, r: 70, b: 26, l: 64 };
+    /* 19 Nov — kanvas lebih besar & rasionya mendekati lebar kartu supaya
+       angka tidak "gepeng" seperti sebelumnya (viewBox 620x380 ditarik ke
+       tinggi 440). */
+    var W = 760, H = 460, P = { t: 26, r: 78, b: 34, l: 70 };
     svg.setAttribute("viewBox", "0 0 " + W + " " + H);
     svg.setAttribute("preserveAspectRatio", "none");
     var usd = function (v, d) { return (v < 0 ? "−$" : "$") + Math.abs(v).toFixed(d == null ? 2 : d); };
@@ -2214,6 +2217,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       svg.appendChild(t);
     });
     var pts = titik.map(function (r, i) { return [X(i), Y(num(r.total))]; });
+    /* 19 Nov — saat riwayat baru 1 titik belum ada garis sama sekali (user:
+       "grafik equity mana garisnya"). Bentangkan satu segmen datar selebar
+       kanvas supaya level terakhir tetap terbaca, bukan layar kosong. */
+    var _satuTitik = pts.length === 1;
+    if (_satuTitik) {
+      var _y1 = pts[0][1];
+      pts = [[P.l, _y1], [W - P.r, _y1]];
+    }
     /* 19 Nov — garis HALUS (Catmull-Rom → bezier) alih-alih siku-siku per
        titik, supaya kurva equity terbaca sebagai tren, bukan tangga data. */
     var dLine = "M" + pts[0][0].toFixed(1) + "," + pts[0][1].toFixed(1);
@@ -2237,12 +2248,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         + "L" + pts[0][0] + "," + dasar + "Z", fill: "url(#boteqv)", stroke: "none",
         "class": "eq-area" }));
     }
-    svg.appendChild(mk("path", { d: dLine, fill: "none", stroke: warna, "stroke-width": 2.4,
+    svg.appendChild(mk("path", { d: dLine, fill: "none", stroke: warna, "stroke-width": 3,
       "stroke-linecap": "round", "stroke-linejoin": "round", "class": "eq-line",
       pathLength: 1 }));
     titik.forEach(function (r, i) {
       var akhir_ = i === titik.length - 1;
-      var c = mk("circle", { cx: pts[i][0], cy: pts[i][1],
+      var c = mk("circle", { cx: (_satuTitik ? pts[1][0] : pts[i][0]),
+        cy: (_satuTitik ? pts[1][1] : pts[i][1]),
         r: akhir_ ? 4 : 0, fill: warna,
         "class": akhir_ ? "dot eq-last" : "dot" });
       var tt = mk("title");

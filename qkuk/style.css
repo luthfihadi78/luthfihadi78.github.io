@@ -255,7 +255,7 @@ td.n{text-align:right}
 svg.ch{width:100%;height:190px;display:block;overflow:visible}
 /* 17 Nov — grafik equity live per siklus: lebih tinggi supaya gerakan
    kecil modal (dolar) tetap terbaca sebagai kurva, bukan garis datar. */
-svg.ch#bot-eqv{height:440px}
+svg.ch#bot-eqv{height:460px}
 
 /* ═══ 19 Nov — EQUITY HERO (permintaan user: "grafik taruh di atas",
    design lebih hidup). Kartu grafik jadi elemen pertama bagian bot, dengan
