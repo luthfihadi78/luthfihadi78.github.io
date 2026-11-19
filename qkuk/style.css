@@ -1879,3 +1879,92 @@ body.mode-bot #bot>.sec-h>span.hint,body.mode-bot #bot-analitik>.sec-h>span.hint
   .rgx-ring-fg,.rgx-bar>i,.rgx-lab,.rgx{transition:none}
   .rgx-lab.on>i{animation:none}
 }
+
+/* ══ 19 Nov — ANTREAN versi RAMPING ══════════════════════════════════════
+   Menggantikan tabel 13 kolom yang penuh pil warna. Sekarang 8 kolom, chip
+   engine berwarna dihapus (engine jadi teks kecil di bawah pair), dan warna
+   hanya dipakai untuk arah, hasil, dan status — sama seperti tabel posisi
+   dan riwayat di tab bot. */
+.antrean{padding:14px 16px}
+.antrean table{min-width:780px}
+.antrean th{padding:7px 10px;letter-spacing:.09em}
+.antrean td{padding:7px 10px;font-size:11.5px;line-height:1.35}
+.antrean tbody tr:nth-child(odd){background:transparent}
+.antrean tbody tr:hover td:first-child{box-shadow:inset 2px 0 0 var(--ac)}
+.antrean tbody tr.ar-open{background:rgba(110,231,183,.045)}
+.antrean tbody tr.ar-open td:first-child{box-shadow:inset 2px 0 0 var(--up)}
+.antre-jam{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:10.5px}
+.antre-pair b{font-family:var(--mono);font-size:11.5px;font-weight:600;
+  letter-spacing:.02em;color:var(--fg);white-space:nowrap}
+.antre-pair em{display:block;font-style:normal;font-family:var(--mono);
+  font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-3);margin-top:1px}
+.antre-dir{font-size:10px;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.antre-dir.pos{color:var(--up)} .antre-dir.neg{color:var(--dn)} .antre-dir.dim{color:var(--fg-3)}
+.antre-st{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);
+  font-size:10.5px;letter-spacing:.04em;color:var(--fg-2);white-space:nowrap}
+.antre-st::before{content:"";width:6px;height:6px;border-radius:999px;
+  background:var(--fg-3);flex:none}
+.antre-st.pos{color:var(--up)} .antre-st.pos::before{background:var(--up);
+  box-shadow:0 0 5px rgba(110,231,183,.6)}
+.antre-st.neg{color:var(--dn)} .antre-st.neg::before{background:var(--dn)}
+.antre-st.mut{color:var(--fg-2)} .antre-st.mut::before{background:var(--fg-2)}
+.antre-sub{display:block;font-style:normal;font-family:var(--mono);font-size:9.5px;
+  line-height:1.4;color:var(--fg-3);margin-top:2px;max-width:280px}
+.antre-sltp .antre-sub,.antre-sttd .antre-sub{white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.antre-sep{color:var(--fg-3)}
+.antrean td.antre-cd{white-space:nowrap}
+.antrean .antre-sebab{color:var(--gold);font-size:10.5px}
+.antrean .antre-x{width:16px;height:16px;font-size:11px;opacity:.55}
+.antrean tr:hover .antre-x{opacity:1}
+@media (max-width:720px){
+  .antrean{padding:12px 10px}
+  .antre-sub{max-width:200px}
+}
+
+/* 19 Nov — antrean ramping: kolom diberi lebar tetap supaya tidak melar
+   mengikuti panjang alasan (tabel dulu melebar sampai keluar kartu). */
+.antrean table{table-layout:fixed;width:100%;min-width:760px}
+.antrean th:nth-child(1){width:56px}
+.antrean th:nth-child(2){width:148px}
+.antrean th:nth-child(3){width:76px}
+.antrean th:nth-child(4){width:224px}
+.antrean th:nth-child(5){width:104px}
+.antrean th:nth-child(6){width:126px}
+.antrean th:nth-child(7){width:150px}
+.antrean th:nth-child(8){width:auto}
+.antrean th:nth-child(9){width:26px}
+.antrean td.antre-sltp{white-space:nowrap;font-variant-numeric:tabular-nums}
+.antrean td.antre-sltp .antre-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.antrean td.antre-alasan{overflow:hidden}
+.antrean td.antre-alasan>span{display:block;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;font-size:10.5px}
+.antrean td.antre-sttd .antre-sub{max-width:100%}
+
+/* 19 Nov — muat tanpa geser horizontal di desktop: total kolom tetap ≤ 760px,
+   sisanya untuk alasan yang dipotong elipsis (teks penuh di tooltip). */
+.antrean table{table-layout:fixed;width:100%;min-width:0}
+.antrean th:nth-child(1){width:50px}
+.antrean th:nth-child(2){width:126px}
+.antrean th:nth-child(3){width:64px}
+.antrean th:nth-child(4){width:196px}
+.antrean th:nth-child(5){width:88px}
+.antrean th:nth-child(6){width:106px}
+.antrean th:nth-child(7){width:132px}
+.antrean th:nth-child(8){width:auto}
+.antrean th:nth-child(9){width:26px}
+@media (max-width:900px){.antrean table{min-width:820px}}
+/* 19 Nov — sub-status boleh 2 baris; dulu dipaksa nowrap lalu terpotong
+   "sisa 42…". Kolom tetap, jadi tinggi baris naik sedikit tapi tak melar. */
+.antrean td.antre-sttd .antre-sub{white-space:normal;overflow:visible;
+  text-overflow:clip;line-height:1.35}
+/* 19 Nov — chip "SL" di kolom KINI tak boleh menimpa kolom sebelah. */
+.antrean td.antre-cd{white-space:nowrap;overflow:hidden}
+.antrean th:nth-child(4){width:186px}
+.antrean th:nth-child(6){width:122px}
+.antrean th:nth-child(7){width:142px}
+/* 19 Nov — KINI perlu ruang untuk harga + Δ% + chip SL/TP sekaligus. */
+.antrean th:nth-child(4){width:180px}
+.antrean th:nth-child(5){width:84px}
+.antrean th:nth-child(6){width:152px}
+.antrean th:nth-child(7){width:142px}

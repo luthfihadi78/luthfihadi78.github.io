@@ -3541,156 +3541,128 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         }
       }
     }
-    /* 18 Nov (permintaan user) — tiap baris harus jelas STATUS-nya (open /
-       menunggu / ditolak) dan APA yang sedang ditunggu (persiapan LONG atau
-       SHORT, bukan cuma "pantau"). */
+    /* 19 Nov (permintaan user) — tabel antrean DIRAMPINGKAN dan disamakan
+       dengan tabel lain di Qkuk Terminal: tanpa chip warna-warni per engine,
+       tanpa pil ganda. Satu kolom = satu pertanyaan:
+         jam · pair(engine) · arah · status(+setup & umur) · entry · kini ·
+         SL/TP · alasan.
+       Warna hanya dipakai untuk hal yang perlu dibedakan (arah, hasil, dan
+       status akhir); sisanya abu-abu tema supaya angka yang menonjol. */
     var jenisTeks = { retest: "tunggu retest zona", momentum: "tunggu momentum",
                       breakdown: "tunggu breakdown", pantau: "pantau", agent: "agent",
                       retest_long: "persiapan retest", retest_short: "persiapan retest",
                       retest_zona: "tunggu retest zona",
-                      tunggu_arah: "tunggu arah (bisa lanjut turun)",
-                      tolak: "ditolak gate/agent",
+                      tunggu_arah: "tunggu arah", tolak: "ditolak gate/agent",
                       timeout: "analisa timeout \u00b7 diulang" };
     var STATUS = {
-      "Open Posisi": { cls: "pos", txt: "\u25b2 Open Posisi" },
-      "Menunggu":    { cls: "mut", txt: "\u25cb Menunggu" },
-      "Ditolak":     { cls: "neg", txt: "\u2715 Ditolak" },
-      "Dibatalkan":  { cls: "warn", txt: "\u2014 Dibatalkan" },
-      "Selesai":     { cls: "mut", txt: "\u25a0 Selesai" },
-      "Dieksekusi":  { cls: "pos", txt: "\u2713 Dieksekusi" }
+      "Open Posisi": { cls: "pos", txt: "open" },
+      "Menunggu":    { cls: "mut", txt: "menunggu" },
+      "Ditolak":     { cls: "neg", txt: "ditolak" },
+      "Dibatalkan":  { cls: "dim", txt: "batal" },
+      "Selesai":     { cls: "dim", txt: "selesai" },
+      "Dieksekusi":  { cls: "pos", txt: "eksekusi" }
     };
     var rp = function (v) {
       var n = num(v);
       if (n == null) return "\u2014";
       return n >= 100 ? n.toFixed(2) : n >= 1 ? n.toFixed(4) : String(+n.toPrecision(4));
     };
+    var sp = function (v, c) {
+      return el("span", c, (v == null || v === "") ? "\u2014" : v);
+    };
     var umurTeks = function (m) {
       var n = num(m);
-      if (n == null) return "\u2014";
+      if (n == null) return null;
       if (n < 60) return Math.round(n) + " mnt";
       return Math.floor(n / 60) + "j " + Math.round(n % 60) + "m";
-    };
-    /* chip engine berwarna per kanal (mudah dibedakan sekilas) */
-    var WARNA_ENG = { tile: "eng-gold", ob: "eng-blue", "2h": "eng-violet",
-                      ob30m: "eng-gold", "4h": "eng-teal", "1h": "eng-teal",
-                      "15m": "eng-pink", "30m": "eng-blue" };
-    var chipEng = function (k) {
-      var kunci = String(k || "").toLowerCase();
-      var sp = el("span", "antre-eng " + (WARNA_ENG[kunci] || "eng-mute"),
-                  String(k || "\u2014").toUpperCase());
-      return sp;
-    };
-    var warnaLama = function (m, batas) {
-      var n = num(m);
-      if (n == null) return "n dim";
-      if (n >= batas * 2) return "n a-old";     // lama menunggu = merah
-      if (n >= batas) return "n a-warn";        // mendekati = kuning
-      return "n a-fresh";                       // baru = hijau
     };
     var box = el("div", "tw");
     host.appendChild(box);
     table(box, [
-      { h: "sejak", c: function (r) { return txt(r.sejak || "\u2014", "dim"); } },
-      { h: "pair", c: function (r) {
-          var t = txt(r.sym || "\u2014", "sym");
-          if (r.kanal) t.title = "engine " + String(r.kanal).toUpperCase();
-          return t;
+      { h: "jam", c: function (r) {
+          var td = el("td", "antre-jam");
+          td.appendChild(sp(r.sejak, "dim"));
+          return td;
         } },
-      { h: "engine", c: function (r) {
-          var td = el("td"); td.appendChild(chipEng(r.kanal)); return td;
+      { h: "pair", c: function (r) {
+          var td = el("td", "antre-pair");
+          td.appendChild(el("b", null, r.sym || "\u2014"));
+          var meta = [String(r.kanal || "").toUpperCase(), umurTeks(r.umur)]
+            .filter(function (x) { return x; }).join(" \u00b7 ");
+          if (meta) td.appendChild(el("em", null, meta));
+          return td;
         } },
       { h: "arah", c: function (r) {
           var d = String(r.dir || "").toLowerCase();
-          return pill(d === "long" ? "LONG" : d === "short" ? "SHORT" : "\u2014",
-                      d === "long" ? "pos" : d === "short" ? "neg" : "mut");
+          return txt(d === "long" ? "\u25b2 long" : d === "short" ? "\u25bc short" : "\u2014",
+                     "antre-dir " + (d === "long" ? "pos" : d === "short" ? "neg" : "dim"));
         } },
       { h: "status \u00b7 menunggu apa", c: function (r) {
           var j = String(r.jenis || "");
           var st = STATUS[r.status_antre] || STATUS.Menunggu;
-          var td = el("td");
-          var bp = pill(st.txt, st.cls);
-          bp.className += " antre-status-badge";
-          bp.title = "status antrean: " + (r.status_antre || "Menunggu")
-            + (r.status_antre === "Open Posisi"
-               ? " \u2014 posisi " + String(r.dir_antre || r.dir || "").toUpperCase()
-                 + " sudah jalan, baris tetap tampil sampai posisinya ditutup"
-               : r.status_antre === "Ditolak"
-                 ? " \u2014 tidak dieksekusi (alasan di kolom kanan)"
-                 : " \u2014 masih di antrean, dievaluasi ulang tiap siklus")
-            + (r.kanal ? "\nengine " + String(r.kanal).toUpperCase() : "");
-          td.appendChild(bp);
-          td.appendChild(document.createTextNode(" "));
-          /* arah yang sedang DISIAPKAN (bisa beda dari arah sinyal asli bila
-             bot membalik arah setelah membaca momentum) */
+          var td = el("td", "antre-sttd");
+          var top = el("span", "antre-st " + st.cls);
+          top.appendChild(el("span", null, st.txt));
+          td.appendChild(top);
           var arah = String(r.dir_antre || r.dir || "").toLowerCase();
-          var dasar = jenisTeks[j] || j || "\u2014";
-          if (r.status_antre !== "Ditolak" && arah && r.status_antre !== "Open Posisi"
-              && dasar.indexOf("persiapan") !== 0) {
-            dasar = "persiapan " + arah.toUpperCase() + " \u00b7 " + dasar;
-          } else if (r.status_antre === "Open Posisi") {
-            dasar = "posisi " + arah.toUpperCase() + " terbuka \u00b7 " + dasar;
-          }
-          var sp = el("span", "antre-jenis j-" + (j || "lain"), dasar);
-          sp.title = dasar + (r.alasan ? "\nsebab: " + r.alasan : "");
-          td.appendChild(sp); return td;
+          var dasar = jenisTeks[j] || j || "";
+          if (r.status_antre === "Ditolak") dasar = "";
+          else if (r.status_antre === "Open Posisi") dasar = "posisi " + arah + " terbuka";
+          else if (dasar && dasar.indexOf("persiapan") !== 0 && dasar.indexOf("tunggu") !== 0)
+            dasar = "persiapan " + arah + " \u00b7 " + dasar;
+          var sisa = umurTeks(r.sisa);
+          var sub = [dasar, sisa ? "sisa " + sisa : null]
+            .filter(function (x) { return x; }).join(" \u00b7 ");
+          if (sub) td.appendChild(el("em", "antre-sub", sub));
+          td.title = "status antrean: " + (r.status_antre || "Menunggu")
+            + (r.umur == null ? "" : "\numur " + umurTeks(r.umur))
+            + (r.alasan ? "\nsebab: " + r.alasan : "");
+          return td;
         } },
-      { h: "entry", n: true, c: function (r) { return txt(r.entry == null ? null : rp(r.entry), "n"); } },
-      /* 19 Nov — PELACAKAN CANDLE: harga mark terakhir + posisi harga terhadap
-         entry (sesuai arah), SL, dan TP. Diperbarui tiap build data, jadi
-         pergerakan candle tiap siklus terbaca tanpa buka journal. */
-      { h: "harga kini", n: true, c: function (r) {
+      { h: "entry", n: true, c: function (r) {
+          return txt(r.entry == null ? null : rp(r.entry), "n dim");
+        } },
+      { h: "kini", n: true, c: function (r) {
           var c = r.candle || {}, h = num(c.harga);
           var td = el("td", "antre-cd");
-          td.appendChild(txt(h == null ? null : rp(h), "n"));
+          td.appendChild(sp(h == null ? null : rp(h), "n"));
           var chg = num(c.chg_pct);
           if (chg != null) {
-            var cl = chg > 0 ? "pos" : chg < 0 ? "neg" : "dim";
-            var sp = el("span", "antre-chg " + cl,
-                        (chg > 0 ? "+" : "") + chg.toFixed(2) + "%");
-            sp.title = "pergerakan harga dari entry " + (r.entry == null ? "" : rp(r.entry))
-              + " (dihitung sesuai arah " + String(r.dir || "").toUpperCase() + ")";
             td.appendChild(document.createTextNode(" "));
-            td.appendChild(sp);
+            td.appendChild(sp((chg > 0 ? "+" : "") + chg.toFixed(2) + "%",
+                              "antre-chg " + (chg > 0 ? "pos" : chg < 0 ? "neg" : "dim")));
           }
           if (c.sentuh) {
             td.appendChild(document.createTextNode(" "));
-            td.appendChild(pill("sentuh " + c.sentuh, c.sentuh === "TP" ? "pos" : "neg"));
+            td.appendChild(el("span", "bc-chip " + (c.sentuh === "TP" ? "pos" : "neg"), c.sentuh));
           }
           return td;
         } },
-      { h: "jarak SL/TP", n: true, c: function (r) {
+      { h: "SL / TP", n: true, c: function (r) {
+          var td = el("td", "antre-sltp");
+          td.appendChild(sp(r.sl == null ? null : rp(r.sl), "n dim"));
+          td.appendChild(el("span", "antre-sep", " / "));
+          td.appendChild(sp(r.tp == null ? null : rp(r.tp), "n"));
           var c = r.candle || {}, a = num(c.ke_sl_pct), b = num(c.ke_tp_pct);
-          if (a == null && b == null) return txt("\u2014", "n dim");
-          var td = el("td", "antre-cd");
-          var s1 = el("span", "antre-dst neg", a == null ? "SL \u2014" : "SL " + a.toFixed(2) + "%");
-          s1.title = "jarak harga sekarang ke SL";
-          var s2 = el("span", "antre-dst pos", b == null ? "TP \u2014" : "TP " + b.toFixed(2) + "%");
-          s2.title = "jarak harga sekarang ke TP";
-          td.appendChild(s1); td.appendChild(document.createTextNode(" ")); td.appendChild(s2);
+          if (a != null || b != null) {
+            var jarak = [a == null ? null : "SL " + a.toFixed(2) + "%",
+                         b == null ? null : "TP " + b.toFixed(2) + "%"]
+              .filter(function (x) { return x; }).join(" \u00b7 ");
+            td.appendChild(el("em", "antre-sub", jarak));
+          }
+          td.title = "SL / TP posisi, lalu jarak harga sekarang ke masing-masing";
           return td;
-        } },
-      { h: "SL", n: true, c: function (r) { return txt(r.sl == null ? null : rp(r.sl), "n neg"); } },
-      { h: "TP", n: true, c: function (r) { return txt(r.tp == null ? null : rp(r.tp), "n pos"); } },
-      { h: "umur", n: true, c: function (r) { return txt(umurTeks(r.umur), warnaLama(r.umur, 90)); } },
-      { h: "sisa", n: true, c: function (r) {
-          var s = num(r.sisa);
-          if (s == null) return txt("\u2014", "n dim");
-          /* sisa waktu: makin sedikit makin merah (kebalikan umur) */
-          return txt(umurTeks(s), "n " + (s <= 15 ? "a-old" : s <= 60 ? "a-warn" : "a-fresh"));
         } },
       { h: "alasan", c: function (r) {
           var s = String(r.alasan || "\u2014");
-          /* 19 Nov — alasan penolakan harness (mis. market cap tak diketahui)
-             adalah sebab sinyal tidak dieksekusi; tampilkan lebih panjang dan
-             beri warna beda supaya tidak tertukar dengan catatan siklus. */
-          var t = txt(s.length > 64 ? s.slice(0, 64) + "\u2026" : s,
-                      r.alasan_harness ? "antre-sebab" : "dim");
+          var td = el("td", "antre-alasan");
+          var t = sp(s.length > 88 ? s.slice(0, 88) + "\u2026" : s,
+                     r.alasan_harness ? "antre-sebab" : "dim");
           t.title = (r.alasan_harness ? "sebab sinyal tidak dieksekusi: " : "") + s
             + (r.skor == null ? "" : "\nskor " + r.skor)
-            + "\nsumber: " + (r.sumber === "journal"
-                ? "journal bot hari ini (" + (r.n_sinyal || 1) + " catatan siklus)"
-                : r.sumber === "pending" ? "antrean eksekusi bot" : "putusan harness");
-          return t;
+            + "\nsumber: journal bot hari ini (" + (r.n_sinyal || 1) + " catatan siklus)";
+          td.appendChild(t);
+          return td;
         } },
       { h: "", c: function (r) {
           var b = el("button", "antre-x", "\u00d7");
@@ -3708,20 +3680,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           return td;
         } }
     ], rows, "Antrean kosong.");
-    /* 17 Nov — warna baris per arah (garis tepi kiri hijau/merah) supaya mata
-       langsung tahu mana long dan mana short. */
     var trs = box.querySelectorAll("tbody tr");
     for (var ti = 0; ti < trs.length && ti < rows.length; ti++) {
-      var dr = String(rows[ti].dir || "").toLowerCase();
-      trs[ti].className = (rows[ti].status_antre === "Open Posisi" ? "ar-open " : "")
-        + (dr === "long" ? "ar-l" : dr === "short" ? "ar-s" : "ar-n");
+      if (rows[ti].status_antre === "Open Posisi") trs[ti].className = "ar-open";
     }
     host.appendChild(el("p", "cap",
-      "Tabel ini memuat SELURUH sinyal hari ini (WIB) dari journal: yang masih "
-      + "menunggu, yang sudah dieksekusi, yang ditolak, dan yang dibatalkan \u2014 "
-      + "tidak ada baris yang dihapus karena kedaluwarsa. Kolom \u201charga kini\u201d "
-      + "dan \u201cjarak SL/TP\u201d diperbarui tiap build data, jadi pergerakan candle "
-      + "tiap siklus terbaca di sini."));
+      "Hanya sinyal yang dibuka HARI INI (WIB). Posisi yang dibuka kemarin tetap "
+      + "terlihat di tabel posisi terbuka, bukan di sini."));
   }
 
   /* 14 Nov (permintaan user) — SINYAL LONG REBOUND: mana yang dibuka, ditahan
