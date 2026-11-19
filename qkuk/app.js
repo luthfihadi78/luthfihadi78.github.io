@@ -3055,158 +3055,192 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      ditunggu bot/harness. Sumber server: bot.antrean (state/pending.json +
      state/signal_status.json). Baris hilang sendiri begitu entry jalan atau
      antreannya kedaluwarsa, jadi tabel ini selalu = yang benar-benar ditunggu. */
-  /* 19 Nov (permintaan user) — RADAR AGENT: bentuk lain dari tabel antrean.
-     Koin yang sedang dibaca agent berdenyut di cincin radar, dan saat agent
-     berpindah koin, titik sorot bergerak ke node baru. Sumber: bot.ai.fokus
-     (ditulis run.py/relay.py) + bot.antrean untuk daftar koin.
-     Tabel antrean tetap ada di bawahnya — radar untuk "apa yang sedang
-     dipikirkan", tabel untuk angka & sebab penolakan. */
-  var _radarSebelum = null;
-  var RADAR_TAHAP = { menimbang: "menimbang", memutus: "berpikir",
-                      eksekusi: "eksekusi", istirahat: "istirahat" };
+  /* 19 Nov (permintaan user) — RADAR AGENT versi KARTU (bento).
+     Menggantikan radar SVG yang terlalu ramai. Koin yang sedang dibaca tampil
+     sebagai kartu fokus besar, koin lain sebagai kartu kecil. Semua perpindahan
+     dianimasikan: kartu bergeser halus (FLIP), kartu baru muncul berurutan,
+     kartu yang ditinggal berkedip, dan angka yang berubah menyala sebentar. */
+  var _rkFokusLalu = null, _rkAngkaLalu = {};
+  var RK_TAHAP = { menimbang: "menimbang", memutus: "berpikir",
+                   eksekusi: "eksekusi", istirahat: "istirahat" };
+  var RK_PRI = { "Open Posisi": 0, "Menunggu": 1, "Ditolak": 2 };
+  function _rkNum(v) {
+    var n = num(v);
+    if (n == null) return "\u2014";
+    return n >= 100 ? n.toFixed(2) : n >= 1 ? n.toFixed(4) : String(+n.toPrecision(4));
+  }
+  function _rkStat(s) {
+    var cls = (s === "Open Posisi" || s === "Dieksekusi") ? "pos"
+            : s === "Ditolak" ? "neg" : s === "Dibatalkan" ? "warn" : "mut";
+    var t = s === "Open Posisi" ? "open" : s === "Menunggu" ? "antre"
+          : s === "Ditolak" ? "ditolak" : s === "Dibatalkan" ? "batal"
+          : s === "Selesai" ? "selesai" : s === "Dieksekusi" ? "eksekusi"
+          : (s || "pantau").toLowerCase();
+    return { t: t, cls: cls };
+  }
   function botRadar(B) {
     var host = $("#bot-radar");
     if (!host) return;
     var F = ((B && B.ai) || {}).fokus || {};
     var rows = ((B && B.antrean) || {}).baris || [];
     if (!rows.length && !F.sym) { host.innerHTML = ""; return; }
-    /* koin di cincin: fokus dulu, lalu yang masih hidup, lalu riwayat */
-    var PRI = { "Open Posisi": 0, "Menunggu": 1, "Ditolak": 2 };
+    var tahap = String(F.tahap || "").toLowerCase();
+    var aktif = !!F.aktif && !!F.sym && tahap !== "istirahat";
+    var lbl = RK_TAHAP[tahap] || (F.sym ? "bekerja" : "idle");
     var koin = [], lihat = {};
-    rows.slice().sort(function (a, b) {
-      var pa = PRI[a.status_antre] == null ? 3 : PRI[a.status_antre];
-      var pb = PRI[b.status_antre] == null ? 3 : PRI[b.status_antre];
-      return (a.sym === F.sym ? -1 : b.sym === F.sym ? 1 : pa - pb);
-    }).forEach(function (r) {
+    rows.forEach(function (r) {
       var s = String(r.sym || "").toUpperCase();
       if (!s || lihat[s]) return;
-      lihat[s] = 1;
-      koin.push({ sym: s, status: r.status_antre, dir: r.dir, kanal: r.kanal, n: r.n_sinyal || 1 });
+      lihat[s] = 1; koin.push(r);
     });
-    var MAKS = 9, sisa = Math.max(0, koin.length - MAKS);
-    koin = koin.slice(0, MAKS);
-    if (F.sym && !lihat[F.sym]) koin.unshift({ sym: F.sym, status: "dibaca", dir: F.dir });
-    var W = 760, H = 336, CX = W / 2, CY = H / 2, R = 122;
-    var geser = -Math.PI / 2;
-    var pos = {};
-    koin.forEach(function (k, i) {
-      var a = geser + i * (2 * Math.PI / Math.max(koin.length, 1));
-      /* elips supaya nama koin tidak bertumpuk di kiri/kanan */
-      pos[k.sym] = { x: CX + Math.cos(a) * R * 1.55, y: CY + Math.sin(a) * R * 0.82, a: a };
+    koin.sort(function (a, b) {
+      if (a.sym === F.sym) return -1;
+      if (b.sym === F.sym) return 1;
+      var pa = RK_PRI[a.status_antre] == null ? 3 : RK_PRI[a.status_antre];
+      var pb = RK_PRI[b.status_antre] == null ? 3 : RK_PRI[b.status_antre];
+      if (pa !== pb) return pa - pb;
+      return (num(a.umur) || 0) - (num(b.umur) || 0);
     });
-    var tahap = String(F.tahap || "").toLowerCase();
-    var aktif = !!F.aktif && !!F.sym && pos[F.sym] && tahap !== "istirahat";
-    var lblTahap = RADAR_TAHAP[tahap] || (F.sym ? "bekerja" : "idle");
-    host.className = "radar";
+    /* FLIP — rekam posisi kartu SEBELUM digambar ulang, supaya kartu yang
+       berpindah urutan bisa meluncur ke tempat barunya, bukan melompat. */
+    var _rect = {};
+    Array.prototype.forEach.call(host.querySelectorAll("[data-rk]"), function (c) {
+      _rect[c.getAttribute("data-rk")] = c.getBoundingClientRect();
+    });
+    var ganti = _rkFokusLalu !== (F.sym || null);
+    host.className = "radar-kartu";
     host.innerHTML = "";
-    var h = el("div", "radar-h");
-    h.appendChild(el("span", null, "radar agent \u00b7 apa yang sedang dikerjakan"));
-    var b = el("b", "radar-badge" + (aktif ? " on" : ""),
-               (F.sym ? lblTahap + " \u00b7 " + String(F.sym).replace("USDT", "") : "idle"));
-    b.title = F.sym
-      ? "fokus: " + F.sym + (F.kanal ? " \u00b7 engine " + String(F.kanal).toUpperCase() : "")
+
+    var head = el("div", "rk-head");
+    head.appendChild(el("span", null, "radar agent \u00b7 apa yang sedang dikerjakan"));
+    var bdg = el("b", "rk-badge" + (aktif ? " on" : ""),
+                 F.sym ? lbl + " \u00b7 " + String(F.sym).replace("USDT", "") : "idle");
+    bdg.title = F.sym
+      ? "fokus " + F.sym + (F.kanal ? " \u00b7 engine " + String(F.kanal).toUpperCase() : "")
         + (F.dir ? " \u00b7 " + String(F.dir).toUpperCase() : "")
-        + "\ntahap: " + lblTahap + (F.sejak ? " (sejak " + F.sejak + ")" : "")
-        + (F.catatan ? "\ncatatan: " + F.catatan : "")
-      : "agent tidak sedang memegang koin \u2014 menunggu siklus berikutnya";
-    h.appendChild(b);
-    host.appendChild(h);
+        + (F.sejak ? "\nsejak " + F.sejak : "") + (F.catatan ? "\n" + F.catatan : "")
+      : "agent tidak sedang memegang koin";
+    head.appendChild(bdg);
+    host.appendChild(head);
 
-    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
-    svg.setAttribute("class", "radar-svg");
-    var ns = "http://www.w3.org/2000/svg";
-    var mk = function (tag, at, cls) {
-      var e = document.createElementNS(ns, tag);
-      Object.keys(at || {}).forEach(function (k) { e.setAttribute(k, at[k]); });
-      if (cls) e.setAttribute("class", cls);
-      svg.appendChild(e);
-      return e;
-    };
-    var defs = document.createElementNS(ns, "defs");
-    defs.innerHTML = '<radialGradient id="rd-glow"><stop offset="0%" stop-color="#D8C89A" stop-opacity=".55"/>'
-      + '<stop offset="100%" stop-color="#D8C89A" stop-opacity="0"/></radialGradient>'
-      + '<linearGradient id="rd-beam" x1="0" y1="0" x2="1" y2="0">'
-      + '<stop offset="0%" stop-color="#D8C89A" stop-opacity=".05"/>'
-      + '<stop offset="100%" stop-color="#F5C45C" stop-opacity=".9"/></linearGradient>';
-    svg.appendChild(defs);
-    mk("circle", { cx: CX, cy: CY, r: 150, fill: "url(#rd-glow)", opacity: aktif ? ".55" : ".2" }, "rd-glow");
-    [56, 88, 120, 150].forEach(function (rr, i) {
-      mk("ellipse", { cx: CX, cy: CY, rx: rr * 1.55, ry: rr * 0.82, fill: "none",
-                      "stroke-width": i === 3 ? ".6" : ".8" }, "rd-ring");
-    });
-    /* sapuan radar berputar — hanya hidup saat agent bekerja */
-    var sapu = document.createElementNS(ns, "g");
-    sapu.setAttribute("class", "rd-sweep" + (aktif ? " on" : ""));
-    sapu.innerHTML = '<path d="M' + CX + ' ' + CY + ' L' + (CX + 186) + ' ' + (CY - 98)
-      + ' A 210 210 0 0 0 ' + (CX + 186) + ' ' + (CY + 98) + ' Z" fill="#D8C89A" opacity=".07"/>';
-    svg.appendChild(sapu);
-
-    /* sorot dari pusat ke koin yang sedang dibaca */
-    var f = F.sym && pos[F.sym];
-    if (f) {
-      mk("line", { x1: CX, y1: CY, x2: f.x, y2: f.y, "stroke-width": 1.6,
-                   stroke: "url(#rd-beam)" }, "rd-beam" + (aktif ? " on" : ""));
-    }
-    mk("circle", { cx: CX, cy: CY, r: 34, fill: "#14110a", stroke: "#D8C89A",
-                    "stroke-width": aktif ? 1.6 : 1 }, "rd-core" + (aktif ? " on" : ""));
-    var tc = mk("text", { x: CX, y: CY - 2, "text-anchor": "middle" }, "rd-core-t");
-    tc.textContent = "AGENT";
-    var ts = mk("text", { x: CX, y: CY + 13, "text-anchor": "middle" }, "rd-core-s");
-    ts.textContent = lblTahap;
-
-    koin.forEach(function (k) {
-      var p = pos[k.sym], on = k.sym === F.sym && aktif;
-      var g = document.createElementNS(ns, "g");
-      g.setAttribute("class", "rd-node" + (on ? " on" : "")
-                     + (k.status === "Ditolak" ? " neg" : k.status === "Open Posisi" ? " pos" : ""));
-      var halo = document.createElementNS(ns, "circle");
-      halo.setAttribute("cx", p.x); halo.setAttribute("cy", p.y);
-      halo.setAttribute("r", 22); halo.setAttribute("class", "rd-halo");
-      g.appendChild(halo);
-      var c = document.createElementNS(ns, "circle");
-      c.setAttribute("cx", p.x); c.setAttribute("cy", p.y);
-      c.setAttribute("r", on ? 19 : 15); c.setAttribute("class", "rd-dot");
-      g.appendChild(c);
-      var t = document.createElementNS(ns, "text");
-      t.setAttribute("x", p.x); t.setAttribute("y", p.y + 3.5);
-      t.setAttribute("text-anchor", "middle"); t.setAttribute("class", "rd-lbl");
-      t.textContent = k.sym.replace("USDT", "");
-      g.appendChild(t);
-      var t2 = document.createElementNS(ns, "text");
-      t2.setAttribute("x", p.x); t2.setAttribute("y", p.y + (on ? 34 : 30));
-      t2.setAttribute("text-anchor", "middle"); t2.setAttribute("class", "rd-sub");
-      t2.textContent = (k.dir === "short" ? "short" : k.dir === "long" ? "long" : "")
-        + (k.status === "Ditolak" ? " \u00b7 ditolak" : k.status === "Open Posisi" ? " \u00b7 open" : k.status === "Menunggu" ? " \u00b7 antre" : "");
-      g.appendChild(t2);
-      svg.appendChild(g);
-    });
-
-    /* perpindahan fokus: titik pelari meluncur dari node lama ke node baru */
-    var lama = _radarSebelum && pos[_radarSebelum];
-    if (aktif && lama && _radarSebelum !== F.sym) {
-      var run = document.createElementNS(ns, "circle");
-      run.setAttribute("cx", lama.x); run.setAttribute("cy", lama.y);
-      run.setAttribute("r", 4.5); run.setAttribute("class", "rd-runner");
-      svg.appendChild(run);
-      setTimeout(function () {
-        run.setAttribute("cx", f.x); run.setAttribute("cy", f.y);
-      }, 30);
-    }
-    if (aktif) _radarSebelum = F.sym;
-    host.appendChild(svg);
-    var foot = el("p", "cap radar-foot");
+    /* ── kartu fokus ─────────────────────────────────────────────────── */
+    var fRow = null;
+    koin.forEach(function (r) { if (r.sym === F.sym) fRow = r; });
+    var fk = el("div", "rk-fokus" + (aktif ? " aktif" : " idle")
+                + (ganti && aktif ? " ganti" : ""));
+    var fh = el("div", "rk-f-head");
+    fh.appendChild(el("span", "rk-f-lbl", aktif ? "sedang dibaca" : "agent"));
+    fh.appendChild(el("b", "rk-f-tahap" + (aktif ? " on" : ""),
+      aktif ? lbl + (F.umur_s == null ? "" : " \u00b7 " + Math.round(F.umur_s) + " dtk")
+            : (F.sym ? "terakhir " + String(F.sym).replace("USDT", "") : "istirahat")));
+    fk.appendChild(fh);
     if (aktif) {
-      foot.textContent = "denyut = agent sedang membaca " + F.sym
-        + (F.umur_s == null ? "" : " (" + Math.round(F.umur_s) + " dtk)")
-        + " \u00b7 titik meluncur = perpindahan fokus";
-    } else if (F.sym) {
-      foot.textContent = "fokus terakhir " + F.sym + " \u00b7 penanda basi, agent mungkin sudah selesai";
+      var fm = el("div", "rk-f-main");
+      var kiri = el("div", "rk-f-kiri");
+      kiri.appendChild(el("div", "rk-f-sym", String(F.sym).replace("USDT", "")));
+      var meta = [String(F.dir || "").toUpperCase(),
+                  String(F.kanal || "").toUpperCase()].filter(Boolean).join(" \u00b7 ");
+      kiri.appendChild(el("div", "rk-f-meta", meta || "engine \u2014"));
+      fm.appendChild(kiri);
+      var kanan = el("div", "rk-f-kanan");
+      var c = (fRow && fRow.candle) || {};
+      var chg = num(c.chg_pct);
+      var hrg = el("div", "rk-f-hrg" + (chg == null ? "" : chg > 0 ? " pos" : chg < 0 ? " neg" : ""));
+      hrg.appendChild(el("span", "rk-f-px", _rkNum(c.harga != null ? c.harga : (fRow && fRow.entry))));
+      if (chg != null) {
+        hrg.appendChild(el("span", "rk-f-chg", (chg > 0 ? "+" : "") + chg.toFixed(2) + "%"));
+      }
+      kanan.appendChild(hrg);
+      var rinci = [];
+      if (fRow && fRow.entry != null) rinci.push("entry " + _rkNum(fRow.entry));
+      if (num(c.ke_sl_pct) != null) rinci.push("SL " + num(c.ke_sl_pct).toFixed(2) + "%");
+      if (num(c.ke_tp_pct) != null) rinci.push("TP " + num(c.ke_tp_pct).toFixed(2) + "%");
+      if (fRow && fRow.skor != null) rinci.push("skor " + fRow.skor);
+      kanan.appendChild(el("div", "rk-f-rinci", rinci.join(" \u00b7 ") || "\u2014"));
+      fm.appendChild(kanan);
+      fk.appendChild(fm);
+      /* bar waktu: makin penuh = makin lama agent menahan fokus di koin ini */
+      var sisa = num(fRow && fRow.sisa), umur = num(F.umur_s);
+      var pct = 12;
+      if (sisa != null && umur != null) pct = Math.max(4, Math.min(100, umur / (umur + sisa) * 100));
+      else if (umur != null) pct = Math.max(4, Math.min(100, umur / 60 * 100));
+      var bar = el("div", "rk-bar");
+      var isi = el("i");
+      isi.style.width = pct.toFixed(1) + "%";
+      bar.appendChild(isi);
+      fk.appendChild(bar);
     } else {
-      foot.textContent = "agent tidak sedang memegang koin; radar menyala lagi saat ada kandidat dibaca";
+      var fid = el("div", "rk-f-idle");
+      fid.appendChild(el("span", null, F.sym
+        ? "penanda fokus terakhir " + String(F.sym).replace("USDT", "") + " \u2014 agent sudah selesai"
+        : "agent tidak memegang koin; radar menyala lagi saat ada kandidat dibaca"));
+      fk.appendChild(fid);
     }
-    if (sisa) foot.textContent += " \u00b7 +" + sisa + " koin lain di tabel antrean";
-    host.appendChild(foot);
+    host.appendChild(fk);
+
+    /* ── grid kartu koin lain ────────────────────────────────────────── */
+    var lain = koin.filter(function (r) { return r.sym !== F.sym; });
+    var MAKS = 8, sisaKoin = Math.max(0, lain.length - MAKS);
+    lain = lain.slice(0, MAKS);
+    if (lain.length) {
+      var grid = el("div", "rk-grid");
+      lain.forEach(function (r, i) {
+        var st = _rkStat(r.status_antre);
+        var c = r.candle || {};
+        var chg = num(c.chg_pct);
+        var d = String(r.dir || "").toLowerCase();
+        var k = el("div", "rk-card " + st.cls);
+        k.setAttribute("data-rk", r.sym);
+        if (ganti && r.sym === _rkFokusLalu) k.className += " ditinggal";
+        var top = el("div", "rk-c-top");
+        top.appendChild(el("b", "rk-c-sym", String(r.sym || "").replace("USDT", "")));
+        top.appendChild(el("span", "rk-pill " + st.cls, st.t));
+        k.appendChild(top);
+        var mid = el("div", "rk-c-mid");
+        mid.appendChild(el("span", "rk-dir " + (d === "long" ? "pos" : d === "short" ? "neg" : "mut"),
+                           d ? d.toUpperCase() : "\u2014"));
+        mid.appendChild(el("span", "rk-c-chg" + (chg == null ? " mut" : chg > 0 ? " pos" : chg < 0 ? " neg" : " mut"),
+                           chg == null ? "" : (chg > 0 ? "+" : "") + chg.toFixed(2) + "%"));
+        k.appendChild(mid);
+        var kaki = [];
+        if (r.kanal) kaki.push(String(r.kanal).toUpperCase());
+        if (r.entry != null) kaki.push(_rkNum(r.entry));
+        if (num(c.ke_tp_pct) != null) kaki.push("TP " + num(c.ke_tp_pct).toFixed(1) + "%");
+        k.appendChild(el("div", "rk-c-kaki", kaki.join(" \u00b7 ")));
+        if (!_rect[r.sym]) {
+          k.className += " masuk";
+          k.style.animationDelay = (i * 45) + "ms";
+        }
+        grid.appendChild(k);
+      });
+      host.appendChild(grid);
+      if (sisaKoin) {
+        host.appendChild(el("p", "cap rk-lagi", "+" + sisaKoin + " koin lain di tabel antrean di bawah"));
+      }
+    } else if (!koin.length) {
+      host.appendChild(el("p", "cap", "belum ada sinyal hari ini \u2014 radar kosong sampai engine mengirim kandidat"));
+    }
+
+    /* ── FLIP: luncurkan kartu yang berpindah tempat ──────────────────── */
+    Array.prototype.forEach.call(host.querySelectorAll("[data-rk]"), function (k) {
+      var a = _rect[k.getAttribute("data-rk")];
+      if (!a) return;
+      var b = k.getBoundingClientRect();
+      var dx = a.left - b.left, dy = a.top - b.top;
+      if (!dx && !dy) return;
+      k.style.transition = "none";
+      k.style.transform = "translate(" + dx + "px," + dy + "px)";
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          k.style.transition = "transform .55s cubic-bezier(.4,0,.2,1)";
+          k.style.transform = "";
+          setTimeout(function () {
+            if (k.getAttribute("data-rk") !== (F.sym || "")) k.style.transition = "";
+          }, 600);
+        });
+      });
+    });
+    _rkFokusLalu = F.sym || null;
   }
 
   function botAntrean(A, B) {
