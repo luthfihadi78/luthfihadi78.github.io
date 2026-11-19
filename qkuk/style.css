@@ -61,6 +61,14 @@ a:hover{color:#9CF2CE}
 .hp.neg .dot{background:var(--dn);animation:none}
 .hp.mut .dot{background:var(--fg-3);animation:none}
 .hp b{color:currentColor;font-weight:600}
+/* 19 Nov — status breaker Binance di header: cukup lihat sisa waktunya,
+   tidak perlu membaca log. Menyala merah saat menahan, emas saat warmup. */
+.brk{text-decoration:none;font-variant-numeric:tabular-nums}
+.brk.on{color:var(--dn);border-color:rgba(255,107,107,.55);
+  background:rgba(255,107,107,.07)}
+.brk.on .dot{background:var(--dn);animation:none}
+.brk.warm{color:var(--gold);border-color:rgba(245,196,92,.5)}
+.brk.warm .dot{background:var(--gold);animation:none}
 @keyframes p{0%{box-shadow:0 0 0 0 rgba(110,231,183,.45)}70%{box-shadow:0 0 0 7px rgba(110,231,183,0)}100%{box-shadow:0 0 0 0 rgba(110,231,183,0)}}
 .bar .sp{margin-left:auto}
 .kv{font-size:11px;color:var(--fg-3);white-space:nowrap}

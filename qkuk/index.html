@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{if(top!==self){document.documentElement.style.display="none";top.location=self.location}if(sessionStorage.getItem("qkuk_admin_ok")==="1"||sessionStorage.getItem("qkuk_user_ok")==="1")document.documentElement.classList.add("authed")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=20261118i">
+<link rel="stylesheet" href="style.css?v=20261119a">
 </head>
 <body>
 
@@ -85,6 +85,13 @@
     <a id="harness-top" class="pill hp mut" href="#bot"
       title="Status agent harness — klik untuk ke kartu Bot auto-trade">
       <span class="dot" id="harness-dot"></span><span id="harness-top-txt">harness —</span>
+    </a>
+    <!-- 19 Nov (permintaan user) — status breaker Binance di header supaya
+         tak perlu baca log. Tersembunyi saat normal; sisa waktu dihitung
+         klien dari epoch di data.breaker. -->
+    <a id="brk-top" class="pill hp brk mut" href="#bot-diag" hidden
+      title="Circuit breaker Binance">
+      <span class="dot"></span><span id="brk-top-txt">breaker —</span>
     </a>
     <span class="kv sp">WIB <b id="clock">--:--:--</b></span>
     <span class="kv">engine <b id="stamp">—</b></span>
@@ -419,6 +426,6 @@
   </footer>
 </div>
 
-<script src="app.js?v=20261118i" defer></script>
+<script src="app.js?v=20261119a" defer></script>
 </body>
 </html>

@@ -6534,12 +6534,47 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
 
   /* ── live chrome ── */
+  /* 19 Nov (permintaan user) — "breaker aktif · sisa X mnt" di header.
+     Sisa dihitung dari epoch `sampai`, bukan dari angka sisa saat build,
+     jadi hitung mundurnya tidak basi walau data.json lama beberapa menit. */
+  function jamWIB(epoch) {
+    var d = new Date((epoch + 7 * 3600) * 1000);
+    function p(n) { return (n < 10 ? "0" : "") + n; }
+    return p(d.getUTCHours()) + ":" + p(d.getUTCMinutes());
+  }
+  function hdrBreaker() {
+    var el = $("#brk-top"), tx = $("#brk-top-txt");
+    if (!el || !tx) return;
+    var B = (typeof DATA === "object" && DATA && DATA.breaker) || {};
+    var now = Date.now() / 1000;
+    var sisa = B.sampai ? Math.max(0, B.sampai - now) : 0;
+    var warm = B.warmup_sampai ? Math.max(0, B.warmup_sampai - now) : 0;
+    if (!(sisa > 0) && !(warm > 0)) { el.hidden = true; return; }
+    el.hidden = false;
+    el.classList.toggle("on", sisa > 0);
+    el.classList.toggle("warm", !(sisa > 0));
+    if (sisa > 0) {
+      var mnt = Math.ceil(sisa / 60);
+      tx.textContent = "breaker aktif · sisa "
+        + (mnt >= 90 ? (mnt / 60).toFixed(1) + " jam" : mnt + " mnt");
+      el.title = "Circuit breaker Binance AKTIF — semua panggilan fapi ditahan."
+        + "\nSisa " + Math.ceil(sisa) + " dtk (±" + mnt + " mnt)"
+        + " sampai " + jamWIB(B.sampai) + " WIB."
+        + (warm > 0 ? "\nSesudahnya warmup " + Math.ceil(warm / 60) + " mnt." : "")
+        + (B.consec ? "\n418 beruntun: " + B.consec : "");
+    } else {
+      tx.textContent = "warmup · sisa " + Math.ceil(warm / 60) + " mnt";
+      el.title = "Breaker sudah lewat — masih warmup: jeda request diperlambat "
+        + "dan endpoint per simbol dibatasi.";
+    }
+  }
   function clock() {
     var d = new Date(Date.now() + (7 * 60 + new Date().getTimezoneOffset()) * 60000);
     function p(n) { return (n < 10 ? "0" : "") + n; }
     $("#clock").textContent = p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
     $("#cd").textContent = LEFT + "s";
     if (--LEFT < 0) LEFT = 60;
+    hdrBreaker();
   }
   function stamp() {
     var s = DATA.dibuat || "";
