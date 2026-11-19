@@ -3169,6 +3169,67 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         "\u26a0 Baris di bawah bisa BASI: " + teksEng
         + (umurS == null ? "" : " (siklus terakhir " + umurS + " mnt lalu)") + "."));
     }
+    /* 19 Nov (permintaan user) — FILTER STATUS: pilih "ditolak" untuk melihat
+       semua sinyal yang tidak dieksekusi beserta sebabnya (kolom alasan).
+       Pilihan disimpan di browser ini saja, tidak menulis apa pun ke bot. */
+    var LSF = "qkuk_antrean_filter";
+    var _defFilter = [
+      { k: "semua", t: "semua" }, { k: "Menunggu", t: "menunggu" },
+      { k: "Open Posisi", t: "open" }, { k: "Ditolak", t: "ditolak" },
+      { k: "Selesai", t: "selesai" }
+    ];
+    var _filter = "semua";
+    try { _filter = localStorage.getItem(LSF) || "semua"; } catch (e) { _filter = "semua"; }
+    var _adaFilter = _defFilter.some(function (f) { return f.k === _filter; });
+    if (!_adaFilter) _filter = "semua";
+    var _cocok = function (r, f) {
+      if (f === "semua") return true;
+      if (f === "Ditolak") return r.status_antre === "Ditolak" || r.status_antre === "Dibatalkan";
+      if (f === "Selesai") return r.status_antre === "Selesai" || r.status_antre === "Dieksekusi";
+      return r.status_antre === f;
+    };
+    var _nFilter = function (f) {
+      return rows.filter(function (r) { return _cocok(r, f); }).length;
+    };
+    var fbar = el("div", "antre-filter");
+    fbar.appendChild(el("span", "antre-filter-lbl", "lihat"));
+    _defFilter.forEach(function (f) {
+      var n = _nFilter(f.k);
+      var b = el("button", "antre-filter-chip" + (_filter === f.k ? " on" : ""),
+                 f.t + " " + n);
+      b.title = "tampilkan " + (f.k === "semua" ? "seluruh sinyal hari ini" :
+        f.k === "Ditolak" ? "sinyal yang ditolak/dibatalkan + sebabnya di kolom alasan" :
+        "sinyal berstatus " + f.t);
+      b.onclick = function () {
+        try { localStorage.setItem(LSF, f.k); } catch (e) { /* privat */ }
+        botAntrean(A, B);
+      };
+      fbar.appendChild(b);
+    });
+    host.appendChild(fbar);
+    if (_filter !== "semua") {
+      rows = rows.filter(function (r) { return _cocok(r, _filter); });
+      if (!rows.length) {
+        host.appendChild(el("p", "cap", "Tidak ada sinyal berstatus "
+          + _filter.toLowerCase() + " hari ini. Pilih \u201csemua\u201d untuk melihat seluruh antrean."));
+        return;
+      }
+      if (_filter === "Ditolak") {
+        /* sebab penolakan dikelompokkan supaya pola gate langsung terbaca */
+        var _sebab = {}, _nSebab = 0;
+        rows.forEach(function (r) {
+          if (!r.alasan) return;
+          _nSebab++;
+          _sebab[r.alasan] = (_sebab[r.alasan] || 0) + 1;
+        });
+        var _top = Object.keys(_sebab).sort(function (a, b) { return _sebab[b] - _sebab[a]; }).slice(0, 3);
+        if (_top.length) {
+          host.appendChild(el("p", "cap", "sebab penolakan: " + _top.map(function (s) {
+            return s + " \u00d7" + _sebab[s];
+          }).join(" \u00b7 ") + (_nSebab < rows.length ? " \u00b7 " + (rows.length - _nSebab) + " tanpa catatan" : "")));
+        }
+      }
+    }
     /* 18 Nov (permintaan user) — tiap baris harus jelas STATUS-nya (open /
        menunggu / ditolak) dan APA yang sedang ditunggu (persiapan LONG atau
        SHORT, bukan cuma "pantau"). */

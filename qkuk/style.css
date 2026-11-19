@@ -1559,6 +1559,16 @@ td.bcw{color:var(--gold)}
 /* 19 Nov — sebab penolakan harness (mis. market cap tak diketahui) sengaja
    dibedakan dari catatan siklus engine: warna hangat, bukan abu-abu. */
 .antre-sebab{color:#F5C45C;font-size:11px;line-height:1.35}
+/* 19 Nov — filter status antrean: chip kecil, pilihan aktif berwarna emas. */
+.antre-filter{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:2px 0 10px}
+.antre-filter-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--fg-3);margin-right:2px}
+.antre-filter-chip{font:inherit;font-family:var(--mono);font-size:10px;letter-spacing:.04em;
+  padding:4px 9px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--line-2);background:rgba(255,255,255,.03);color:var(--fg-2)}
+.antre-filter-chip:hover{border-color:rgba(216,200,154,.45);color:var(--fg-1)}
+.antre-filter-chip.on{background:linear-gradient(90deg,rgba(216,200,154,.9),rgba(180,164,118,.9));
+  border-color:transparent;color:#161207;font-weight:600}
 .antre-badge{font-size:10.5px;letter-spacing:.01em;text-transform:none;color:var(--gold);
   background:var(--gold-w);border:1px solid rgba(216,200,154,.32);
   border-radius:999px;padding:3px 11px;font-weight:600;white-space:nowrap}
