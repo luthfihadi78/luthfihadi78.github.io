@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>QKUK — Analisa Akurasi Engine &amp; Reversal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noarchive">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0A0F0D">
+<style>
+:root{--bg:#0A0F0D;--s0:#0D1411;--fg:#E8E3D5;--fg2:#8FA098;--up:#6EE7B7;--dn:#ff7a6e;
+--warn:#f5c26b;--line:#1c2a24;--mono:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--mono);font-size:13px;padding:18px 16px 40px}
+.wrap{max-width:1180px;margin:0 auto}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+h1{font-size:15px;font-weight:600;letter-spacing:.04em;margin:0;color:var(--up)}
+a.back{color:var(--fg2);font-size:11.5px;text-decoration:none;border-bottom:1px dotted var(--line);padding-bottom:1px}
+a.back:hover{color:var(--up)}
+.sub{color:var(--fg2);font-size:11px;margin:6px 0 16px;line-height:1.6}
+.kartu{background:var(--s0);border:1px solid var(--line);border-radius:9px;padding:14px 16px;margin-bottom:14px}
+.kartu h2{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg2);
+font-weight:500;margin:0 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.sel{background:#111c17;border:1px solid var(--line);border-radius:8px;padding:11px 12px}
+.sel .lab{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg2);margin-bottom:5px}
+.sel .val{font-size:17px;font-weight:600;letter-spacing:-.01em}
+.sel .ket{font-size:10px;color:var(--fg2);margin-top:4px;line-height:1.45}
+.sel.good .val{color:var(--up)}.sel.bad .val{color:var(--dn)}.sel.warn .val{color:var(--warn)}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:11.5px;white-space:nowrap}
+th{text-align:left;font-weight:500;color:var(--fg2);font-size:10px;letter-spacing:.07em;
+text-transform:uppercase;padding:0 9px 7px;border-bottom:1px solid var(--line)}
+td{padding:7px 9px;border-bottom:1px solid rgba(28,42,36,.55);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right}
+.pos{color:var(--up)}.neg{color:var(--dn)}
+.tag{display:inline-block;border-radius:5px;padding:1px 7px;font-size:10px;border:1px solid var(--line);color:var(--fg2)}
+.tag.reversal{color:var(--warn);border-color:#4a3d1e}
+.tag.biasa{color:var(--up);border-color:#1e4a38}
+.tag.kecil{color:var(--dn);border-color:#4a2320}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.chip{cursor:pointer;background:#111c17;border:1px solid var(--line);border-radius:20px;
+padding:4px 12px;font-size:11px;color:var(--fg2);font-family:inherit}
+.chip[aria-pressed="true"]{border-color:var(--up);color:var(--up)}
+.hint{color:var(--fg2);font-size:11px;line-height:1.6;margin:10px 0 0}
+.kosong{color:var(--fg2);font-size:11.5px;padding:10px 0}
+.kaki{color:var(--fg2);font-size:10.5px;margin-top:16px;line-height:1.6}
+b{color:var(--fg)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>ANALISA AKURASI — ENGINE &amp; REVERSAL</h1>
+    <a class="back" href="index.html">← kembali ke terminal</a>
+  </div>
+  <p class="sub">Mana yang lebih untung: <b>sinyal biasa</b> atau entry hasil <b>deteksi reversal</b>?
+     Angka dirakit dari jurnal trade bot (baris <b>buka</b> dipasangkan ke <b>tutup</b> lewat id).
+     Posisi yang masih terbuka tidak dihitung.</p>
+
+  <div class="kartu">
+    <h2>Ringkasan</h2>
+    <div class="grid" id="kpi"></div>
+    <p class="hint" id="kesimpulan"></p>
+  </div>
+
+  <div class="kartu">
+    <h2>Akurasi per engine</h2>
+    <div class="tw"><table id="t-engine"><thead><tr>
+      <th>engine</th><th class="num">n</th><th class="num">WR</th>
+      <th class="num">avgR</th><th class="num">totR</th><th class="num">USD</th><th></th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="kartu">
+    <h2>Sinyal biasa vs reversal</h2>
+    <div class="tw"><table id="t-grup"><thead><tr>
+      <th>asal sinyal</th><th class="num">n</th><th class="num">WR</th>
+      <th class="num">avgR</th><th class="num">totR</th><th class="num">USD</th><th></th>
+    </tr></thead><tbody></tbody></table></div>
+    <div class="tw" style="margin-top:14px"><table id="t-rincian"><thead><tr>
+      <th>rincian reversal</th><th class="num">n</th><th class="num">WR</th>
+      <th class="num">avgR</th><th class="num">totR</th><th class="num">USD</th><th></th>
+    </tr></thead><tbody></tbody></table></div>
+    <p class="hint">Penanda: <b>balik</b> = sinyal asli dibalik arahnya · <b>fast_rev</b> = momen
+       reversal 5m/30m · <b>momentum_long</b> = long pengganti short saat momentum berbalik ·
+       <b>retest_rev</b> = antrean dieksekusi setelah retest reversal terkonfirmasi.</p>
+  </div>
+
+  <div class="kartu">
+    <h2>Engine × asal sinyal</h2>
+    <div class="tw"><table id="t-silang"><thead><tr>
+      <th>engine</th><th>asal</th><th class="num">n</th><th class="num">WR</th>
+      <th class="num">avgR</th><th class="num">totR</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="kartu">
+    <h2>Cara keluar &amp; arah</h2>
+    <div class="tw"><table id="t-keluar"><thead><tr>
+      <th>hasil penutupan</th><th class="num">n</th><th class="num">WR</th>
+      <th class="num">avgR</th><th class="num">totR</th>
+    </tr></thead><tbody></tbody></table></div>
+    <div class="tw" style="margin-top:14px"><table id="t-arah"><thead><tr>
+      <th>arah</th><th class="num">n</th><th class="num">WR</th>
+      <th class="num">avgR</th><th class="num">totR</th><th class="num">USD</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="kartu">
+    <h2>Pencatatan trade terakhir</h2>
+    <div class="chips" id="chips">
+      <button class="chip" data-f="semua" aria-pressed="true">semua</button>
+      <button class="chip" data-f="biasa" aria-pressed="false">biasa</button>
+      <button class="chip" data-f="reversal" aria-pressed="false">reversal</button>
+      <button class="chip" data-f="menang" aria-pressed="false">yang profit</button>
+      <button class="chip" data-f="kalah" aria-pressed="false">yang rugi</button>
+    </div>
+    <div class="tw"><table id="t-trade"><thead><tr>
+      <th>waktu (UTC)</th><th>koin</th><th>engine</th><th>arah</th><th>asal</th>
+      <th class="num">R</th><th class="num">USD</th><th>keluar</th><th class="num">umur</th>
+    </tr></thead><tbody></tbody></table></div>
+    <p class="hint" id="hint-trade"></p>
+  </div>
+
+  <p class="kaki" id="kaki"></p>
+</div>
+
+<script>
+const st = { f: 'semua', data: null };
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function nf(v, d=2){ return v==null ? '—' : (v>0?'+':'') + v.toFixed(d); }
+function cls(v){ return v==null ? '' : (v>0 ? 'pos' : (v<0 ? 'neg' : '')); }
+function wr(v){ return v==null ? '—' : v.toFixed(1) + '%'; }
+function kecil(k){ return k ? ' <span class="tag kecil">n&lt;10</span>' : ''; }
+
+function baris(a, label, labelTegak){
+  return '<tr><td>' + label + '</td>'
+    + '<td class="num">' + (a.n || 0) + '</td>'
+    + '<td class="num">' + wr(a.wr) + '</td>'
+    + '<td class="num ' + cls(a.avg) + '">' + nf(a.avg, 3) + '</td>'
+    + '<td class="num ' + cls(a.tot) + '">' + nf(a.tot) + '</td>'
+    + '<td class="num ' + cls(a.usd) + '">' + nf(a.usd) + '</td>'
+    + '<td>' + kecil(a.kecil) + '</td></tr>';
+}
+
+function tanpaUsd(a){
+  return '<tr><td>' + esc(a.k || '—') + '</td><td class="num">' + (a.n||0) + '</td>'
+    + '<td class="num">' + wr(a.wr) + '</td>'
+    + '<td class="num ' + cls(a.avg) + '">' + nf(a.avg, 3) + '</td>'
+    + '<td class="num ' + cls(a.tot) + '">' + nf(a.tot) + '</td></tr>';
+}
+
+function isi(id, html){
+  const t = document.querySelector('#' + id + ' tbody');
+  if (t) t.innerHTML = html || '<tr><td colspan="7" class="kosong">belum ada data</td></tr>';
+}
+
+function sel(lab, val, ket, kelas){
+  return '<div class="sel ' + (kelas||'') + '"><div class="lab">' + lab + '</div>'
+       + '<div class="val">' + esc(val) + '</div>'
+       + (ket ? '<div class="ket">' + ket + '</div>' : '') + '</div>';
+}
+
+function gambar(a){
+  st.data = a;
+  if(!a || !a.n){
+    document.getElementById('kpi').innerHTML =
+      sel('Trade tertutup', '—', 'jurnal belum punya pasangan buka→tutup', 'warn');
+    document.getElementById('kesimpulan').textContent =
+      'Belum ada trade tertutup yang bisa dianalisa. Tabel terisi sendiri setelah posisi pertama ditutup.';
+    ['t-engine','t-grup','t-rincian','t-silang','t-keluar','t-arah','t-trade'].forEach(i => isi(i, ''));
+    return;
+  }
+  const g = Object.fromEntries((a.grup||[]).map(x => [x.k, x]));
+  const b = g.biasa || {}, r = g.reversal || {};
+  const beda = (b.avg != null && r.avg != null) ? (r.avg - b.avg) : null;
+
+  document.getElementById('kpi').innerHTML =
+      sel('Trade tertutup', a.n, (a.terbuka != null ? a.terbuka + ' masih terbuka' : ''))
+    + sel('WR sinyal biasa', b.wr == null ? '—' : wr(b.wr),
+          'n=' + (b.n||0) + ' · avgR ' + nf(b.avg, 3), b.wr >= 50 ? 'good' : '')
+    + sel('WR reversal', r.wr == null ? '—' : wr(r.wr),
+          'n=' + (r.n||0) + ' · avgR ' + nf(r.avg, 3), (r.avg||0) > 0 ? 'good' : 'bad')
+    + sel('Selisih avgR', nf(beda, 3),
+          beda == null ? '' : (beda > 0 ? 'reversal lebih untung' : 'sinyal biasa lebih untung'),
+          beda == null ? '' : (beda > 0 ? 'good' : 'warn'));
+
+  const pesan = [];
+  if (beda != null) {
+    pesan.push('Dari data ini, yang lebih untung: <b>' + (beda > 0 ? 'REVERSAL' : 'SINYAL BIASA')
+      + '</b> (selisih avgR ' + nf(beda, 3) + 'R).');
+  }
+  const kc = [...(a.grup||[]), ...(a.engine||[])].filter(x => x.kecil).length;
+  if (kc) pesan.push('Sebagian kelompok masih di bawah 10 trade — anggap indikasi, bukan bukti.');
+  if (a.periode) pesan.push('Periode ' + esc(a.periode[0]) + ' → ' + esc(a.periode[1]) + ' UTC.');
+  document.getElementById('kesimpulan').innerHTML = pesan.join(' ');
+
+  isi('t-engine', (a.engine||[]).map(x => baris(x, esc(x.k))).join(''));
+  isi('t-grup', (a.grup||[]).map(x =>
+      baris(x, '<span class="tag ' + esc(x.k) + '">' + esc(x.k) + '</span>')).join(''));
+  isi('t-rincian', (a.rincian||[]).map(x => baris(x, esc(x.k))).join(''));
+  isi('t-silang', (a.silang||[]).map(x =>
+      '<tr><td>' + esc(x.engine) + '</td><td><span class="tag ' + esc(x.grup) + '">'
+      + esc(x.grup) + '</span></td><td class="num">' + x.n + '</td><td class="num">' + wr(x.wr)
+      + '</td><td class="num ' + cls(x.avg) + '">' + nf(x.avg, 3)
+      + '</td><td class="num ' + cls(x.tot) + '">' + nf(x.tot) + '</td></tr>').join(''));
+  isi('t-keluar', (a.keluar||[]).map(x => tanpaUsd(x)).join(''));
+  isi('t-arah', (a.arah||[]).map(x => baris(x, esc(x.k))).join(''));
+
+  const tr = a.terakhir || [];
+  document.getElementById('hint-trade').textContent = tr.length
+    ? 'Menampilkan ' + tr.length + ' trade tertutup terakhir dari total ' + a.n
+      + '. R = hasil per 1R (stop awal); USD = R × risiko posisi.'
+    : '';
+  gambarTrade();
+}
+
+function gambarTrade(){
+  const a = st.data || {};
+  let tr = (a.terakhir || []);
+  const f = st.f;
+  if (f === 'biasa' || f === 'reversal') tr = tr.filter(x => x.grup === f);
+  else if (f === 'menang') tr = tr.filter(x => (x.r || 0) > 0);
+  else if (f === 'kalah') tr = tr.filter(x => (x.r || 0) <= 0);
+  isi('t-trade', tr.map(x =>
+      '<tr><td>' + esc(x.t) + '</td><td>' + esc(x.sym) + '</td><td>' + esc(x.kanal) + '</td>'
+      + '<td>' + esc(x.dir) + '</td><td><span class="tag ' + esc(x.grup) + '">'
+      + esc(x.grup) + '</span></td>'
+      + '<td class="num ' + cls(x.r) + '">' + nf(x.r, 2) + '</td>'
+      + '<td class="num ' + cls(x.usd) + '">' + nf(x.usd) + '</td>'
+      + '<td>' + esc(x.hasil) + '</td>'
+      + '<td class="num">' + (x.umur == null ? '—' : Math.round(x.umur) + ' m') + '</td></tr>').join(''));
+}
+
+document.getElementById('chips').addEventListener('click', (e) => {
+  const btn = e.target.closest('.chip');
+  if (!btn) return;
+  st.f = btn.dataset.f;
+  [...document.querySelectorAll('#chips .chip')].forEach(b =>
+    b.setAttribute('aria-pressed', String(b === btn)));
+  gambarTrade();
+});
+
+let terakhir = 0;
+async function muat(){
+  try{
+    const r = await fetch('data.json?t=' + Date.now(), { cache:'no-store' });
+    const d = await r.json();
+    gambar(d.analisa);
+    terakhir = Date.now();
+    document.getElementById('kaki').textContent =
+      'Dirakit ' + (d.analisa && d.analisa.ts || '—') + ' · diperbarui otomatis tiap menit dari data.json';
+  }catch(e){
+    if(!terakhir) gambar(null);
+  }
+}
+muat();
+setInterval(muat, 60000);
+</script>
+</body>
+</html>
