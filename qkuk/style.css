@@ -269,6 +269,7 @@ svg.ch#bot-eqv{height:360px}
 .bot-eq-hero .bot-eq-h{margin-bottom:6px}
 .bot-eq-hero .bot-eq-h span{font-size:10px;letter-spacing:.18em}
 .bot-eq-hero .bot-eq-h b{font-size:19px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.bot-eq-hero svg.ch{background:transparent;border:0;padding:0;border-radius:0}
 .eq-wrap{position:relative}
 .eq-now{position:absolute;right:8px;top:2px;font-family:var(--mono);font-size:10px;color:var(--fg-3);
   letter-spacing:.04em}
