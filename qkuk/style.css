@@ -1664,3 +1664,53 @@ td.bcw{color:var(--gold)}
 .det-judul{font-size:11px;letter-spacing:.03em;text-transform:uppercase;color:var(--mut,#8b93a7);padding:7px 10px 0}
 .det-tw{margin:4px 8px 8px;max-height:42vh}
 .det-tw table{min-width:0}
+
+/* ══ 19 Nov — RADAR AGENT ══════════════════════════════════════════════════
+   Bentuk lain dari tabel antrean: koin yang sedang dibaca agent berdenyut di
+   cincin radar, dan sorotan meluncur ke node baru saat agent pindah koin.
+   Denyut dibuat lembut (1.5 s) agar tidak mengganggu; dimatikan bila pengguna
+   meminta gerak minimal. */
+.radar{margin:0 0 18px;padding:12px 14px 8px;border:1px solid var(--line-2);
+  border-radius:var(--r);background:radial-gradient(120% 90% at 50% 0%,rgba(216,200,154,.06),transparent 70%),
+  rgba(255,255,255,.012)}
+.radar-h{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--fg-2);margin-bottom:4px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+.radar-h>span:first-child{color:var(--gold);display:flex;align-items:center;gap:7px}
+.radar-h>span:first-child::before{content:"";width:6px;height:6px;border-radius:999px;
+  background:var(--gold);box-shadow:0 0 7px rgba(216,200,154,.55);flex:none}
+.radar-badge{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:none;
+  padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.05);color:var(--fg-2)}
+.radar-badge.on{background:linear-gradient(90deg,#F5C45C,#FFB86B);color:#1b1405;font-weight:600}
+.radar-svg{display:block;width:100%;height:320px;overflow:visible}
+.rd-ring{stroke:rgba(216,200,154,.18)}
+.rd-glow{transition:opacity .6s ease}
+.rd-sweep{transform-origin:380px 168px;opacity:0}
+.rd-sweep.on{opacity:1;animation:rd-sapu 6s linear infinite}
+@keyframes rd-sapu{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.rd-core{fill:#14110a;transition:stroke .4s ease}
+.rd-core.on{animation:rd-denyut 1.6s ease-in-out infinite}
+@keyframes rd-denyut{0%,100%{stroke:#D8C89A}50%{stroke:#F5C45C;filter:drop-shadow(0 0 6px rgba(245,196,92,.8))}}
+.rd-core-t{font-family:var(--mono);font-size:11px;letter-spacing:.18em;fill:var(--gold)}
+.rd-core-s{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;fill:var(--fg-2)}
+.rd-beam{stroke:#D8C89A;opacity:.35}
+.rd-beam.on{opacity:.9;stroke-dasharray:5 4;animation:rd-alir 1.2s linear infinite}
+@keyframes rd-alir{to{stroke-dashoffset:-18}}
+.rd-node .rd-dot{fill:#191510;stroke:rgba(216,200,154,.45);stroke-width:1.2;transition:r .3s ease}
+.rd-node .rd-lbl{font-family:var(--mono);font-size:8px;letter-spacing:.04em;fill:var(--fg-2);
+  pointer-events:none}
+.rd-node .rd-sub{font-family:var(--mono);font-size:7.5px;fill:var(--fg-3);pointer-events:none}
+.rd-node .rd-halo{fill:none;stroke:rgba(216,200,154,.35);opacity:0}
+.rd-node.on .rd-dot{fill:#2a2312;stroke:#F5C45C;stroke-width:1.8}
+.rd-node.on .rd-lbl{fill:var(--gold);font-size:8.5px}
+.rd-node.on .rd-halo{opacity:1;animation:rd-halo 1.5s ease-out infinite}
+.rd-node.pos .rd-dot{stroke:#6fe0a6}
+.rd-node.neg .rd-dot{stroke:#ff8d8d}
+@keyframes rd-halo{0%{r:20;opacity:.85}100%{r:38;opacity:0}}
+.rd-runner{fill:#F5C45C;filter:drop-shadow(0 0 5px rgba(245,196,92,.9));
+  transition:cx .9s cubic-bezier(.5,0,.2,1),cy .9s cubic-bezier(.5,0,.2,1)}
+.radar-foot{margin:2px 0 2px}
+@media (prefers-reduced-motion:reduce){
+  .rd-sweep.on,.rd-core.on,.rd-node.on .rd-halo,.rd-beam.on{animation:none}
+  .rd-runner{transition:none}
+}

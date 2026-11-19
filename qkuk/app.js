@@ -3055,6 +3055,160 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      ditunggu bot/harness. Sumber server: bot.antrean (state/pending.json +
      state/signal_status.json). Baris hilang sendiri begitu entry jalan atau
      antreannya kedaluwarsa, jadi tabel ini selalu = yang benar-benar ditunggu. */
+  /* 19 Nov (permintaan user) — RADAR AGENT: bentuk lain dari tabel antrean.
+     Koin yang sedang dibaca agent berdenyut di cincin radar, dan saat agent
+     berpindah koin, titik sorot bergerak ke node baru. Sumber: bot.ai.fokus
+     (ditulis run.py/relay.py) + bot.antrean untuk daftar koin.
+     Tabel antrean tetap ada di bawahnya — radar untuk "apa yang sedang
+     dipikirkan", tabel untuk angka & sebab penolakan. */
+  var _radarSebelum = null;
+  var RADAR_TAHAP = { menimbang: "menimbang", memutus: "berpikir",
+                      eksekusi: "eksekusi", istirahat: "istirahat" };
+  function botRadar(B) {
+    var host = $("#bot-radar");
+    if (!host) return;
+    var F = ((B && B.ai) || {}).fokus || {};
+    var rows = ((B && B.antrean) || {}).baris || [];
+    if (!rows.length && !F.sym) { host.innerHTML = ""; return; }
+    /* koin di cincin: fokus dulu, lalu yang masih hidup, lalu riwayat */
+    var PRI = { "Open Posisi": 0, "Menunggu": 1, "Ditolak": 2 };
+    var koin = [], lihat = {};
+    rows.slice().sort(function (a, b) {
+      var pa = PRI[a.status_antre] == null ? 3 : PRI[a.status_antre];
+      var pb = PRI[b.status_antre] == null ? 3 : PRI[b.status_antre];
+      return (a.sym === F.sym ? -1 : b.sym === F.sym ? 1 : pa - pb);
+    }).forEach(function (r) {
+      var s = String(r.sym || "").toUpperCase();
+      if (!s || lihat[s]) return;
+      lihat[s] = 1;
+      koin.push({ sym: s, status: r.status_antre, dir: r.dir, kanal: r.kanal, n: r.n_sinyal || 1 });
+    });
+    var MAKS = 9, sisa = Math.max(0, koin.length - MAKS);
+    koin = koin.slice(0, MAKS);
+    if (F.sym && !lihat[F.sym]) koin.unshift({ sym: F.sym, status: "dibaca", dir: F.dir });
+    var W = 760, H = 336, CX = W / 2, CY = H / 2, R = 122;
+    var geser = -Math.PI / 2;
+    var pos = {};
+    koin.forEach(function (k, i) {
+      var a = geser + i * (2 * Math.PI / Math.max(koin.length, 1));
+      /* elips supaya nama koin tidak bertumpuk di kiri/kanan */
+      pos[k.sym] = { x: CX + Math.cos(a) * R * 1.55, y: CY + Math.sin(a) * R * 0.82, a: a };
+    });
+    var tahap = String(F.tahap || "").toLowerCase();
+    var aktif = !!F.aktif && !!F.sym && pos[F.sym] && tahap !== "istirahat";
+    var lblTahap = RADAR_TAHAP[tahap] || (F.sym ? "bekerja" : "idle");
+    host.className = "radar";
+    host.innerHTML = "";
+    var h = el("div", "radar-h");
+    h.appendChild(el("span", null, "radar agent \u00b7 apa yang sedang dikerjakan"));
+    var b = el("b", "radar-badge" + (aktif ? " on" : ""),
+               (F.sym ? lblTahap + " \u00b7 " + String(F.sym).replace("USDT", "") : "idle"));
+    b.title = F.sym
+      ? "fokus: " + F.sym + (F.kanal ? " \u00b7 engine " + String(F.kanal).toUpperCase() : "")
+        + (F.dir ? " \u00b7 " + String(F.dir).toUpperCase() : "")
+        + "\ntahap: " + lblTahap + (F.sejak ? " (sejak " + F.sejak + ")" : "")
+        + (F.catatan ? "\ncatatan: " + F.catatan : "")
+      : "agent tidak sedang memegang koin \u2014 menunggu siklus berikutnya";
+    h.appendChild(b);
+    host.appendChild(h);
+
+    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("class", "radar-svg");
+    var ns = "http://www.w3.org/2000/svg";
+    var mk = function (tag, at, cls) {
+      var e = document.createElementNS(ns, tag);
+      Object.keys(at || {}).forEach(function (k) { e.setAttribute(k, at[k]); });
+      if (cls) e.setAttribute("class", cls);
+      svg.appendChild(e);
+      return e;
+    };
+    var defs = document.createElementNS(ns, "defs");
+    defs.innerHTML = '<radialGradient id="rd-glow"><stop offset="0%" stop-color="#D8C89A" stop-opacity=".55"/>'
+      + '<stop offset="100%" stop-color="#D8C89A" stop-opacity="0"/></radialGradient>'
+      + '<linearGradient id="rd-beam" x1="0" y1="0" x2="1" y2="0">'
+      + '<stop offset="0%" stop-color="#D8C89A" stop-opacity=".05"/>'
+      + '<stop offset="100%" stop-color="#F5C45C" stop-opacity=".9"/></linearGradient>';
+    svg.appendChild(defs);
+    mk("circle", { cx: CX, cy: CY, r: 150, fill: "url(#rd-glow)", opacity: aktif ? ".55" : ".2" }, "rd-glow");
+    [56, 88, 120, 150].forEach(function (rr, i) {
+      mk("ellipse", { cx: CX, cy: CY, rx: rr * 1.55, ry: rr * 0.82, fill: "none",
+                      "stroke-width": i === 3 ? ".6" : ".8" }, "rd-ring");
+    });
+    /* sapuan radar berputar — hanya hidup saat agent bekerja */
+    var sapu = document.createElementNS(ns, "g");
+    sapu.setAttribute("class", "rd-sweep" + (aktif ? " on" : ""));
+    sapu.innerHTML = '<path d="M' + CX + ' ' + CY + ' L' + (CX + 186) + ' ' + (CY - 98)
+      + ' A 210 210 0 0 0 ' + (CX + 186) + ' ' + (CY + 98) + ' Z" fill="#D8C89A" opacity=".07"/>';
+    svg.appendChild(sapu);
+
+    /* sorot dari pusat ke koin yang sedang dibaca */
+    var f = F.sym && pos[F.sym];
+    if (f) {
+      mk("line", { x1: CX, y1: CY, x2: f.x, y2: f.y, "stroke-width": 1.6,
+                   stroke: "url(#rd-beam)" }, "rd-beam" + (aktif ? " on" : ""));
+    }
+    mk("circle", { cx: CX, cy: CY, r: 34, fill: "#14110a", stroke: "#D8C89A",
+                    "stroke-width": aktif ? 1.6 : 1 }, "rd-core" + (aktif ? " on" : ""));
+    var tc = mk("text", { x: CX, y: CY - 2, "text-anchor": "middle" }, "rd-core-t");
+    tc.textContent = "AGENT";
+    var ts = mk("text", { x: CX, y: CY + 13, "text-anchor": "middle" }, "rd-core-s");
+    ts.textContent = lblTahap;
+
+    koin.forEach(function (k) {
+      var p = pos[k.sym], on = k.sym === F.sym && aktif;
+      var g = document.createElementNS(ns, "g");
+      g.setAttribute("class", "rd-node" + (on ? " on" : "")
+                     + (k.status === "Ditolak" ? " neg" : k.status === "Open Posisi" ? " pos" : ""));
+      var halo = document.createElementNS(ns, "circle");
+      halo.setAttribute("cx", p.x); halo.setAttribute("cy", p.y);
+      halo.setAttribute("r", 22); halo.setAttribute("class", "rd-halo");
+      g.appendChild(halo);
+      var c = document.createElementNS(ns, "circle");
+      c.setAttribute("cx", p.x); c.setAttribute("cy", p.y);
+      c.setAttribute("r", on ? 19 : 15); c.setAttribute("class", "rd-dot");
+      g.appendChild(c);
+      var t = document.createElementNS(ns, "text");
+      t.setAttribute("x", p.x); t.setAttribute("y", p.y + 3.5);
+      t.setAttribute("text-anchor", "middle"); t.setAttribute("class", "rd-lbl");
+      t.textContent = k.sym.replace("USDT", "");
+      g.appendChild(t);
+      var t2 = document.createElementNS(ns, "text");
+      t2.setAttribute("x", p.x); t2.setAttribute("y", p.y + (on ? 34 : 30));
+      t2.setAttribute("text-anchor", "middle"); t2.setAttribute("class", "rd-sub");
+      t2.textContent = (k.dir === "short" ? "short" : k.dir === "long" ? "long" : "")
+        + (k.status === "Ditolak" ? " \u00b7 ditolak" : k.status === "Open Posisi" ? " \u00b7 open" : k.status === "Menunggu" ? " \u00b7 antre" : "");
+      g.appendChild(t2);
+      svg.appendChild(g);
+    });
+
+    /* perpindahan fokus: titik pelari meluncur dari node lama ke node baru */
+    var lama = _radarSebelum && pos[_radarSebelum];
+    if (aktif && lama && _radarSebelum !== F.sym) {
+      var run = document.createElementNS(ns, "circle");
+      run.setAttribute("cx", lama.x); run.setAttribute("cy", lama.y);
+      run.setAttribute("r", 4.5); run.setAttribute("class", "rd-runner");
+      svg.appendChild(run);
+      setTimeout(function () {
+        run.setAttribute("cx", f.x); run.setAttribute("cy", f.y);
+      }, 30);
+    }
+    if (aktif) _radarSebelum = F.sym;
+    host.appendChild(svg);
+    var foot = el("p", "cap radar-foot");
+    if (aktif) {
+      foot.textContent = "denyut = agent sedang membaca " + F.sym
+        + (F.umur_s == null ? "" : " (" + Math.round(F.umur_s) + " dtk)")
+        + " \u00b7 titik meluncur = perpindahan fokus";
+    } else if (F.sym) {
+      foot.textContent = "fokus terakhir " + F.sym + " \u00b7 penanda basi, agent mungkin sudah selesai";
+    } else {
+      foot.textContent = "agent tidak sedang memegang koin; radar menyala lagi saat ada kandidat dibaca";
+    }
+    if (sisa) foot.textContent += " \u00b7 +" + sisa + " koin lain di tabel antrean";
+    host.appendChild(foot);
+  }
+
   function botAntrean(A, B) {
     var host = $("#bot-antrean");
     if (!host) return;
@@ -4806,6 +4960,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     agentFeed(B);
     botPertahanan(B.pertahanan);
     botLaporanTahan(B.laporan_tahan);
+    botRadar(B);
     botAntrean(B.antrean, B);
     botRebound(B.rebound_sinyal);
     if (accHost) table(accHost, [
