@@ -59,6 +59,26 @@ b{color:var(--fg)}
      Angka dirakit dari jurnal trade bot (baris <b>buka</b> dipasangkan ke <b>tutup</b> lewat id).
      Posisi yang masih terbuka tidak dihitung.</p>
 
+  <!-- 19 Nov (permintaan user) — FILTER TANGGAL: bandingkan periode tanpa
+       mengubah data.json. Seluruh trade ada di blok `dagang`, jadi halaman
+       menghitung ulang agregatnya sendiri untuk rentang yang dipilih. -->
+  <div class="kartu">
+    <h2>Filter tanggal</h2>
+    <div class="chips" id="chips-tgl"></div>
+    <div class="chips" style="align-items:center">
+      <label style="font-size:11px;color:var(--fg2)">dari
+        <input type="date" id="tgl-dari" style="background:#111c17;border:1px solid var(--line);
+          border-radius:6px;color:var(--fg);font-family:inherit;font-size:11px;padding:3px 6px"></label>
+      <label style="font-size:11px;color:var(--fg2)">sampai
+        <input type="date" id="tgl-sampai" style="background:#111c17;border:1px solid var(--line);
+          border-radius:6px;color:var(--fg);font-family:inherit;font-size:11px;padding:3px 6px"></label>
+      <button class="chip" id="tgl-reset" aria-pressed="false">reset</button>
+      <span class="hint" id="tgl-info" style="margin:0"></span>
+    </div>
+    <p class="hint">Chip harian memilih satu tanggal; isi <b>dari/sampai</b> untuk rentang bebas
+       (mis. 18 Nov → 19 Nov). Tanggal memakai UTC, sama seperti kolom waktu di tabel bawah.</p>
+  </div>
+
   <div class="kartu">
     <h2>Ringkasan</h2>
     <div class="grid" id="kpi"></div>
@@ -128,7 +148,7 @@ b{color:var(--fg)}
 </div>
 
 <script>
-const st = { f: 'semua', data: null };
+const st = { f: 'semua', data: null, semua: [], meta: null, tgl: { dari: '', sampai: '' } };
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function nf(v, d=2){ return v==null ? '—' : (v>0?'+':'') + v.toFixed(d); }
@@ -162,6 +182,74 @@ function sel(lab, val, ket, kelas){
   return '<div class="sel ' + (kelas||'') + '"><div class="lab">' + lab + '</div>'
        + '<div class="val">' + esc(val) + '</div>'
        + (ket ? '<div class="ket">' + ket + '</div>' : '') + '</div>';
+}
+
+/* ═══ 19 Nov (permintaan user) — PERAKIT AGREGAT DI KLIEN ═════════════════
+   Bentuknya sengaja identik dengan hasil server (`_an_grup`/`_an_ringkas`),
+   sehingga `gambar()` tidak peduli apakah angkanya datang dari data.json atau
+   dihitung ulang untuk rentang tanggal yang dipilih. */
+function ringkasKlien(rows){
+  const r = rows.filter(x => x.r != null).map(x => x.r);
+  const u = rows.filter(x => x.usd != null).map(x => x.usd);
+  const n = r.length;
+  const menang = r.filter(v => v > 0).length;
+  const sum = (a) => a.reduce((s, v) => s + v, 0);
+  return {
+    n: n,
+    wr: n ? +(menang / n * 100).toFixed(1) : null,
+    avg: n ? +(sum(r) / n).toFixed(3) : null,
+    tot: r.length ? +sum(r).toFixed(2) : null,
+    usd: u.length ? +sum(u).toFixed(2) : null,
+    kecil: n < 10
+  };
+}
+
+function grupKlien(rows, kunci){
+  const g = new Map();
+  rows.forEach(x => {
+    const k = String(kunci(x) == null ? '?' : kunci(x));
+    if (!g.has(k)) g.set(k, []);
+    g.get(k).push(x);
+  });
+  const out = [];
+  [...g.keys()].sort().forEach(k => {
+    const a = ringkasKlien(g.get(k));
+    if (a.n) out.push(Object.assign({ k: k }, a));
+  });
+  return out;
+}
+
+function rakit(rows, meta){
+  const silang = [];
+  const pasangan = new Map();
+  rows.forEach(x => {
+    const k = x.kanal + '|' + x.grup;
+    if (!pasangan.has(k)) pasangan.set(k, []);
+    pasangan.get(k).push(x);
+  });
+  [...pasangan.keys()].sort().forEach(k => {
+    const a = ringkasKlien(pasangan.get(k));
+    if (a.n) {
+      const p = k.split('|');
+      silang.push(Object.assign({ engine: p[0], grup: p[1] }, a));
+    }
+  });
+  const rev = rows.filter(x => x.grup === 'reversal');
+  const tgl = rows.map(x => x.t).filter(Boolean).sort();
+  return {
+    n: rows.filter(x => x.r != null).length,
+    terbuka: meta.terbuka,
+    periode: tgl.length ? [tgl[0], tgl[tgl.length - 1]] : null,
+    engine: grupKlien(rows, x => x.kanal),
+    grup: grupKlien(rows, x => x.grup),
+    rincian: grupKlien(rev, x => x.kelompok),
+    arah: grupKlien(rows, x => x.dir),
+    silang: silang,
+    keluar: grupKlien(rows, x => x.hasil),
+    terakhir: rows.slice().sort((a, b) => String(b.t).localeCompare(String(a.t)))
+      .slice(0, 40),
+    _dagang: rows
+  };
 }
 
 function gambar(a){
@@ -235,6 +323,71 @@ function gambarTrade(){
       + '<td class="num">' + (x.umur == null ? '—' : Math.round(x.umur) + ' m') + '</td></tr>').join(''));
 }
 
+/* ═══ FILTER TANGGAL ════════════════════════════════════════════════════ */
+function chipTanggal(){
+  const host = document.getElementById('chips-tgl');
+  if (!host) return;
+  const hari = (st.meta && st.meta.hari) || [];
+  const tombol = ['<button class="chip" data-hari="" aria-pressed="' +
+    String(!st.tgl.dari && !st.tgl.sampai) + '">semua</button>'];
+  hari.slice(0, 12).forEach(h => {
+    const aktif = st.tgl.dari === h && st.tgl.sampai === h;
+    tombol.push('<button class="chip" data-hari="' + esc(h) + '" aria-pressed="' +
+      String(aktif) + '">' + esc(h.slice(5)) + '</button>');
+  });
+  host.innerHTML = tombol.join('');
+}
+
+function terapkanTanggal(){
+  const info = document.getElementById('tgl-info');
+  const semua = st.semua || [];
+  if (!semua.length) {
+    if (info) info.textContent = 'filter tanggal menunggu data.json baru';
+    return;
+  }
+  let rows = semua;
+  if (st.tgl.dari) rows = rows.filter(x => String(x.t || '').slice(0, 10) >= st.tgl.dari);
+  if (st.tgl.sampai) rows = rows.filter(x => String(x.t || '').slice(0, 10) <= st.tgl.sampai);
+  const a = rakit(rows, { terbuka: st.meta ? st.meta.terbuka : null });
+  gambar(a);
+  chipTanggal();
+  if (info) {
+    const ket = [];
+    if (st.tgl.dari || st.tgl.sampai) {
+      ket.push('rentang ' + (st.tgl.dari || '…') + ' → ' + (st.tgl.sampai || '…'));
+    }
+    ket.push(rows.length + ' trade dari ' + semua.length + ' yang dikirim');
+    if (semua.length >= 800) ket.push('(dibatasi 800 terbaru)');
+    info.textContent = ket.join(' · ');
+  }
+}
+
+document.getElementById('chips-tgl').addEventListener('click', (e) => {
+  const btn = e.target.closest('.chip');
+  if (!btn) return;
+  const h = btn.dataset.hari || '';
+  st.tgl = { dari: h, sampai: h };
+  document.getElementById('tgl-dari').value = h;
+  document.getElementById('tgl-sampai').value = h;
+  terapkanTanggal();
+});
+
+['tgl-dari', 'tgl-sampai'].forEach(id => {
+  const el2 = document.getElementById(id);
+  if (el2) el2.addEventListener('change', () => {
+    st.tgl = { dari: el2.id === 'tgl-dari' ? el2.value : document.getElementById('tgl-dari').value,
+               sampai: el2.id === 'tgl-sampai' ? el2.value : document.getElementById('tgl-sampai').value };
+    terapkanTanggal();
+  });
+});
+
+document.getElementById('tgl-reset').addEventListener('click', () => {
+  st.tgl = { dari: '', sampai: '' };
+  document.getElementById('tgl-dari').value = '';
+  document.getElementById('tgl-sampai').value = '';
+  terapkanTanggal();
+});
+
 document.getElementById('chips').addEventListener('click', (e) => {
   const btn = e.target.closest('.chip');
   if (!btn) return;
@@ -249,7 +402,19 @@ async function muat(){
   try{
     const r = await fetch('data.json?t=' + Date.now(), { cache:'no-store' });
     const d = await r.json();
-    gambar(d.analisa);
+    const A = d.analisa;
+    st.meta = A || null;
+    st.semua = (A && A.dagang) || [];
+    if (st.semua.length) {
+      // Filter tanggal butuh seluruh trade; tanpa `dagang` (data.json lama)
+      // halaman tetap tampil memakai agregat server.
+      terapkanTanggal();
+    } else {
+      gambar(A);
+      chipTanggal();
+      const info = document.getElementById('tgl-info');
+      if (info) info.textContent = 'filter tanggal menunggu data.json baru';
+    }
     terakhir = Date.now();
     document.getElementById('kaki').textContent =
       'Dirakit ' + (d.analisa && d.analisa.ts || '—') + ' · diperbarui otomatis tiap menit dari data.json';
