@@ -2133,23 +2133,19 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* ═══ 17 Nov — EQUITY LIVE PER SIKLUS (permintaan user) ═══════════════
      Beda dari kurva harian di bawah: kurva ini ABSOLUT (modal + realisasi +
      PnL mengambang), satu titik tiap ~10 menit, 48 jam terakhir. Jadi kalau
-     satu posisi ditutup minus, garisnya langsung turun di siklus berikutnya —
-     bukan menunggu rekap harian. Sumber: DATA.bot.equity_hist. */
+     satu posisi ditutup minus, nilainya langsung turun di siklus berikutnya —
+     bukan menunggu rekap harian. Sumber: DATA.bot.equity_hist.
+     20 Nov (permintaan user) — digambar sebagai CANDLESTICK seperti chart
+     crypto: titik-titik dirapatkan per rentang waktu, lalu tiap rentang jadi
+     satu batang OHLC (open = close rentang sebelumnya, jadi hijau = equity
+     naik dan merah = turun pada rentang itu) lengkap dengan wick, grid, garis
+     modal, tag harga terakhir, dan penanda R. Tema tetap tema terminal
+     (var(--s1)/var(--line)/var(--up)/var(--dn)) — bukan palet chart lain. */
   function equityLiveChart(hist, modal, tutupTitik) {
     var svg = $("#bot-eqv"), val = $("#bot-eqv-val");
     if (!svg) return;
     svg.innerHTML = "";
     var titik = (hist && hist.titik) || [];
-    /* 19 Nov (permintaan user) — kurva terlalu padat titik. Untuk gambar,
-       cukup 28 titik yang tersebar merata + titik terakhir (selalu ikut),
-       jadi bentuk tren tetap benar tanpa gerigi tiap siklus. Data aslinya
-       tidak diubah; ini hanya sampling untuk SVG. */
-    if (titik.length > 29) {
-      var _step = (titik.length - 1) / 28, _rapi = [];
-      for (var _i = 0; _i < 28; _i++) _rapi.push(titik[Math.round(_i * _step)]);
-      _rapi.push(titik[titik.length - 1]);
-      titik = _rapi;
-    }
     var M = num(hist && hist.modal != null ? hist.modal : modal);
     /* keterangan: sumber titik (siklus atau dirapatkan) + jumlahnya */
     var cap = $("#bot-eqv-cap");
@@ -2161,12 +2157,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (hist.dari && hist.sampai) cap.title = "dari " + hist.dari + " sampai " + hist.sampai
         + (hist.n_mentah ? " · " + hist.n_mentah + " siklus tercatat" : "");
     }
-    /* 19 Nov — kartu hero: kanvas lebih tinggi (360px di CSS) supaya gerakan
-       kecil tetap terbaca, plus ruang untuk label R di puncak. */
-    /* 19 Nov — kanvas lebih besar & rasionya mendekati lebar kartu supaya
-       angka tidak "gepeng" seperti sebelumnya (viewBox 620x380 ditarik ke
-       tinggi 440). */
-    var W = 760, H = 460, P = { t: 26, r: 78, b: 34, l: 70 };
+    var W = 760, H = 460, P = { t: 40, r: 96, b: 34, l: 70 };
     svg.setAttribute("viewBox", "0 0 " + W + " " + H);
     svg.setAttribute("preserveAspectRatio", "none");
     var usd = function (v, d) { return (v < 0 ? "−$" : "$") + Math.abs(v).toFixed(d == null ? 2 : d); };
@@ -2182,143 +2173,159 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var hi = Math.max.apply(null, ys.concat([M || ys[0]]));
     var lo = Math.min.apply(null, ys.concat([M || ys[0]]));
     if (hi === lo) { hi += 1; lo -= 1; }
-    var pd = (hi - lo) * .18; hi += pd; lo -= pd;
-    var X = function (i) {
-      return titik.length === 1 ? (P.l + W - P.r) / 2
-        : P.l + i / (titik.length - 1) * (W - P.l - P.r);
-    };
+    var pd = (hi - lo) * .16; hi += pd; lo -= pd;
+
+    /* titik → candle: maksimal 48 batang supaya batang masih gemuk dibaca.
+       Setiap bucket punya open/high/low/close dari titik di dalamnya. */
+    var nB = Math.min(titik.length, 48), per = titik.length / nB, cd = [];
+    for (var bi = 0; bi < nB; bi++) {
+      var a = Math.floor(bi * per), z = Math.min(titik.length, Math.floor((bi + 1) * per));
+      if (z <= a) z = a + 1;
+      var seg = titik.slice(a, z).map(function (r) { return num(r.total); })
+        .filter(function (v) { return v !== null; });
+      if (!seg.length) continue;
+      var o0 = cd.length ? cd[cd.length - 1].c : seg[0];
+      cd.push({
+        o: o0, c: seg[seg.length - 1],
+        h: Math.max.apply(null, seg.concat([o0])),
+        l: Math.min.apply(null, seg.concat([o0])),
+        t: titik[a].t, ts: titik[a].ts
+      });
+    }
+    if (!cd.length) return;
+
+    var plotW = W - P.l - P.r, step = plotW / cd.length;
+    var barW = Math.max(3, Math.min(16, step * .62));
+    var X = function (i) { return P.l + step * (i + .5); };
     var Y = function (v) { return P.t + (1 - (v - lo) / (hi - lo)) * (H - P.t - P.b); };
-    var akhir = ys[ys.length - 1];
-    var warna = (M != null && akhir < M) ? "#E8877C" : "#6EE7B7";
+    var cls = function (c) { return c > 0 ? "eq-up" : c < 0 ? "eq-dn" : "eq-flat"; };
+    var akhir = cd[cd.length - 1].c;
+    var warna = cls(akhir - (M != null ? M : cd[0].o));
     if (val) {
       val.textContent = usd(akhir) + (M == null ? "" : " · "
         + (akhir - M >= 0 ? "+" : "−") + "$" + Math.abs(akhir - M).toFixed(2));
-      val.style.color = warna;
+      val.style.color = "var(--" + (akhir < (M == null ? akhir : M) ? "dn" : "up") + ")";
     }
-    for (var g = 0; g <= 4; g++) {
-      var yy = P.t + g / 4 * (H - P.t - P.b);
+
+    /* latar dot-matrix: tekstur chart crypto, tapi warnanya dari tema
+       terminal (var(--line-2)) supaya tidak terasa tempelan. */
+    var defs = mk("defs"); svg.appendChild(defs);
+    var pat = mk("pattern", { id: "boteqvdot", width: 18, height: 18, patternUnits: "userSpaceOnUse" });
+    pat.appendChild(mk("circle", { cx: 1.5, cy: 1.5, r: 1.1, style: "fill:var(--line-2)", "fill-opacity": .9 }));
+    defs.appendChild(pat);
+    svg.appendChild(mk("rect", { x: P.l, y: P.t, width: plotW, height: H - P.t - P.b,
+      fill: "url(#boteqvdot)", "fill-opacity": .35, "class": "eq-bgdots" }));
+
+    /* grid horizontal + label harga, plus garis vertikal di posisi label waktu */
+    var nG = 5;
+    for (var g = 0; g <= nG; g++) {
+      var yy = P.t + g / nG * (H - P.t - P.b);
       svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: yy, y2: yy, "class": "g" }));
-      var lb = mk("text", { x: P.l - 6, y: yy + 3, "text-anchor": "end" });
-      lb.textContent = "$" + (hi - g / 4 * (hi - lo)).toFixed(1);
+      var lb = mk("text", { x: P.l - 8, y: yy + 3, "text-anchor": "end" });
+      lb.textContent = "$" + (hi - g / nG * (hi - lo)).toFixed(1);
       svg.appendChild(lb);
     }
-    /* garis modal: acuan untung/rugi. Di atas = hijau, di bawah = merah. */
+    var tick = [0, Math.floor((cd.length - 1) / 3), Math.floor(2 * (cd.length - 1) / 3), cd.length - 1];
+    var sudah = {};
+    tick.forEach(function (i) {
+      if (sudah[i]) return; sudah[i] = 1;
+      svg.appendChild(mk("line", { x1: X(i), x2: X(i), y1: P.t, y2: H - P.t - P.b, "class": "eq-vgrid" }));
+      var t = mk("text", { x: X(i), y: H - 7, "text-anchor": "middle" });
+      t.textContent = String(cd[i].t || "").split(" ").pop();   // "20 Nov 15:20" → "15:20"
+      svg.appendChild(t);
+    });
+    /* garis modal: acuan untung/rugi */
     if (M != null) {
       svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: Y(M), y2: Y(M), "class": "z" }));
-      var lm = mk("text", { x: W - P.r + 6, y: Y(M) + 3, "class": "eq-end" });
+      var lm = mk("text", { x: W - P.r + 8, y: Y(M) + 3, "class": "eq-end" });
       lm.textContent = "modal " + usd(M, 0);
       svg.appendChild(lm);
     }
-    var xt = [0, titik.length - 1];
-    if (titik.length > 6) xt.splice(1, 0, Math.floor((titik.length - 1) / 2));
-    xt.forEach(function (i) {
-      var t = mk("text", { x: X(i), y: H - 7, "text-anchor": "middle" });
-      t.textContent = String(titik[i].t || "").split(" ").pop();   // "17 Nov 13:13" → "13:13"
-      svg.appendChild(t);
-    });
-    var pts = titik.map(function (r, i) { return [X(i), Y(num(r.total))]; });
-    /* 19 Nov — saat riwayat baru 1 titik belum ada garis sama sekali (user:
-       "grafik equity mana garisnya"). Bentangkan satu segmen datar selebar
-       kanvas supaya level terakhir tetap terbaca, bukan layar kosong. */
-    var _satuTitik = pts.length === 1;
-    if (_satuTitik) {
-      var _y1 = pts[0][1];
-      pts = [[P.l, _y1], [W - P.r, _y1]];
-    }
-    /* 19 Nov — garis HALUS (Catmull-Rom → bezier) alih-alih siku-siku per
-       titik, supaya kurva equity terbaca sebagai tren, bukan tangga data. */
-    var dLine = "M" + pts[0][0].toFixed(1) + "," + pts[0][1].toFixed(1);
-    for (var pi = 0; pi < pts.length - 1; pi++) {
-      var p0 = pts[pi > 0 ? pi - 1 : 0], p1 = pts[pi], p2 = pts[pi + 1],
-          p3 = pts[pi + 2 < pts.length ? pi + 2 : pi + 1];
-      var c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
-      var c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
-      dLine += "C" + c1x.toFixed(1) + "," + c1y.toFixed(1) + " "
-             + c2x.toFixed(1) + "," + c2y.toFixed(1) + " "
-             + p2[0].toFixed(1) + "," + p2[1].toFixed(1);
-    }
-    var defs = mk("defs"); svg.appendChild(defs);
-    var gr = mk("linearGradient", { id: "boteqv", x1: 0, y1: 0, x2: 0, y2: 1 });
-    gr.appendChild(mk("stop", { offset: "0%", "stop-color": warna, "stop-opacity": .18 }));
-    gr.appendChild(mk("stop", { offset: "100%", "stop-color": warna, "stop-opacity": 0 }));
-    defs.appendChild(gr);
-    var dasar = Y(M != null ? M : lo);
-    /* 19 Nov — dengan SATU titik, area ke garis modal jadi blok raksasa yang
-       menutupi grafik. Garis + titik sudah cukup sampai titik kedua masuk. */
-    if (pts.length > 1 && !_satuTitik) {
-      svg.appendChild(mk("path", { d: dLine + "L" + pts[pts.length - 1][0] + "," + dasar
-        + "L" + pts[0][0] + "," + dasar + "Z", fill: "url(#boteqv)", stroke: "none",
-        "class": "eq-area" }));
-    }
-    svg.appendChild(mk("path", { d: dLine, fill: "none", stroke: warna, "stroke-width": 3,
-      "stroke-linecap": "round", "stroke-linejoin": "round", "class": "eq-line",
-      pathLength: 1 }));
-    titik.forEach(function (r, i) {
-      var akhir_ = i === titik.length - 1;
-      var c = mk("circle", { cx: (_satuTitik ? pts[1][0] : pts[i][0]),
-        cy: (_satuTitik ? pts[1][1] : pts[i][1]),
-        r: akhir_ ? 4 : 0, fill: warna,
-        "class": akhir_ ? "dot eq-last" : "dot" });
+
+    /* candle: wick dulu supaya body selalu menutupinya */
+    var delay = function (el, i) { el.style.setProperty("--d", Math.min(760, i * 15) + "ms"); };
+    cd.forEach(function (c, i) {
+      var naik = c.c >= c.o, kls = naik ? "eq-up" : "eq-dn";
+      var x = X(i), yO = Y(c.o), yC = Y(c.c);
+      var wick = mk("line", { x1: x, x2: x, y1: Y(c.h), y2: Y(c.l),
+        "class": "eq-wick eq-c " + kls });
+      var top = Math.min(yO, yC), tinggi = Math.max(1.6, Math.abs(yC - yO));
+      var body = mk("rect", { x: x - barW / 2, y: top, width: barW, height: tinggi,
+        rx: Math.min(1.5, barW / 4), "class": "eq-body eq-c " + kls + (i === cd.length - 1 ? " last" : "") });
       var tt = mk("title");
-      tt.textContent = r.t + " · equity " + usd(num(r.total), 2)
-        + " · terealisasi " + (r.realisasi == null ? "—" : usd(num(r.realisasi), 2))
-        + " · mengambang " + (r.mengambang == null ? "—" : usd(num(r.mengambang), 2));
-      c.appendChild(tt);
-      svg.appendChild(c);
+      tt.textContent = (c.t || "") + " · O " + usd(c.o) + " · H " + usd(c.h)
+        + " · L " + usd(c.l) + " · C " + usd(c.c);
+      wick.appendChild(tt); body.appendChild(tt.cloneNode(true));
+      delay(wick, i); delay(body, i);
+      svg.appendChild(wick); svg.appendChild(body);
     });
-    var lab = mk("text", { x: pts[pts.length - 1][0] + 8, y: pts[pts.length - 1][1] + 3,
-      "class": "eq-end", fill: warna });
-    lab.textContent = usd(akhir, 1);
-    svg.appendChild(lab);
-    /* 17 Nov (permintaan user) — penanda tiap posisi yang DITUTUP: garis
-       vertikal di titik waktu terdekat + label R di puncak grafik. Posisi
-       ditentukan dari epoch titik (bukan indeks), jadi tetap benar meski
-       titik dirapatkan per bucket. */
-    /* 19 Nov (permintaan user) — animasi: kurva menggambar dirinya sendiri,
-       area memudar masuk, dan titik terakhir berdenyut seperti harga live.
-       Hanya diputar pada render PERTAMA per muat halaman; refresh 60 dtk tidak
-       mengulang animasinya supaya grafik tidak berkedip tiap menit. */
+
+    /* garis + tag harga terakhir, seperti chart exchange */
+    var garisAkhir = mk("line", { x1: P.l, x2: W - P.r + 4, y1: Y(akhir), y2: Y(akhir),
+      "class": "eq-lastline " + warna });
+    svg.appendChild(garisAkhir);
+    var tagW = 74, tagH = 17, tagY = Math.min(H - P.b - tagH, Math.max(P.t, Y(akhir) - tagH / 2));
+    var tag = mk("g", { "class": "eq-tag" });
+    tag.appendChild(mk("rect", { x: W - P.r + 6, y: tagY, width: tagW, height: tagH, rx: 4,
+      "class": "eq-tagbox" }));
+    var tagTxt = mk("text", { x: W - P.r + 12, y: tagY + 12, "class": "eq-tag " + warna });
+    tagTxt.textContent = usd(akhir, 1);
+    tag.appendChild(tagTxt);
+    svg.appendChild(tag);
+    /* titik live berdenyut di close terakhir */
+    svg.appendChild(mk("circle", { cx: X(cd.length - 1), cy: Y(akhir), r: 3.6,
+      "class": "eq-live " + warna, style: "fill:var(--" + (warna === "eq-up" ? "up" : warna === "eq-dn" ? "dn" : "fg-3") + ");stroke:none" }));
+
     var badge = $("#bot-eqv-now");
     if (badge) {
       badge.hidden = false;
       badge.className = "eq-now on dot";
-      badge.style.color = warna;
-      badge.textContent = "live · " + String((titik[titik.length - 1] || {}).t || "").split(" ").pop();
+      badge.style.color = warna === "eq-up" ? "var(--up)" : warna === "eq-dn" ? "var(--dn)" : "var(--fg-3)";
+      badge.textContent = "live · " + String((cd[cd.length - 1] || {}).t || "").split(" ").pop();
     }
-    if (!svg.dataset.anim) {
-      svg.dataset.anim = "1";
-      svg.classList.remove("eq-anim");
-      void svg.getBoundingClientRect();          /* paksa reflow agar animasi mulai */
-      svg.classList.add("eq-anim");
-    }
+
+    /* penanda tiap posisi yang DITUTUP: segitiga di puncak/dasar candle
+       terdekat + label R, mengikuti gaya marker chart crypto. */
     var tk = (tutupTitik || []).slice().sort(function (a, b) { return a.ts - b.ts; });
-    if (!tk.length) return;
-    var tsTitik = titik.map(function (r) { return r.ts || 0; });
-    var idxDari = function (ts) {
-      for (var i = tsTitik.length - 1; i >= 0; i--) if (tsTitik[i] && tsTitik[i] <= ts) return i;
-      return 0;
-    };
     var xLabelTerakhir = -1e9, nLabel = 0;
     tk.forEach(function (t) {
-      var i = idxDari(t.ts), x = X(i), menang = t.r > 0;
-      var c = menang ? "#6EE7B7" : t.r < 0 ? "#E8877C" : "#9AA4B2";
-      var garis = mk("line", { x1: x, x2: x, y1: P.t, y2: H - P.b,
-        stroke: c, "stroke-width": 1, "stroke-dasharray": "2 3", "stroke-opacity": .55,
-        "class": "eq-mk" });
+      var idx = 0;
+      for (var i = cd.length - 1; i >= 0; i--) if (cd[i].ts && cd[i].ts <= t.ts) { idx = i; break; }
+      var menang = t.r > 0, x = X(idx);
+      var kls = menang ? "eq-up" : t.r < 0 ? "eq-dn" : "eq-flat";
+      var kolor = menang ? "var(--up)" : t.r < 0 ? "var(--dn)" : "var(--fg-3)";
+      var y = menang ? Y(cd[idx].h) - 14 : Y(cd[idx].l) + 14;
+      var tri = mk("path", {
+        d: menang ? "M0,-5.2 L4.8,3.4 L-4.8,3.4 Z" : "M0,5.2 L4.8,-3.4 L-4.8,-3.4 Z",
+        transform: "translate(" + x.toFixed(1) + "," + y.toFixed(1) + ")",
+        "class": "eq-mk " + kls, style: "fill:" + kolor + ";stroke:none"
+      });
       var ttl = mk("title");
       ttl.textContent = (t.sym || "") + " ditutup " + t.r.toFixed(2) + "R · "
-        + String((titik[i] || {}).t || "");
-      garis.appendChild(ttl);
-      svg.appendChild(garis);
-      /* label hanya kalau tidak berdesakan (jarak ≥ 30 px), maks 12 label */
-      if (nLabel < 12 && x - xLabelTerakhir >= 30) {
-        var lb = mk("text", { x: x, y: P.t - 5, "text-anchor": "middle",
-          fill: c, "font-size": 8.5, "font-weight": 600, "class": "eq-mk" });
-        lb.textContent = (t.r > 0 ? "+" : t.r < 0 ? "−" : "") + Math.abs(t.r).toFixed(1) + "R";
-        svg.appendChild(lb);
+        + String((cd[idx] || {}).t || "");
+      tri.appendChild(ttl);
+      delay(tri, idx + 4);
+      svg.appendChild(tri);
+      if (nLabel < 14 && x - xLabelTerakhir >= 34) {
+        var lbr = mk("text", { x: x, y: menang ? y - 8 : y + 15, "text-anchor": "middle",
+          "class": "eq-mk eq-mknum " + kls, style: "fill:" + kolor });
+        lbr.textContent = (t.r > 0 ? "+" : t.r < 0 ? "−" : "") + Math.abs(t.r).toFixed(2) + "R";
+        delay(lbr, idx + 4);
+        svg.appendChild(lbr);
         xLabelTerakhir = x; nLabel++;
       }
     });
+
+    /* animasi hanya pada render pertama per muat halaman; refresh 60 dtk
+       tidak mengulang supaya grafik tidak berkedip tiap menit. */
+    if (!svg.dataset.anim) {
+      svg.dataset.anim = "1";
+      void svg.getBoundingClientRect();          /* paksa reflow agar animasi mulai */
+      svg.classList.add("eq-anim");
+      /* lepas lagi setelah semua batang selesai tumbuh: refresh 60 dtk tidak
+         mengulang animasi dan grafik tidak berkedip tiap menit. */
+      setTimeout(function () { svg.classList.remove("eq-anim"); }, 2800);
+    }
   }
 
   /* 12 Nov — kurva equity dipakai dua kali: harian dalam $ (#bot-eq) dan
