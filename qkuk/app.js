@@ -2168,6 +2168,25 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       svg.appendChild(k);
       return;
     }
+    /* 20 Nov (permintaan user) — mulai grafik dari modal, bukan dari sisa
+       riwayat demo lama. Titik-titik awal berisi equity $300/$221 sisa run
+       sebelumnya; membiarkannya membuat sumbu turun ke $300 dan seluruh
+       candle tertekan ke atas. Potong titik SEBELUM equity pertama kali
+       menyentuh modal (95% modal). Penurunan di tengah tetap ditampilkan. */
+    if (M != null && M > 0 && titik.length > 2) {
+      for (var iAwal = 0; iAwal < titik.length - 1; iAwal++) {
+        var vAwal = num(titik[iAwal].total);
+        if (vAwal != null && vAwal >= M * .95) {
+          if (iAwal > 0) titik = titik.slice(iAwal);
+          break;
+        }
+      }
+    }
+    if (cap && hist && titik.length !== (hist.n || titik.length)) {
+      var modeTxt = hist.mode === "siklus" ? "tiap siklus build" : "tiap " + (hist.mode || "10 mnt");
+      cap.textContent = "equity live · " + modeTxt + " · " + titik.length
+        + " titik · " + (hist.jendela_jam || 48) + " jam";
+    }
     var ys = titik.map(function (r) { return num(r.total); }).filter(function (v) { return v !== null; });
     if (!ys.length) return;
     var hi = Math.max.apply(null, ys), lo = Math.min.apply(null, ys);
@@ -2178,7 +2197,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var modalTampil = M != null && M >= lo - rentangData * .15 && M <= hi + rentangData * .15;
     if (modalTampil) { if (M > hi) hi = M; if (M < lo) lo = M; }
     if (hi === lo) { hi += 1; lo -= 1; }
-    var pd = (hi - lo) * .12; hi += pd; lo -= pd;
+    var pd = (hi - lo) * .12, bawah = (hi - lo) * .03;   /* bawah mepet data */
+    hi += pd; lo -= bawah;
 
     /* titik → candle dengan JARAK WAKTU TETAP.
        Dulu dibagi rata per jumlah titik; karena titik datang tak rata (6 dtk –
@@ -2246,7 +2266,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var plotW = W - P.l - P.r, step = plotW / cd.length;
     /* batang gemuk hampir menyentuh tetangganya: ritme rapat seperti candle
        exchange, bukan deretan balok renggang. */
-    var barW = Math.max(5, Math.min(18, step * .74));
+    var barW = Math.max(4, Math.min(13, step * .52));
     var X = function (i) { return P.l + step * (i + .5); };
     var Y = function (v) { return P.t + (1 - (v - lo) / (hi - lo)) * (H - P.t - P.b); };
     var cls = function (c) { return c > 0 ? "eq-up" : c < 0 ? "eq-dn" : "eq-flat"; };
@@ -2268,12 +2288,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       fill: "url(#boteqvdot)", "fill-opacity": .62, "class": "eq-bgdots" }));
 
     /* grid horizontal + label harga, plus garis vertikal di posisi label waktu */
-    var nG = 5;
+    /* Label sumbu dimulai dari MODAL ($1.000), bukan dari titik terendah:
+       penurunan di bawah modal tetap tergambar, tapi tidak lagi memunculkan
+       angka aneh di bawah $1.000. Kalau modal di luar skala, kembali rata. */
+    var nG = 5, dasar = (M != null && M > lo && M < hi) ? M : lo;
     for (var g = 0; g <= nG; g++) {
-      var yy = P.t + g / nG * (H - P.t - P.b);
+      var nv = hi - (hi - dasar) * g / nG;
+      var yy = Y(nv);
       svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: yy, y2: yy, "class": "g" }));
       var lb = mk("text", { x: P.l - 8, y: yy + 3, "text-anchor": "end" });
-      var nv = hi - g / nG * (hi - lo);
       lb.textContent = Math.abs(nv) >= 1000
         ? "$" + (nv / 1000).toFixed(nv >= 10000 ? 0 : 2) + "k"
         : "$" + nv.toFixed(1);

@@ -12,7 +12,7 @@
 /* 20 Nov: bump cache — grafik equity live jadi candlestick (app.js/style.css). */
 /* 11 Nov: bump cache — perbaikan login admin (hash password cloud) + gembok
    anti-timpang cloudWrite, supaya app.js baru benar-benar terpakai. */
-const CACHE = "qkuk-v20261120c";
+const CACHE = "qkuk-v20261120d";
 const SHELL = [
   "./", "./index.html", "./app.js", "./style.css", "./manifest.json",
   "./whale.html", "./whale.js", "./riwayat.html", "./archive.html",
