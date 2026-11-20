@@ -295,11 +295,20 @@ svg.ch#bot-eqv{height:460px}
 svg.ch#bot-eqv .eq-up{stroke:var(--up);fill:var(--up)}
 svg.ch#bot-eqv .eq-dn{stroke:var(--dn);fill:var(--dn)}
 svg.ch#bot-eqv .eq-flat{stroke:var(--fg-3);fill:var(--fg-3)}
-svg.ch#bot-eqv line.eq-wick{stroke-width:1.2;fill:none;stroke-linecap:round}
+/* batang candle memakai versi lebih pekat dari --up/--dn supaya terbaca
+   sebagai candle crypto; teks & badge tetap memakai mint/salmon tema. */
+svg.ch#bot-eqv{--c-up:#2EE8A2;--c-dn:#FF5F6D}
+svg.ch#bot-eqv rect.eq-body.eq-up{fill:var(--c-up)}
+svg.ch#bot-eqv rect.eq-body.eq-dn{fill:var(--c-dn)}
+svg.ch#bot-eqv line.eq-wick.eq-up{stroke:var(--c-up)}
+svg.ch#bot-eqv line.eq-wick.eq-dn{stroke:var(--c-dn)}
+svg.ch#bot-eqv line.eq-wick{stroke-width:1.1;fill:none;stroke-linecap:round}
 svg.ch#bot-eqv rect.eq-body{stroke:none}
+/* doji: batang setipis kertas tetap terlihat sebagai garis pendek */
+svg.ch#bot-eqv rect.eq-body.doji{rx:0}
 svg.ch#bot-eqv .eq-vgrid{stroke:var(--line);stroke-width:1;stroke-opacity:.85}
-svg.ch#bot-eqv .eq-lastline{fill:none;stroke-width:1;stroke-dasharray:4 4;stroke-opacity:.8}
-svg.ch#bot-eqv .eq-tagbox{fill:var(--s2);stroke:var(--line-2);stroke-width:1}
+svg.ch#bot-eqv .eq-lastline{fill:none;stroke-width:1;stroke-dasharray:2 5;stroke-opacity:.45}
+svg.ch#bot-eqv .eq-tagbox{fill:var(--s1);stroke:var(--line-2);stroke-width:1}
 svg.ch#bot-eqv text.eq-tag{font-size:10px;font-weight:600;letter-spacing:-.01em}
 svg.ch#bot-eqv text.eq-mknum{font-size:8.5px;font-weight:600}
 svg.ch#bot-eqv circle.eq-live{animation:eq-beat 2.6s ease-in-out infinite}

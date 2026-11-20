@@ -2170,10 +2170,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
     var ys = titik.map(function (r) { return num(r.total); }).filter(function (v) { return v !== null; });
     if (!ys.length) return;
-    var hi = Math.max.apply(null, ys.concat([M || ys[0]]));
-    var lo = Math.min.apply(null, ys.concat([M || ys[0]]));
+    var hi = Math.max.apply(null, ys), lo = Math.min.apply(null, ys);
+    /* ⚠️ garis modal HANYA ikut menentukan skala kalau dekat dengan equity.
+       Kalau modal jauh di bawah (mis. $300 vs equity $1.3k), memasukkannya
+       membuat semua candle gepeng di satu garis dan separuh grafik kosong. */
+    var rentangData = hi - lo || Math.max(1, Math.abs(hi) * .01);
+    var modalTampil = M != null && M >= lo - rentangData * .15 && M <= hi + rentangData * .15;
+    if (modalTampil) { if (M > hi) hi = M; if (M < lo) lo = M; }
     if (hi === lo) { hi += 1; lo -= 1; }
-    var pd = (hi - lo) * .16; hi += pd; lo -= pd;
+    var pd = (hi - lo) * .12; hi += pd; lo -= pd;
 
     /* titik → candle: maksimal 48 batang supaya batang masih gemuk dibaca.
        Setiap bucket punya open/high/low/close dari titik di dalamnya. */
@@ -2210,11 +2215,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     /* latar dot-matrix: tekstur chart crypto, tapi warnanya dari tema
        terminal (var(--line-2)) supaya tidak terasa tempelan. */
     var defs = mk("defs"); svg.appendChild(defs);
-    var pat = mk("pattern", { id: "boteqvdot", width: 18, height: 18, patternUnits: "userSpaceOnUse" });
-    pat.appendChild(mk("circle", { cx: 1.5, cy: 1.5, r: 1.1, style: "fill:var(--line-2)", "fill-opacity": .9 }));
+    var pat = mk("pattern", { id: "boteqvdot", width: 15, height: 15, patternUnits: "userSpaceOnUse" });
+    pat.appendChild(mk("circle", { cx: 1.6, cy: 1.6, r: 1.35, style: "fill:var(--line-2)", "fill-opacity": 1 }));
     defs.appendChild(pat);
     svg.appendChild(mk("rect", { x: P.l, y: P.t, width: plotW, height: H - P.t - P.b,
-      fill: "url(#boteqvdot)", "fill-opacity": .35, "class": "eq-bgdots" }));
+      fill: "url(#boteqvdot)", "fill-opacity": .62, "class": "eq-bgdots" }));
 
     /* grid horizontal + label harga, plus garis vertikal di posisi label waktu */
     var nG = 5;
@@ -2222,7 +2227,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var yy = P.t + g / nG * (H - P.t - P.b);
       svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: yy, y2: yy, "class": "g" }));
       var lb = mk("text", { x: P.l - 8, y: yy + 3, "text-anchor": "end" });
-      lb.textContent = "$" + (hi - g / nG * (hi - lo)).toFixed(1);
+      var nv = hi - g / nG * (hi - lo);
+      lb.textContent = Math.abs(nv) >= 1000
+        ? "$" + (nv / 1000).toFixed(nv >= 10000 ? 0 : 2) + "k"
+        : "$" + nv.toFixed(1);
       svg.appendChild(lb);
     }
     var tick = [0, Math.floor((cd.length - 1) / 3), Math.floor(2 * (cd.length - 1) / 3), cd.length - 1];
@@ -2234,11 +2242,13 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       t.textContent = String(cd[i].t || "").split(" ").pop();   // "20 Nov 15:20" → "15:20"
       svg.appendChild(t);
     });
-    /* garis modal: acuan untung/rugi */
+    /* garis modal: acuan untung/rugi. Kalau modal di luar skala, garisnya
+       ditempel di dasar plot supaya tetap terlihat tanpa merusak skala. */
     if (M != null) {
-      svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: Y(M), y2: Y(M), "class": "z" }));
-      var lm = mk("text", { x: W - P.r + 8, y: Y(M) + 3, "class": "eq-end" });
-      lm.textContent = "modal " + usd(M, 0);
+      var yM = modalTampil ? Y(M) : H - P.b;
+      svg.appendChild(mk("line", { x1: P.l, x2: W - P.r, y1: yM, y2: yM, "class": "z" }));
+      var lm = mk("text", { x: W - P.r + 8, y: yM + (modalTampil ? 3 : -3), "class": "eq-end" });
+      lm.textContent = "modal " + usd(M, 0) + (modalTampil ? "" : " · di bawah skala");
       svg.appendChild(lm);
     }
 
@@ -2249,9 +2259,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var x = X(i), yO = Y(c.o), yC = Y(c.c);
       var wick = mk("line", { x1: x, x2: x, y1: Y(c.h), y2: Y(c.l),
         "class": "eq-wick eq-c " + kls });
-      var top = Math.min(yO, yC), tinggi = Math.max(1.6, Math.abs(yC - yO));
+      var datar = Math.abs(yC - yO) < 2.6;
+      var tinggi = datar ? 2.6 : Math.abs(yC - yO);
+      var top = datar ? yO - tinggi / 2 : Math.min(yO, yC);
       var body = mk("rect", { x: x - barW / 2, y: top, width: barW, height: tinggi,
-        rx: Math.min(1.5, barW / 4), "class": "eq-body eq-c " + kls + (i === cd.length - 1 ? " last" : "") });
+        rx: datar ? 0 : Math.min(1.5, barW / 4),
+        "class": "eq-body eq-c " + kls + (datar ? " doji" : "") + (i === cd.length - 1 ? " last" : "") });
       var tt = mk("title");
       tt.textContent = (c.t || "") + " · O " + usd(c.o) + " · H " + usd(c.h)
         + " · L " + usd(c.l) + " · C " + usd(c.c);
@@ -2306,13 +2319,15 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       tri.appendChild(ttl);
       delay(tri, idx + 4);
       svg.appendChild(tri);
-      if (nLabel < 14 && x - xLabelTerakhir >= 34) {
-        var lbr = mk("text", { x: x, y: menang ? y - 8 : y + 15, "text-anchor": "middle",
+      if (nLabel < 14 && x - xLabelTerakhir >= 34 && x < W - P.r - 26) {
+        var lx = Math.max(P.l + 16, x);
+        var ly = menang ? Math.max(P.t + 10, y - 8) : Math.min(H - P.b - 4, y + 15);
+        var lbr = mk("text", { x: lx, y: ly, "text-anchor": "middle",
           "class": "eq-mk eq-mknum " + kls, style: "fill:" + kolor });
         lbr.textContent = (t.r > 0 ? "+" : t.r < 0 ? "−" : "") + Math.abs(t.r).toFixed(2) + "R";
         delay(lbr, idx + 4);
         svg.appendChild(lbr);
-        xLabelTerakhir = x; nLabel++;
+        xLabelTerakhir = lx; nLabel++;
       }
     });
 
