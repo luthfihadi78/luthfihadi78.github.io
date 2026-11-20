@@ -2180,27 +2180,73 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (hi === lo) { hi += 1; lo -= 1; }
     var pd = (hi - lo) * .12; hi += pd; lo -= pd;
 
-    /* titik → candle: maksimal 48 batang supaya batang masih gemuk dibaca.
-       Setiap bucket punya open/high/low/close dari titik di dalamnya. */
-    var nB = Math.min(titik.length, 48), per = titik.length / nB, cd = [];
-    for (var bi = 0; bi < nB; bi++) {
-      var a = Math.floor(bi * per), z = Math.min(titik.length, Math.floor((bi + 1) * per));
-      if (z <= a) z = a + 1;
-      var seg = titik.slice(a, z).map(function (r) { return num(r.total); })
-        .filter(function (v) { return v !== null; });
-      if (!seg.length) continue;
-      var o0 = cd.length ? cd[cd.length - 1].c : seg[0];
-      cd.push({
-        o: o0, c: seg[seg.length - 1],
-        h: Math.max.apply(null, seg.concat([o0])),
-        l: Math.min.apply(null, seg.concat([o0])),
-        t: titik[a].t, ts: titik[a].ts
+    /* titik → candle dengan JARAK WAKTU TETAP.
+       Dulu dibagi rata per jumlah titik; karena titik datang tak rata (6 dtk –
+       59 mnt), tiap batang mewakili rentang waktu berbeda dan grafiknya jadi
+       renggang-patah. Sekarang satu batang = satu slot waktu (mis. 30 mnt),
+       jadi ritmenya rata seperti candle sungguhan. Slot kosong diisi harga
+       terakhir (doji datar), bukan dilewati, supaya jumlah batang tetap. */
+    var cd = [], t0 = num(titik[0].ts), t1 = num(titik[titik.length - 1].ts);
+    var lebarDetik = 0, nB = 0;
+    if (t0 != null && t1 != null && t1 - t0 > 600 && titik.length > 4) {
+      var adaTs = titik.filter(function (r) { return num(r.ts) != null; }).length;
+      if (adaTs >= titik.length * .9) {
+        var span = t1 - t0;
+        nB = Math.max(8, Math.min(44, Math.round(span / 1800)));   /* ~30 mnt/batang */
+        lebarDetik = span / nB;
+      }
+    }
+    if (nB) {
+      var ember = [], terakhir = titik[0].total;
+      for (var bi = 0; bi < nB; bi++) ember.push([]);
+      titik.forEach(function (r) {
+        var v = num(r.total); if (v == null) return;
+        var k = Math.min(nB - 1, Math.max(0, Math.floor((num(r.ts) - t0) / lebarDetik)));
+        ember[k].push({ v: v, t: r.t, ts: r.ts });
       });
+      for (var bj = 0; bj < nB; bj++) {
+        var seg = ember[bj];
+        var o0 = num(terakhir);
+        if (!seg.length) {                    /* slot kosong: doji datar, rhythm tetap */
+          var tLalu = cd.length ? cd[cd.length - 1].t : titik[0].t;
+          cd.push({ o: o0, c: o0, h: o0, l: o0, t: tLalu, ts: t0 + bj * lebarDetik });
+          continue;
+        }
+        var vals = seg.map(function (x) { return x.v; });
+        var c1 = vals[vals.length - 1];
+        cd.push({
+          o: o0, c: c1,
+          h: Math.max.apply(null, vals.concat([o0])),
+          l: Math.min.apply(null, vals.concat([o0])),
+          t: seg[0].t, ts: seg[0].ts, n: vals.length
+        });
+        terakhir = c1;
+      }
+    } else {
+      /* fallback: data tanpa cap waktu — bagi rata seperti sebelumnya */
+      nB = Math.min(titik.length, 44);
+      var per = titik.length / nB;
+      for (var bk = 0; bk < nB; bk++) {
+        var a = Math.floor(bk * per), z = Math.min(titik.length, Math.floor((bk + 1) * per));
+        if (z <= a) z = a + 1;
+        var sg = titik.slice(a, z).map(function (r) { return num(r.total); })
+          .filter(function (v) { return v !== null; });
+        if (!sg.length) continue;
+        var p0 = cd.length ? cd[cd.length - 1].c : sg[0];
+        cd.push({
+          o: p0, c: sg[sg.length - 1],
+          h: Math.max.apply(null, sg.concat([p0])),
+          l: Math.min.apply(null, sg.concat([p0])),
+          t: titik[a].t, ts: titik[a].ts
+        });
+      }
     }
     if (!cd.length) return;
 
     var plotW = W - P.l - P.r, step = plotW / cd.length;
-    var barW = Math.max(3, Math.min(16, step * .62));
+    /* batang gemuk hampir menyentuh tetangganya: ritme rapat seperti candle
+       exchange, bukan deretan balok renggang. */
+    var barW = Math.max(5, Math.min(18, step * .74));
     var X = function (i) { return P.l + step * (i + .5); };
     var Y = function (v) { return P.t + (1 - (v - lo) / (hi - lo)) * (H - P.t - P.b); };
     var cls = function (c) { return c > 0 ? "eq-up" : c < 0 ? "eq-dn" : "eq-flat"; };
@@ -2259,8 +2305,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var x = X(i), yO = Y(c.o), yC = Y(c.c);
       var wick = mk("line", { x1: x, x2: x, y1: Y(c.h), y2: Y(c.l),
         "class": "eq-wick eq-c " + kls });
-      var datar = Math.abs(yC - yO) < 2.6;
-      var tinggi = datar ? 2.6 : Math.abs(yC - yO);
+      var datar = Math.abs(yC - yO) < 3;
+      var tinggi = datar ? 3 : Math.abs(yC - yO);
       var top = datar ? yO - tinggi / 2 : Math.min(yO, yC);
       var body = mk("rect", { x: x - barW / 2, y: top, width: barW, height: tinggi,
         rx: datar ? 0 : Math.min(1.5, barW / 4),
@@ -2274,8 +2320,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     });
 
     /* garis + tag harga terakhir, seperti chart exchange */
-    var garisAkhir = mk("line", { x1: P.l, x2: W - P.r + 4, y1: Y(akhir), y2: Y(akhir),
-      "class": "eq-lastline " + warna });
+    var garisAkhir = mk("line", { x1: X(cd.length - 1) + barW / 2, x2: W - P.r + 4,
+      y1: Y(akhir), y2: Y(akhir), "class": "eq-lastline " + warna });
     svg.appendChild(garisAkhir);
     var tagW = 74, tagH = 17, tagY = Math.min(H - P.b - tagH, Math.max(P.t, Y(akhir) - tagH / 2));
     var tag = mk("g", { "class": "eq-tag" });
@@ -2319,7 +2365,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       tri.appendChild(ttl);
       delay(tri, idx + 4);
       svg.appendChild(tri);
-      if (nLabel < 14 && x - xLabelTerakhir >= 34 && x < W - P.r - 26) {
+      if (nLabel < 10 && x - xLabelTerakhir >= 58 && x < W - P.r - 26) {
         var lx = Math.max(P.l + 16, x);
         var ly = menang ? Math.max(P.t + 10, y - 8) : Math.min(H - P.b - 4, y + 15);
         var lbr = mk("text", { x: lx, y: ly, "text-anchor": "middle",
