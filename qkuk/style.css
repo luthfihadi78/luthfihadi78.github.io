@@ -1497,8 +1497,22 @@ td.bcw{color:var(--gold)}
 .bot-logi .bi{width:12px;color:var(--fg-3)}
 .bot-logi .bt{flex:1;color:var(--fg-2)}
 .bot-logi .bs{color:var(--fg-3);white-space:nowrap}
+/* 21 Nov — zona sesi trading (Asia/London/NY) di tiap baris log */
+.bot-logi .ss{font-size:9px;letter-spacing:.4px;color:var(--fg-3);white-space:nowrap;
+  border:1px solid var(--line);border-radius:4px;padding:1px 4px;margin-right:4px}
+.bot-logi .ss-live{font-size:10px;padding:1px 6px}
+.bot-eq-h .ss-live{color:var(--gold);border-color:var(--gold)}
 .bot-logi.pos .bt{color:var(--up)} .bot-logi.neg .bt{color:var(--dn)}
 .bot-logi.warn .bt{color:var(--gold)}
+/* 21 Nov (permintaan user) — log panjang WAJIB bisa digulir sendiri, bukan
+   memanjangkan halaman: riwayat dipakai untuk mengecek ulang, jadi harus
+   terbaca penuh tanpa menggeser panel lain. */
+.bot-log.gulir{max-height:340px;overflow-y:auto;overscroll-behavior:contain;
+  border:1px solid var(--line);border-radius:8px;padding:2px 8px;
+  scrollbar-width:thin;scrollbar-color:var(--line-2) transparent}
+.bot-log.gulir .bot-logi .bs{position:sticky;right:0}
+.bot-log.gulir::-webkit-scrollbar{width:8px}
+.bot-log.gulir::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px}
 
 /* 13 Nov — panel pertahanan bot: regime, anggaran risiko, postmortem, TM v2 */
 #bot-pertahanan .def-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));

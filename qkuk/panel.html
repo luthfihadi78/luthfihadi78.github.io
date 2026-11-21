@@ -33,7 +33,10 @@ button:hover{border-color:var(--up);color:var(--up)}
 border-radius:20px;padding:4px 11px;font-size:11px;color:var(--fg2)}
 .chip b{color:var(--fg);font-weight:600;font-size:11.5px}
 .chip.pos b{color:var(--up)}.chip.neg b{color:var(--dn)}.chip.warn b{color:var(--warn)}
-.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+/* 21 Nov — riwayat debat bisa digulir dua arah, tinggi tetap supaya bisa dicek ulang tanpa kehilangan konteks */
+.tw{overflow:auto;max-height:70vh;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  scrollbar-width:thin;scrollbar-color:#2A3B33 transparent}
+thead th{position:sticky;top:0;background:var(--s0);z-index:1}
 table{width:100%;border-collapse:collapse;font-size:11.5px;white-space:nowrap}
 th{text-align:left;font-weight:500;color:var(--fg2);font-size:10px;letter-spacing:.07em;
 text-transform:uppercase;padding:0 9px 7px;border-bottom:1px solid var(--line)}

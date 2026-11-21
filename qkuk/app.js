@@ -5683,8 +5683,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       if (LG.length) {
         var hL = el("div", "bot-eq-h");
         hL.appendChild(el("span", null, "kejadian terakhir · di halaman ini saja, tidak dikirim ke WhatsApp"));
+        hL.appendChild(sesiBadge(B.sesi));
         wrapLog.appendChild(hL);
-        var ul = el("div", "bot-log");
+        var ul = el("div", "bot-log gulir");
         LG.forEach(function (e) {
           var cls = e.jenis === "tutup" ? ((e.hasil === "tp" || (e.r || 0) > 0) ? "pos" : "neg")
                   : e.jenis === "guard" || e.jenis === "tolak" ? "warn" : "mut";
@@ -5696,6 +5697,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           var row = el("div", "bot-logi " + cls);
           row.appendChild(el("span", "bi", ic));
           row.appendChild(el("span", "bt", txt_));
+          row.appendChild(sesiTag(e.sesi));
           row.appendChild(el("span", "bs", jamLog(e.t)));
           ul.appendChild(row);
         });
@@ -5757,6 +5759,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     lnk.href = "panel.html";
     lnk.style.marginLeft = "10px";
     h.appendChild(lnk);
+    h.appendChild(sesiBadge(B.sesi || (B.agent_log || {}).sesi_sekarang));
     host.appendChild(h);
     var ket = el("div", "cap");
     ket.appendChild(el("span", null, "Log komunikasi terstruktur: klaim analis → debat bull/bear → putusan trader → aksi nyata. "
@@ -5771,6 +5774,52 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         chips.appendChild(c);
       });
       host.appendChild(chips);
+    }
+    /* 21 Nov (pertanyaan user ETH/UNI) — log 24 jam datar dari dashboard:
+       satu baris = satu tahap (klaim/debat/putusan/aksi), lengkap dengan
+       tanggal. Versi lama memotong 4 siklus & 18 baris lalu hanya menampilkan
+       jam tanpa tanggal, sehingga baris long dari hari lain bisa terbaca
+       seolah keputusan siklus yang sama dengan short. */
+    var AL = B.agent_log || {};
+    var logRows = AL.baris || [];
+    if (logRows.length) {
+      var capAl = el("div", "cap");
+      capAl.appendChild(el("span", null,
+        "log 24 jam · " + AL.n + " baris (ditampilkan " + logRows.length + ", bisa digulir) · "
+        + (AL.basi ? "arsip terakhir " + String(AL.ts_acuan || "").replace("T", " ").slice(0, 16) + " — bot belum mencatat siklus baru"
+                   : "terbaru di atas")));
+      host.appendChild(capAl);
+      var capT = el("div", "cap");
+      capT.appendChild(el("span", null,
+        "T = arah kandidat engine, bukan opini terpisah (2.159 klaim diperiksa: 0 berbeda arah). "
+        + "Kalau ETH/UNI terbaca long lalu short, itu kandidat berbeda di siklus berbeda — bukan sinyal yang berbalik dalam satu keputusan."));
+      host.appendChild(capT);
+      var ulAl = el("div", "bot-log gulir");
+      logRows.forEach(function (r) {
+        var arah = String(r.arah || "");
+        var cls = (arah === "tolak" || arah === "lawan" || arah === "ditolak") ? "neg"
+                : (arah === "setuju" || arah === "dukung" || arah === "long" || arah === "short"
+                   || arah === "eksekusi") ? "pos" : "mut";
+        var row = el("div", "bot-logi " + cls);
+        row.appendChild(el("span", "bi", String(r.tahap || "?").slice(0, 1).toUpperCase()));
+        var msg = "[" + String(r.tahap || "?") + " · " + String(r.dari || "?")
+          + (r.sym ? " · " + r.sym : "") + (r.kanal ? " " + r.kanal : "")
+          + (r.dir ? "/" + r.dir : "") + "] " + String(r.pesan || "");
+        var bt = el("span", "bt", msg);
+        bt.title = msg;
+        row.appendChild(bt);
+        row.appendChild(sesiTag(r.sesi));
+        row.appendChild(el("span", "bs", jamAl(r.t)));
+        ulAl.appendChild(row);
+      });
+      host.appendChild(ulAl);
+      if (btc.ringkas || btc.peringatan) {
+        var capB = el("div", "cap");
+        capB.appendChild(el("span", "mut", "BTC monitor " + jamAl(btc.ts) + " · "
+          + (btc.peringatan || btc.ringkas || "")));
+        host.appendChild(capB);
+      }
+      return;
     }
     var rows = [];
     cycles.slice(0, 4).forEach(function (sik) {
@@ -5807,18 +5856,54 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       host.appendChild(el("div", "empty", "Belum ada komunikasi agent pada siklus terakhir."));
       return;
     }
-    var ul = el("div", "bot-log");
-    rows.slice(0, 18).forEach(function (r) {
+    var capL = el("div", "cap");
+    capL.appendChild(el("span", null, "log cadangan · " + rows.length + " baris dari 4 siklus terakhir (bisa digulir)"
+      + (B.agent_log ? " — log 24 jam tidak tersedia" : "") + " · tanggal lengkap"));
+    host.appendChild(capL);
+    var ul = el("div", "bot-log gulir");
+    rows.forEach(function (r) {
       var cls = (r.arah === "tolak" || r.arah === "lawan") ? "neg" :
                 (r.arah === "setuju" || r.arah === "dukung" || r.arah === "long" || r.arah === "eksekusi") ? "pos" : "mut";
       var row = el("div", "bot-logi " + cls);
       row.appendChild(el("span", "bi", String(r.dari || "?").slice(0, 1).toUpperCase()));
       var msg = "[" + String(r.dari || "?") + (r.sym ? " · " + r.sym : "") + "] " + String(r.pesan || "");
-      row.appendChild(el("span", "bt", msg));
-      row.appendChild(el("span", "bs", String(r.t || "").replace("T", " ").slice(5, 16)));
+      var bt2 = el("span", "bt", msg);
+      bt2.title = msg;
+      row.appendChild(bt2);
+      row.appendChild(el("span", "bs", jamAl(r.t)));
       ul.appendChild(row);
     });
     host.appendChild(ul);
+  }
+
+  /* 21 Nov (permintaan user) — zona sesi trading. Pembalikan arah sering jatuh
+     di pergantian sesi, jadi tiap signal/penolakan membawa label sesinya. */
+  var SESI_NAMA = {"asia": "ASIA", "london": "LDN", "newyork": "NY",
+                   "asia+london": "ASIA+LDN", "london+newyork": "LDN+NY",
+                   "late": "LATE", "tak_tahu": "?"};
+  function sesiTag(kode) {
+    if (!kode) return document.createDocumentFragment();
+    var t = el("span", "ss", SESI_NAMA[kode] || String(kode).toUpperCase());
+    t.title = "sesi trading (UTC): " + (SESI_NAMA[kode] || kode);
+    return t;
+  }
+  function sesiBadge(s) {
+    s = s || {};
+    var b = el("b", "ss ss-live", "sesi " + (SESI_NAMA[s.sesi] || "?") + " · "
+      + (s.label || "tak terbaca"));
+    b.title = "Zona sesi trading dari jam UTC. Asia 00-07 · London 07-16 · "
+      + "New York 12-21 · tumpang tindih London+NY 12-16 UTC.";
+    b.style.marginLeft = "8px";
+    return b;
+  }
+
+  /* 21 Nov — semua log memakai tanggal + jam WIB lengkap (bukan slice jam saja),
+     supaya baris dari hari berbeda tidak terbaca sebagai satu siklus. */
+  function jamAl(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso || "").replace("T", " ").slice(0, 16);
+    var f = function (n) { return ("0" + n).slice(-2); };
+    return f(d.getDate()) + "/" + f(d.getMonth() + 1) + " " + f(d.getHours()) + ":" + f(d.getMinutes());
   }
 
   /* ── watchlist accuracy: skor mekanis 1R:1R atas SEMUA reclaim terdeteksi ── */
