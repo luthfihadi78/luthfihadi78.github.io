@@ -2710,6 +2710,77 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       (TM.avg_hist_R || 0) >= 0 ? "pos" : "neg");
     cT.appendChild(el("p", "def-note", "Replay aturan yang sama di sesi historis, bukan hanya Monte Carlo. Sesi < 20 ditandai belum cukup. 19 Nov: horizon tetap (bukan sisa hari UTC), jadi setup jam 02:00 dan 23:30 diuji dengan jangkauan yang sama; p(target) juga dilaporkan per 6/12/24 jam."));
 
+    /* 21 Nov (permintaan user) — PANEL GERBANG HARI TREN: setiap kali gerbang
+       menaikkan ukuran otomatis, hasilnya harus bisa dipantau tanpa buka log.
+       Sumber: journal (buka.hari_tren → tutup ber-id sama), dihitung ulang
+       server tiap siklus dashboard; fallback ke laporan harian. */
+    var HT = P.hari_tren || ((P.laporan_harian || {}).hari_tren) || {};
+    var HTP = HT.pembanding || {};
+    var cHT = card("Gerbang hari tren",
+      HT.n ? HT.n + " entry dinaikkan" + (HT.jendela ? " \u00b7 " + HT.jendela : "")
+           : "belum menaikkan ukuran");
+    var rHT = function (v) {
+      var x = num(v);
+      return x == null ? "\u2014" : (x > 0 ? "+" : "") + x.toFixed(2) + "R";
+    };
+    var csHT = el("div", "lh-chips");
+    csHT.appendChild(chip("entry \u00d7 naik", String(HT.n || 0), "warn"));
+    csHT.appendChild(chip("tertutup", String(HT.tertutup || 0), "mut"));
+    csHT.appendChild(chip("WR", HT.wr == null ? "\u2014" : HT.wr + "%",
+      HT.wr == null ? "mut" : (HT.wr >= 50 ? "pos" : "neg")));
+    csHT.appendChild(chip("avgR", rHT(HT.avgR),
+      (num(HT.avgR) || 0) >= 0 ? "pos" : "neg"));
+    if (HTP.n) {
+      csHT.appendChild(chip("pembanding non-tren",
+        "n " + HTP.n + " \u00b7 WR " + (HTP.wr == null ? "\u2014" : HTP.wr + "%")
+        + " \u00b7 avgR " + rHT(HTP.avgR),
+        (num(HTP.avgR) || 0) >= 0 ? "pos" : "neg"));
+    }
+    cHT.appendChild(csHT);
+    var avgT = num(HT.avgR), avgP = num(HTP.avgR);
+    if (!HT.n) {
+      cHT.appendChild(el("p", "def-note mut",
+        "Gerbang hanya menaikkan ukuran saat kanal, arah, skor, dan breadth "
+        + "cocok dengan klaster terbaik \u2014 belum terjadi dalam "
+        + (HT.jendela || "30hr") + " terakhir."));
+    } else if (avgT != null && avgP != null && (HTP.n || 0) >= 5) {
+      var selisih = avgT - avgP;
+      cHT.appendChild(el("p", "def-note " + (selisih > 0 ? "pos" : "neg"),
+        (selisih > 0
+          ? "Menaikkan ukuran SELARAS hasil: " + rHT(avgT) + " vs " + rHT(avgP)
+            + " pada trade non-tren hari yang sama (" + selisih.toFixed(2) + "R/entry lebih baik)."
+          : "Menaikkan ukuran TIDAK terbukti: " + rHT(avgT) + " vs " + rHT(avgP)
+            + " pada trade non-tren hari yang sama (" + selisih.toFixed(2) + "R/entry lebih buruk) \u2014 pertimbangkan turunkan HARI_TREN_QTY_MULT.")));
+    } else if (avgT != null) {
+      cHT.appendChild(el("p", "def-note mut",
+        "Belum ada pembanding non-tren yang cukup di hari yang sama; angka ini "
+        + "belum bisa menyimpulkan apa pun."));
+    }
+    var LK = HT.langkah || [];
+    if (LK.length) {
+      var twHT = el("div", "tw");
+      table(twHT, [
+        { h: "waktu WIB", c: function (x) { return txt(String(x.waktu || "").slice(5), "dim"); } },
+        { h: "pair", c: function (x) { return txt(x.sym, "st"); } },
+        { h: "kanal", c: function (x) { return txt(String(x.kanal || "\u2014").toUpperCase(), "dim"); } },
+        { h: "arah", c: function (x) { return side(x.dir === "long" ? "long" : "short"); } },
+        { h: "\u00d7", n: 1, c: function (x) { return txt(x.faktor == null ? "\u2014" : "\u00d7" + (+x.faktor).toFixed(2), "n dim"); } },
+        { h: "R", n: 1, c: function (x) {
+            var v = num(x.r);
+            return txt(v == null ? "\u2014" : (v > 0 ? "+" : "") + v.toFixed(2),
+                       "n " + (v == null ? "dim" : v > 0 ? "pos" : "neg"));
+          } },
+        { h: "status", c: function (x) {
+            return pill(x.status === "tertutup" ? "tutup" : "terbuka",
+                        x.status === "tertutup" ? "mut" : "warn");
+          } }
+      ], LK.slice(0, 12), "belum ada entry");
+      cHT.appendChild(twHT);
+    }
+    cHT.appendChild(el("p", "def-note mut",
+      "Dihitung dari journal: buka.hari_tren \u2192 tutup ber-id sama. "
+      + "\u00d7 = pengali ukuran yang dipakai saat entry."));
+
     /* 14 Nov — LAPORAN HARIAN (coach deterministik): hasil hari ini, sinyal
        yang ditahan retest, penolakan dinilai, dan saran. Ditulis sekali sehari
        oleh watcher ke state/laporan_harian.json. */
