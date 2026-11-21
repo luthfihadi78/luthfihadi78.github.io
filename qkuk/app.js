@@ -5665,6 +5665,41 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       }
     }
 
+    /* 22 Nov (permintaan user) — kinerja trade tertutup per SESI trading.
+       Sesi memakai jam UTC (Asia/London/NY), bukan WIB. */
+    var wrapSesi = $("#bot-sesi");
+    if (wrapSesi) {
+      wrapSesi.innerHTML = "";
+      var SK = B.sesi_kinerja || {};
+      var hS = el("div", "bot-eq-h");
+      hS.appendChild(el("span", null, "kinerja per sesi trading · "
+        + (SK.jendela_hari || 14) + " hari terakhir, jam UTC"));
+      hS.appendChild(el("b", null, SK.n
+        ? (SK.n + " trade · total " + sgn(SK.total_r, 2) + "R")
+        : "belum ada trade"));
+      wrapSesi.appendChild(hS);
+      var barisSesi = (SK.baris || []).map(function (g) {
+        return { label: (g.label || g.sesi) + (g.sesi === (B.sesi || {}).sesi ? " ◀ sekarang" : ""),
+                 n: g.n, menang: g.menang, kalah: g.kalah,
+                 wr: g.wr, ev: g.ev, r: g.r };
+      });
+      if (barisSesi.length) {
+        var boxSesi = el("div", "tw");
+        wrapSesi.appendChild(boxSesi);
+        table(boxSesi, [
+          { h: "sesi", c: function (r) { return txt(r.label); } },
+          { h: "n", n: true, c: function (r) { return txt(r.n, "n"); } },
+          { h: "W/L", n: true, c: function (r) { return txt(r.menang + "/" + r.kalah, "n"); } },
+          { h: "WR", n: true, c: function (r) { return txt(r.wr == null ? null : r.wr.toFixed(1) + "%", "n"); } },
+          { h: "EV", n: true, c: function (r) { return txt(sgn(r.ev, 3), "n " + (r.ev < 0 ? "neg" : "pos")); } },
+          { h: "total R", n: true, c: function (r) { return txt(sgn(r.r, 2), "n " + (r.r < 0 ? "neg" : "pos")); } }
+        ], barisSesi, "—");
+        wrapSesi.appendChild(el("div", "cap", "Sesi UTC: Asia 00–07 · Asia+London 07–09 · London 09–12 · London+New York 12–16 · New York 16–21 · setelah NY 21–24. Trade lama dihitung ulang dari jamnya."));
+      } else {
+        wrapSesi.appendChild(el("div", "empty", "belum ada trade tertutup dalam " + (SK.jendela_hari || 14) + " hari"));
+      }
+    }
+
     /* log kejadian (pengganti notifikasi grup — sinyal tetap privat) */
     var wrapLog = $("#bot-log");
     if (wrapLog) {
