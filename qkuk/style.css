@@ -158,7 +158,9 @@ a:hover{color:#9CF2CE}
 .s-tools input::placeholder{color:var(--fg-3)}
 /* 12 Nov — panel performa engine + api hijau untuk engine yang konsisten
    bagus (permintaan user). Ringan: hanya background/opacity yang dianimasikan. */
-.s-perf{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}
+.s-perf{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px;align-items:center}
+/* 22 Nov — label kecil di depan baris perbandingan engine. */
+.sp-lead{font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:var(--fg-3)}
 .sp-chip{font-size:11px;letter-spacing:.2px;position:relative}
 .sp-chip b{color:var(--fg);font-weight:600}
 .sp-chip.panas{border-color:rgba(70,255,170,.55);color:#bfffe4;

@@ -11,7 +11,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* 27 Okt — WYCKOFF & SWING 4h DIMATIKAN (permintaan user) → kanal "4h"
      (label SWING) keluar dari ORDER; kanal baru "ob2h" = ⭐ SCALP 2H
      (engine ob_premium_watch_2h.py: OB premium 2h + gate BTC b24>1%). */
-  var DATA = null, ORDER = ["ob", "tile", "2h", "ob2h"], LEFT = 60;   // 16 Nov: TILE 30M ganti BASTION 4H
+  /* 22 Nov — BASTION 4H (ob4h) & engine OB 1 HARI (ob1d) masuk ORDER supaya
+     ikut tampil di bubbles, watchlist, tab sinyal, dan strip performa. OB 1
+     jam TIDAK ditambah: 🧱 BRICK ("ob") memang sudah engine OB bar 1 jam. */
+  var DATA = null, ORDER = ["ob", "tile", "2h", "ob2h", "ob4h", "ob1d"], LEFT = 60;
   /* ⚠️ GitHub Pages menyajikan index.html dgn cache-control 600 dtk, dan tab
      yang dibiarkan terbuka TIDAK PERNAH mengambil ulang HTML-nya sama sekali —
      ia hanya menarik data.json. Akibatnya pembaruan tampilan tak terlihat
@@ -31,8 +34,8 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      fallback "240", interval salah. */
   /* 1 Nov — kanal "4h" (SWING) dimatikan permanen; warna kuning emasnya
      diwariskan ke ⭐ SCALP 2H (ob2h). */
-  var COLOR = { "30m": "#C792EA", "2h": "#FF6B6B", "ob": "#E8965A", "ob4h": "#E8B04B", "ob2h": "#F5C542", "tile": "#8BC34A" };
-  var TVI = { "30m": "30", "1d": "1440", "2h": "120", "ob": "60", "ob4h": "240", "ob2h": "120", "tile": "30" };
+  var COLOR = { "30m": "#C792EA", "2h": "#FF6B6B", "ob": "#E8965A", "ob4h": "#E8B04B", "ob1d": "#9C7BFF", "ob2h": "#F5C542", "tile": "#8BC34A" };
+  var TVI = { "30m": "30", "1d": "1440", "2h": "120", "ob": "60", "ob4h": "240", "ob1d": "1440", "ob2h": "120", "tile": "30" };
 
   function $(s) { return document.querySelector(s); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
@@ -1403,7 +1406,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* 8 Okt (permintaan user): label tab pakai NAMA ENGINE — BRICK/HARVEST/SWING
      bukan kode TF "OB"/"2H"/"4H", biar konsisten dgn grup WA & strip riset. */
   var TAB_NAME = { "30m": "REA", "2h": "HARVEST",
-                   "ob": "BRICK", "ob4h": "BASTION 4H", "ob2h": "SCALP 2H", "1h": "SNIPER", "15m": "DART",
+                   "ob": "BRICK", "ob4h": "BASTION 4H", "ob1d": "OB 1D", "ob2h": "SCALP 2H", "1h": "SNIPER", "15m": "DART",
                    "tile": "TILE 30M" };
   function tabs(host, active, pick, withAll) {
     host.innerHTML = "";
@@ -1707,6 +1710,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     ob2h: {
       w: "⭐ Watchlist SCALP 2H kosong — hanya tier premium yang ditampilkan.",
       s: "⭐ Belum ada sinyal SCALP 2H — kanal ini hanya mengirim tier premium."
+    },
+    /* 22 Nov — engine OB 1 hari (bar 1 jam sudah = BRICK). */
+    ob1d: {
+      w: "🏛️ Watchlist OB 1D kosong — baru hidup 22 Nov, hanya tier premium.",
+      s: "🏛️ Belum ada sinyal OB 1D — baru hidup 22 Nov, tunggu bar harian tutup."
     }
   };
   function kosong(tf, jenis) {
@@ -1807,6 +1815,33 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           cw.title = "performa khusus sinyal hasil WATCHLIST — dipisah dari sinyal engine";
           pHost.appendChild(cw);
         }
+      });
+    }
+    /* 22 Nov (permintaan user) — KARTU PERBANDINGAN ENGINE: OB 1 jam (BRICK),
+       OB 1 hari, BASTION 4H, dan TILE 30M dalam satu baris. Angka dari
+       blok `live` yang sudah dinilai dashboard_data (bukan backtest), jadi
+       kartu ikut terisi sendiri begitu sinyal OB 1D/BASTION terkumpul. */
+    var cmpHost = $("#s-engcmp");
+    if (cmpHost) {
+      cmpHost.innerHTML = "";
+      cmpHost.appendChild(el("span", "sp-lead", "perbandingan engine · n tertutup / live open"));
+      [["ob", "🧱 BRICK 1H"], ["ob4h", "🏰 BASTION 4H"],
+       ["ob1d", "🏛️ OB 1D"], ["tile", "🧱 TILE 30M"]].forEach(function (pas) {
+        var t = pas[0], P = perf(t), L = (DATA.live || {})[t] || {};
+        var buka = 0;
+        (L.sinyal || []).forEach(function (r) { if (String(r.st || "") === "fired") buka++; });
+        var c = el("span", "bc-chip sp-chip" + (P.panas ? " panas" : ""));
+        c.innerHTML = "<b>" + pas[1] + "</b> "
+          + (P.n ? (P.wr.toFixed(0) + "% · " + (P.ev >= 0 ? "+" : "") + P.ev.toFixed(2) + "R · n" + P.n
+                    + " / " + buka + " open")
+                  : (buka ? (buka + " open · belum ada yang tertutup") : "menunggu sinyal"));
+        c.title = pas[1] + " — " + (P.n
+          ? ("WR " + P.wr.toFixed(1) + "% dari " + P.n + " trade tertutup · total "
+              + (P.tot >= 0 ? "+" : "") + P.tot.toFixed(2) + "R · " + buka + " posisi masih open")
+          : (buka ? buka + " posisi open, belum ada hasil tertutup" : "belum ada sinyal tertutup"))
+          + "\nangka live dari penilaian dashboard, bukan backtest";
+        c.style.borderColor = COLOR[t] || "";
+        cmpHost.appendChild(c);
       });
     }
     /* 23 Okt — KONSENSUS ENGINE (tab SEMUA): hitung berapa engine yang
@@ -2719,6 +2754,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var cHT = card("Gerbang hari tren",
       HT.n ? HT.n + " entry dinaikkan" + (HT.jendela ? " \u00b7 " + HT.jendela : "")
            : "belum menaikkan ukuran");
+    /* 22 Nov (permintaan user) — tabel gerbang hari tren tadinya sempit di
+       kolom grid; lebarkan penuh supaya sejajar dengan Postmortem & coach. */
+    cHT.className += " lh-card";
     var rHT = function (v) {
       var x = num(v);
       return x == null ? "\u2014" : (x > 0 ? "+" : "") + x.toFixed(2) + "R";
@@ -4521,7 +4559,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (nEl) nEl.textContent = (S.n == null ? "—" : S.n + " trade tertutup");
     if (msEl) msEl.textContent = S.galat ? "—"
       : (S.ms == null ? "—" : "kueri " + S.ms + " ms");
-    var NAMA_KANAL = { "ob": "🧱 BRICK", "ob4h": "🏰 BASTION 4H", "ob30m": "🧱 TILE 30M",
+    var NAMA_KANAL = { "ob": "🧱 BRICK", "ob4h": "🏰 BASTION 4H", "ob1d": "🏛️ OB 1D", "ob30m": "🧱 TILE 30M",
       "tile": "🧱 TILE 30M", "2h": "🩸 HARVEST 2H", "4h": "SCALP 2H",
       "1h": "⚡ SNIPER", "30m": "REVERSAL", "15m": "🎯 DART" };
     /* Satu engine bisa tercatat dengan dua kunci berbeda (mis. "tile" dan
@@ -6155,7 +6193,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
             makin bingung dgn 3 garis bersilangan)
      Sumber sama dengan heat table & kartu live resolve: picks admin. */
   /* 20 Okt — BASTION 4H = order block 4h tier premium. */
-  var HR_NAME = { "ob": "Engine OB", "30m": "Reversal 30m", "2h": "Harvest 2h", "4h": "Swing 4h", "ob4h": "Bastion 4h", "ob2h": "Scalp 2h", "tile": "Tile 30m" };
+  var HR_NAME = { "ob": "Engine OB", "30m": "Reversal 30m", "2h": "Harvest 2h", "4h": "Swing 4h", "ob4h": "Bastion 4h", "ob1d": "OB 1 hari", "ob2h": "Scalp 2h", "tile": "Tile 30m" };
   /* 25 Sep — tinggi ter-akhir tiap batang histogram (urut h×kanal), buat
      tween antar segaran: batang MELUNCUR dari tinggi lama ke baru, persis
      histogram divergen di tab Whale. Bentuk array mengikuti urutan render. */
@@ -8007,7 +8045,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   /* 20 Okt — NOTIFIKASI PER ENGINE: BRICK/HARVEST/SWING/BASTION 4H.
      Default SEMUA ON; preferensi di localStorage "qkuk_nkanal" (JSON tf→0/1).
      Judul notifikasi memakai emoji engine = beda visual di lock screen. */
-  var NN_ENG = { "ob": "🧱 BRICK", "2h": "🩸 HARVEST", "ob4h": "🏰 BASTION 4H", "ob2h": "⭐ SCALP 2H" };
+  var NN_ENG = { "ob": "🧱 BRICK", "2h": "🩸 HARVEST", "ob4h": "🏰 BASTION 4H", "ob1d": "🏛️ OB 1D", "ob2h": "⭐ SCALP 2H" };
   var NNOTE = {};
   try { NNOTE = JSON.parse(localStorage.getItem("qkuk_nkanal") || "{}") || {}; } catch (e) {}
   function nn(tf) { return NNOTE[tf] !== 0; }   // default ON dgn nn(tf)
