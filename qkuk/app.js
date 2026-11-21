@@ -5843,7 +5843,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         var bt = el("span", "bt", msg);
         bt.title = msg;
         row.appendChild(bt);
-        row.appendChild(sesiTag(r.sesi));
+        row.appendChild(sesiTag(r.sesi || sesiDariWaktu(r.t)));
         row.appendChild(el("span", "bs", jamAl(r.t)));
         ulAl.appendChild(row);
       });
@@ -5905,6 +5905,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       var bt2 = el("span", "bt", msg);
       bt2.title = msg;
       row.appendChild(bt2);
+      row.appendChild(sesiTag(r.sesi || sesiDariWaktu(r.t)));
       row.appendChild(el("span", "bs", jamAl(r.t)));
       ul.appendChild(row);
     });
@@ -5921,6 +5922,19 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var t = el("span", "ss", SESI_NAMA[kode] || String(kode).toUpperCase());
     t.title = "sesi trading (UTC): " + (SESI_NAMA[kode] || kode);
     return t;
+  }
+  /* 22 Nov — baris log cadangan belum membawa field `sesi`; hitung dari jam
+     UTC-nya supaya SETIAP baris kedua log tetap punya tag zona. */
+  function sesiDariWaktu(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return null;
+    var h = d.getUTCHours() + d.getUTCMinutes() / 60;
+    if (h < 7) return "asia";
+    if (h < 9) return "asia+london";
+    if (h < 12) return "london";
+    if (h < 16) return "london+newyork";
+    if (h < 21) return "newyork";
+    return "late";
   }
   function sesiBadge(s) {
     s = s || {};
