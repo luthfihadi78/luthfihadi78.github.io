@@ -7625,9 +7625,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      beda sendiri"): angkanya kini badge di strip backtest atas, detail
      risetnya di tooltip. */
   function render(first) {
-    liveScoreMount();       // 11 Okt: live score klasemen — PALING ATAS halaman
-    stamp(); gauge(); strip(); bigcaps(); botCard(); botDiag(DATA && DATA.diag); kamu(); applyPicks();
-    leaderboard(); whatif();   // 23 Okt: leaderboard admin + simulasi what-if
+    /* 22 Nov (permintaan user) — "full agent sekarang": live score admin,
+       picked-by-you, kotak analisis, leaderboard admin & grafik live resolve
+       admin dihapus dari situs. Yang tersisa hanya data engine & bot. */
+    stamp(); gauge(); strip(); bigcaps(); botCard(); botDiag(DATA && DATA.diag);
+    applyPicks();
+    whatif();   // simulasi what-if tetap: sumbernya sinyal engine, bukan pick admin
     scanNotif();
     if (!DATA || !DATA.live) return;
     var _bsig = bubbleSig();                  // data segar bisa menambah sinyal baru
@@ -9020,18 +9023,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       });
     });
     rerenderTables(); liveStats();
-    kotakAnalisis();   // 26 Sep — kotak analisis winrate ikut segar tiap picks berubah
     bbPickedSync(); bbPickedMark();   // bintang & garis emas bubble ikut picks terbaru
-    /* 23 Sep — grafik live (kurva kumulatif & winrate per jam) ikut
-       digambar ulang saat picks tiba/berubah. Dulu charts() hanya jalan
-       sekali di render pertama → kedua SVG selalu menampilkan
-       "belum ada resolve" karena picks cloud tiba belakangan. */
-    charts(); hourHeat(); dayWinrate();
-    /* 13 Okt — LIVE SCORE & RINGKASAN AKURASI ikut segar: kartu dirender
-       sekali saat init (SEBELUM picks cloud tiba) → selalu “belum ada
-       trade”. Sekarang dirender ulang tiap picks datang/berubah. */
-    liveScoreMount(); plogRender();
-    leaderboard(); whatif();   // 23 Okt: ikut segar saat picks berubah
+    /* 22 Nov (permintaan user) — bagian live score/pick admin sudah dihapus
+       dari situs (kotak analisis, grafik live resolve, leaderboard, riwayat
+       koreksi). Tinggal tabel & simulasi what-if yang bersumber dari engine. */
+    whatif();
   }
   /* simpan picks — hanya lewat cloud (textdb.dev); wajib login admin.
      Jalur GitHub dihapus (token repot & rawan salah scope). */
