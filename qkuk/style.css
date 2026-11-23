@@ -1540,6 +1540,7 @@ td.bcw{color:var(--gold)}
 .def-line b.warn{color:var(--gold)} .def-line b.mut{color:var(--fg-3)}
 .def-note{font-size:10px;line-height:1.55;color:var(--fg-3);margin:7px 0 0}
 .def-note.pos{color:var(--up)} .def-note.neg{color:var(--dn)}
+.def-note.warn{color:var(--gold)}
 @media(max-width:780px){#bot-pertahanan .def-grid{grid-template-columns:1fr}}
 
 /* 17 Nov — LAPORAN HARIAN COACH: kartu lebar penuh, kiri KPI/funnel/catatan,

@@ -3231,7 +3231,23 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         (AB.n_posisi || 0) && (AB.n_dicek || 0) < (AB.n_posisi || 0) ? "warn" : "pos"));
       csAB.appendChild(chip("temuan", String(AB.temuan || 0),
         (AB.temuan || 0) ? "warn" : "pos"));
+      if (AB.sumber) csAB.appendChild(chip("sumber", AB.sumber, "mut"));
       cAB.appendChild(csAB);
+
+      /* 23 Nov (permintaan user) — pengingat bila tangkapan sudah basi:
+         laporan >24 jam berarti pengintai belum menangkap entry baru, jadi
+         angka "0 temuan" di bawah bukan berarti bracket sedang bersih. */
+      var umurAB = null;
+      if (AB.dibuat) {
+        var tAB = Date.parse(AB.dibuat);
+        if (!isNaN(tAB)) umurAB = (Date.now() - tAB) / 36e5;
+      }
+      if (umurAB != null && umurAB > 24) {
+        cAB.appendChild(el("p", "def-note warn",
+          "Laporan terakhir " + umurAB.toFixed(0) + " jam lalu (>24 jam) — pengintai "
+          + "posisi belum menangkap entry baru, jadi angka di bawah bukan "
+          + "keadaan saat ini."));
+      }
 
       if (!AB.n_posisi) {
         cAB.appendChild(el("p", "def-note mut",
@@ -3255,7 +3271,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
             { h: "contoh", c: function (x) { return txt(x.contoh || "\u2014", "dim"); } }
           ], rowsB, "tidak ada temuan");
           cAB.appendChild(twAB);
-        } else if (!AB.catatan) {
+        } else if (!AB.catatan && !(umurAB != null && umurAB > 24)) {
+          /* laporan basi TIDAK boleh menyimpulkan "bersih": posisi yang hidup
+             sekarang mungkin belum pernah diaudit sama sekali. */
           cAB.appendChild(el("p", "def-note pos",
             "BERSIH − SL/TP bursa cocok dengan journal pada semua posisi terbuka."));
         }
