@@ -2780,8 +2780,12 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var GL = BDS.gerbang_long || {};
     if (GL.ok !== undefined) {
       var csGL = el("div", "lh-chips");
-      csGL.appendChild(chip("gerbang long", GL.ok ? "LOLOS" : "tertahan",
-        GL.ok ? "pos" : "neg"));
+      /* breadth n=0 = sampel/futures tak terbaca: gerbang memang "dilewati",
+         tapi jangan ditulis LOLOS seolah syaratnya terpenuhi. */
+      var glTeks = GL.ok == null ? "gagal hitung"
+        : (GL.ok ? ((num(GL.n) || 0) ? "LOLOS" : "tak terbaca") : "tertahan");
+      csGL.appendChild(chip("gerbang long", glTeks,
+        glTeks === "LOLOS" ? "pos" : glTeks === "tertahan" ? "neg" : "mut"));
       var nGL = num(GL.n) || 0, bGL = num(GL.butuh), naikGL = num(GL.naik) || 0;
       if (nGL) {
         csGL.appendChild(chip("breadth naik", naikGL + "/" + nGL
