@@ -2782,32 +2782,34 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        belum entry (sisi/butuh berapa, BTC 1h berapa, 15m di atas/bawah). Sumber
        sama dengan gerbang yang dipakai bot: state/breadth_terakhir.json →
        gerbang_long, ditulis dari `_gerbang_sisi("long")` — bukan hitungan panel. */
-    var GL = BDS.gerbang_long || {};
-    if (GL.ok !== undefined) {
+    [["long", BDS.gerbang_long], ["short", BDS.gerbang_short]].forEach(function (g) {
+      var nm = g[0], GL = g[1] || {};
+      if (GL.ok === undefined) return;
       var csGL = el("div", "lh-chips");
       /* breadth n=0 = sampel/futures tak terbaca: gerbang memang "dilewati",
          tapi jangan ditulis LOLOS seolah syaratnya terpenuhi. */
       var glTeks = GL.ok == null ? "gagal hitung"
         : (GL.ok ? ((num(GL.n) || 0) ? "LOLOS" : "tak terbaca") : "tertahan");
-      csGL.appendChild(chip("gerbang long", glTeks,
+      csGL.appendChild(chip("gerbang " + nm, glTeks,
         glTeks === "LOLOS" ? "pos" : glTeks === "tertahan" ? "neg" : "mut"));
-      var nGL = num(GL.n) || 0, bGL = num(GL.butuh), naikGL = num(GL.naik) || 0;
-      if (nGL) {
-        csGL.appendChild(chip("breadth naik", naikGL + "/" + nGL
-          + (bGL == null ? "" : " \u00b7 butuh " + bGL + "/" + nGL),
-          bGL != null && naikGL >= bGL ? "pos" : "mut"));
+      var nGL = num(GL.n) || 0, bGL = num(GL.butuh), sisiGL = num(GL.sisi);
+      if (nGL && sisiGL != null) {
+        csGL.appendChild(chip("breadth " + (nm === "short" ? "turun" : "naik"),
+          sisiGL + "/" + nGL + (bGL == null ? "" : " \u00b7 butuh " + bGL + "/" + nGL),
+          bGL != null && sisiGL >= bGL ? "pos" : "mut"));
       }
       var pGL = num(GL.btc_1h);
       csGL.appendChild(chip("BTC 1h", pGL == null ? "\u2014"
         : (pGL > 0 ? "+" : "") + pGL.toFixed(2) + "%",
-        pGL == null ? "mut" : (pGL >= 0 ? "pos" : "neg")));
+        pGL == null ? "mut" : (nm === "short" ? (pGL <= 0 ? "pos" : "neg") : (pGL >= 0 ? "pos" : "neg"))));
       if (GL.btc_15m_butuh) {
-        csGL.appendChild(chip("BTC 15m", GL.btc_15m_di_atas ? "di atas EMA9" : "di bawah EMA9",
-          GL.btc_15m_di_atas ? "neg" : "mut"));
+        csGL.appendChild(chip("BTC 15m",
+          (GL.btc_15m_di_atas ? "di atas" : "di bawah") + " EMA9 \u00b7 butuh " + GL.btc_15m_butuh,
+          (GL.btc_15m_di_atas ? "di atas" : "di bawah") === GL.btc_15m_butuh ? "pos" : "neg"));
       }
       cBD.appendChild(csGL);
       if (GL.sebab) cBD.appendChild(el("p", "def-note", GL.sebab));
-    }
+    });
     cBD.appendChild(el("p", "def-note",
       (BD.ringkas || "") + (BD.ringkas ? " \u2014 " : "")
       + "Sejak 23 Nov short HANYA dari pasangan: BTC 15m di atas EMA9 + bearish penuh "
