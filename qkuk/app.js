@@ -10794,3 +10794,5 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   setInterval(mctx, 300000);
   document.addEventListener("visibilitychange", function () { if (!document.hidden) load(false); });
 })();
+
+/* uji auto-terbit 23 Nov */
