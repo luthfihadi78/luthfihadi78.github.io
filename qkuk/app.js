@@ -2779,6 +2779,78 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       + "\u2265 8/20 yang baru memburuk (\u2264 2 jam) — ambang 16/20 tidak lagi cukup sendiri. "
       + "Long butuh bullish \u2265 16/20 + BTC 15m di bawah EMA9."));
 
+    /* 23 Nov (permintaan user) — SHORT LOLOS vs DITOLAK GERBANG: rincian tiap
+       short yang sudah tutup, dipisah menurut putusan gerbang pasangan
+       (15m di atas EMA9 + bearish penuh baru memburuk). Sumber: journal
+       (buka.breadth_saat_buka → tutup ber-id sama), dirakit server tiap
+       siklus. Tujuannya supaya dampak aturan 23 Nov terlihat tanpa buka log. */
+    var SG = P.short_gerbang || {};
+    var SGL = SG.lolos || {}, SGT = SG.tolak || {};
+    var sgRingkas = function (s) {
+      var n = num(s.n) || 0, r = num(s.r) || 0, m = num(s.menang) || 0;
+      return { n: n, r: r, wr: n ? (m / n * 100) : null, avg: n ? (r / n) : null };
+    };
+    var RL = sgRingkas(SGL), RT = sgRingkas(SGT);
+    var cSG = card("Short: lolos vs ditolak gerbang",
+      (RL.n + RT.n) ? (RL.n + RT.n) + " short tutup sejak aturan pasangan"
+                    : "belum ada short tutup dengan catatan breadth");
+    cSG.className += " lh-card";
+    var csSG = el("div", "lh-chips");
+    var sgR = function (v) { return v == null ? "—" : (v > 0 ? "+" : "") + v.toFixed(2) + "R"; };
+    csSG.appendChild(chip("lolos: entry", String(RL.n), RL.n ? "pos" : "mut"));
+    csSG.appendChild(chip("lolos: WR", RL.wr == null ? "—" : RL.wr.toFixed(0) + "%",
+      RL.wr == null ? "mut" : (RL.wr >= 50 ? "pos" : "neg")));
+    csSG.appendChild(chip("lolos: avgR", sgR(RL.avg),
+      RL.avg == null ? "mut" : (RL.avg >= 0 ? "pos" : "neg")));
+    csSG.appendChild(chip("ditolak: entry", String(RT.n), "mut"));
+    csSG.appendChild(chip("ditolak: WR", RT.wr == null ? "—" : RT.wr.toFixed(0) + "%",
+      RT.wr == null ? "mut" : (RT.wr >= 50 ? "pos" : "neg")));
+    csSG.appendChild(chip("ditolak: avgR", sgR(RT.avg),
+      RT.avg == null ? "mut" : (RT.avg >= 0 ? "pos" : "neg")));
+    cSG.appendChild(csSG);
+    cSG.appendChild(el("p", "def-note", SG.estimasi
+      ? "Belum ada short BARU yang membawa catatan breadth. Angka di atas = 92 short "
+        + "historis yang dipasangkan ULANG ke potret breadth per jam (bukan catatan saat "
+        + "entry), dihitung dengan aturan pasangan 23 Nov."
+      : "Aturan 23 Nov: short hanya dari pasangan BTC 15m di atas EMA9 + bearish penuh "
+        + "\u2265 8/20 yang baru memburuk (\u2264 2 jam). Trade tanpa catatan breadth "
+        + "(entry sebelum aturan aktif) tidak dihitung di sini."));
+    var SGB = SG.baris || [];
+    if (SGB.length) {
+      var twSG = el("div", "tw");
+      table(twSG, [
+        { h: "waktu UTC", c: function (x) { return txt(String(x.t || "").slice(5, 16), "dim"); } },
+        { h: "pair", c: function (x) { return txt(x.sym, "st"); } },
+        { h: "kanal", c: function (x) { return txt(String(x.kanal || "\u2014").toUpperCase(), "dim"); } },
+        { h: "gerbang", c: function (x) {
+            return txt(x.lolos ? "LOLOS" : "DITOLAK", x.lolos ? "pos st" : "neg st");
+          } },
+        { h: "BTC 15m", c: function (x) { return txt(x.atas ? "di atas" : "di bawah", "dim"); } },
+        { h: "penuh", n: 1, c: function (x) {
+            var p = num(x.penuh);
+            return txt(p == null ? null : p + "/" + (x.n || 20), "n dim");
+          } },
+        { h: "umur gugus", n: 1, c: function (x) {
+            var m = num(x.umur);
+            if (m == null) return txt(null, "n dim");
+            return txt(m < 90 ? Math.round(m) + " mnt" : (m / 60).toFixed(1) + " jam",
+              "n " + (m <= 120 ? "pos" : "neg"));
+          } },
+        { h: "R", n: 1, c: function (x) {
+            var v = num(x.r);
+            return txt(v == null ? null : (v > 0 ? "+" : "") + v.toFixed(2),
+              "n " + (v == null ? "dim" : v > 0 ? "pos" : "neg"));
+          } },
+        { h: "sebab", c: function (x) {
+            var s = String(x.sebab || "");
+            var td = txt(s.length > 60 ? s.slice(0, 60) + "\u2026" : s, "dim");
+            if (s) td.title = s;
+            return td;
+          } }
+      ], SGB, "belum ada short dengan catatan breadth");
+      cSG.appendChild(twSG);
+    }
+
     /* 21 Nov (permintaan user) — PANEL GERBANG HARI TREN: setiap kali gerbang
        menaikkan ukuran otomatis, hasilnya harus bisa dipantau tanpa buka log.
        Sumber: journal (buka.hari_tren → tutup ber-id sama), dihitung ulang
