@@ -2264,3 +2264,17 @@ body.mode-bot #bot>.sec-h>span.hint,body.mode-bot #bot-analitik>.sec-h>span.hint
 .skl-note{margin-top:9px;padding-top:8px;border-top:1px solid var(--line);
   font-family:var(--mono);font-size:9.5px;line-height:1.5;color:var(--fg-3)}
 @media (max-width:720px){.skl-grid{grid-template-columns:1fr}}
+
+/* 23 Nov — kartu "validasi backtest" (PBO/DSR, IC faktor, meta-label).
+   Histogram logit CSCV digambar dengan div tinggi persen: cukup puluhan angka,
+   tidak perlu pustaka chart. Batang kiri (λ<0) = juara in-sample gugur OOS. */
+.pbo-hist{display:flex;align-items:flex-end;gap:2px;height:64px;margin:9px 0 4px}
+.pbo-hist i{flex:1;min-height:1px;display:block;background:var(--up);opacity:.6;
+  border-radius:1px 1px 0 0}
+.pbo-hist i.neg{background:var(--dn);opacity:.8}
+.pbo-ic{display:flex;flex-direction:column;gap:5px;margin:8px 0 2px}
+.pbo-ic-r{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) minmax(0,1fr);
+  gap:6px;font-size:10.5px;align-items:baseline}
+.pbo-ic-r .k{color:var(--fg-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pbo-ic-r .v{color:var(--fg-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pbo-ic-r .v.nyata{color:var(--up);font-weight:600}

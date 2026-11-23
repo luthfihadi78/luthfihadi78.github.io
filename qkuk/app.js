@@ -3705,6 +3705,110 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       grid.appendChild(c2);
     }
 
+    /* 23 Nov — kartu VALIDASI BACKTEST (purgedcv): PBO/DSR, IC faktor pasar,
+       dan meta-labeling. Semua hasil jalankan manual (reports/*.py); kartu ini
+       mengukur kejujuran metode, bukan performa harian. */
+    var V = S.validasi || {};
+    if (V.pbo) {
+      var pb = V.pbo;
+      var c3 = el("div", "skl-card");
+      c3.appendChild(el("div", "skl-t", "PBO varian long · purgedcv (CSCV)"));
+      var pcls = pb.pbo <= 0.2 ? "pos" : pb.pbo <= 0.4 ? "mid" : "neg";
+      var v3 = el("div", "skl-v " + pcls);
+      v3.appendChild(el("b", null, pb.pbo == null ? "—"
+        : (pb.pbo * 100).toFixed(1) + "%"));
+      v3.appendChild(el("span", null, "peluang juara in-sample jatuh di bawah median OOS"));
+      c3.appendChild(v3);
+      c3.appendChild(el("div", "skl-m", (pb.n_konfig || "?") + " konfigurasi × "
+        + (pb.n_jam || "?") + " jam · " + (pb.n_combos || "?") + " kombinasi CSCV"
+        + (pb.slope == null ? "" : " · slope " + (+pb.slope).toFixed(2))));
+      /* histogram logit λ: makin banyak di kiri 0, makin sering juara IS gugur */
+      var hs = pb.hist || {};
+      if ((hs.n || []).length) {
+        var maks = Math.max.apply(null, hs.n) || 1;
+        var hb = el("div", "pbo-hist");
+        hs.n.forEach(function (c, i) {
+          var b = el("i");
+          b.style.height = Math.round(c / maks * 100) + "%";
+          b.title = "logit " + hs.bin[i] + " · " + c + " kombinasi";
+          if (hs.bin[i] < 0) b.className = "neg";
+          hb.appendChild(b);
+        });
+        c3.appendChild(hb);
+        c3.appendChild(el("div", "skl-s", "histogram logit λ (batang kiri = juara "
+          + "in-sample kalah OOS). λ < 0 terjadi pada "
+          + Math.round(hs.n.reduce(function (a, c, i) { return a + (hs.bin[i] < 0 ? c : 0); }, 0)
+            / (hs.n.reduce(function (a, c) { return a + c; }, 0) || 1) * 100) + "% kombinasi."));
+      }
+      if ((pb.terbaik || []).length) {
+        var lb = el("div", "skl-m", "terbaik: " + pb.terbaik.map(function (t) {
+          return t.konfig + " " + (+t.rerata_pct).toFixed(3) + "% (" + t.jam_aktif + " jam)";
+        }).join(" · "));
+        c3.appendChild(lb);
+      }
+      var ak = pb.aktif || {};
+      if (ak.dsr != null) {
+        c3.appendChild(el("div", "skl-f", "konfigurasi aktif " + (ak.label || "") +
+          ": SR tahunan " + (+ak.sr).toFixed(1) + " · DSR " + (ak.dsr * 100).toFixed(1) +
+          "% (butuh ≥95% untuk dipercaya)"));
+      }
+      grid.appendChild(c3);
+    }
+    if (V.ic) {
+      var c4 = el("div", "skl-card");
+      c4.appendChild(el("div", "skl-t", "IC faktor pasar → return 1–4 jam"));
+      var rows = V.ic.hasil || {};
+      var tw = el("div", "pbo-ic");
+      Object.keys(rows).forEach(function (nm) {
+        var r = rows[nm], a = (r["1 jam"] || {}), b = (r["4 jam"] || {});
+        var baris = el("div", "pbo-ic-r");
+        baris.appendChild(el("span", "k", nm));
+        [a, b].forEach(function (q) {
+          var ok = q.ic != null && q.ci && q.ci[0] != null
+            && ((q.ci[0] > 0 && q.ci[1] > 0) || (q.ci[0] < 0 && q.ci[1] < 0));
+          var s = el("span", "v" + (ok ? " nyata" : ""));
+          s.textContent = q.ic == null ? "—"
+            : (q.ic > 0 ? "+" : "") + q.ic.toFixed(3)
+              + (q.ci && q.ci[0] != null
+                ? " [" + q.ci[0].toFixed(2) + ", " + q.ci[1].toFixed(2) + "]" : "");
+          baris.appendChild(s);
+        });
+        tw.appendChild(baris);
+      });
+      c4.appendChild(el("div", "skl-m", "kolom: IC 1 jam · IC 4 jam skala penuh"));
+      c4.appendChild(tw);
+      c4.appendChild(el("div", "skl-s", "IC time-series (bukan cross-section: breadth "
+        + "dan funding itu faktor satu pasar) · tebal = CI 95 % tidak melewati 0 · "
+        + (V.ic.n_jam || "?") + " jam"));
+      grid.appendChild(c4);
+    }
+    if (V.meta) {
+      var mm = V.meta;
+      var c5 = el("div", "skl-card");
+      c5.appendChild(el("div", "skl-t", "meta-labeling · saring sinyal atau tidak"));
+      var wf = mm.walk_forward || [];
+      var lift = mm.wf_lift_pp;
+      var okWf = lift > 0 && wf.every(function (r) { return r.wr_30 > r.wr_semua; });
+      var v5 = el("div", "skl-v " + (okWf ? "pos" : "neg"));
+      v5.appendChild(el("b", null, lift == null ? "—" : (lift > 0 ? "+" : "") + lift + " pp"));
+      v5.appendChild(el("span", null, okWf ? "lift walk-forward konsisten"
+        : "lift walk-forward TIDAK konsisten — jangan dipakai memblokir entry"));
+      c5.appendChild(v5);
+      c5.appendChild(el("div", "skl-m", (mm.n || 0) + " sinyal · WR dasar "
+        + (mm.dasar_wr == null ? "—" : mm.dasar_wr + "%") + " · AUC OOS "
+        + (mm.auc == null ? "—" : mm.auc)));
+      if (wf.length) {
+        c5.appendChild(el("div", "skl-m", wf.map(function (r) {
+          return "F" + r.lipatan + " " + r.wr_semua + "→" + r.wr_30 + "%";
+        }).join(" · ")));
+      }
+      if ((mm.fitur || []).length) {
+        c5.appendChild(el("div", "skl-s", "fitur paling berpengaruh: "
+          + mm.fitur.slice(0, 5).map(function (f) { return f.nama; }).join(", ")));
+      }
+      grid.appendChild(c5);
+    }
+
     wrap.appendChild(grid);
     wrap.appendChild(el("div", "skl-note",
       "Dijalankan manual di luar siklus bot: tidak ada angka di kartu ini yang " +
