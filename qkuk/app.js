@@ -2745,6 +2745,39 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       (TM.avg_hist_R || 0) >= 0 ? "pos" : "neg");
     cT.appendChild(el("p", "def-note", "Replay aturan yang sama di sesi historis, bukan hanya Monte Carlo. Sesi < 20 ditandai belum cukup. 19 Nov: horizon tetap (bukan sisa hari UTC), jadi setup jam 02:00 dan 23:30 diuji dengan jangkauan yang sama; p(target) juga dilaporkan per 6/12/24 jam."));
 
+    /* 23 Nov (permintaan user) — BREADTH TIGA KELAS. Dulu gerbang short menulis
+       "breadth turun 15/20", padahal 15 itu = 20 − bullish, jadi koin NETRAL
+       ikut terhitung turun. Panel ini memisahkan bullish (close > EMA9 > EMA21),
+       bearish penuh (cermin persisnya), dan netral, supaya jelas apakah pasar
+       benar-benar jatuh atau hanya kehilangan momentum. Sumber: bot menulis
+       state/breadth_terakhir.json tiap siklus dari potret pasar yang sudah
+       dihitung — panel tidak memanggil bursa sendiri. */
+    var BDS = P.breadth || {};
+    var BD = BDS.breadth || {};
+    var cBD = card("Breadth alt 15m", BD.n ? "sampel " + BD.n + " koin" : "belum ada data");
+    cBD.className += " lh-card";
+    var csBD = el("div", "lh-chips");
+    var nBD = num(BD.n) || 0;
+    var pBD = num(BD.turun_penuh), sBD = num(BD.netral);
+    var spBD = function (v) { return v == null ? "\u2014" : String(Math.round(v)); };
+    csBD.appendChild(chip("bullish", (num(BD.naik) || 0) + "/" + nBD, "pos"));
+    csBD.appendChild(chip("bearish penuh", spBD(pBD) + "/" + nBD,
+      (pBD || 0) > (num(BD.naik) || 0) ? "neg" : "mut"));
+    csBD.appendChild(chip("netral", spBD(sBD) + "/" + nBD, "mut"));
+    var BDBTC = BDS.btc || {};
+    if (BDBTC.ok) {
+      csBD.appendChild(chip("BTC 15m",
+        (BDBTC.pct_1h == null ? "" : pctf(BDBTC.pct_1h) + " 1h \u00b7 ")
+        + (BDBTC["15m_di_atas"] ? "di atas EMA9" : "di bawah EMA9"),
+        BDBTC["15m_di_atas"] ? "mut" : "neg"));
+    }
+    cBD.appendChild(csBD);
+    cBD.appendChild(el("p", "def-note",
+      (BD.ringkas || "") + (BD.ringkas ? " \u2014 " : "")
+      + "Gerbang long butuh bullish \u2265 16/20, gerbang short butuh \"turun\" \u2265 16/20 "
+      + "dihitung dari n − bullish, ditambah BTC 15m di atas EMA9 dan breadth yang baru memburuk "
+      + "(23 Nov). Lihat kolom bearish penuh sebelum mempercayai angka turun."));
+
     /* 21 Nov (permintaan user) — PANEL GERBANG HARI TREN: setiap kali gerbang
        menaikkan ukuran otomatis, hasilnya harus bisa dipantau tanpa buka log.
        Sumber: journal (buka.hari_tren → tutup ber-id sama), dihitung ulang
