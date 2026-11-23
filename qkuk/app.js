@@ -3141,6 +3141,134 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         + "Sumber: backtest_lokasi_breakout.py, klines tertutup tanpa look-ahead."));
     }
 
+    /* 23 Nov (permintaan user) — AUDIT JOURNAL: teks alasan/filter yang tidak
+       sinkron dengan aturan aktif. Sumber: state/laporan_audit_journal.json,
+       ditulis audit_journal.py sekali sehari. Tujuannya supaya teks basi
+       (mis. kanal lambat yang masih menyebut breadth) ketahuan tanpa buka log. */
+    var AJ = P.audit_journal || {};
+    var cAJ = card("Audit journal",
+      AJ.dibuat ? String(AJ.dibuat).slice(0, 16).replace("T", " ") + " UTC"
+                : "belum pernah jalan");
+    cAJ.className += " lh-card";
+    if (!AJ.dipindai) {
+      cAJ.appendChild(el("p", "def-note mut",
+        AJ.dibuat ? "Tidak ada baris journal di jendela ini."
+                  : "Belum ada laporan − jalankan `python audit_journal.py` "
+                    + "(atau tunggu slot harian supervisor)."));
+    } else {
+      var csAJ = el("div", "lh-chips");
+      csAJ.appendChild(chip("dipindai", String(AJ.dipindai), "mut"));
+      csAJ.appendChild(chip("temuan", String(AJ.temuan || 0),
+        (AJ.temuan || 0) ? "warn" : "pos"));
+      var pctAJ = AJ.rasio == null ? null : AJ.rasio * 100;
+      csAJ.appendChild(chip("porsi", pctAJ == null ? "\u2014" : pctAJ.toFixed(1) + "%",
+        pctAJ == null ? "mut" : (pctAJ > 10 ? "warn" : "pos")));
+      if (AJ.duplikat) csAJ.appendChild(chip("baris kembar", String(AJ.duplikat), "mut"));
+      csAJ.appendChild(chip("jendela", AJ.hari || (AJ.jendela_hari ? AJ.jendela_hari + " hari" : "\u2014"), "mut"));
+      cAJ.appendChild(csAJ);
+
+      /* per jenis: apa yang salah dan berapa baris */
+      var PK = AJ.per_kode || {};
+      var rowsK = Object.keys(PK).map(function (k) {
+        var r = PK[k] || {};
+        var sim = Object.keys(r.simbol || {}).slice(0, 4).join(", ");
+        return { kode: k, label: r.label || k, n: r.n || 0,
+                 rentang: r.dari === r.sampai ? (r.dari || "\u2014")
+                          : ((r.dari || "?") + " \u2192 " + (r.sampai || "?")),
+                 sim: sim || "\u2014" };
+      }).sort(function (a, b) { return b.n - a.n; });
+      if (rowsK.length) {
+        var twAJ = el("div", "tw");
+        table(twAJ, [
+          { h: "jenis temuan", c: function (x) { return txt(x.label, "st"); } },
+          { h: "baris", n: 1, c: function (x) { return txt(String(x.n), "n warn"); } },
+          { h: "rentang", c: function (x) { return txt(x.rentang, "dim"); } },
+          { h: "simbol terbanyak", c: function (x) { return txt(x.sim, "dim"); } }
+        ], rowsK, "tidak ada temuan");
+        cAJ.appendChild(twAJ);
+      }
+
+      /* per hari: kapan teks basi muncul (hari setelah aturan berubah = drift) */
+      var PH = AJ.per_hari || [];
+      if (PH.length) {
+        var twAH = el("div", "tw");
+        table(twAH, [
+          { h: "hari WIB", c: function (x) { return txt(x.hari, "st"); } },
+          { h: "baris", n: 1, c: function (x) { return txt(String(x.n || 0), "n"); } },
+          { h: "rincian", c: function (x) {
+              var KD = x.kode || {};
+              var s = Object.keys(KD).map(function (k) { return k + " " + KD[k]; }).join(" \u00b7 ");
+              return txt(s || "\u2014", "dim");
+            } }
+        ], PH.slice(0, 14), "belum ada temuan per hari");
+        cAJ.appendChild(twAH);
+      }
+      cAJ.appendChild(el("p", "def-note mut",
+        "Baris lama tidak diubah (journal = bukti historis). Temuan di hari-hari "
+        + "SETELAH aturan berubah berarti ada jalur yang masih menulis teks lama. "
+        + "Sumber: audit_journal.py, offline, tanpa candle."));
+    }
+
+    /* 23 Nov (permintaan user) — AUDIT BRACKET BURSA: SL/TP yang benar-benar
+       terpasang di bursa vs niat journal. Sumber: state/laporan_bracket.json,
+       ditulis bracket_audit.py sekali sehari. Journal tidak bisa menunjukkan
+       ini: baris `tutup` BARDUSDT sehat, tapi stop yang menjaga posisi bisa
+       jauh lebih rapat dari niatnya. */
+    var AB = P.bracket_audit || {};
+    var cAB = card("Audit bracket bursa",
+      AB.dibuat ? String(AB.dibuat).slice(0, 16).replace("T", " ") + " UTC"
+                : "belum pernah jalan");
+    cAB.className += " lh-card";
+    if (AB.dibuat == null) {
+      cAB.appendChild(el("p", "def-note mut",
+        "Belum ada laporan − jalankan `python bracket_audit.py` "
+        + "(atau tunggu slot harian supervisor)."));
+    } else {
+      var csAB = el("div", "lh-chips");
+      csAB.appendChild(chip("mode", AB.mode || "\u2014", "mut"));
+      csAB.appendChild(chip("posisi terbuka", String(AB.n_posisi || 0), "mut"));
+      csAB.appendChild(chip("bracket terbaca", String(AB.n_dicek || 0),
+        (AB.n_posisi || 0) && (AB.n_dicek || 0) < (AB.n_posisi || 0) ? "warn" : "pos"));
+      csAB.appendChild(chip("temuan", String(AB.temuan || 0),
+        (AB.temuan || 0) ? "warn" : "pos"));
+      cAB.appendChild(csAB);
+
+      if (!AB.n_posisi) {
+        cAB.appendChild(el("p", "def-note mut",
+          "Tidak ada posisi terbuka − tidak ada bracket untuk diaudit. "
+          + "Kartu ini hanya bisa menilai posisi yang masih hidup."));
+      } else {
+        var PKB = AB.per_kode || {};
+        var rowsB = Object.keys(PKB).map(function (k) {
+          var r = PKB[k] || {};
+          var sim = (r.simbol || []).slice(0, 4).join(", ");
+          var c0 = (r.contoh || [])[0] || {};
+          return { kode: k, label: r.label || k, n: r.n || 0, sim: sim || "\u2014",
+                   contoh: (c0.sym || "") + (c0.catatan ? " — " + c0.catatan : "") };
+        }).sort(function (a, b) { return b.n - a.n; });
+        if (rowsB.length) {
+          var twAB = el("div", "tw");
+          table(twAB, [
+            { h: "jenis temuan", c: function (x) { return txt(x.label, "st"); } },
+            { h: "posisi", n: 1, c: function (x) { return txt(String(x.n), "n warn"); } },
+            { h: "simbol", c: function (x) { return txt(x.sim, "dim"); } },
+            { h: "contoh", c: function (x) { return txt(x.contoh || "\u2014", "dim"); } }
+          ], rowsB, "tidak ada temuan");
+          cAB.appendChild(twAB);
+        } else if (!AB.catatan) {
+          cAB.appendChild(el("p", "def-note pos",
+            "BERSIH − SL/TP bursa cocok dengan journal pada semua posisi terbuka."));
+        }
+      }
+      if (AB.catatan) {
+        cAB.appendChild(el("p", "def-note neg", "Catatan: " + AB.catatan));
+      }
+      cAB.appendChild(el("p", "def-note mut",
+        "`sl_rapat` dan `sl_sisi_salah` paling berbahaya: R jadi tak terdefinisi "
+        + "walau journal mencatat SL yang wajar. Sumber: bracket_audit.py, "
+        + "membaca posisi + bracket bursa saat laporan ditulis."));
+    }
+
     /* 14 Nov — BERITA & ACARA MAKRO: hanya ditampilkan bila ada acara
        high-impact dekat atau berita kilat yang cukup kuat. Selain itu gate
        tidak mempengaruhi entry sama sekali. */
