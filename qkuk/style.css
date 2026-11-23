@@ -235,6 +235,18 @@ h2 i{color:var(--ac);font-style:normal}
 .tw{overflow:auto;max-height:60vh;min-width:0;max-width:100%;
   border:1px solid var(--line);border-radius:var(--r);background:var(--s1);
   -webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+/* 23 Nov (permintaan user) — penanda visual kolom tersembunyi. Pembungkus
+   .tw-grad dipasang pasangGradien(); kelas ada-kiri/ada-kanan diatur oleh
+   scroll listener supaya gradien hanya muncul di sisi yang masih menyembunyikan
+   kolom. pointer-events:none agar tidak menghalangi geser/klik. */
+.tw-grad{position:relative;min-width:0;max-width:100%}
+.tw-grad::before,.tw-grad::after{content:"";position:absolute;top:0;bottom:0;width:34px;
+  pointer-events:none;opacity:0;transition:opacity .18s ease;z-index:3}
+.tw-grad::before{left:0;background:linear-gradient(to right,rgba(0,0,0,.6),rgba(0,0,0,0));
+  border-radius:var(--r) 0 0 var(--r)}
+.tw-grad::after{right:0;background:linear-gradient(to left,rgba(0,0,0,.6),rgba(0,0,0,0));
+  border-radius:0 var(--r) var(--r) 0}
+.tw-grad.ada-kiri::before,.tw-grad.ada-kanan::after{opacity:1}
 table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums;min-width:820px}
 th{text-align:left;padding:9px 12px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
   color:var(--fg-3);font-weight:500;border-bottom:1px solid var(--line);white-space:nowrap;

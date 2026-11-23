@@ -1426,6 +1426,28 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       host.appendChild(b);
     });
   }
+  /* 23 Nov (permintaan user) — penanda visual kolom tersembunyi: tabel yang
+     masih punya kolom di luar layar diberi gradien di tepi kanan (dan kiri
+     setelah digeser). Dipasang sekali per kontainer; pembungkus .tw-grad
+     memakai pseudo-element supaya gradien tidak ikut tergulir bersama isi. */
+  function pasangGradien(h) {
+    if (!h || h.__grad) return;
+    h.__grad = 1;
+    var wrap = document.createElement("div");
+    wrap.className = "tw-grad";
+    if (h.parentNode) { h.parentNode.insertBefore(wrap, h); wrap.appendChild(h); }
+    var upd = function () {
+      var kiri = h.scrollLeft > 2;
+      var kanan = h.scrollLeft + h.clientWidth < h.scrollWidth - 2;
+      wrap.classList.toggle("ada-kiri", kiri);
+      wrap.classList.toggle("ada-kanan", kanan);
+    };
+    h.addEventListener("scroll", upd, { passive: true });
+    if (window.ResizeObserver) { try { new ResizeObserver(upd).observe(h); } catch (e) {} }
+    setTimeout(upd, 80);
+    setTimeout(upd, 700);
+    upd();
+  }
   function table(host, cols, rows, msg, onRow) {
     host.innerHTML = "";
     /* 23 Nov (permintaan user) — SEMUA tabel harus bisa di-scroll. Dulu
@@ -1433,6 +1455,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        .tw, jadi tabel lebar (banyak kolom, nowrap) terpotong dan tak bisa
        digeser. Sekarang pembungkusnya dipasang di sini, satu tempat. */
     if (host.classList && !host.classList.contains("tw")) host.classList.add("tw");
+    pasangGradien(host);
     if (!rows.length) { host.appendChild(el("div", "empty", msg)); return; }
     var t = el("table"), th = el("thead"), tr = el("tr");
     cols.forEach(function (c) { var h = el("th", null, c.h); if (c.n) h.style.textAlign = "right"; tr.appendChild(h); });
