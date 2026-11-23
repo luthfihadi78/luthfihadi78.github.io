@@ -2766,8 +2766,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     csBD.appendChild(chip("netral", spBD(sBD) + "/" + nBD, "mut"));
     var BDBTC = BDS.btc || {};
     if (BDBTC.ok) {
+      var _p1 = num(BDBTC.pct_1h);
       csBD.appendChild(chip("BTC 15m",
-        (BDBTC.pct_1h == null ? "" : pctf(BDBTC.pct_1h) + " 1h \u00b7 ")
+        (_p1 == null ? "" : (_p1 > 0 ? "+" : "") + _p1.toFixed(2) + "% 1h \u00b7 ")
         + (BDBTC["15m_di_atas"] ? "di atas EMA9" : "di bawah EMA9"),
         BDBTC["15m_di_atas"] ? "mut" : "neg"));
     }
