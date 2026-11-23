@@ -1920,6 +1920,17 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       return td; } });
     kolom.push(
       { h: "side", c: function (r) { return side(r.dir); } },
+      /* 23 Nov — skor komposisi (arah + sesi + breadth + lebar SL + tier).
+         Prior kasar dari ledger, bukan probabilitas: lihat sk_alasan. */
+      { h: "komposisi", c: function (r) {
+          var sk = num(r.sk);
+          if (sk === null) return txt("—", "dim");
+          var td = el("td", "st"), b = el("span", "sk-chip " + (r.sk_kelas || ""));
+          b.textContent = Math.round(sk);
+          b.title = (r.sk_kelas ? r.sk_kelas + " — " : "") + (r.sk_alasan || "")
+            + "\nskor komposisi historis (bukan probabilitas menang)";
+          td.appendChild(b);
+          return td; } },
       { h: "koreksi admin", c: function (r) { return corrCell(r, r._tf, r._jenis); } });
     if (gabung) kolom.push({ h: "jenis", c: function (r) {
       var td = el("td", "st", r._jenis === "sig" ? "⚡ sinyal" : "👁 watchlist");
