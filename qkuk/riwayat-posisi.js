@@ -89,6 +89,28 @@
     { h: "entry", n: 1, c: function (r) { return el("td", "n dim", fp(r.entry)); } },
     { h: "exit", n: 1, c: function (r) { return el("td", "n dim", fp(r.exit)); } },
     { h: "umur", n: 1, c: function (r) { return el("td", "n dim", durasi(r.umur_menit)); } },
+    /* 23 Nov (permintaan user) — riwayat UMUR BREADTH saat entry short.
+       Hanya short yang mencatatnya (buka.breadth_saat_buka). Angka pertama =
+       breadth sisi lama (n − bullish) / sampel, lalu umur gugus bearish penuh.
+       Hijau = gugus baru (≤2 jam, syarat gerbang), merah = sudah basi. */
+    { h: "breadth short", n: 1, c: function (r) {
+        if (String(r.dir || "").toLowerCase() !== "short") return el("td", "dim", "—");
+        var bb = r.breadth, est = false;
+        if (!bb || num(bb.sisi) == null) { bb = r.breadth_estimasi; est = true; }
+        if (!bb || num(bb.sisi) == null) return el("td", "dim", "—");
+        var sisi = num(bb.sisi), n = num(bb.n), m = num(bb.umur_menit);
+        var umurTeks = m == null ? "" : m <= 0 ? " · bukan gugus baru" : " · " + durasi(m);
+        var cls = "n " + (m == null ? "dim" : m > 0 && m <= 120 ? "pos" : "neg");
+        var td = el("td", cls, sisi + "/" + (n == null ? "?" : n) + umurTeks
+          + (est ? "*" : ""));
+        td.title = "umur breadth: " + (m == null ? "tak terbaca" : durasi(m))
+          + (bb.ringkas ? " · " + bb.ringkas : "")
+          + (bb.btc_15m_di_atas ? " · BTC 15m di atas EMA9"
+                                 : " · BTC 15m di bawah EMA9")
+          + (est ? "\n* dihitung ULANG dari potret breadth per jam (entry sebelum "
+                    + "journal mencatat breadth), bukan catatan saat entry." : "");
+        return td;
+      } },
     { h: "R", n: 1, c: function (r) {
         var v = num(r.r);
         return el("td", "n " + (v == null ? "dim" : v < 0 ? "neg" : "pos"),
@@ -153,6 +175,35 @@
          s.wr == null ? "mut" : s.wr >= 50 ? "pos" : "neg");
     chip("total R", (s.r > 0 ? "+" : "") + s.r.toFixed(2), s.r >= 0 ? "pos" : "neg");
     if (s.usd != null) chip("total $", usd(s.usd), s.usd >= 0 ? "pos" : "neg");
+    /* 23 Nov (permintaan user) — RIWAYAT UMUR BREADTH SHORT, dikelompokkan
+       seperti uji A/B: gugus baru (≤2 jam) vs 2–5 jam vs >5 jam. Hanya trade
+       short yang membawa potret breadth saat entry yang dihitung. */
+    var sbs = rows.filter(function (r) {
+      var bb = r.breadth || r.breadth_estimasi;
+      return String(r.dir || "").toLowerCase() === "short" && bb
+        && num(bb.umur_menit) != null;
+    });
+    if (sbs.length) {
+      var bucket = function (label, f) {
+        var g = sbs.filter(function (r) {
+          var bb = r.breadth || r.breadth_estimasi;
+          return f(num(bb.umur_menit));
+        });
+        if (!g.length) return;
+        var rr = 0, mm = 0;
+        g.forEach(function (r) {
+          var v = num(r.r) || 0;
+          rr += v;
+          if (v > 0) mm++;
+        });
+        chip("short breadth " + label + " · WR " + (mm / g.length * 100).toFixed(0)
+             + "% · " + (rr > 0 ? "+" : "") + rr.toFixed(2) + "R",
+             String(g.length), mm / g.length >= 0.5 ? "pos" : "neg");
+      };
+      bucket("baru \u22642j", function (m) { return m <= 120; });
+      bucket("2\u20135j", function (m) { return m > 120 && m <= 300; });
+      bucket(">5j", function (m) { return m > 300; });
+    }
 
     if (!rows.length) {
       host.appendChild(el("div", "kosong",

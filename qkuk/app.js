@@ -2775,9 +2775,9 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     cBD.appendChild(csBD);
     cBD.appendChild(el("p", "def-note",
       (BD.ringkas || "") + (BD.ringkas ? " \u2014 " : "")
-      + "Gerbang long butuh bullish \u2265 16/20, gerbang short butuh \"turun\" \u2265 16/20 "
-      + "dihitung dari n − bullish, ditambah BTC 15m di atas EMA9 dan breadth yang baru memburuk "
-      + "(23 Nov). Lihat kolom bearish penuh sebelum mempercayai angka turun."));
+      + "Sejak 23 Nov short HANYA dari pasangan: BTC 15m di atas EMA9 + bearish penuh "
+      + "\u2265 8/20 yang baru memburuk (\u2264 2 jam) — ambang 16/20 tidak lagi cukup sendiri. "
+      + "Long butuh bullish \u2265 16/20 + BTC 15m di bawah EMA9."));
 
     /* 21 Nov (permintaan user) — PANEL GERBANG HARI TREN: setiap kali gerbang
        menaikkan ukuran otomatis, hasilnya harus bisa dipantau tanpa buka log.
