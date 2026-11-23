@@ -2773,11 +2773,37 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
         BDBTC["15m_di_atas"] ? "mut" : "neg"));
     }
     cBD.appendChild(csBD);
+    /* 23 Nov (permintaan user) — STATUS GERBANG LONG: biar kelihatan kenapa long
+       belum entry (sisi/butuh berapa, BTC 1h berapa, 15m di atas/bawah). Sumber
+       sama dengan gerbang yang dipakai bot: state/breadth_terakhir.json →
+       gerbang_long, ditulis dari `_gerbang_sisi("long")` — bukan hitungan panel. */
+    var GL = BDS.gerbang_long || {};
+    if (GL.ok !== undefined) {
+      var csGL = el("div", "lh-chips");
+      csGL.appendChild(chip("gerbang long", GL.ok ? "LOLOS" : "tertahan",
+        GL.ok ? "pos" : "neg"));
+      var nGL = num(GL.n) || 0, bGL = num(GL.butuh), naikGL = num(GL.naik) || 0;
+      if (nGL) {
+        csGL.appendChild(chip("breadth naik", naikGL + "/" + nGL
+          + (bGL == null ? "" : " \u00b7 butuh " + bGL + "/" + nGL),
+          bGL != null && naikGL >= bGL ? "pos" : "mut"));
+      }
+      var pGL = num(GL.btc_1h);
+      csGL.appendChild(chip("BTC 1h", pGL == null ? "\u2014"
+        : (pGL > 0 ? "+" : "") + pGL.toFixed(2) + "%",
+        pGL == null ? "mut" : (pGL >= 0 ? "pos" : "neg")));
+      if (GL.btc_15m_butuh) {
+        csGL.appendChild(chip("BTC 15m", GL.btc_15m_di_atas ? "di atas EMA9" : "di bawah EMA9",
+          GL.btc_15m_di_atas ? "neg" : "mut"));
+      }
+      cBD.appendChild(csGL);
+      if (GL.sebab) cBD.appendChild(el("p", "def-note", GL.sebab));
+    }
     cBD.appendChild(el("p", "def-note",
       (BD.ringkas || "") + (BD.ringkas ? " \u2014 " : "")
       + "Sejak 23 Nov short HANYA dari pasangan: BTC 15m di atas EMA9 + bearish penuh "
       + "\u2265 8/20 yang baru memburuk (\u2264 2 jam) — ambang 16/20 tidak lagi cukup sendiri. "
-      + "Long butuh bullish \u2265 16/20 + BTC 15m di bawah EMA9."));
+      + "Long butuh bullish \u2265 8/20 + BTC 1h \u2265 0 + BTC 15m di bawah EMA9 (pullback)."));
 
     /* 23 Nov (permintaan user) — SHORT LOLOS vs DITOLAK GERBANG: rincian tiap
        short yang sudah tutup, dipisah menurut putusan gerbang pasangan
