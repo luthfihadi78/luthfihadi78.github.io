@@ -228,8 +228,13 @@ h2 i{color:var(--ac);font-style:normal}
    viewport akan MENUTUPI baris tabel saat tabelnya cuma berisi 1 baris
    (terlihat di kanal 1H: header tampil, barisnya hilang). Di dalam
    kotak ber-scroll, sticky menempel pada kotaknya, bukan halaman. */
-.tw{overflow:auto;max-height:60vh;border:1px solid var(--line);
-  border-radius:var(--r);background:var(--s1)}
+/* 23 Nov (permintaan user) — semua tabel harus bisa digeser, termasuk di HP.
+   `max-width:100%` + `min-width:0` mencegah kotak melebar mengikuti tabel
+   (dulu di dalam flex/grid kotaknya ikut membesar, jadi halaman yang meluber
+   dan tabelnya tak bisa di-slide). */
+.tw{overflow:auto;max-height:60vh;min-width:0;max-width:100%;
+  border:1px solid var(--line);border-radius:var(--r);background:var(--s1);
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums;min-width:820px}
 th{text-align:left;padding:9px 12px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
   color:var(--fg-3);font-weight:500;border-bottom:1px solid var(--line);white-space:nowrap;

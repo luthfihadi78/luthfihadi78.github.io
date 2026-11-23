@@ -1428,6 +1428,11 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
   }
   function table(host, cols, rows, msg, onRow) {
     host.innerHTML = "";
+    /* 23 Nov (permintaan user) — SEMUA tabel harus bisa di-scroll. Dulu
+       sebagian tabel dirender langsung ke kontainer kartu tanpa pembungkus
+       .tw, jadi tabel lebar (banyak kolom, nowrap) terpotong dan tak bisa
+       digeser. Sekarang pembungkusnya dipasang di sini, satu tempat. */
+    if (host.classList && !host.classList.contains("tw")) host.classList.add("tw");
     if (!rows.length) { host.appendChild(el("div", "empty", msg)); return; }
     var t = el("table"), th = el("thead"), tr = el("tr");
     cols.forEach(function (c) { var h = el("th", null, c.h); if (c.n) h.style.textAlign = "right"; tr.appendChild(h); });
