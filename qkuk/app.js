@@ -2677,6 +2677,29 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     }
     host.appendChild(cs);
 
+    /* 23 Nov (permintaan user) — status gerbang LONG & SHORT juga di panel
+       pertahanan, bukan cuma di kartu breadth: chip status + breadth sisi/butuh
+       + alasan, dari snapshot state/breadth_terakhir.json yang sama. */
+    var BDS = P.breadth || {};
+    var gs = el("div", "bc-sum"), gnote = [];
+    [["long", BDS.gerbang_long], ["short", BDS.gerbang_short]].forEach(function (g) {
+      var nm = g[0], G = g[1] || {};
+      if (G.ok === undefined) {
+        gs.appendChild(chip("gerbang " + nm, "tak terbaca", "mut"));
+        return;
+      }
+      var nG = +G.n || 0;
+      var st = G.ok == null ? "gagal hitung"
+        : (G.ok ? (nG ? "LOLOS" : "tak terbaca") : "tertahan");
+      var bar = nG ? " \u00b7 " + (+G.sisi || 0) + "/" + nG
+        + (G.butuh == null ? "" : " (butuh " + G.butuh + ")") : "";
+      gs.appendChild(chip("gerbang " + nm, st + bar,
+        st === "LOLOS" ? "pos" : st === "tertahan" ? "neg" : "mut"));
+      if (G.sebab) gnote.push(nm + ": " + G.sebab);
+    });
+    host.appendChild(gs);
+    if (gnote.length) host.appendChild(el("p", "def-note", gnote.join(" \u00b7 ")));
+
     var grid = el("div", "def-grid");
     host.appendChild(grid);
     var card = function (judul, sub) {
