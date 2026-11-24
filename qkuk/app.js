@@ -23,7 +23,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261118i";
+  var BUILD = "qkuk-bot-20261124a";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -4732,6 +4732,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           var sub = [dasar, sisa ? "sisa " + sisa : null]
             .filter(function (x) { return x; }).join(" \u00b7 ");
           if (sub) td.appendChild(el("em", "antre-sub", sub));
+          /* 24 Nov — arah yang sedang dipantau tiap siklus. Bukan keputusan,
+             tapi bikin jelas kenapa antrean menunggu / kapan arah berubah. */
+          var ap = r.arah_pantau || {};
+          if (ap.status) {
+            var tgl = ap.mss ? "MSS" : ap.bos ? "BOS" : ap.retest ? "retest" : "";
+            td.appendChild(el("em", "antre-sub",
+              "pantau: " + ap.status + (tgl ? " · " + tgl : "")));
+          }
           td.title = "status antrean: " + (r.status_antre || "Menunggu")
             + (r.umur == null ? "" : "\numur " + umurTeks(r.umur))
             + (r.alasan ? "\nsebab: " + r.alasan : "");
