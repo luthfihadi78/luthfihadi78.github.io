@@ -4484,6 +4484,92 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     _rkFokusLalu = F.sym || null;
   }
 
+  /* 25 Nov — kartu operasional bergaya terminal: ringkas, tanpa warna berlebih. */
+  function opKartu(hostId, judul, kanan) {
+    var host = $(hostId); if (!host) return null;
+    host.innerHTML = "";
+    var w = el("div", "op-card");
+    var h = el("div", "op-h");
+    h.appendChild(el("span", null, judul));
+    if (kanan) h.appendChild(el("b", null, kanan));
+    w.appendChild(h);
+    host.appendChild(w);
+    return w;
+  }
+  function opSel(w, label, nilai, kelas) {
+    var c = el("div", "op-cell" + (kelas ? " " + kelas : ""));
+    c.appendChild(el("span", "op-l", label));
+    c.appendChild(el("div", "op-v", nilai == null ? "\u2014" : String(nilai)));
+    return c;
+  }
+  var fmtR = function (v) {
+    if (v == null) return "\u2014";
+    return (v > 0 ? "+" : "") + Number(v).toFixed(3) + "R";
+  };
+  function botDampak(D) {
+    var d = (D && D.dampak) || {}, sb = d.sebelum || {}, st = d.sesudah || {};
+    var w = opKartu("#bot-dampak", "dampak update 24 Nov \u00b7 sebelum vs sesudah",
+                    "cutoff " + (d.cutoff || "\u2014"));
+    if (!w) return;
+    var g = el("div", "op-grid");
+    [["short", sb.short, st.short], ["long", sb.long, st.long],
+     ["cut paksa", sb.cut_paksa, st.cut_paksa]].forEach(function (x) {
+      var a = x[1] || {}, b = x[2] || {};
+      var kiri = a.wr == null ? "\u2014" : a.wr + "% / " + fmtR(a.avg_r);
+      var kanan = b.wr == null ? "trade baru n=" + (d.n_baris || 0)
+                               : b.wr + "% / " + fmtR(b.avg_r);
+      g.appendChild(opSel(w, x[0], kiri + "   \u2192   " + kanan,
+                          (d.n_baris || 0) >= 20 ? "good" : "netral"));
+    });
+    w.appendChild(g);
+    w.appendChild(el("p", "cap", d.catatan || ""));
+  }
+  function botGerbang(D) {
+    var g = (D && D.gerbang_ringkas) || {};
+    var br = (typeof DATA === "object" && DATA && DATA.breaker) || {};
+    var w = opKartu("#bot-gerbang", "gerbang arah \u00b7 kenapa entry ditahan",
+                    br.aktif ? "breaker AKTIF sisa " + Math.round((br.sisa_s || 0) / 60) + " mnt"
+                             : "breaker mati");
+    if (!w) return;
+    var grid = el("div", "op-grid");
+    ["long", "short"].forEach(function (sisi) {
+      var v = g[sisi] || {};
+      var c = el("div", "op-cell " + (v.ok ? "good" : "bad"));
+      c.appendChild(el("span", "op-l", sisi.toUpperCase() + " gate " + (v.ok ? "\u2714 LOLOS" : "\u2718 DITAHAN")));
+      c.appendChild(el("div", "op-v op-kecil", String(v.sebab || "\u2014").slice(0, 170)));
+      grid.appendChild(c);
+    });
+    grid.appendChild(opSel(w, "breadth", g.breadth || "\u2014", "netral"));
+    grid.appendChild(opSel(w, "data terbaca", g.dibaca == null ? "\u2014" : g.dibaca + "/20", "netral"));
+    w.appendChild(grid);
+    w.appendChild(el("p", "cap", "\"bebas\" = tidak ada sisi yang diizinkan pasar, BUKAN semua arah boleh entry. Saat data tak terbaca gerbang dilewati (fail-open)."));
+  }
+  function botAgentStatus(D) {
+    var a = (D && D.agent_status) || {};
+    var w = opKartu("#bot-agentstatus", "agent harness \u00b7 yang benar-benar aktif");
+    if (!w) return;
+    var g = el("div", "op-grid");
+    g.appendChild(opSel(w, "model", a.model, "good"));
+    g.appendChild(opSel(w, "prompt", a.prompt_version, "netral"));
+    g.appendChild(opSel(w, "pending flip", a.pending_flip === "1" ? "AKTIF" : "uji / mati (0)",
+                        a.pending_flip === "1" ? "good" : "netral"));
+    g.appendChild(opSel(w, "rfc live", a.rfc_live === "1" ? "AKTIF" : "bayangan (0)",
+                        a.rfc_live === "1" ? "good" : "netral"));
+    g.appendChild(opSel(w, "hold", a.hold === "1" ? "ON" : "OFF", "netral"));
+    w.appendChild(g);
+  }
+  function botRelay(D) {
+    var r = (D && D.relay_health) || {};
+    var w = opKartu("#bot-relay", "kesehatan relay \u00b7 timeout / retry hari ini");
+    if (!w) return;
+    var g = el("div", "op-grid");
+    g.appendChild(opSel(w, "timeout", r.timeout == null ? "\u2014" : r.timeout, "netral"));
+    g.appendChild(opSel(w, "retry", r.retry == null ? "\u2014" : r.retry, "netral"));
+    g.appendChild(opSel(w, "llm fallback", r.fallback == null ? "\u2014" : r.fallback, "netral"));
+    w.appendChild(g);
+    w.appendChild(el("p", "cap", "Retry dibatasi 1\u00d7 + cooldown 5 mnt dan dicatat di journal (relay_retry). Status timeout dibuang otomatis setelah 120 mnt."));
+  }
+
   function botAntrean(A, B) {
     var host = $("#bot-antrean");
     if (!host) return;
@@ -6248,6 +6334,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     botSkill(B.skill);
     botLaporanTahan(B.laporan_tahan);
     botRadar(B);
+    botDampak(B);
+    botGerbang(B);
+    botAgentStatus(B);
+    botRelay(B);
     botAntrean(B.antrean, B);
     botRebound(B.rebound_sinyal);
     if (accHost) table(accHost, [
