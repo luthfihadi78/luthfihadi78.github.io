@@ -299,6 +299,33 @@ svg.ch#bot-eqv{height:460px}
    design lebih hidup). Kartu grafik jadi elemen pertama bagian bot, dengan
    latar gradien tipis, kurva yang menggambar dirinya saat muncul, area yang
    memudar masuk, dan titik terakhir yang berdenyut seperti harga live. ═══ */
+/* 25 Nov — kartu operasional bertema terminal: panel gelap, aksen hijau,
+   monospaced, tanpa glow. Dipakai dampak/gerbang/agent/relay. */
+.op-card{margin:4px 0 12px;padding:10px 12px 11px;border:1px solid var(--line);
+  border-radius:var(--r);background:var(--s1)}
+.op-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  padding-bottom:7px;margin-bottom:9px;border-bottom:1px dashed var(--line-2);
+  font-size:10px;letter-spacing:.14em;color:var(--fg-3);text-transform:uppercase}
+.op-h b{color:var(--ac);font-size:10px;font-weight:700;letter-spacing:.04em;
+  text-transform:none}
+.op-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.op-cell{display:flex;flex-direction:column;gap:5px;padding:9px 10px;
+  border:1px solid var(--line);border-radius:6px;background:var(--s2)}
+.op-l{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-3)}
+.op-v{font-size:12px;line-height:1.5;color:var(--fg);white-space:pre-wrap;
+  overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.op-v.op-kecil{font-size:10px;color:var(--fg-2)}
+.op-cell.good{border-color:rgba(110,231,183,.35)}
+.op-cell.good .op-v{color:var(--ac)}
+.op-cell.bad{border-color:rgba(232,135,124,.35)}
+.op-cell.bad .op-v{color:var(--dn)}
+.op-card .cap{margin:9px 0 0;font-size:10px;color:var(--fg-3);line-height:1.55}
+.antre-riwayat{margin-top:12px;border-top:1px dashed var(--line-2);padding-top:8px}
+.antre-riwayat summary{cursor:pointer;font-size:11px;color:var(--fg-2);
+  letter-spacing:.03em;padding:4px 0}
+.antre-riwayat summary:hover,.antre-riwayat[open] summary{color:var(--ac)}
+.antre-riwayat .tw{max-height:320px;margin-top:8px}
+
 /* 24 Nov — kartu profil agent di tab bot */
 #bot-agents{margin:4px 0 18px}
 .ag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}

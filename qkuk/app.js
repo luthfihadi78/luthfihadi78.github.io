@@ -23,7 +23,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261124a";
+  var BUILD = "qkuk-bot-20261125a";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -4516,10 +4516,10 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      ["cut paksa", sb.cut_paksa, st.cut_paksa]].forEach(function (x) {
       var a = x[1] || {}, b = x[2] || {};
       var kiri = a.wr == null ? "\u2014" : a.wr + "% / " + fmtR(a.avg_r);
-      var kanan = b.wr == null ? "trade baru n=" + (d.n_baris || 0)
+      var kanan = b.wr == null ? "trade baru n=" + (d.n_baru || 0)
                                : b.wr + "% / " + fmtR(b.avg_r);
       g.appendChild(opSel(w, x[0], kiri + "   \u2192   " + kanan,
-                          (d.n_baris || 0) >= 20 ? "good" : "netral"));
+                          (d.n_baru || 0) >= 20 ? "good" : "netral"));
     });
     w.appendChild(g);
     w.appendChild(el("p", "cap", d.catatan || ""));
@@ -4630,16 +4630,14 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
        tunggu, dan per sisa waktu supaya antrean terbaca sekilas. */
     host.className = "antrean";
     var h = el("div", "antrean-h");
-    h.appendChild(el("span", null, "antrean agent \u00b7 semua sinyal hari ini"));
+    h.appendChild(el("span", null, "antrean aktif \u00b7 pending.json"));
     var bcls, btxt;
     if (statusEng === "mati") {
       bcls = "antre-badge kosong-mati";
       btxt = rows.length ? rows.length + " setup \u00b7 engine mati" : "kosong \u00b7 engine mati";
     } else if (rows.length) {
       bcls = "antre-badge";
-      btxt = (RG.n || rows.length) + " sinyal hari ini \u00b7 "
-        + (RG.menunggu == null ? rows.length : RG.menunggu) + " menunggu \u00b7 "
-        + (RG.open || 0) + " open \u00b7 " + (RG.ditolak || 0) + " ditolak";
+      btxt = aktif.length + " antrean aktif \u00b7 " + rows.length + " riwayat hari ini";
     } else if (nBlok > 0) {
       bcls = "antre-badge kosong-gate";
       btxt = "kosong \u00b7 gate tolak " + nBlok;
