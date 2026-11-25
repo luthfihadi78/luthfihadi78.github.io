@@ -4575,6 +4575,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (!host) return;
     host.innerHTML = "";
     var rows = (A && A.baris) || [];
+    var aktif = (A && A.baris_aktif) || [];
     /* 17 Nov (permintaan user) — baris yang sudah tidak relevan bisa
        disembunyikan. Ini hanya tampilan di browser ini (situs statis tak bisa
        menulis ke bot); untuk benar-benar membatalkan pantauan jalankan
@@ -4782,7 +4783,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     };
     var box = el("div", "tw");
     host.appendChild(box);
-    table(box, [
+    var cols = [
       { h: "jam", c: function (r) {
           var td = el("td", "antre-jam");
           td.appendChild(sp(r.sejak, "dim"));
@@ -4891,14 +4892,22 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
           td.appendChild(b);
           return td;
         } }
-    ], rows, "Antrean kosong.");
+    ];
+    table(box, cols, aktif, "Antrean aktif kosong (pending.json).");
     var trs = box.querySelectorAll("tbody tr");
-    for (var ti = 0; ti < trs.length && ti < rows.length; ti++) {
-      if (rows[ti].status_antre === "Open Posisi") trs[ti].className = "ar-open";
+    for (var ti = 0; ti < trs.length && ti < aktif.length; ti++) {
+      if (aktif[ti].status_antre === "Open Posisi") trs[ti].className = "ar-open";
     }
+    var det = el("details", "antre-riwayat");
+    det.appendChild(el("summary", null,
+      "riwayat keputusan hari ini \u00b7 " + rows.length + " baris (klik untuk lihat)"));
+    var box2 = el("div", "tw");
+    det.appendChild(box2);
+    table(box2, cols, rows, "Tidak ada riwayat.");
+    host.appendChild(det);
     host.appendChild(el("p", "cap",
-      "Hanya sinyal yang dibuka HARI INI (WIB). Posisi yang dibuka kemarin tetap "
-      + "terlihat di tabel posisi terbuka, bukan di sini."));
+      "Baris atas = antrean yang benar-benar dipantau (pending.json). "
+      + "Riwayat keputusan dilipat di bawah dan otomatis dibuang setelah 120 menit."));
   }
 
   /* 14 Nov (permintaan user) — SINYAL LONG REBOUND: mana yang dibuka, ditahan
