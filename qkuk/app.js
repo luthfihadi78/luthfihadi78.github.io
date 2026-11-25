@@ -4795,7 +4795,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     var box = el("div", "tw");
     host.appendChild(box);
     var cols = [
-      { h: "jam", c: function (r) {
+      { h: "jam masuk", c: function (r) {
           var td = el("td", "antre-jam");
           td.appendChild(sp(r.sejak, "dim"));
           return td;
