@@ -1407,7 +1407,20 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      bukan kode TF "OB"/"2H"/"4H", biar konsisten dgn grup WA & strip riset. */
   var TAB_NAME = { "30m": "REA", "2h": "HARVEST",
                    "ob": "BRICK", "ob4h": "BASTION 4H", "ob1d": "OB 1D", "ob2h": "SCALP 2H", "1h": "SNIPER", "15m": "DART",
-                   "tile": "TILE 30M" };
+                   "tile": "TILE 30M", "4h": "SWING 4H" };
+  /* 25 Nov (permintaan user) — kandidat dari baris WATCHLIST memakai kode
+     kanal berawalan "wl" (wl2h = watchlist HARVEST 2h, wlob4h = watchlist
+     BASTION 4H). Sebelum ini kode itu muncul mentah di tabel antrean dan
+     statistik, jadi terbaca seolah engine baru — padahal itu engine yang sama
+     lewat kanal watchlist. Satu penerjemah untuk semua tempat. */
+  function namaEngine(k) {
+    var s = String(k || "");
+    if (TAB_NAME[s]) return TAB_NAME[s];
+    if (s.indexOf("wl") === 0 && TAB_NAME[s.slice(2)]) {
+      return TAB_NAME[s.slice(2)] + " · WATCHLIST";
+    }
+    return s.toUpperCase();
+  }
   function tabs(host, active, pick, withAll) {
     host.innerHTML = "";
     if (withAll) {
@@ -4790,7 +4803,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       { h: "pair", c: function (r) {
           var td = el("td", "antre-pair");
           td.appendChild(el("b", null, r.sym || "\u2014"));
-          var meta = [String(r.kanal || "").toUpperCase(), umurTeks(r.umur)]
+          var meta = [namaEngine(r.kanal), umurTeks(r.umur)]
             .filter(function (x) { return x; }).join(" \u00b7 ");
           if (meta) td.appendChild(el("em", null, meta));
           return td;
@@ -5110,19 +5123,20 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     if (nEl) nEl.textContent = (S.n == null ? "—" : S.n + " trade tertutup");
     if (msEl) msEl.textContent = S.galat ? "—"
       : (S.ms == null ? "—" : "kueri " + S.ms + " ms");
+    /* 25 Nov — kanal watchlist (wl…) kini ikut engine-nya, bukan kode mentah. */
     var NAMA_KANAL = { "ob": "🧱 BRICK", "ob4h": "🏰 BASTION 4H", "ob1d": "🏛️ OB 1D", "ob30m": "🧱 TILE 30M",
-      "tile": "🧱 TILE 30M", "2h": "🩸 HARVEST 2H", "4h": "SCALP 2H",
+      "tile": "🧱 TILE 30M", "2h": "🩸 HARVEST 2H", "4h": "🌊 SWING 4H",
       "1h": "⚡ SNIPER", "30m": "REVERSAL", "15m": "🎯 DART" };
     /* Satu engine bisa tercatat dengan dua kunci berbeda (mis. "tile" dan
        "ob30m" untuk TILE 30M). Kalau labelnya jadi sama, tambahkan kunci
        mentahnya supaya dua baris tidak terlihat seperti duplikat. */
     var labelKanal = {};
     (S.kanal || []).forEach(function (r) {
-      var l = NAMA_KANAL[r.kanal] || String(r.kanal || "?").toUpperCase();
+      var l = NAMA_KANAL[r.kanal] || namaEngine(r.kanal);
       labelKanal[l] = (labelKanal[l] || 0) + 1;
     });
     var namaKanal = function (k) {
-      var l = NAMA_KANAL[k] || String(k || "?").toUpperCase();
+      var l = NAMA_KANAL[k] || namaEngine(k);
       return labelKanal[l] > 1 ? l + " · " + k : l;
     };
     var rcell = function (v) {
