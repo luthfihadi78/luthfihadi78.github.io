@@ -299,6 +299,13 @@ svg.ch#bot-eqv{height:460px}
    design lebih hidup). Kartu grafik jadi elemen pertama bagian bot, dengan
    latar gradien tipis, kurva yang menggambar dirinya saat muncul, area yang
    memudar masuk, dan titik terakhir yang berdenyut seperti harga live. ═══ */
+/* 26 Nov — badge temuan audit baru. Terminal: kotak hijau, tanpa denyut. */
+.op-new{display:inline-block;margin-left:8px;padding:1px 6px;border-radius:3px;
+  border:1px solid var(--ac-2);background:var(--ac-w);color:var(--ac);
+  font-size:9px;letter-spacing:.14em;font-weight:700;cursor:pointer;
+  vertical-align:middle}
+.op-new:hover{background:rgba(110,231,183,.18)}
+
 /* 25 Nov — kartu operasional bertema terminal: panel gelap, aksen hijau,
    monospaced, tanpa glow. Dipakai dampak/gerbang/agent/relay. */
 .op-card{margin:4px 0 12px;padding:10px 12px 11px;border:1px solid var(--line);

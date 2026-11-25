@@ -23,7 +23,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261125b";
+  var BUILD = "qkuk-bot-20261126a";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -3363,6 +3363,26 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
       AJ.dibuat ? String(AJ.dibuat).slice(0, 16).replace("T", " ") + " UTC"
                 : "belum pernah jalan");
     cAJ.className += " lh-card";
+    /* 26 Nov — badge NEW bila ada temuan pada hari yang belum pernah dibaca.
+       Klik badge = tandai sudah dibaca (tersimpan di browser ini). */
+    var AJKEY = "qkuk_audit_seen", seen = "";
+    try { seen = localStorage.getItem(AJKEY) || ""; } catch (e) { seen = ""; }
+    if (AJ.terbaru && AJ.terbaru > seen) {
+      var nb = el("span", "op-new", "NEW");
+      nb.title = "Ada " + (AJ.n_terbaru || 0) + " temuan baru " + AJ.terbaru
+        + ". Klik untuk menandai sudah dibaca.";
+      nb.onclick = function () {
+        try { localStorage.setItem(AJKEY, AJ.terbaru || ""); } catch (e) {}
+        if (typeof botPertahanan === "function") botPertahanan(P);
+      };
+      cAJ.appendChild(nb);
+    }
+    if (AJ.kode_terbaru && Object.keys(AJ.kode_terbaru).length) {
+      var ring = Object.keys(AJ.kode_terbaru).map(function (k) {
+        return k + " " + AJ.kode_terbaru[k];
+      }).join(" | ");
+      cAJ.appendChild(el("p", "def-note", "temuan " + (AJ.terbaru || "?") + ": " + ring));
+    }
     if (!AJ.dipindai) {
       cAJ.appendChild(el("p", "def-note mut",
         AJ.dibuat ? "Tidak ada baris journal di jendela ini."
