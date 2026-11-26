@@ -23,7 +23,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
      kalau data.json membawa versi lain, halaman memuat ulang dirinya sendiri. */
   /* 20 Okt: 🏰 BASTION 4H (OB 4H) menggantikan 🐳 WHALE.
      BUILD dinaikkan bersama ?v= di index.html supaya tab lama memuat ulang. */
-  var BUILD = "qkuk-bot-20261126a";
+  var BUILD = "qkuk-bot-20261127a";
   var BOT_LAST = null;   /* 12 Nov — snapshot kartu bot terakhir yang sah */
   var NOTIF_SINYAL_ON = false;   /* 12 Nov — hanya bot-open yang berbunyi */
   /* 4 engine aktif (1 Nov): 🩸 HARVEST 2h = merah darah · 🧱 BRICK
@@ -4557,6 +4557,30 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     w.appendChild(g);
     w.appendChild(el("p", "cap", d.catatan || ""));
   }
+  function botPerbandingan(D) {
+    var p = (D && D.perbandingan) || {}, lv = p.live || {},
+        sp = p.live_sampel_ab || {}, rf = p.rfc || {},
+        lt = p.llm_take || {}, ls = p.llm_stand || {};
+    var w = opKartu("#bot-perbandingan", "live vs RFC-004 \u00b7 akurasi & net R",
+                    "A/B " + (p.n_berpasangan || 0) + " pasangan");
+    if (!w) return;
+    var g = el("div", "op-grid");
+    function baris(label, x, kelas) {
+      var v = x && x.n ? (x.wr + "% / " + fmtR(x.avg_r) + " \u00b7 n=" + x.n)
+                       : "belum ada data";
+      g.appendChild(opSel(w, label, v, kelas));
+    }
+    baris("LIVE semua trade", lv, (lv.wr || 0) >= 50 ? "good" : "bad");
+    baris("LIVE pada sampel A/B", sp, "netral");
+    baris("RFC-004 (shadow)", rf, "netral");
+    baris("LLM setuju (A/B)", lt, "netral");
+    baris("LLM tahan (A/B)", ls, "netral");
+    w.appendChild(g);
+    w.appendChild(el("p", "cap",
+      "live sejak " + (lv.sejak || "\u2014") + " \u00b7 jendela A/B " +
+      (p.jendela || "\u2014") + " \u00b7 " + (p.verdict || "") + ". " +
+      (p.catatan || "")));
+  }
   function botGerbang(D) {
     var g = (D && D.gerbang_ringkas) || {};
     var br = (typeof DATA === "object" && DATA && DATA.breaker) || {};
@@ -6376,6 +6400,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
     botLaporanTahan(B.laporan_tahan);
     botRadar(B);
     botDampak(B);
+    botPerbandingan(B);
     botGerbang(B);
     botAgentStatus(B);
     botRelay(B);
